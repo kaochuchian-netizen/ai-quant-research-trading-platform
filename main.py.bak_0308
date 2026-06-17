@@ -1,0 +1,59 @@
+import os
+
+from app.loaders.google_sheet_loader import load_stock_ids
+from app.market.stock_name_loader import get_stock_name
+from indicators.indicator_engine_v2 import build_indicator_result
+from analysis.analysis_engine import analyze_stock
+from reports.report_formatter_v2 import format_stock_report_v2
+from reports.line_report_sender import send_line_report
+from scripts.update_historical_csv import main as update_historical_csv
+
+
+def main():
+    print("開始更新 historical CSV")
+    update_historical_csv()
+    print("historical CSV 更新完成")
+
+    stock_ids = load_stock_ids()
+    daily_reports = []
+
+    for stock_id in stock_ids:
+        stock_name = get_stock_name(stock_id)
+
+        print(f"開始分析股票：{stock_name}({stock_id})")
+
+        csv_path = f"data/historical/{stock_id}_daily.csv"
+
+        if not os.path.exists(csv_path):
+            print(f"略過股票 {stock_name}({stock_id})：找不到歷史資料 {csv_path}")
+            continue
+
+        indicator_result = build_indicator_result(stock_id, csv_path)
+        indicator_result["stock_name"] = stock_name
+
+        ai_analysis = analyze_stock(indicator_result)
+        report = format_stock_report_v2(stock_id, stock_name, indicator_result, ai_analysis)
+
+        print(report)
+
+        daily_reports.append(report)
+
+        print(f"已完成分析：{stock_name}({stock_id})")
+
+    if not daily_reports:
+        print("今日沒有可推播的股票分析結果")
+        return
+
+    daily_summary = "【每日總結】\n\n" + "\n\n".join(daily_reports)
+
+    print(daily_summary)
+
+    try:
+        send_line_report(daily_summary)
+    except Exception as e:
+        print(f"LINE 每日總結推播失敗：{e}")
+        return
+
+print("每日總結推播完成")
+if __name__ == "__main__":
+    main()

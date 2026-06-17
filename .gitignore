@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.pyc
+
+# Environment
+.env
+venv/
+
+# Google key
+stock-ai-key.json
+
+# Logs
+logs/
+*.log
+shioaji.log
+
+# Data
+data/
+
+# Backup
+backup/
+
+# IDE
+.vscode/
+
+# OS
+.DS_Store
+
+# Backup files
+*.bak
+*.save
