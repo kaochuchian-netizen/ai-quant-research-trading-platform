@@ -19,13 +19,11 @@ data/
 
 # Backup
 backup/
+*.bak
+*.save
 
 # IDE
 .vscode/
 
 # OS
 .DS_Store
-
-# Backup files
-*.bak
-*.save
