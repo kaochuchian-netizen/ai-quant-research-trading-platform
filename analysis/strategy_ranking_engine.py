@@ -236,7 +236,25 @@ def print_ranking(ranking):
 
 def run_strategy_ranking():
     rows = load_strategy_logs()
+
+    if not rows:
+        print("03-11-3 Strategy Ranking")
+        print("==============================")
+        print("沒有策略資料")
+        print("略過策略排行榜輸出，避免覆蓋既有 CSV")
+
+        return []
+
     ranking = build_ranking(rows)
+
+    if not ranking:
+        print("03-11-3 Strategy Ranking")
+        print("==============================")
+        print("沒有可排名策略")
+        print("略過策略排行榜輸出，避免覆蓋既有 CSV")
+
+        return []
+
     print_ranking(ranking)
 
     output_path = export_ranking(ranking)
@@ -247,7 +265,6 @@ def run_strategy_ranking():
     print(f"排名筆數：{len(ranking)}")
 
     return ranking
-
 
 def main():
     run_strategy_ranking()

@@ -14,6 +14,7 @@ from analysis.news_analysis_engine import analyze_news
 from analysis.news_scoring_engine import calculate_news_score
 from analysis.total_scoring_engine import calculate_total_score
 from analysis.chip.chip_analysis_engine import analyze_chip
+from analysis.backtest_auto_updater import run_backtest_auto_update
 
 from reports.report_formatter_v2 import (
     format_stock_report_v2,
@@ -80,6 +81,7 @@ def main():
             chip_result = analyze_chip(stock_id)
             chip_score = chip_result.get("chip_score", 50)
 
+
             total_score_result = calculate_total_score(
                 technical_score=technical_score,
                 news_score=news_score,
@@ -127,6 +129,10 @@ def main():
 
     print("每日總結推播完成")
 
+    run_backtest_auto_update()
+
 
 if __name__ == "__main__":
     main()
+
+

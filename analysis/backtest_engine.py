@@ -2,10 +2,14 @@ import csv
 import os
 import sqlite3
 from collections import defaultdict
+from datetime import datetime
 
 DB_PATH = "data/stock_analysis.db"
 HISTORICAL_DIR = "data/historical"
 HOLDING_DAYS_LIST = [1, 3, 5, 10, 20]
+
+PRE_OPEN_START_HOUR = 5
+PRE_OPEN_END_HOUR = 9
 
 
 def safe_float(value, default=None):
@@ -15,6 +19,39 @@ def safe_float(value, default=None):
         return float(value)
     except Exception:
         return default
+
+
+def parse_datetime(value):
+    if not value:
+        return None
+
+    formats = [
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%dT%H:%M:%S",
+        "%Y-%m-%d %H:%M:%S.%f",
+        "%Y-%m-%dT%H:%M:%S.%f",
+    ]
+
+    for fmt in formats:
+        try:
+            return datetime.strptime(str(value), fmt)
+        except ValueError:
+            continue
+
+    try:
+        return datetime.fromisoformat(str(value))
+    except Exception:
+        return None
+
+
+def is_pre_open_record(row):
+    created_at = row.get("created_at")
+    created_dt = parse_datetime(created_at)
+
+    if created_dt is None:
+        return False
+
+    return PRE_OPEN_START_HOUR <= created_dt.hour < PRE_OPEN_END_HOUR
 
 
 def load_analysis_results():
@@ -49,7 +86,20 @@ def load_analysis_results():
 
     rows = [dict(row) for row in cursor.fetchall()]
     conn.close()
-    return rows
+
+    pre_open_rows = [
+        row
+        for row in rows
+        if is_pre_open_record(row)
+    ]
+
+    print(
+        "回測資料篩選："
+        f"全部 {len(rows)} 筆，"
+        f"07:00 盤前區間 {len(pre_open_rows)} 筆"
+    )
+
+    return pre_open_rows
 
 
 def load_historical_prices(stock_id):
@@ -111,7 +161,7 @@ def build_backtest_records():
     historical_cache = {}
 
     for row in analysis_rows:
-        stock_id = str(row.get("stock_id"))
+        stock_id = str(row.get("stock_id")).zfill(4)
         run_date = row.get("run_date")
 
         if stock_id not in historical_cache:
@@ -218,7 +268,6 @@ def format_summary_table(title, summary):
         lines.append("無可回測資料")
         return "\n".join(lines)
 
-
     header = (
         "分類 | 筆數 | "
         "1日均報酬/勝率 | "
@@ -257,6 +306,7 @@ def generate_backtest_report():
     lines = []
     lines.append("03-11 Signal Backtest Report")
     lines.append("=" * 30)
+    lines.append("回測基準：07:00 盤前推播")
     lines.append(f"有效回測筆數：{len(records)}")
 
     lines.append(format_summary_table("整體績效", summarize_records(records)))
@@ -275,3 +325,4 @@ def run_backtest():
 
 if __name__ == "__main__":
     run_backtest()
+

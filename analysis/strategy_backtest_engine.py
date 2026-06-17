@@ -1,12 +1,16 @@
 import csv
 import os
 import sqlite3
+from datetime import datetime
 
 DB_PATH = "data/stock_analysis.db"
 HISTORICAL_DIR = "data/historical"
 OUTPUT_DIR = "analysis/output"
 
 HOLDING_DAYS_LIST = [1, 3, 5, 10, 20]
+
+PRE_OPEN_START_HOUR = 5
+PRE_OPEN_END_HOUR = 9
 
 STRATEGIES = [
     {
@@ -30,8 +34,9 @@ STRATEGIES = [
         "filter": lambda r: safe_float(r.get("adr_score"), 0) >= 60,
     },
 ]
-def safe_float(value, default=None):
 
+
+def safe_float(value, default=None):
     try:
         if value is None or value == "":
             return default
@@ -42,8 +47,40 @@ def safe_float(value, default=None):
         return default
 
 
-def load_analysis_results():
+def parse_datetime(value):
+    if not value:
+        return None
 
+    formats = [
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%dT%H:%M:%S",
+        "%Y-%m-%d %H:%M:%S.%f",
+        "%Y-%m-%dT%H:%M:%S.%f",
+    ]
+
+    for fmt in formats:
+        try:
+            return datetime.strptime(str(value), fmt)
+        except ValueError:
+            continue
+
+    try:
+        return datetime.fromisoformat(str(value))
+    except Exception:
+        return None
+
+
+def is_pre_open_record(row):
+    created_at = row.get("created_at")
+    created_dt = parse_datetime(created_at)
+
+    if created_dt is None:
+        return False
+
+    return PRE_OPEN_START_HOUR <= created_dt.hour < PRE_OPEN_END_HOUR
+
+
+def load_analysis_results():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
 
@@ -58,7 +95,8 @@ def load_analysis_results():
             rating,
             action,
             total_score,
-            adr_score
+            adr_score,
+            created_at
         FROM analysis_results
         ORDER BY run_date ASC, stock_id ASC
         """
@@ -71,9 +109,22 @@ def load_analysis_results():
 
     conn.close()
 
-    return rows
-def load_historical_prices(stock_id):
+    pre_open_rows = [
+        row
+        for row in rows
+        if is_pre_open_record(row)
+    ]
 
+    print(
+        "策略回測資料篩選："
+        f"全部 {len(rows)} 筆，"
+        f"07:00 盤前區間 {len(pre_open_rows)} 筆"
+    )
+
+    return pre_open_rows
+
+
+def load_historical_prices(stock_id):
     csv_path = os.path.join(
         HISTORICAL_DIR,
         f"{stock_id}_daily.csv"
@@ -113,11 +164,7 @@ def load_historical_prices(stock_id):
     return prices
 
 
-def find_price_index(
-    prices,
-    run_date
-):
-
+def find_price_index(prices, run_date):
     for index, row in enumerate(prices):
 
         if row["date"] == run_date:
@@ -126,11 +173,7 @@ def find_price_index(
     return None
 
 
-def calculate_future_returns(
-    prices,
-    start_index
-):
-
+def calculate_future_returns(prices, start_index):
     result = {}
 
     base_close = prices[start_index]["close"]
@@ -161,15 +204,16 @@ def calculate_future_returns(
         result[f"return_{holding_days}d"] = round(return_pct, 2)
 
     return result
-def build_backtest_records():
 
+
+def build_backtest_records():
     rows = load_analysis_results()
     records = []
     historical_cache = {}
 
     for row in rows:
 
-        stock_id = str(row.get("stock_id"))
+        stock_id = str(row.get("stock_id")).zfill(4)
         run_date = row.get("run_date")
 
         if stock_id not in historical_cache:
@@ -203,8 +247,8 @@ def build_backtest_records():
 
     return records
 
-def judge_result(return_pct):
 
+def judge_result(return_pct):
     if return_pct is None:
         return "pending"
 
@@ -218,7 +262,6 @@ def judge_result(return_pct):
 
 
 def build_strategy_signal_logs(records):
-
     logs = []
 
     for strategy in STRATEGIES:
@@ -241,6 +284,7 @@ def build_strategy_signal_logs(records):
                 logs.append(
                     {
                         "strategy_name": strategy["name"],
+                        "signal_session": "pre_open",
                         "run_date": record.get("run_date"),
                         "future_date": record.get(future_date_key),
                         "stock_id": record.get("stock_id"),
@@ -259,7 +303,6 @@ def build_strategy_signal_logs(records):
 
 
 def export_strategy_signal_logs(logs):
-
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     output_path = os.path.join(
@@ -269,6 +312,7 @@ def export_strategy_signal_logs(logs):
 
     fieldnames = [
         "strategy_name",
+        "signal_session",
         "run_date",
         "future_date",
         "stock_id",
@@ -301,7 +345,6 @@ def export_strategy_signal_logs(logs):
 
 
 def calculate_strategy_performance(records):
-
     results = []
 
     for strategy in STRATEGIES:
@@ -352,6 +395,7 @@ def calculate_strategy_performance(records):
 
                 continue
 
+
             win_count = len(
                 [
                     value
@@ -390,8 +434,8 @@ def calculate_strategy_performance(records):
 
     return results
 
-def format_value(value, suffix=""):
 
+def format_value(value, suffix=""):
     if value is None:
         return "N/A"
 
@@ -399,9 +443,9 @@ def format_value(value, suffix=""):
 
 
 def print_strategy_performance(results):
-
     print("03-11-2 Strategy Backtest")
     print("=" * 30)
+    print("回測基準：07:00 盤前推播")
 
     for result in results:
 
@@ -426,15 +470,26 @@ def print_strategy_performance(results):
             print(
                 f"{holding_days}日 | "
                 f"{stats['trade_count']} | "
-                f"{stats['pending_count']} | " 
+                f"{stats['pending_count']} | "
                 f"{format_value(stats['win_rate'], '%')} | "
                 f"{format_value(stats['avg_return'], '%')} | "
                 f"{format_value(stats['cumulative_return'], '%')}"
             )
 
-def run_strategy_backtest():
 
+def run_strategy_backtest():
     records = build_backtest_records()
+
+    if not records:
+        print("03-11-2 Strategy Backtest")
+        print("=" * 30)
+        print("回測基準：07:00 盤前推播")
+        print("")
+        print("沒有 07:00 盤前回測資料")
+        print("略過策略訊號明細輸出，避免覆蓋既有 CSV")
+
+        return []
+
     results = calculate_strategy_performance(records)
     logs = build_strategy_signal_logs(records)
     output_path = export_strategy_signal_logs(logs)
@@ -448,6 +503,7 @@ def run_strategy_backtest():
 
     return results
 
-
 if __name__ == "__main__":
     run_strategy_backtest()
+
+
