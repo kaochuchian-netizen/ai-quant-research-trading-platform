@@ -4,6 +4,8 @@ from app.loaders.google_sheet_loader import load_stock_ids
 from app.market.stock_name_loader import get_stock_name
 from app.market.adr_service import get_adr_result
 from app.market.adr_score_engine import calculate_adr_score
+from app.database.sqlite_client import init_database
+from app.database.analysis_result_repository import save_analysis_result
 
 from indicators.indicator_engine_v2 import build_indicator_result
 
@@ -39,6 +41,8 @@ def send_reports_in_batches(reports, batch_size=LINE_BATCH_SIZE):
 
 
 def main():
+    init_database()
+
     print("開始更新 historical CSV")
     update_historical_csv()
     print("historical CSV 更新完成")
@@ -100,6 +104,19 @@ def main():
                 chip_result=chip_result,
             )
 
+            save_analysis_result(
+                stock_id=stock_id,
+                stock_name=stock_name,
+                indicator_result=indicator_result,
+                technical_score=technical_score,
+                news_score=news_score,
+                adr_score=adr_score,
+                chip_score=chip_score,
+                total_score_result=total_score_result,
+                report_text=report,
+            )
+
+            print(f"SQLite 已寫入：{stock_name}({stock_id})")
             print(report)
             daily_reports.append(report)
 

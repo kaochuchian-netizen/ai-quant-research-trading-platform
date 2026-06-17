@@ -17,6 +17,9 @@ shioaji.log
 # Data
 data/
 
+# Analysis output
+analysis/output/
+
 # Backup
 backup/
 *.bak
