@@ -4,6 +4,7 @@ from app.loaders.google_sheet_loader import load_stock_ids
 from app.market.stock_name_loader import get_stock_name
 from app.market.adr_service import get_adr_result
 from app.market.adr_score_engine import calculate_adr_score
+from app.pipelines.context import create_pipeline_context
 from app.database.sqlite_client import init_database
 from app.database.analysis_result_repository import save_analysis_result
 
@@ -48,6 +49,12 @@ def send_reports_in_batches(reports, batch_size=LINE_BATCH_SIZE, dry_run=False):
 
 
 def run_pre_open_pipeline(dry_run=False):
+    context = create_pipeline_context("pre_open")
+    print(f"pipeline_type: {context['pipeline_type']}")
+    print(f"pipeline_run_id: {context['pipeline_run_id']}")
+    print(f"run_date: {context['run_date']}")
+    print(f"run_time: {context['run_time']}")
+
     init_database()
 
     print("開始更新 historical CSV")
