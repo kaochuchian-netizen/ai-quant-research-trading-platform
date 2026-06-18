@@ -68,10 +68,18 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
         print("historical CSV 更新完成")
 
     stock_ids = load_stock_ids()
+    print(f"pre_open stock universe count: {len(stock_ids)}")
+    print(f"pre_open dry_run: {dry_run}")
+    print(f"pre_open limit: {limit}")
+
     if limit is not None:
         if limit <= 0:
             raise ValueError("limit must be a positive integer")
         stock_ids = stock_ids[:limit]
+
+    selected_stock_ids = [str(stock_id).zfill(4) for stock_id in stock_ids]
+    print(f"pre_open selected stock count: {len(stock_ids)}")
+    print(f"pre_open selected stock ids: {selected_stock_ids}")
 
     daily_reports = []
 
