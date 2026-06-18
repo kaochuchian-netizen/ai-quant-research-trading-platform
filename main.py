@@ -1,3 +1,4 @@
+import argparse
 import os
 
 from app.loaders.google_sheet_loader import load_stock_ids
@@ -28,7 +29,7 @@ from scripts.update_historical_csv import main as update_historical_csv
 LINE_BATCH_SIZE = 3
 
 
-def send_reports_in_batches(reports, batch_size=LINE_BATCH_SIZE):
+def send_reports_in_batches(reports, batch_size=LINE_BATCH_SIZE, dry_run=False):
     if not reports:
         print("沒有可推播的報告")
         return
@@ -38,10 +39,26 @@ def send_reports_in_batches(reports, batch_size=LINE_BATCH_SIZE):
         message = format_multi_stock_report_v2(batch)
 
         print(f"推播第 {index // batch_size + 1} 批，共 {len(batch)} 檔")
+
+        if dry_run:
+            print("dry-run 模式：略過 LINE 推播，批次內容如下")
+            print(message)
+            continue
+
         send_line_report(message)
 
 
-def main():
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Run the full pipeline without sending LINE messages.",
+    )
+    return parser.parse_args()
+
+
+def main(dry_run=False):
     init_database()
 
     print("開始更新 historical CSV")
@@ -125,7 +142,7 @@ def main():
         except Exception as e:
             print(f"分析失敗：{stock_name}({stock_id})，原因：{e}")
 
-    send_reports_in_batches(daily_reports)
+    send_reports_in_batches(daily_reports, dry_run=dry_run)
 
     print("每日總結推播完成")
 
@@ -133,6 +150,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
-
+    args = parse_args()
+    main(dry_run=args.dry_run)
 
