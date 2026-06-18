@@ -1,3 +1,4 @@
+import argparse
 import os
 import sqlite3
 
@@ -50,7 +51,38 @@ def run_migration():
         conn.close()
 
 
+def run_dry_run():
+    if not os.path.exists(DB_PATH):
+        raise FileNotFoundError(f"Database not found: {DB_PATH}")
+
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        existing_columns = get_existing_columns(conn, TABLE_NAME)
+        for column_name, _column_definition in BACKTEST_SIGNAL_COLUMNS:
+            status = "exists" if column_name in existing_columns else "missing"
+            print(f"{column_name}: {status}")
+    finally:
+        conn.close()
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Add backtest signal fields to analysis_results."
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show backtest signal column status without modifying the database.",
+    )
+    return parser.parse_args()
+
+
 def main():
+    args = parse_args()
+    if args.dry_run:
+        run_dry_run()
+        return
+
     run_migration()
 
 
