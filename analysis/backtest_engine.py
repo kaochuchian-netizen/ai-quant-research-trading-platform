@@ -54,6 +54,16 @@ def is_pre_open_record(row):
     return PRE_OPEN_START_HOUR <= created_dt.hour < PRE_OPEN_END_HOUR
 
 
+def is_backtest_eligible_record(row):
+    signal_session = row.get("signal_session")
+    is_eligible = row.get("is_backtest_eligible")
+
+    if signal_session is not None or is_eligible is not None:
+        return signal_session == "pre_open" and is_eligible == 1
+
+    return is_pre_open_record(row)
+
+
 def load_analysis_results():
     if not os.path.exists(DB_PATH):
         return []
@@ -78,7 +88,13 @@ def load_analysis_results():
             rating,
             action,
             strategy,
-            created_at
+            created_at,
+            signal_session,
+            pipeline_type,
+            pipeline_run_id,
+            signal_time,
+            is_backtest_eligible,
+            schema_version
         FROM analysis_results
         ORDER BY run_date ASC, stock_id ASC, id ASC
         """
@@ -90,13 +106,13 @@ def load_analysis_results():
     pre_open_rows = [
         row
         for row in rows
-        if is_pre_open_record(row)
+        if is_backtest_eligible_record(row)
     ]
 
     print(
         "回測資料篩選："
         f"全部 {len(rows)} 筆，"
-        f"07:00 盤前區間 {len(pre_open_rows)} 筆"
+        f"07:00 盤前區間 eligible pre_open records {len(pre_open_rows)} 筆"
     )
 
     return pre_open_rows
@@ -325,4 +341,3 @@ def run_backtest():
 
 if __name__ == "__main__":
     run_backtest()
-
