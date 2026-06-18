@@ -80,6 +80,16 @@ def is_pre_open_record(row):
     return PRE_OPEN_START_HOUR <= created_dt.hour < PRE_OPEN_END_HOUR
 
 
+def is_backtest_eligible_record(row):
+    signal_session = row.get("signal_session")
+    is_eligible = row.get("is_backtest_eligible")
+
+    if signal_session is not None or is_eligible is not None:
+        return signal_session == "pre_open" and is_eligible == 1
+
+    return is_pre_open_record(row)
+
+
 def load_analysis_results():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -96,7 +106,13 @@ def load_analysis_results():
             action,
             total_score,
             adr_score,
-            created_at
+            created_at,
+            signal_session,
+            pipeline_type,
+            pipeline_run_id,
+            signal_time,
+            is_backtest_eligible,
+            schema_version
         FROM analysis_results
         ORDER BY run_date ASC, stock_id ASC
         """
@@ -112,7 +128,7 @@ def load_analysis_results():
     pre_open_rows = [
         row
         for row in rows
-        if is_pre_open_record(row)
+        if is_backtest_eligible_record(row)
     ]
 
     print(
@@ -505,5 +521,4 @@ def run_strategy_backtest():
 
 if __name__ == "__main__":
     run_strategy_backtest()
-
 
