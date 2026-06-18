@@ -15,12 +15,13 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Run a supported stock-ai pipeline.")
     parser.add_argument("pipeline_type", choices=sorted(SUPPORTED_PIPELINES))
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--limit", type=int, default=None)
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
-    return run_pipeline(args.pipeline_type, dry_run=args.dry_run)
+    return run_pipeline(args.pipeline_type, dry_run=args.dry_run, limit=args.limit)
 
 
 if __name__ == "__main__":

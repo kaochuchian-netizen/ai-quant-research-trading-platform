@@ -48,7 +48,7 @@ def send_reports_in_batches(reports, batch_size=LINE_BATCH_SIZE, dry_run=False):
         send_line_report(message)
 
 
-def run_pre_open_pipeline(dry_run=False):
+def run_pre_open_pipeline(dry_run=False, limit=None):
     context = create_pipeline_context("pre_open")
     print(f"pipeline_type: {context['pipeline_type']}")
     print(f"pipeline_run_id: {context['pipeline_run_id']}")
@@ -68,6 +68,11 @@ def run_pre_open_pipeline(dry_run=False):
         print("historical CSV 更新完成")
 
     stock_ids = load_stock_ids()
+    if limit is not None:
+        if limit <= 0:
+            raise ValueError("limit must be a positive integer")
+        stock_ids = stock_ids[:limit]
+
     daily_reports = []
 
     for stock_id in stock_ids:

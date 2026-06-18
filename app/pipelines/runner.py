@@ -12,7 +12,7 @@ SUPPORTED_PIPELINES = {
 }
 
 
-def run_pipeline(pipeline_type, dry_run=False):
+def run_pipeline(pipeline_type, dry_run=False, limit=None):
     if pipeline_type == "pre_open" and not dry_run:
         raise ValueError("pre_open pipeline is only allowed with dry_run=True")
 
@@ -24,6 +24,9 @@ def run_pipeline(pipeline_type, dry_run=False):
             f"Unsupported pipeline_type: {pipeline_type}. Supported: {supported}"
         ) from exc
 
+    if pipeline_type == "pre_open":
+        return pipeline(dry_run=dry_run, limit=limit)
+
     return pipeline(dry_run=dry_run)
 
 
@@ -33,9 +36,10 @@ def main():
     parser = argparse.ArgumentParser(description="Run a supported stock-ai pipeline.")
     parser.add_argument("pipeline_type", choices=sorted(SUPPORTED_PIPELINES))
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--limit", type=int, default=None)
     args = parser.parse_args()
 
-    run_pipeline(args.pipeline_type, dry_run=args.dry_run)
+    run_pipeline(args.pipeline_type, dry_run=args.dry_run, limit=args.limit)
 
 
 if __name__ == "__main__":
