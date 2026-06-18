@@ -55,11 +55,17 @@ def run_pre_open_pipeline(dry_run=False):
     print(f"run_date: {context['run_date']}")
     print(f"run_time: {context['run_time']}")
 
-    init_database()
+    if dry_run:
+        print("dry-run 模式：略過 SQLite 初始化")
+    else:
+        init_database()
 
-    print("開始更新 historical CSV")
-    update_historical_csv()
-    print("historical CSV 更新完成")
+    if dry_run:
+        print("dry-run 模式：略過 historical CSV 更新")
+    else:
+        print("開始更新 historical CSV")
+        update_historical_csv()
+        print("historical CSV 更新完成")
 
     stock_ids = load_stock_ids()
     daily_reports = []
@@ -119,19 +125,22 @@ def run_pre_open_pipeline(dry_run=False):
                 chip_result=chip_result,
             )
 
-            save_analysis_result(
-                stock_id=stock_id,
-                stock_name=stock_name,
-                indicator_result=indicator_result,
-                technical_score=technical_score,
-                news_score=news_score,
-                adr_score=adr_score,
-                chip_score=chip_score,
-                total_score_result=total_score_result,
-                report_text=report,
-            )
+            if dry_run:
+                print(f"dry-run 模式：略過 SQLite 寫入：{stock_name}({stock_id})")
+            else:
+                save_analysis_result(
+                    stock_id=stock_id,
+                    stock_name=stock_name,
+                    indicator_result=indicator_result,
+                    technical_score=technical_score,
+                    news_score=news_score,
+                    adr_score=adr_score,
+                    chip_score=chip_score,
+                    total_score_result=total_score_result,
+                    report_text=report,
+                )
 
-            print(f"SQLite 已寫入：{stock_name}({stock_id})")
+                print(f"SQLite 已寫入：{stock_name}({stock_id})")
             print(report)
             daily_reports.append(report)
 
@@ -142,4 +151,7 @@ def run_pre_open_pipeline(dry_run=False):
 
     print("每日總結推播完成")
 
-    run_backtest_auto_update()
+    if dry_run:
+        print("dry-run 模式：略過回測自動補值")
+    else:
+        run_backtest_auto_update()
