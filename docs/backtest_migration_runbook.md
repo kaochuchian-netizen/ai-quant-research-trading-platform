@@ -1,8 +1,17 @@
 # Backtest Migration Runbook
 
-本文件定義正式執行 `app/database/migrations/001_add_backtest_signal_fields.py` 前後的備份、檢查、驗證與 rollback 流程。
+本文件定義 `app/database/migrations/001_add_backtest_signal_fields.py` 的備份、檢查、驗證與 rollback 流程，並記錄目前正式執行狀態。
 
 此 runbook 只適用於手動維護 SQLite schema。不要把 migration 接進交易推播流程、`main.py` 或 pipeline 自動流程。
+
+目前狀態：migration 已正式執行完成；`analysis_results` 已新增 6 個欄位：
+
+- `signal_session`
+- `pipeline_type`
+- `pipeline_run_id`
+- `signal_time`
+- `is_backtest_eligible`
+- `schema_version`
 
 ## 1. 執行前原則
 
@@ -49,7 +58,7 @@ test -f data/stock_analysis.db && echo "DB exists"
 python3 app/database/migrations/001_add_backtest_signal_fields.py --dry-run
 ```
 
-預期看到以下 6 個欄位狀態為 `missing`，或在部分欄位已建立過的情況下顯示部分 `exists`：
+目前正式 migration 已執行完成，因此預期看到以下 6 個欄位狀態皆為 `exists`：
 
 - `signal_session`
 - `pipeline_type`
@@ -58,7 +67,7 @@ python3 app/database/migrations/001_add_backtest_signal_fields.py --dry-run
 - `is_backtest_eligible`
 - `schema_version`
 
-若 dry-run 報錯、DB 不存在、表格不存在，或輸出與預期欄位不一致，停止執行並先調查。
+若 dry-run 報錯、DB 不存在、表格不存在，或任一欄位不是 `exists`，停止執行並先調查。
 
 ## 4. 正式執行指令
 
@@ -70,6 +79,8 @@ python3 app/database/migrations/001_add_backtest_signal_fields.py
 
 此步會修改 `data/stock_analysis.db` 的 SQLite schema，對 `analysis_results` 執行 `ALTER TABLE ... ADD COLUMN`。
 
+目前正式環境已完成此步。除非確認需要在另一份 DB 或復原後的 DB 重新補欄位，否則不需要再次正式執行。
+
 ## 5. 執行後驗證
 
 再次執行 dry-run：
@@ -78,7 +89,7 @@ python3 app/database/migrations/001_add_backtest_signal_fields.py
 python3 app/database/migrations/001_add_backtest_signal_fields.py --dry-run
 ```
 
-預期 6 個欄位都顯示 `exists`。
+預期 6 個欄位都顯示 `exists`。目前正式 migration 已完成，dry-run 現在應顯示 6 個欄位皆為 `exists`。
 
 使用 `sqlite3` 檢查 `analysis_results` schema：
 
@@ -126,4 +137,6 @@ Rollback 後 dry-run 的結果應回到備份當下的欄位狀態。
 - `ALTER TABLE` 會修改正式 SQLite DB schema。
 - Migration 以欄位是否存在判斷，可重複執行，但正式執行前仍應先備份。
 - 舊資料的新欄位值會是 `NULL`。
-- Python 尚未寫入新欄位前，新增 schema 不會自動改善回測篩選。
+- 正式 `pre_open` 寫入已會寫入新欄位，包含 `signal_session = "pre_open"`、`pipeline_type`、`pipeline_run_id`、Asia/Taipei ISO 8601 格式的 `signal_time`、`is_backtest_eligible = 1`、`schema_version = 1`。
+- `backtest_engine.py` 與 `strategy_backtest_engine.py` 已優先使用新欄位篩選正式 `pre_open` 信號。
+- 舊資料若 `signal_session` 或 `is_backtest_eligible` 為 `NULL`，仍會 fallback 使用 `created_at` 05:00～09:00。

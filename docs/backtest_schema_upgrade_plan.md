@@ -1,30 +1,30 @@
 # Backtest Schema Upgrade Plan
 
-本文件設計進入 04 階段前，`analysis_results` 與回測資料鏈路需要補強的欄位與遷移策略。
+本文件整理 `analysis_results` 與回測資料鏈路已完成的 schema 補強、目前寫入規格、回測篩選規則與舊資料 fallback 策略。
 
-本 Task 只做設計文件，不修改 DB schema、不新增 migration、不調整 Python 實作。
+目前 migration 已正式執行完成；`analysis_results` 已新增 6 個回測信號欄位。
 
 ## 1. 問題背景
 
-目前回測信號主要從 `analysis_results` 讀取，但資料表缺少足夠明確的信號語意欄位。
+回測信號主要從 `analysis_results` 讀取。過去資料表缺少足夠明確的信號語意欄位，回測只能依賴 `created_at` 推論盤前信號。
 
-- 缺少明確 `signal_session`
-  - 目前無法直接從 DB 原始資料判斷該筆分析結果屬於 `pre_open`、`intraday`、`pre_close` 或 `post_close`。
-  - 回測若只依靠時間推論 session，未來多 pipeline 寫入後會增加誤判風險。
-- 缺少 `pipeline_type`
-  - 無法直接辨識該筆資料由哪一類 pipeline 寫入。
-  - 未來若不同 pipeline 共用 `analysis_results`，資料來源會變得不清楚。
-- 缺少 `pipeline_run_id`
-  - 無法追蹤單次 pipeline 執行批次。
-  - 重跑、補跑、查錯與審計時，難以將同一批結果串起來。
+- 已新增明確 `signal_session`
+  - 可直接從 DB 原始資料判斷該筆分析結果屬於哪個交易 session。
+  - 目前正式盤前資料寫入 `signal_session = "pre_open"`。
+- 已新增 `pipeline_type`
+  - 可直接辨識該筆資料由哪一類 pipeline 寫入。
+- 已新增 `pipeline_run_id`
+  - 可追蹤單次 pipeline 執行批次。
+  - 重跑、補跑、查錯與審計時，可將同一批結果串起來。
 - `created_at` 可能是 UTC
-  - 目前 `created_at` 可能由 SQLite `CURRENT_TIMESTAMP` 產生，實際語意偏向系統或 SQLite 時間，不一定是 Asia/Taipei。
-  - 若直接用 `created_at` 判斷交易 session，可能在時區不同時篩錯盤前資料。
+  - `created_at` 可能由 SQLite `CURRENT_TIMESTAMP` 產生，實際語意偏向系統或 SQLite 時間，不一定是 Asia/Taipei。
+  - 新資料已改用 `signal_time` 記錄 Asia/Taipei ISO 8601 信號時間。
+  - 舊資料若 `signal_session` 或 `is_backtest_eligible` 為 `NULL`，仍會 fallback 使用 `created_at` 05:00～09:00。
   - `created_at` 適合作為寫入時間參考，不適合作為交易 session 的唯一判斷依據。
 
-## 2. 建議新增欄位
+## 2. 已新增欄位
 
-建議在 `analysis_results` 補強以下欄位：
+`analysis_results` 已補強以下欄位：
 
 | 欄位 | 型別 | 範例 | 說明 |
 | --- | --- | --- | --- |
@@ -109,10 +109,14 @@
   - 回測引擎可依 `schema_version` 決定使用新欄位或 fallback 到舊邏輯。
   - 若未來新增更嚴格信號規格，可只納入特定版本以上的資料。
 
-## 4. 初期建議規則
+## 4. 目前正式寫入規則
 
 - `pre_open`
+  - 正式寫入會帶入 `signal_session = "pre_open"`。
+  - 正式寫入會帶入 `pipeline_type` 與 `pipeline_run_id`。
+  - 正式寫入會帶入 Asia/Taipei ISO 8601 格式的 `signal_time`。
   - `is_backtest_eligible = 1`
+  - `schema_version = 1`
   - 作為目前正式盤前回測的主要信號來源。
 - `intraday`
   - `is_backtest_eligible = 0`
@@ -129,15 +133,16 @@
 
 ## 5. 遷移策略
 
-### 第一階段：只新增欄位
+### 第一階段：只新增欄位（已完成）
 
-- 在 DB schema 新增欄位，但允許舊資料為 `NULL`。
-- 不立即要求舊資料回填。
-- 不破壞既有 `analysis_results` 查詢與回測流程。
+- 已在 DB schema 新增欄位，並允許舊資料為 `NULL`。
+- 未立即要求舊資料回填。
+- 未破壞既有 `analysis_results` 查詢與回測流程。
+- migration 已正式執行完成；目前 dry-run 應顯示 6 個欄位皆為 `exists`。
 
-### 第二階段：寫入新欄位
+### 第二階段：寫入新欄位（已完成）
 
-- 調整 `save_analysis_result()`，讓新的正式寫入資料帶入：
+- 已調整正式 `pre_open` 寫入資料帶入：
   - `signal_session`
   - `pipeline_type`
   - `pipeline_run_id`
@@ -145,18 +150,26 @@
   - `is_backtest_eligible`
   - `schema_version`
 - dry-run 維持不寫入 DB。
-- 寫入邏輯應由 pipeline context 提供 `pipeline_type` 與 `pipeline_run_id`，避免每個呼叫點自行組裝。
+- 正式 `pre_open` 寫入目前使用：
+  - `signal_session = "pre_open"`
+  - Asia/Taipei ISO 8601 格式的 `signal_time`
+  - `is_backtest_eligible = 1`
+  - `schema_version = 1`
 
-### 第三階段：回測優先使用新欄位
+### 第三階段：回測優先使用新欄位（已完成）
 
-- 調整 `backtest_engine.py` 優先使用：
+- `backtest_engine.py` 已優先使用：
   - `signal_session`
   - `is_backtest_eligible`
   - `signal_time`
-- 新資料應以 `signal_session = 'pre_open'` 且 `is_backtest_eligible = 1` 作為正式盤前回測條件。
-- 舊資料若新欄位為 `NULL`，可暫時 fallback 到現有 `created_at` hour 判斷，直到回填策略完成。
+- `strategy_backtest_engine.py` 已優先使用：
+  - `signal_session`
+  - `is_backtest_eligible`
+  - `signal_time`
+- 新資料以 `signal_session = 'pre_open'` 且 `is_backtest_eligible = 1` 作為正式盤前回測條件。
+- 舊資料若 `signal_session` 或 `is_backtest_eligible` 為 `NULL`，保留 fallback 到 `created_at` 05:00～09:00 判斷。
 
-### 第四階段：考慮回填舊資料
+### 第四階段：考慮回填舊資料（未執行）
 
 - 在新寫入與新回測邏輯穩定後，再評估是否回填舊資料。
 - 回填規則需要保守：
@@ -167,14 +180,15 @@
 ## 6. 風險控管
 
 - 不直接破壞既有 `analysis_results`
-  - 新欄位初期允許 `NULL`。
+  - 新欄位允許舊資料維持 `NULL`。
   - 既有欄位與既有查詢不應被移除或改名。
-- 不一次重構回測引擎
-  - 先讓資料寫入具備足夠語意，再逐步調整回測讀取條件。
-  - 初期保留舊資料 fallback，降低切換風險。
+- 回測引擎已保留舊資料 fallback
+  - 新資料優先使用明確信號欄位。
+  - 舊資料若 `signal_session` 或 `is_backtest_eligible` 為 `NULL`，fallback 使用 `created_at` 05:00～09:00，降低切換風險。
 - migration 需可重複執行
-  - 新增欄位的 migration 應檢查欄位是否已存在。
+  - 新增欄位的 migration 會檢查欄位是否已存在。
   - 重跑 migration 不應造成錯誤或重複欄位。
+  - migration 已正式執行完成，目前 dry-run 應顯示 6 個欄位皆為 `exists`。
 - 新舊資料需可共存
   - 舊資料可維持新欄位為 `NULL`。
   - 新資料使用明確欄位供回測篩選。
