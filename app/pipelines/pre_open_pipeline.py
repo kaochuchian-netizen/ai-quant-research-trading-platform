@@ -1,4 +1,6 @@
 import os
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from app.loaders.google_sheet_loader import load_stock_ids
 from app.market.stock_name_loader import get_stock_name
@@ -151,6 +153,14 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
                     chip_score=chip_score,
                     total_score_result=total_score_result,
                     report_text=report,
+                    signal_session="pre_open",
+                    pipeline_type=context["pipeline_type"],
+                    pipeline_run_id=context["pipeline_run_id"],
+                    signal_time=datetime.now(
+                        ZoneInfo("Asia/Taipei"),
+                    ).isoformat(timespec="seconds"),
+                    is_backtest_eligible=1,
+                    schema_version=1,
                 )
 
                 print(f"SQLite 已寫入：{stock_name}({stock_id})")
