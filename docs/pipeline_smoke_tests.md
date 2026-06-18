@@ -4,6 +4,8 @@
 
 ## 安全 dry-run 指令
 
+以下四個 pipeline 目前都有一致的 runner 入口與安全執行骨架。`pre_open` 已接既有完整盤前流程，dry-run 安全且支援 `--limit`；`intraday`、`pre_close`、`post_close` 目前僅輸出 context summary，無副作用。
+
 以下指令目前可安全執行，且應維持 dry-run 行為：
 
 ```bash
@@ -48,6 +50,8 @@ ValueError: limit is only supported for pre_open pipeline
 
 - 不直接執行 `python3 main.py`。
 - `pre_open` 正式模式目前不能從 runner 執行。
+- `pre_open` dry-run 已接既有完整盤前流程，但會跳過副作用。
+- `intraday`、`pre_close`、`post_close` 僅輸出 context summary，無副作用。
 - dry-run 不應寫 SQLite。
 - dry-run 不應發 LINE。
 - dry-run 不應跑回測自動補值。
@@ -57,7 +61,7 @@ ValueError: limit is only supported for pre_open pipeline
 
 1. 先執行 `py_compile`，確認 runner 與 pipeline 檔案語法正確。
 2. 再執行 `pre_open --dry-run --limit 1`，確認有限股票數的盤前 dry-run 可跑。
-3. 再執行其他空殼 pipeline dry-run，確認 runner dispatch 正常。
+3. 再執行其他安全骨架 pipeline dry-run，確認 runner dispatch 與 context summary 輸出正常。
 4. 最後驗證防呆錯誤，確認正式 `pre_open` 與非 `pre_open` 的 `limit` 都會被擋下。
 
 建議驗證指令：

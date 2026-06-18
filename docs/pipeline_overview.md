@@ -16,13 +16,13 @@
   - 接上既有盤前分析流程，包含股票清單、historical CSV、技術面、ADR、新聞面、籌碼面、總分、報告、SQLite、LINE 與回測自動補值相關流程。
 - `app/pipelines/intraday_pipeline.py`
   - 盤中 pipeline 入口。
-  - 目前僅建立 pipeline context 並輸出基本資訊。
+  - 已有安全骨架，目前僅建立 pipeline context 並輸出 context summary，無副作用。
 - `app/pipelines/pre_close_pipeline.py`
   - 盤前收盤前 pipeline 入口。
-  - 目前僅建立 pipeline context 並輸出基本資訊。
+  - 已有安全骨架，目前僅建立 pipeline context 並輸出 context summary，無副作用。
 - `app/pipelines/post_close_pipeline.py`
   - 收盤後 pipeline 入口。
-  - 目前僅建立 pipeline context 並輸出基本資訊。
+  - 已有安全骨架，目前僅建立 pipeline context 並輸出 context summary，無副作用。
 - `app/pipelines/runner.py`
   - 統一管理支援的 pipeline 清單與 dispatch 規則。
   - 負責擋下目前不允許的正式執行模式與不支援的參數組合。
@@ -41,21 +41,21 @@
 
 ### intraday
 
-- 目前為空殼。
-- 僅建立 pipeline context 並輸出基本資訊。
-- 尚未接分析、SQLite、LINE、回測、cron。
+- 已有安全骨架。
+- 僅建立 pipeline context 並輸出 context summary。
+- 無 SQLite、LINE、回測、cron 等副作用。
 
 ### pre_close
 
-- 目前為空殼。
-- 僅建立 pipeline context 並輸出基本資訊。
-- 尚未接分析、SQLite、LINE、回測、cron。
+- 已有安全骨架。
+- 僅建立 pipeline context 並輸出 context summary。
+- 無 SQLite、LINE、回測、cron 等副作用。
 
 ### post_close
 
-- 目前為空殼。
-- 僅建立 pipeline context 並輸出基本資訊。
-- 尚未接分析、SQLite、LINE、回測、cron。
+- 已有安全骨架。
+- 僅建立 pipeline context 並輸出 context summary。
+- 無 SQLite、LINE、回測、cron 等副作用。
 
 ## runner 規則
 
@@ -71,6 +71,7 @@
 - 不在 dry-run 寫 SQLite。
 - 不在 dry-run 更新 historical CSV。
 - 不在 dry-run 跑回測自動補值。
+- `intraday`、`pre_close`、`post_close` 目前僅輸出 context summary，不執行副作用流程。
 - 正式 cron 尚未切換到 `scripts/run_pipeline.py`。
 
 ## 與 pipeline_smoke_tests.md 的關係
