@@ -15,6 +15,8 @@ SUPPORTED_PIPELINES = {
 def run_pipeline(pipeline_type, dry_run=False, limit=None):
     if pipeline_type == "pre_open" and not dry_run:
         raise ValueError("pre_open pipeline is only allowed with dry_run=True")
+    if limit is not None and pipeline_type != "pre_open":
+        raise ValueError("limit is only supported for pre_open pipeline")
 
     try:
         pipeline = SUPPORTED_PIPELINES[pipeline_type]
