@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "queue_name": "ai-development-completed-tasks-example",
+  "status": "example_only",
+  "description": "Example archive format for AI development tasks after validation and PR review.",
+  "completed_tasks": [
+    {
+      "task_id": "AI-DEV-EXAMPLE-001",
+      "status": "completed_by_pr",
+      "risk_level": "low",
+      "base_branch": "main",
+      "branch_name": "ai-dev/ai-dev-example-001",
+      "pull_request": {
+        "number": null,
+        "url": null,
+        "merged": false,
+        "merged_at": null
+      },
+      "validation": {
+        "forbidden_changes_passed": true,
+        "ai_branch_validation_passed": true,
+        "github_actions_passed": true,
+        "report_path": "~/.local/state/stock-ai-orchestrator/ai_dev_validation_bundle.json"
+      },
+      "safety_result": {
+        "line_notifications_sent": false,
+        "trading_execution_run": false,
+        "production_workflow_run": false,
+        "database_files_modified": false,
+        "secret_files_modified": false,
+        "scheduler_modified": false
+      },
+      "notes": "Example only. Do not treat as a real completed task."
+    }
+  ]
+}
