@@ -30,6 +30,66 @@ def calc_sharpe(returns):
     return avg_return / std_return
 
 
+def calc_max_drawdown(returns):
+    if not returns:
+        return None
+
+    equity = 1.0
+    peak_equity = equity
+    max_drawdown = 0.0
+
+    for return_pct in returns:
+        equity *= (1 + return_pct / 100)
+        peak_equity = max(peak_equity, equity)
+        drawdown = (equity - peak_equity) / peak_equity
+        max_drawdown = min(max_drawdown, drawdown)
+
+    return max_drawdown * 100
+
+
+def calc_pending_ratio(completed, pending):
+    denominator = completed + pending
+
+    if denominator == 0:
+        return None
+
+    return pending / denominator * 100
+
+
+def determine_ranking_status(
+    completed,
+    pending,
+    max_drawdown,
+    min_trade_count=20,
+    max_pending_ratio=30.0,
+    max_drawdown_limit=-20.0,
+):
+    if completed < min_trade_count:
+        return (
+            "insufficient_sample",
+            f"trade_count {completed} < minimum {min_trade_count}",
+        )
+
+    pending_ratio = calc_pending_ratio(completed, pending)
+
+    if pending_ratio is not None and pending_ratio > max_pending_ratio:
+        return (
+            "too_many_pending",
+            f"pending_ratio {pending_ratio:.2f}% > maximum {max_pending_ratio:.2f}%",
+        )
+
+    if max_drawdown is None:
+        return ("risk_rejected", "max_drawdown unavailable")
+
+    if max_drawdown < max_drawdown_limit:
+        return (
+            "risk_rejected",
+            f"max_drawdown {max_drawdown:.2f}% < limit {max_drawdown_limit:.2f}%",
+        )
+
+    return ("candidate_watchlist", "passed initial ranking filters")
+
+
 def consistency_star(sharpe):
     if sharpe is None:
         return "N/A"
