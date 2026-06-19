@@ -135,6 +135,85 @@ In dry-run mode, the runner only returns a preview such as
 `handoff_ready_preview`; it does not write a runtime plan, create a branch,
 open a PR, merge, or archive.
 
+## First Real Runtime Queue Task Flow
+
+Use this sequence for the first real low-risk runtime queue task after the
+runtime queue is available:
+
+1. Initialize the runtime queue from repository seed files:
+
+   ```bash
+   cd ~/stock-ai
+   python3 scripts/orchestrator/init_ai_runtime_queue.py --pretty
+   ```
+
+2. Add one low-risk task to the runtime pending queue:
+
+   ```text
+   ~/.local/state/stock-ai-orchestrator/pending_tasks.json
+   ```
+
+   Keep the task constrained to reviewed low-risk paths, require a PR, use an
+   `ai-dev/*` branch, and keep production commands, LINE notifications, trading
+   execution, direct main push, and auto merge disabled unless explicitly
+   reviewed.
+
+3. Preview the task with the dry-run runner:
+
+   ```bash
+   python3 scripts/orchestrator/run_ai_task_queue_once.py --dry-run --pretty
+   ```
+
+   The expected dry-run result is `handoff_ready_preview`. It must not write
+   runtime queue state, create a branch, push, open a PR, merge, or archive.
+
+4. Run the non-dry-run runner without PR creation:
+
+   ```bash
+   python3 scripts/orchestrator/run_ai_task_queue_once.py --pretty
+   ```
+
+   The runner promotes the task, writes the runtime plan and PR body artifacts,
+   prepares the `ai-dev/*` branch, and stops at `handoff_ready` for manual
+   implementation. It must not push or open a PR without `--create-pr`.
+
+5. Implement the task manually with Codex or another reviewed manual workflow,
+   using the runtime plan and PR body:
+
+   ```text
+   ~/.local/state/stock-ai-orchestrator/ai_task_branch_plan.json
+   ~/.local/state/stock-ai-orchestrator/ai_task_pr_body.md
+   ```
+
+   Keep all changes inside the task `allowed_paths`.
+
+6. Run the validation bundle on the branch:
+
+   ```bash
+   python3 scripts/orchestrator/run_ai_dev_validation_bundle.py --base main --head HEAD --pretty
+   ```
+
+   Commit only after the validation bundle passes and the diff matches the task
+   scope.
+
+7. Create the PR only after local validation passes and the branch work is
+   committed:
+
+   ```bash
+   python3 scripts/orchestrator/run_ai_task_queue_once.py --create-pr --pretty
+   ```
+
+8. Let GitHub Actions run the required gate, including `validate-ai-branch`.
+   Do not merge while required checks are pending or failing.
+
+9. Merge only after review and required checks pass. Conditional auto merge is
+   optional and remains gated by the task policy, local validation, PR state,
+   GitHub check status, allowed paths, and a clean working tree.
+
+10. After a successful merge, archive the task into the runtime completed queue.
+    The runner can archive automatically after merge, or the archive command can
+    be run manually with the merged PR metadata.
+
 ## PR Creation
 
 PR creation is opt-in:
