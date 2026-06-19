@@ -6,6 +6,7 @@ This runner is intentionally conservative:
 - It executes only allowlisted validation command types from task state.
 - It supports controlled git pull only when --pull is provided and task state allows it.
 - It supports stage notification only when --notify is provided.
+- It supports a read-only approval gate from a local approval-state JSON file.
 - It does not run main.py, backtests, migrations, DB writes, LINE, cron edits,
   approval endpoints, production pipelines, or trading actions.
 """
@@ -24,6 +25,8 @@ from typing import Any
 
 ALLOWED_COMMAND_TYPES = {"py_compile"}
 DEFAULT_TMP_PREFIX = "stock_ai_orchestrator_vm_validation_"
+APPROVED_CONTINUE = "approved_continue"
+APPROVED_PAUSE = "approved_pause"
 FORBIDDEN_PATH_MARKERS = (
     ".env",
     "data/stock_analysis.db",
@@ -67,9 +70,7 @@ def command_summary(
     completed: subprocess.CompletedProcess[str],
     include_output: bool = True,
 ) -> dict[str, Any]:
-    summary: dict[str, Any] = {
-        "returncode": completed.returncode,
-    }
+    summary: dict[str, Any] = {"returncode": completed.returncode}
 
     if include_output:
         summary["stdout"] = completed.stdout.strip()
@@ -83,7 +84,7 @@ def load_json(path: Path) -> dict[str, Any]:
         data = json.load(f)
 
     if not isinstance(data, dict):
-        raise ValueError("task state must be a JSON object")
+        raise ValueError("JSON file must contain an object")
 
     return data
 
@@ -236,10 +237,7 @@ def run_py_compile(repo_root: Path, command: dict[str, Any]) -> dict[str, Any]:
         }
 
     target = str(args[0])
-    completed = run_command(
-        [sys.executable, "-m", "py_compile", target],
-        repo_root,
-    )
+    completed = run_command([sys.executable, "-m", "py_compile", target], repo_root)
 
     return {
         "id": command_id,
@@ -310,52 +308,83 @@ def run_stage_notification(
     return run_command(command, repo_root)
 
 
+def nested_get(data: dict[str, Any], *keys: str) -> Any:
+    current: Any = data
+    for key in keys:
+        if not isinstance(current, dict):
+            return None
+        current = current.get(key)
+    return current
+
+
+def evaluate_approval_gate(
+    approval_state: dict[str, Any],
+    expected_task_id: str | None,
+    require_continue: bool,
+) -> dict[str, Any]:
+    task_id = approval_state.get("task_id")
+    task_name = approval_state.get("task_name")
+    state = nested_get(approval_state, "approval", "state")
+    selected_action = nested_get(approval_state, "approval", "selected_action")
+
+    task_id_matches = True
+    if expected_task_id:
+        task_id_matches = task_id == expected_task_id
+
+    decision = "blocked"
+    next_task_allowed = False
+    pause_requested = False
+    blocked_reason = None
+
+    if not task_id_matches:
+        blocked_reason = f"task_id mismatch: {task_id} != {expected_task_id}"
+    elif state == APPROVED_CONTINUE and selected_action == "continue":
+        decision = "continue"
+        next_task_allowed = True
+    elif state == APPROVED_PAUSE and selected_action == "pause":
+        decision = "pause"
+        pause_requested = True
+    else:
+        blocked_reason = f"unsupported approval state: {state}"
+
+    if require_continue and not next_task_allowed:
+        blocked_reason = blocked_reason or "continue approval required"
+
+    return {
+        "ok": blocked_reason is None,
+        "task_id": task_id,
+        "task_name": task_name,
+        "expected_task_id": expected_task_id,
+        "task_id_matches": task_id_matches,
+        "approval_state": state,
+        "selected_action": selected_action,
+        "decision": decision,
+        "next_task_allowed": next_task_allowed,
+        "pause_requested": pause_requested,
+        "blocked_reason": blocked_reason,
+        "side_effects": {
+            "email_sent": False,
+            "git_command_run": False,
+            "task_started": False,
+            "production_command_run": False,
+        },
+    }
+
+
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Run VM-side allowlisted validation commands from task state.",
-    )
-    parser.add_argument(
-        "--repo-root",
-        default=".",
-        help="Repository root. Defaults to current directory.",
-    )
-    parser.add_argument(
-        "--task-state",
-        required=True,
-        help="Task state JSON path.",
-    )
-    parser.add_argument(
-        "--output",
-        help="Validation result JSON output path. Defaults to a /tmp file.",
-    )
-    parser.add_argument(
-        "--pull",
-        action="store_true",
-        help="Run git pull --ff-only only when task state allows it.",
-    )
-    parser.add_argument(
-        "--notify",
-        action="store_true",
-        help="Run stage notification after successful validation. Preview mode by default.",
-    )
-    parser.add_argument(
-        "--env-file",
-        help="Mail environment file path passed through to stage notification.",
-    )
-    parser.add_argument(
-        "--subject",
-        help="Optional subject override passed through to stage notification.",
-    )
-    parser.add_argument(
-        "--send",
-        action="store_true",
-        help="Actually send the stage notification. Requires --notify.",
-    )
-    parser.add_argument(
-        "--pretty",
-        action="store_true",
-        help="Pretty-print JSON output.",
-    )
+    parser = argparse.ArgumentParser(description="Run VM-side allowlisted validation commands from task state.")
+    parser.add_argument("--repo-root", default=".", help="Repository root. Defaults to current directory.")
+    parser.add_argument("--task-state", required=True, help="Task state JSON path.")
+    parser.add_argument("--output", help="Validation result JSON output path. Defaults to a /tmp file.")
+    parser.add_argument("--pull", action="store_true", help="Run git pull --ff-only only when task state allows it.")
+    parser.add_argument("--notify", action="store_true", help="Run stage notification after successful validation. Preview mode by default.")
+    parser.add_argument("--env-file", help="Mail environment file path passed through to stage notification.")
+    parser.add_argument("--subject", help="Optional subject override passed through to stage notification.")
+    parser.add_argument("--send", action="store_true", help="Actually send the stage notification. Requires --notify.")
+    parser.add_argument("--approval-state", help="Optional local approval-state JSON path to evaluate after validation.")
+    parser.add_argument("--expected-approval-task-id", help="Require approval-state task_id to match this value. Defaults to task_state task_id.")
+    parser.add_argument("--require-approval-continue", action="store_true", help="Block unless approval-state decision is continue.")
+    parser.add_argument("--pretty", action="store_true", help="Pretty-print JSON output.")
     return parser.parse_args()
 
 
@@ -364,12 +393,14 @@ def main() -> int:
     repo_root = Path(args.repo_root).resolve()
     task_state_path = Path(args.task_state).expanduser()
     output_path = Path(args.output).expanduser() if args.output else make_default_output_path()
+    approval_state_path = Path(args.approval_state).expanduser() if args.approval_state else None
 
     if not task_state_path.is_absolute():
         task_state_path = repo_root / task_state_path
-
     if not output_path.is_absolute():
         output_path = repo_root / output_path
+    if approval_state_path and not approval_state_path.is_absolute():
+        approval_state_path = repo_root / approval_state_path
 
     try:
         task_state = load_json(task_state_path)
@@ -388,9 +419,9 @@ def main() -> int:
     vm_validation = task_state.get("vm_validation") or {}
     sync = vm_validation.get("sync") or {}
     expected_branch = str(sync.get("expected_branch") or task_state.get("git", {}).get("base_branch") or "main")
+    expected_approval_task_id = args.expected_approval_task_id or str(task_state.get("task_id") or "")
     git_state_before = check_git_state(repo_root, expected_branch)
     git_state_after_pull: dict[str, Any] | None = None
-    git_pull_result: dict[str, Any] | None = None
 
     result: dict[str, Any] = {
         "ok": False,
@@ -412,6 +443,10 @@ def main() -> int:
         "notification_result": None,
         "email_send_requested": bool(args.send),
         "email_sent": False,
+        "approval_state_requested": bool(approval_state_path),
+        "approval_gate": None,
+        "next_task_allowed": False,
+        "pause_requested": False,
     }
 
     blocked_reason: str | None = None
@@ -428,8 +463,7 @@ def main() -> int:
             blocked_reason = "git pull requested but task state does not allow it"
         else:
             pull_completed = run_git_pull(repo_root)
-            git_pull_result = command_summary(pull_completed)
-            result["git_pull_result"] = git_pull_result
+            result["git_pull_result"] = command_summary(pull_completed)
             result["git_pull_executed"] = True
 
             if pull_completed.returncode != 0:
@@ -462,6 +496,22 @@ def main() -> int:
             result["email_sent"] = bool(args.send and notify_completed.returncode == 0)
             if notify_completed.returncode != 0:
                 blocked_reason = "stage notification failed"
+
+    if blocked_reason is None and approval_state_path:
+        try:
+            approval_state = load_json(approval_state_path)
+            approval_gate = evaluate_approval_gate(
+                approval_state=approval_state,
+                expected_task_id=expected_approval_task_id,
+                require_continue=args.require_approval_continue,
+            )
+            result["approval_gate"] = approval_gate
+            result["next_task_allowed"] = bool(approval_gate.get("next_task_allowed"))
+            result["pause_requested"] = bool(approval_gate.get("pause_requested"))
+            if not approval_gate.get("ok"):
+                blocked_reason = str(approval_gate.get("blocked_reason") or "approval gate failed")
+        except Exception as exc:
+            blocked_reason = f"approval gate error: {exc}"
 
     if blocked_reason is not None:
         result["blocked_reason"] = blocked_reason
