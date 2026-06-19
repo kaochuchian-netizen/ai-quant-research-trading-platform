@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Run one safe Orchestrator loop iteration.
 
-This script checks local runtime state, repository state, and timer health, then writes
-loop_status.json unless --dry-run is used.
+This script checks local runtime state, repository state, timer health, and optional
+remote Git availability, then writes loop_status.json unless --dry-run is used.
 
 It does not pull, start Codex, send notifications, or run production workflows.
 """
@@ -106,6 +106,20 @@ def check_git_state(repo_root: Path, expected_branch: str) -> dict[str, Any]:
     }
 
 
+def check_remote_state(repo_root: Path, remote: str) -> dict[str, Any]:
+    fetch_dry_run = run_command(["git", "fetch", "--dry-run", remote], repo_root)
+    output = "\n".join(part for part in [fetch_dry_run.stdout.strip(), fetch_dry_run.stderr.strip()] if part)
+    has_remote_changes = bool(output.strip())
+    return {
+        "ok": fetch_dry_run.returncode == 0,
+        "remote": remote,
+        "check_mode": "fetch_dry_run",
+        "has_remote_changes": has_remote_changes,
+        "fetch_dry_run": command_summary("fetch_dry_run", fetch_dry_run),
+        "notes": "This check does not pull, merge, or modify the working tree.",
+    }
+
+
 def check_timer_state() -> dict[str, Any]:
     timer_enabled = run_command(["systemctl", "--user", "is-enabled", TIMER_NAME])
     timer_active = run_command(["systemctl", "--user", "is-active", TIMER_NAME])
@@ -151,6 +165,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--runtime-dir", default=DEFAULT_RUNTIME_DIR)
     parser.add_argument("--expected-branch", default="main")
     parser.add_argument("--timezone", default=DEFAULT_TIMEZONE)
+    parser.add_argument("--check-remote", action="store_true", help="Check remote availability using git fetch --dry-run.")
+    parser.add_argument("--remote", default="origin")
     parser.add_argument(
         "--dry-run",
         action="store_true",
@@ -179,6 +195,11 @@ def main() -> int:
     }
 
     git_state = check_git_state(repo_root, args.expected_branch)
+    remote_state = check_remote_state(repo_root, args.remote) if args.check_remote else {
+        "ok": True,
+        "check_mode": "disabled",
+        "has_remote_changes": False,
+    }
     timer_state = check_timer_state()
     task_state = load_json_if_exists(paths["current_task_state"])
     approval_state = load_json_if_exists(paths["latest_approval_state"])
@@ -188,7 +209,7 @@ def main() -> int:
     notice_status = read_text_status(paths["latest_notice"])
 
     status = {
-        "ok": bool(git_state.get("ok") and timer_state.get("ok")),
+        "ok": bool(git_state.get("ok") and timer_state.get("ok") and remote_state.get("ok")),
         "checked_at": now_iso(args.timezone),
         "mode": "dry_run" if args.dry_run else "single_iteration",
         "dry_run": bool(args.dry_run),
@@ -197,6 +218,7 @@ def main() -> int:
         "loop_running": False,
         "codex_running": False,
         "git_state": git_state,
+        "remote_state": remote_state,
         "timer_state": timer_state,
         "runtime_state": {
             "current_task_state": task_state,
@@ -208,6 +230,7 @@ def main() -> int:
         },
         "actions": {
             "git_pull_run": False,
+            "git_fetch_dry_run": bool(args.check_remote),
             "codex_started": False,
             "notification_sent": False,
             "production_command_run": False,
@@ -215,12 +238,12 @@ def main() -> int:
             "loop_status_written": False,
             "loop_log_written": False,
         },
-        "next_action": "ready_for_github_pull_check_mode",
+        "next_action": "ready_for_conditional_codex_handoff_generation",
     }
 
     if not args.dry_run:
         write_json(paths["loop_status"], status, args.pretty)
-        append_log(paths["loop_log"], f"{status['checked_at']} single_iteration ok={status['ok']}")
+        append_log(paths["loop_log"], f"{status['checked_at']} single_iteration ok={status['ok']} remote_changes={remote_state.get('has_remote_changes')}")
         status["actions"]["loop_status_written"] = True
         status["actions"]["loop_log_written"] = True
         write_json(paths["loop_status"], status, args.pretty)
