@@ -2,9 +2,8 @@
 """Run one safe Orchestrator loop iteration.
 
 This loop checks local runtime state, repository state, timer health, optional remote Git
-availability, and Codex queue readiness. When a queue item passes the structural gate,
-it materializes runtime handoff files only. It does not start Codex, send notifications,
-or run production workflows.
+availability, Codex queue readiness, handoff materialization, and the manual Codex
+start gate. It does not start Codex, send notifications, or run production workflows.
 """
 
 from __future__ import annotations
@@ -200,7 +199,6 @@ def summarize_codex_queue(queue_path: Path) -> dict[str, Any]:
 
 def run_json_script(script_path: Path, args: list[str], repo_root: Path) -> dict[str, Any]:
     completed = run_command([sys.executable, str(script_path), *args], repo_root)
-    parsed: dict[str, Any]
     try:
         parsed_data = json.loads(completed.stdout) if completed.stdout.strip() else {}
         parsed = parsed_data if isinstance(parsed_data, dict) else {"raw": parsed_data}
@@ -268,6 +266,32 @@ def materialize_codex_handoff(repo_root: Path, queue_path: Path, runtime_dir: Pa
     return result
 
 
+def check_manual_codex_start_gate(repo_root: Path, runtime_dir: Path) -> dict[str, Any]:
+    json_path = runtime_dir / "current_codex_handoff.json"
+    if not json_path.exists():
+        return {
+            "ok": True,
+            "manual_start_ready": False,
+            "codex_start_allowed": False,
+            "blocked_reasons": ["current_codex_handoff.json missing"],
+            "codex_started": False,
+            "notes": "No materialized handoff is available yet. Codex is not started by this loop.",
+        }
+    script_path = repo_root / "scripts" / "orchestrator" / "check_manual_codex_start_gate.py"
+    if not script_path.exists():
+        return {
+            "ok": False,
+            "manual_start_ready": False,
+            "codex_start_allowed": False,
+            "blocked_reasons": ["manual Codex start gate checker script missing"],
+            "codex_started": False,
+        }
+    result = run_json_script(script_path, ["--runtime-dir", str(runtime_dir)], repo_root)
+    result["codex_start_allowed"] = False
+    result["codex_started"] = False
+    return result
+
+
 def write_json(path: Path, data: dict[str, Any], pretty: bool) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2 if pretty else None) + "\n", encoding="utf-8")
@@ -305,6 +329,7 @@ def main() -> int:
 
     paths = {
         "current_task_state": runtime_dir / "current_task_state.json",
+        "current_codex_handoff_json": runtime_dir / "current_codex_handoff.json",
         "current_codex_handoff": runtime_dir / "current_codex_handoff.md",
         "latest_approval_state": runtime_dir / "latest_approval_state.json",
         "latest_validation_result": runtime_dir / "latest_validation_result.json",
@@ -328,11 +353,13 @@ def main() -> int:
         args.dry_run,
         codex_queue_gate_state,
     )
+    manual_codex_start_gate_state = check_manual_codex_start_gate(repo_root, runtime_dir)
 
     task_state = load_json_if_exists(paths["current_task_state"])
     approval_state = load_json_if_exists(paths["latest_approval_state"])
     validation_result = load_json_if_exists(paths["latest_validation_result"])
     decision_summary = load_json_if_exists(paths["latest_decision_summary"])
+    handoff_json_state = load_json_if_exists(paths["current_codex_handoff_json"])
     handoff_status = read_text_status(paths["current_codex_handoff"])
     notice_status = read_text_status(paths["latest_notice"])
 
@@ -344,6 +371,7 @@ def main() -> int:
             and codex_queue_state.get("ok")
             and codex_queue_gate_state.get("ok")
             and codex_handoff_materialize_state.get("ok")
+            and manual_codex_start_gate_state.get("ok")
         ),
         "checked_at": now_iso(args.timezone),
         "mode": "dry_run" if args.dry_run else "single_iteration",
@@ -358,11 +386,13 @@ def main() -> int:
         "codex_queue_state": codex_queue_state,
         "codex_queue_gate_state": codex_queue_gate_state,
         "codex_handoff_materialize_state": codex_handoff_materialize_state,
+        "manual_codex_start_gate_state": manual_codex_start_gate_state,
         "runtime_state": {
             "current_task_state": task_state,
             "latest_approval_state": approval_state,
             "latest_validation_result": validation_result,
             "latest_decision_summary": decision_summary,
+            "current_codex_handoff_json": handoff_json_state,
             "current_codex_handoff": handoff_status,
             "latest_notice": notice_status,
         },
@@ -372,6 +402,8 @@ def main() -> int:
             "codex_queue_read": True,
             "codex_gate_checked": True,
             "codex_handoff_materialized": bool(codex_handoff_materialize_state.get("materialized")),
+            "manual_codex_start_gate_checked": True,
+            "manual_codex_start_ready": bool(manual_codex_start_gate_state.get("manual_start_ready")),
             "codex_started": False,
             "notification_sent": False,
             "production_command_run": False,
@@ -379,14 +411,14 @@ def main() -> int:
             "loop_status_written": False,
             "loop_log_written": False,
         },
-        "next_action": "ready_for_manual_codex_start_gate",
+        "next_action": "manual_review_required_before_codex_start",
     }
 
     if not args.dry_run:
         write_json(paths["loop_status"], status, args.pretty)
         append_log(
             paths["loop_log"],
-            f"{status['checked_at']} single_iteration ok={status['ok']} remote_changes={remote_state.get('has_remote_changes')} queue_pending={codex_queue_state.get('pending_count')} gate_passed={codex_queue_gate_state.get('gate_passed')} materialized={codex_handoff_materialize_state.get('materialized')}",
+            f"{status['checked_at']} single_iteration ok={status['ok']} remote_changes={remote_state.get('has_remote_changes')} queue_pending={codex_queue_state.get('pending_count')} gate_passed={codex_queue_gate_state.get('gate_passed')} materialized={codex_handoff_materialize_state.get('materialized')} manual_start_ready={manual_codex_start_gate_state.get('manual_start_ready')}",
         )
         status["actions"]["loop_status_written"] = True
         status["actions"]["loop_log_written"] = True
