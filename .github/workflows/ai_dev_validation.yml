@@ -1,0 +1,45 @@
+name: AI Dev Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  validate-ai-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Compile orchestrator scripts
+        run: |
+          python3 -m py_compile \
+            scripts/orchestrator/check_forbidden_changes.py \
+            scripts/orchestrator/validate_ai_branch.py \
+            scripts/orchestrator/codex_autostart_preflight.py
+
+      - name: Check forbidden changes
+        run: |
+          python3 scripts/orchestrator/check_forbidden_changes.py \
+            --base origin/main \
+            --head HEAD \
+            --pretty
+
+      - name: Validate AI branch scope
+        run: |
+          python3 scripts/orchestrator/validate_ai_branch.py \
+            --base origin/main \
+            --head HEAD \
+            --pretty
