@@ -67,6 +67,7 @@ def main() -> int:
     parser.add_argument("--runtime-dir", default=DEFAULT_RUNTIME_DIR)
     parser.add_argument("--skip-enable-flag-check", action="store_true")
     parser.add_argument("--skip-tmux-check", action="store_true")
+    parser.add_argument("--allow-ai-dev-branch", action="store_true")
     parser.add_argument("--pretty", action="store_true")
     args = parser.parse_args()
 
@@ -96,7 +97,12 @@ def main() -> int:
         status = run_command(["git", "status", "--short"], repo_dir)
         current_branch = branch.stdout.strip() if branch.returncode == 0 else None
         git_clean = status.returncode == 0 and status.stdout.strip() == ""
-        if current_branch != "main":
+        branch_allowed = current_branch == "main" or (
+            args.allow_ai_dev_branch
+            and isinstance(current_branch, str)
+            and current_branch.startswith("ai-dev/")
+        )
+        if not branch_allowed:
             blocked.append(f"expected branch main, got {current_branch}")
         if not git_clean:
             blocked.append("git working tree is not clean")
@@ -152,6 +158,7 @@ def main() -> int:
         "enable_flag_path": str(enable_flag_path),
         "enable_flag_required": not args.skip_enable_flag_check,
         "tmux_check_required": not args.skip_tmux_check,
+        "ai_dev_branch_allowed": args.allow_ai_dev_branch,
         "current_branch": current_branch,
         "git_clean": git_clean,
         "tmux_session_name": SESSION_NAME,

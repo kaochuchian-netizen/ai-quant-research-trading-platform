@@ -20,6 +20,7 @@ python3 scripts/orchestrator/codex_autostart_preflight.py \
   --runtime-dir "$RUNTIME_DIR" \
   --skip-enable-flag-check \
   --skip-tmux-check \
+  --allow-ai-dev-branch \
   --pretty > "$PREFLIGHT_JSON"
 
 PREFLIGHT_PASSED="$(PREFLIGHT_JSON="$PREFLIGHT_JSON" python3 - << 'PY'

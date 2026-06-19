@@ -79,6 +79,10 @@ bash scripts/orchestrator/start_codex_manual.sh
 
 Codex should stay within the task allowed paths.
 
+The manual launcher can run from `main` or an `ai-dev/*` task branch. It still
+requires a clean git working tree and the same handoff, blocked path, and safety
+checks. Autostart preflight remains restricted to `main`.
+
 ### Low-Risk Dry-Run Task Guardrails
 
 For a documentation-only or validation-only dry run, keep the change set small
