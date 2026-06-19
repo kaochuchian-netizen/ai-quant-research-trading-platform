@@ -79,6 +79,30 @@ bash scripts/orchestrator/start_codex_manual.sh
 
 Codex should stay within the task allowed paths.
 
+### Low-Risk Dry-Run Task Guardrails
+
+For a documentation-only or validation-only dry run, keep the change set small
+and confirm it matches the generated task plan before editing.
+
+Recommended dry-run scope:
+
+- `docs/`
+- `tests/`
+- `scripts/orchestrator/`
+- `orchestrator/queue/`
+
+Avoid runtime behavior changes during dry runs. Do not run the application entry
+point or any side-effecting command listed in the hard safety boundaries.
+
+Before moving to PR preparation, run:
+
+```bash
+git status --short
+python3 scripts/orchestrator/validate_ai_branch.py --base main --head HEAD --pretty
+python3 scripts/orchestrator/check_forbidden_changes.py --base main --head HEAD --pretty
+git diff --stat
+```
+
 ## Step 4: Validate the Branch
 
 After AI/Codex changes are complete:
