@@ -102,6 +102,59 @@ branch, open a PR, merge, or archive. The runner does not call Codex
 automatically. At `handoff_ready`, use the runtime plan and PR body paths
 printed by the runner.
 
+## Runtime Queue Inspector
+
+Inspect runtime queue state without changing runtime files, repository files, or
+Git state:
+
+```bash
+python3 scripts/orchestrator/inspect_ai_runtime_queue.py --pretty
+```
+
+The inspector reports pending tasks, completed tasks, the active handoff plan,
+the latest validation bundle summary, current branch, and working tree status.
+It is read-only and must not create branches, write runtime artifacts, commit,
+push, open PRs, merge, archive, run production commands, send notifications,
+trade, or modify scheduler settings.
+
+## Supervised Closed-Loop Runner
+
+Use the supervised runner to reduce manual status checks while preserving the
+existing safety gates:
+
+```bash
+python3 scripts/orchestrator/run_ai_dev_closed_loop_once.py --dry-run --pretty
+```
+
+Dry-run mode only inspects state and prints the next action. It does not run the
+validation bundle because that bundle writes runtime reports. It also does not
+promote, create branches, push, create PRs, merge, archive, run production
+commands, send notifications, trade, or modify scheduler settings.
+
+After branch work is committed and local validation is expected to pass, PR
+creation remains explicit:
+
+```bash
+python3 scripts/orchestrator/run_ai_dev_closed_loop_once.py --create-pr --pretty
+```
+
+The supervised runner composes the read-only inspector, local validation bundle,
+and existing PR-capable one-shot queue runner. It never passes `--auto-merge`
+and never calls the archive helper. If GitHub Actions, merge eligibility, or
+archive readiness require judgment, it reports `next_action` for human review
+instead of merging or archiving automatically.
+
+The preserved boundary is:
+
+```text
+branch implementation
+→ local validation
+→ explicit PR creation
+→ GitHub Actions and review
+→ manual or separately approved merge
+→ manual or separately approved archive
+```
+
 ## Step 4: Run AI/Codex Work
 
 Use the manual Codex launcher:
