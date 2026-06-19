@@ -46,6 +46,35 @@ def env_value(name: str) -> str | None:
     return value or None
 
 
+def parse_env_assignment(line: str) -> tuple[str, str] | None:
+    line = line.strip()
+    if not line or line.startswith("#"):
+        return None
+    if line.startswith("export "):
+        line = line[len("export "):].strip()
+    if "=" not in line:
+        return None
+
+    key, value = line.split("=", 1)
+    key = key.strip()
+    value = value.strip().strip('"').strip("'")
+    if not key.startswith("ORCH_MAIL_"):
+        return None
+    return key, value
+
+
+def load_env_file(path: Path) -> None:
+    if not path.exists():
+        raise FileNotFoundError(f"env file not found: {path}")
+
+    for line in path.read_text(encoding="utf-8").splitlines():
+        parsed = parse_env_assignment(line)
+        if parsed is None:
+            continue
+        key, value = parsed
+        os.environ.setdefault(key, value)
+
+
 def load_mail_config() -> dict[str, str]:
     config = {
         "host": env_value(ENV_HOST),
@@ -70,12 +99,13 @@ def build_message(config: dict[str, str], subject: str, body: str) -> EmailMessa
     return message
 
 
-def preview_payload(subject: str, body: str) -> dict[str, Any]:
+def preview_payload(subject: str, body: str, env_file: str | None) -> dict[str, Any]:
     return {
         "mode": "preview",
         "send": False,
         "subject": subject,
         "notice_chars": len(body),
+        "env_file_loaded": bool(env_file),
         "configured_to": env_value(ENV_TO),
         "configured_from": env_value(ENV_FROM),
         "required_env": [ENV_HOST, ENV_PORT, ENV_USER, ENV_PASS, ENV_FROM, ENV_TO],
@@ -102,14 +132,18 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Preview or send an Orchestrator stage report notice.")
     parser.add_argument("--notice", required=True, help="Path to rendered notice markdown.")
     parser.add_argument("--subject", help="Optional subject override.")
+    parser.add_argument("--env-file", help="Optional local environment file outside the repository.")
     parser.add_argument("--send", action="store_true", help="Actually deliver the notice.")
     args = parser.parse_args()
+
+    if args.env_file:
+        load_env_file(Path(args.env_file).expanduser())
 
     body = read_notice(Path(args.notice))
     subject = args.subject or first_subject_line(body)
 
     if not args.send:
-        json.dump(preview_payload(subject, body), sys.stdout, ensure_ascii=False, indent=2)
+        json.dump(preview_payload(subject, body, args.env_file), sys.stdout, ensure_ascii=False, indent=2)
         sys.stdout.write("\n")
         return 0
 
