@@ -12,6 +12,7 @@ The Phase C implementation is intentionally scoped to templates, state formats, 
 - Define email summary format.
 - Provide a read-only validation snapshot tool.
 - Provide a stage notification runner that defaults to preview mode.
+- Provide a stage task state generator so stage emails no longer need to use example task states.
 - Provide a VM-side validation runner for allowlisted checks.
 - Allow VM-side notification only when explicitly requested with `--notify`.
 - Allow VM-side email delivery only when explicitly requested with both `--notify` and `--send`.
@@ -43,6 +44,7 @@ The Phase C implementation is intentionally scoped to templates, state formats, 
 - `../scripts/orchestrator/render_notice_from_template.py`: renders a notice from the email summary template and task state.
 - `../scripts/orchestrator/notify_stage_report.py`: sends or previews an orchestrator stage report through the configured mail adapter.
 - `../scripts/orchestrator/run_stage_notification.py`: one-shot stage notification runner that chains snapshot, notice rendering, and preview/send notification.
+- `../scripts/orchestrator/create_stage_task_state.py`: generates a concrete stage task state JSON, written to `/tmp` by default, using current Git HEAD metadata.
 - `../scripts/orchestrator/run_vm_stage_validation.py`: VM-side validation runner that checks branch / clean tree, optionally performs controlled `git pull --ff-only`, executes allowlisted validation commands from task state, and can optionally trigger stage notification.
 
 ## VM-side validation runner safety defaults
@@ -56,5 +58,28 @@ The Phase C implementation is intentionally scoped to templates, state formats, 
 - Without `--send`, notification remains preview mode.
 - The runner does not use `shell=True`.
 - The runner only executes allowlisted validation command types.
+
+## Concrete stage task state flow
+
+Use `create_stage_task_state.py` before sending an important stage email when the email should describe a real task instead of an example task state.
+
+Example:
+
+```bash
+python3 scripts/orchestrator/create_stage_task_state.py \
+  --task-id PHASE-C6-3 \
+  --task-name "Generate concrete stage task state" \
+  --phase phase_c_6 \
+  --completed \
+  --validation-passed \
+  --push-created \
+  --email-required \
+  --requires-approval \
+  --next-task-id PHASE-C7-1 \
+  --next-task-name "Design email reply approval parser" \
+  --pretty
+```
+
+The generated JSON path can then be passed to `run_stage_notification.py` or `run_vm_stage_validation.py --notify`.
 
 Future phases may add approval-state handling and carefully scoped automation, but each addition should remain scoped, reviewable, and guarded by explicit safety rules.
