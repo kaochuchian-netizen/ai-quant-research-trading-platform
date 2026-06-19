@@ -201,9 +201,15 @@ It checks:
 
 - Python compile for orchestrator scripts
 - forbidden file changes
-- forbidden production, LINE, and trading keywords
+- forbidden production, LINE, and trading keyword categories
 - allowed path scope
 - changed file count limit
+
+Queue files and runbooks should describe blocked keyword policy by helper
+category, such as LINE sending helpers, broker order helpers, and production
+pipeline helpers. Do not list exact callable literals in docs or task metadata;
+the validator owns those exact patterns and should continue to block them in
+code diffs.
 
 ## Step 9: Review Gate
 

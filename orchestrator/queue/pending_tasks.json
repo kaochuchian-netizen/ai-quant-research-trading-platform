@@ -19,12 +19,19 @@
     "data/backups/",
     "analysis/output/"
   ],
-  "blocked_keywords": [
-    "send_line_report(",
-    "line_bot_api.push_message",
-    "api.place_order",
-    "place_order(",
-    "run_pipeline("
+  "blocked_keyword_policy": [
+    {
+      "category": "line_notification",
+      "description": "Do not add or call LINE sending helpers."
+    },
+    {
+      "category": "broker_order",
+      "description": "Do not add or call broker order helpers."
+    },
+    {
+      "category": "production_pipeline",
+      "description": "Do not add or call production pipeline helpers."
+    }
   ],
   "tasks": []
 }

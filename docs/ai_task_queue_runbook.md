@@ -43,6 +43,8 @@ Each promotable task must have:
 - direct main push, production commands, LINE notifications, and trading execution disabled
 - blocked paths containing `.env`, `data/stock_analysis.db`, `data/backups/`, and `analysis/output/`
 - allowed paths limited to `docs/`, `tests/`, `scripts/orchestrator/`, and `orchestrator/queue/`
+- blocked keyword policy described by category only, without listing exact
+  production, LINE, or broker helper call literals
 
 ## Promotion Command
 
@@ -116,5 +118,10 @@ The promotion layer does not:
 - modify systemd, cron, or timers
 - read `.env`
 - touch `data/stock_analysis.db`, `data/backups/`, or `analysis/output/`
+
+The queue may describe blocked keyword categories such as LINE sending helpers,
+broker order helpers, and production pipeline helpers. It must not list exact
+callable literals because those are intentionally caught by the branch
+validator when they appear in a diff.
 
 After promotion, continue with the existing branch launcher and validation flow.
