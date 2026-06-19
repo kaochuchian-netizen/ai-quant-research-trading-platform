@@ -251,11 +251,15 @@ def export_ranking(ranking):
         "total",
         "completed",
         "pending",
+        "pending_ratio",
         "win_rate",
         "avg_return",
         "cumulative_return",
+        "max_drawdown",
         "sharpe",
         "consistency",
+        "ranking_status",
+        "ranking_reason",
         "ranking_score",
     ]
 
@@ -271,11 +275,15 @@ def export_ranking(ranking):
                 "total": item["total"],
                 "completed": item["completed"],
                 "pending": item["pending"],
+                "pending_ratio": round(item["pending_ratio"], 2) if item["pending_ratio"] is not None else "",
                 "win_rate": round(item["win_rate"], 2) if item["win_rate"] is not None else "",
                 "avg_return": round(item["avg_return"], 2) if item["avg_return"] is not None else "",
                 "cumulative_return": round(item["cumulative_return"], 2) if item["cumulative_return"] is not None else "",
+                "max_drawdown": round(item["max_drawdown"], 2) if item["max_drawdown"] is not None else "",
                 "sharpe": round(item["sharpe"], 4) if item["sharpe"] is not None else "",
                 "consistency": item["consistency"],
+                "ranking_status": item["ranking_status"],
+                "ranking_reason": item["ranking_reason"],
                 "ranking_score": round(item["ranking_score"], 4),
             })
 
