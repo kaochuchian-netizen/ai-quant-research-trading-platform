@@ -230,6 +230,54 @@ python3 scripts/orchestrator/inspect_ai_runtime_queue.py --pretty
 The inspector should show the expected pending/completed queue state, active
 handoff task, current branch, and clean/dirty worktree state before continuing.
 
+## Platform Status Inspector
+
+Use the platform status inspector for the standard queue and repository status
+checkpoint around closed-loop work:
+
+```bash
+python3 scripts/orchestrator/inspect_ai_platform_status.py
+python3 scripts/orchestrator/inspect_ai_platform_status.py --pretty
+```
+
+Run it:
+
+- before starting a queue task, before dry-run or promotion, to confirm branch,
+  working tree, runtime queue, and active handoff state
+- after PR merge, completed-task archive, branch cleanup, and `main` sync, to
+  confirm the queue and repository returned to the expected state
+- whenever pending/promoted queue entries, completed archive records, active
+  handoff files, local branches, or `main` / `origin/main` sync state appear
+  inconsistent
+
+This tool is read-only. It does not modify the repository, runtime queue, data,
+`.env`, credentials, API keys, tokens, secrets, or Git state. It does not run
+`python3 main.py`, execute production pipelines, send LINE/email/external
+notifications, trade, place orders, or modify cron, systemd, or timer settings.
+
+Read the output as a platform-level status snapshot:
+
+- `git.current_branch`, `git.clean`, and `git.status_short` identify the active
+  branch and whether local repo files are dirty.
+- `git.main_origin_main_sync` compares local `main` with local `origin/main`
+  refs and reports `in_sync`, `local_ahead`, `local_behind`, `diverged`, or
+  `missing_ref`. The inspector does not fetch or pull.
+- `runtime.pending_queue.count`, `pending_count`, `promoted_count`, and
+  `task_ids` show queue size, pending/promoted split, and task ids.
+- `runtime.completed_queue.count` and `task_ids` show completed archive size
+  and completed task ids.
+- `runtime.active_handoff_or_branch_plan` reports whether active branch plan,
+  PR body, or current Codex handoff files exist.
+- `repo_files.key_orchestrator_scripts` confirms the expected queue and
+  validation helpers are present.
+- `repo_files.pipeline_entrypoints` and `pipeline_entrypoint_check` confirm
+  production entrypoints exist and were not executed by inspection.
+- `safety_boundary_reminder` and `side_effects` should confirm no repo,
+  runtime queue, data, secret, notification, trading, scheduler, branch, commit,
+  push, PR, merge, or production side effect occurred.
+
+Use this command as the normal closed-loop pre-task and post-task status check.
+
 ## First Real Runtime Queue Task Flow
 
 Use this sequence for the first real low-risk runtime queue task after the
