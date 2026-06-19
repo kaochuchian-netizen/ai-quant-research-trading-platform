@@ -96,6 +96,7 @@ def render_notice(
     task_state: Path,
     snapshot_output: Path,
     notice_output: Path,
+    decision_summary: Path | None,
 ) -> subprocess.CompletedProcess[str]:
     command = [
         sys.executable,
@@ -109,6 +110,8 @@ def render_notice(
         "--output",
         str(notice_output),
     ]
+    if decision_summary:
+        command.extend(["--decision-summary", str(decision_summary)])
     return run_command(command, repo_root)
 
 
@@ -136,56 +139,18 @@ def notify_stage(
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Run the Orchestrator stage notification pipeline.",
-    )
-    parser.add_argument(
-        "--repo-root",
-        default=".",
-        help="Repository root. Defaults to current directory.",
-    )
-    parser.add_argument(
-        "--template",
-        default=DEFAULT_TEMPLATE,
-        help=f"Notice template path. Defaults to {DEFAULT_TEMPLATE}.",
-    )
-    parser.add_argument(
-        "--task-state",
-        required=True,
-        help="Task state JSON path.",
-    )
-    parser.add_argument(
-        "--snapshot-output",
-        help="Validation snapshot output path. Defaults to a /tmp file.",
-    )
-    parser.add_argument(
-        "--notice-output",
-        help="Rendered notice output path. Defaults to a /tmp file.",
-    )
-    parser.add_argument(
-        "--python-file",
-        action="append",
-        default=[],
-        help="Python file to syntax-check in the validation snapshot. Can be repeated.",
-    )
-    parser.add_argument(
-        "--env-file",
-        help="Mail environment file path passed through to notify_stage_report.py.",
-    )
-    parser.add_argument(
-        "--subject",
-        help="Optional subject override passed through to notify_stage_report.py.",
-    )
-    parser.add_argument(
-        "--send",
-        action="store_true",
-        help="Actually deliver the notice. Preview mode is the default.",
-    )
-    parser.add_argument(
-        "--pretty",
-        action="store_true",
-        help="Pretty-print JSON outputs where supported.",
-    )
+    parser = argparse.ArgumentParser(description="Run the Orchestrator stage notification pipeline.")
+    parser.add_argument("--repo-root", default=".", help="Repository root. Defaults to current directory.")
+    parser.add_argument("--template", default=DEFAULT_TEMPLATE, help=f"Notice template path. Defaults to {DEFAULT_TEMPLATE}.")
+    parser.add_argument("--task-state", required=True, help="Task state JSON path.")
+    parser.add_argument("--decision-summary", help="Optional next-task decision summary JSON path.")
+    parser.add_argument("--snapshot-output", help="Validation snapshot output path. Defaults to a /tmp file.")
+    parser.add_argument("--notice-output", help="Rendered notice output path. Defaults to a /tmp file.")
+    parser.add_argument("--python-file", action="append", default=[], help="Python file to syntax-check in the validation snapshot. Can be repeated.")
+    parser.add_argument("--env-file", help="Mail environment file path passed through to notify_stage_report.py.")
+    parser.add_argument("--subject", help="Optional subject override passed through to notify_stage_report.py.")
+    parser.add_argument("--send", action="store_true", help="Actually deliver the notice. Preview mode is the default.")
+    parser.add_argument("--pretty", action="store_true", help="Pretty-print JSON outputs where supported.")
     return parser.parse_args()
 
 
@@ -197,11 +162,14 @@ def main() -> int:
     notice_output = Path(args.notice_output).expanduser() if args.notice_output else default_notice
     template = Path(args.template).expanduser()
     task_state = Path(args.task_state).expanduser()
+    decision_summary = Path(args.decision_summary).expanduser() if args.decision_summary else None
 
     if not template.is_absolute():
         template = repo_root / template
     if not task_state.is_absolute():
         task_state = repo_root / task_state
+    if decision_summary and not decision_summary.is_absolute():
+        decision_summary = repo_root / decision_summary
     if not snapshot_output.is_absolute():
         snapshot_output = repo_root / snapshot_output
     if not notice_output.is_absolute():
@@ -221,6 +189,7 @@ def main() -> int:
                 "send_requested": bool(args.send),
                 "snapshot_output": str(snapshot_output),
                 "notice_output": str(notice_output),
+                "decision_summary": str(decision_summary) if decision_summary else None,
                 "collect_validation_snapshot": command_summary("collect_validation_snapshot", collect_result),
             },
             sys.stdout,
@@ -236,6 +205,7 @@ def main() -> int:
         task_state=task_state,
         snapshot_output=snapshot_output,
         notice_output=notice_output,
+        decision_summary=decision_summary,
     )
     if render_result.returncode != 0:
         json.dump(
@@ -245,6 +215,7 @@ def main() -> int:
                 "send_requested": bool(args.send),
                 "snapshot_output": str(snapshot_output),
                 "notice_output": str(notice_output),
+                "decision_summary": str(decision_summary) if decision_summary else None,
                 "collect_validation_snapshot": command_summary("collect_validation_snapshot", collect_result),
                 "render_notice_from_template": command_summary("render_notice_from_template", render_result),
             },
@@ -269,13 +240,10 @@ def main() -> int:
         "send_requested": bool(args.send),
         "snapshot_output": str(snapshot_output),
         "notice_output": str(notice_output),
+        "decision_summary": str(decision_summary) if decision_summary else None,
         "collect_validation_snapshot": command_summary("collect_validation_snapshot", collect_result),
         "render_notice_from_template": command_summary("render_notice_from_template", render_result),
-        "notify_stage_report": command_summary(
-            "notify_stage_report",
-            notify_result,
-            include_stdout=not args.send,
-        ),
+        "notify_stage_report": command_summary("notify_stage_report", notify_result, include_stdout=not args.send),
     }
     json.dump(output, sys.stdout, ensure_ascii=False, indent=2)
     sys.stdout.write("\n")
