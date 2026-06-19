@@ -4,9 +4,10 @@
 This runner is intentionally conservative:
 - It validates branch and clean working tree state.
 - It executes only allowlisted validation command types from task state.
-- The initial skeleton supports only py_compile.
-- It does not run git pull, main.py, backtests, migrations, DB writes, LINE,
-  cron edits, approval endpoints, or production pipelines.
+- It supports controlled git pull only when --pull is provided and task state allows it.
+- It supports stage notification only when --notify is provided.
+- It does not run main.py, backtests, migrations, DB writes, LINE, cron edits,
+  approval endpoints, production pipelines, or trading actions.
 """
 
 from __future__ import annotations
@@ -52,6 +53,10 @@ def run_command(args: list[str], repo_root: Path) -> subprocess.CompletedProcess
         stderr=subprocess.PIPE,
         check=False,
     )
+
+
+def repo_script(repo_root: Path, name: str) -> Path:
+    return repo_root / "scripts" / "orchestrator" / name
 
 
 def git_output(repo_root: Path, args: list[str]) -> subprocess.CompletedProcess[str]:
@@ -147,8 +152,8 @@ def validate_task_state(task_state: dict[str, Any]) -> tuple[bool, list[str]]:
     if scope.get("production_side_effect_allowed") is not False:
         errors.append("production_side_effect_allowed must be false")
 
-    if sync.get("git_pull_allowed") is True:
-        errors.append("git_pull_allowed must remain false in Phase C-6-1 skeleton")
+    if sync.get("git_pull_allowed") not in (True, False, None):
+        errors.append("git_pull_allowed must be true, false, or omitted")
 
     if not isinstance(commands, list) or not commands:
         errors.append("vm_validation.commands must be a non-empty list")
@@ -213,6 +218,10 @@ def check_git_state(repo_root: Path, expected_branch: str) -> dict[str, Any]:
     }
 
 
+def run_git_pull(repo_root: Path) -> subprocess.CompletedProcess[str]:
+    return git_output(repo_root, ["pull", "--ff-only"])
+
+
 def run_py_compile(repo_root: Path, command: dict[str, Any]) -> dict[str, Any]:
     command_id = str(command.get("id") or "py_compile")
     args = command.get("args") or []
@@ -270,6 +279,37 @@ def all_required_checks_passed(results: list[dict[str, Any]]) -> bool:
     return True
 
 
+def run_stage_notification(
+    repo_root: Path,
+    task_state_path: Path,
+    env_file: str | None,
+    subject: str | None,
+    send: bool,
+    pretty: bool,
+) -> subprocess.CompletedProcess[str]:
+    command = [
+        sys.executable,
+        str(repo_script(repo_root, "run_stage_notification.py")),
+        "--repo-root",
+        str(repo_root),
+        "--task-state",
+        str(task_state_path),
+        "--python-file",
+        "scripts/orchestrator/run_vm_stage_validation.py",
+    ]
+
+    if env_file:
+        command.extend(["--env-file", env_file])
+    if subject:
+        command.extend(["--subject", subject])
+    if send:
+        command.append("--send")
+    if pretty:
+        command.append("--pretty")
+
+    return run_command(command, repo_root)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run VM-side allowlisted validation commands from task state.",
@@ -287,6 +327,29 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output",
         help="Validation result JSON output path. Defaults to a /tmp file.",
+    )
+    parser.add_argument(
+        "--pull",
+        action="store_true",
+        help="Run git pull --ff-only only when task state allows it.",
+    )
+    parser.add_argument(
+        "--notify",
+        action="store_true",
+        help="Run stage notification after successful validation. Preview mode by default.",
+    )
+    parser.add_argument(
+        "--env-file",
+        help="Mail environment file path passed through to stage notification.",
+    )
+    parser.add_argument(
+        "--subject",
+        help="Optional subject override passed through to stage notification.",
+    )
+    parser.add_argument(
+        "--send",
+        action="store_true",
+        help="Actually send the stage notification. Requires --notify.",
     )
     parser.add_argument(
         "--pretty",
@@ -325,7 +388,9 @@ def main() -> int:
     vm_validation = task_state.get("vm_validation") or {}
     sync = vm_validation.get("sync") or {}
     expected_branch = str(sync.get("expected_branch") or task_state.get("git", {}).get("base_branch") or "main")
-    git_state = check_git_state(repo_root, expected_branch)
+    git_state_before = check_git_state(repo_root, expected_branch)
+    git_state_after_pull: dict[str, Any] | None = None
+    git_pull_result: dict[str, Any] | None = None
 
     result: dict[str, Any] = {
         "ok": False,
@@ -336,26 +401,73 @@ def main() -> int:
         "output_path": str(output_path),
         "task_state_valid": state_ok,
         "task_state_errors": state_errors,
-        "git_state": git_state,
+        "git_state_before": git_state_before,
+        "git_state_after_pull": None,
         "validation_results": [],
         "all_required_checks_passed": False,
         "production_side_effect": "not_allowed",
+        "git_pull_requested": bool(args.pull),
         "git_pull_executed": False,
+        "notification_requested": bool(args.notify),
+        "notification_result": None,
+        "email_send_requested": bool(args.send),
         "email_sent": False,
     }
 
-    if not state_ok:
-        result["blocked_reason"] = "task state validation failed"
-    elif not git_state["ok"]:
-        result["blocked_reason"] = "git safety check failed"
-    else:
+    blocked_reason: str | None = None
+
+    if args.send and not args.notify:
+        blocked_reason = "--send requires --notify"
+    elif not state_ok:
+        blocked_reason = "task state validation failed"
+    elif not git_state_before["ok"]:
+        blocked_reason = "git safety check failed before validation"
+
+    if blocked_reason is None and args.pull:
+        if sync.get("git_pull_allowed") is not True:
+            blocked_reason = "git pull requested but task state does not allow it"
+        else:
+            pull_completed = run_git_pull(repo_root)
+            git_pull_result = command_summary(pull_completed)
+            result["git_pull_result"] = git_pull_result
+            result["git_pull_executed"] = True
+
+            if pull_completed.returncode != 0:
+                blocked_reason = "git pull failed"
+            else:
+                git_state_after_pull = check_git_state(repo_root, expected_branch)
+                result["git_state_after_pull"] = git_state_after_pull
+                if not git_state_after_pull["ok"]:
+                    blocked_reason = "git safety check failed after git pull"
+
+    if blocked_reason is None:
         commands = vm_validation.get("commands") or []
         validation_results = run_validation_commands(repo_root, commands)
+        validation_ok = all_required_checks_passed(validation_results)
         result["validation_results"] = validation_results
-        result["all_required_checks_passed"] = all_required_checks_passed(validation_results)
-        result["ok"] = result["all_required_checks_passed"]
-        if not result["ok"]:
-            result["blocked_reason"] = "required validation command failed"
+        result["all_required_checks_passed"] = validation_ok
+
+        if not validation_ok:
+            blocked_reason = "required validation command failed"
+        elif args.notify:
+            notify_completed = run_stage_notification(
+                repo_root=repo_root,
+                task_state_path=task_state_path,
+                env_file=args.env_file,
+                subject=args.subject,
+                send=args.send,
+                pretty=args.pretty,
+            )
+            result["notification_result"] = command_summary(notify_completed, include_output=not args.send)
+            result["email_sent"] = bool(args.send and notify_completed.returncode == 0)
+            if notify_completed.returncode != 0:
+                blocked_reason = "stage notification failed"
+
+    if blocked_reason is not None:
+        result["blocked_reason"] = blocked_reason
+        result["ok"] = False
+    else:
+        result["ok"] = True
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_text = json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None)
