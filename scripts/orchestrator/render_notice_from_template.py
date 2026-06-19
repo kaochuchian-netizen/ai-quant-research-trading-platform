@@ -50,7 +50,28 @@ def validation_block(snapshot: dict[str, Any]) -> str:
     return "\n".join(rows) if rows else "- N/A"
 
 
-def render(template: str, task: dict[str, Any], snapshot: dict[str, Any]) -> str:
+def summary_block(task: dict[str, Any]) -> str:
+    stage_summary = task.get("stage_summary")
+    if isinstance(stage_summary, dict):
+        summary = stage_summary.get("summary")
+        if summary:
+            return f"- {summary}"
+    return "- Stage report generated from task state and validation snapshot"
+
+
+def decision_value(decision: dict[str, Any], *keys: str, default: str = "pending") -> str:
+    if not decision:
+        return default
+    return pick(decision, *keys, default=default)
+
+
+def render(
+    template: str,
+    task: dict[str, Any],
+    snapshot: dict[str, Any],
+    decision: dict[str, Any] | None = None,
+) -> str:
+    decision = decision or {}
     task_id = pick(task, "task_id", default="unknown_task")
     task_name = pick(task, "task_name", default="Untitled task")
     git_state = task.get("git", {}) if isinstance(task.get("git"), dict) else {}
@@ -68,13 +89,18 @@ def render(template: str, task: dict[str, Any], snapshot: dict[str, Any]) -> str
         "<commit_hash_or_not_created>": pick(git_state, "commit_hash", default="not_created"),
         "<commit_message_or_not_applicable>": pick(git_state, "commit_message"),
         "- <path>": changed,
-        "- <summary>": "- Stage report generated from task state and validation snapshot",
+        "- <summary>": summary_block(task),
         "- <command_or_check>: <passed_failed_or_skipped>": validation_block(snapshot),
         "none / detected / blocked": pick(safety, "production_side_effect_detected", default="none"),
         "none / list paths": ", ".join(str(x) for x in forbidden) if forbidden else "none",
         "<reason_or_none>": pick(safety, "blocked_reason", default="none"),
         "<next_task_id>": pick(next_task, "suggested_task_id", default="not_defined"),
         "<next_task_name>": pick(next_task, "suggested_task_name", default="not_defined"),
+        "<decision_or_pending>": decision_value(decision, "decision", default="pending"),
+        "<next_task_allowed_or_false>": decision_value(decision, "approval_gate", "next_task_allowed", default="false"),
+        "<pause_requested_or_false>": decision_value(decision, "approval_gate", "pause_requested", default="false"),
+        "<should_start_next_task_or_false>": decision_value(decision, "next_task", "should_start_next_task", default="false"),
+        "<decision_blocked_reason_or_none>": decision_value(decision, "blocked_reason", default="none"),
     }
 
     output = template
@@ -88,13 +114,16 @@ def main() -> int:
     parser.add_argument("--template", required=True)
     parser.add_argument("--task-state", required=True)
     parser.add_argument("--validation-snapshot", required=True)
+    parser.add_argument("--decision-summary", help="Optional next-task decision summary JSON path.")
     parser.add_argument("--output")
     args = parser.parse_args()
 
+    decision = load_json(Path(args.decision_summary)) if args.decision_summary else None
     result = render(
         Path(args.template).read_text(encoding="utf-8"),
         load_json(Path(args.task_state)),
         load_json(Path(args.validation_snapshot)),
+        decision,
     )
 
     if args.output:
