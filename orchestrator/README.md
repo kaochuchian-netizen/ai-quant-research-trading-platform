@@ -12,7 +12,10 @@ The Phase C implementation is intentionally scoped to templates, state formats, 
 - Define email summary format.
 - Provide a read-only validation snapshot tool.
 - Provide a stage notification runner that defaults to preview mode.
-- Provide a VM-side validation runner skeleton for allowlisted checks.
+- Provide a VM-side validation runner for allowlisted checks.
+- Allow VM-side notification only when explicitly requested with `--notify`.
+- Allow VM-side email delivery only when explicitly requested with both `--notify` and `--send`.
+- Allow controlled `git pull --ff-only` only when explicitly requested with `--pull` and task state allows it.
 - Keep all Orchestrator artifacts human-reviewable.
 - Preserve production safety gates.
 
@@ -40,6 +43,18 @@ The Phase C implementation is intentionally scoped to templates, state formats, 
 - `../scripts/orchestrator/render_notice_from_template.py`: renders a notice from the email summary template and task state.
 - `../scripts/orchestrator/notify_stage_report.py`: sends or previews an orchestrator stage report through the configured mail adapter.
 - `../scripts/orchestrator/run_stage_notification.py`: one-shot stage notification runner that chains snapshot, notice rendering, and preview/send notification.
-- `../scripts/orchestrator/run_vm_stage_validation.py`: VM-side validation runner skeleton that checks branch / clean tree and executes allowlisted validation commands from task state.
+- `../scripts/orchestrator/run_vm_stage_validation.py`: VM-side validation runner that checks branch / clean tree, optionally performs controlled `git pull --ff-only`, executes allowlisted validation commands from task state, and can optionally trigger stage notification.
 
-Future phases may add controlled VM sync, approval-state handling, and carefully scoped automation, but each addition should remain scoped, reviewable, and guarded by explicit safety rules.
+## VM-side validation runner safety defaults
+
+`run_vm_stage_validation.py` is designed with conservative defaults:
+
+- `--pull` is required before any `git pull --ff-only` can run.
+- Task state must also set `vm_validation.sync.git_pull_allowed=true` before `--pull` is accepted.
+- `--notify` is required before any stage notification is triggered.
+- `--send` is only accepted together with `--notify`.
+- Without `--send`, notification remains preview mode.
+- The runner does not use `shell=True`.
+- The runner only executes allowlisted validation command types.
+
+Future phases may add approval-state handling and carefully scoped automation, but each addition should remain scoped, reviewable, and guarded by explicit safety rules.
