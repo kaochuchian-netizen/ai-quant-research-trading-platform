@@ -35,9 +35,17 @@ Subject: [AI Orchestrator] <task_id> 完成：<task_name>
 - Task ID：<next_task_id>
 - Task 名稱：<next_task_name>
 
+## 下一步決策摘要
+
+- Decision：<decision_or_pending>
+- Next task allowed：<next_task_allowed_or_false>
+- Pause requested：<pause_requested_or_false>
+- Should start next task：<should_start_next_task_or_false>
+- Decision blocked reason：<decision_blocked_reason_or_none>
+
 ## 你的決策
 
-目前這封信是純文字 email，尚未啟用 approval endpoint 或 email reply parser，所以不會出現真正可點擊並自動觸發流程的按鈕。
+目前這封信是純文字 email，尚未啟用 approval endpoint，所以不會出現真正可點擊並自動觸發流程的按鈕。
 
 請直接回覆以下其中一個指令，由後續 Orchestrator / ChatGPT 流程判讀：
 
@@ -62,11 +70,10 @@ pause
 - cron 修改
 - production DB 修改
 - formal pipeline 執行
-- credentials 修改
 - protected branch merge
 - Google Sheet 修改
 - 自動下單或交易
 
 ## 備註
 
-這是階段成果通知模板。真正的一鍵 approval button 需要後續實作 signed approval endpoint 或 email reply parser 後才會啟用。
+這是階段成果通知模板。真正的一鍵 approval button 需要後續實作 signed approval endpoint 後才會啟用。
