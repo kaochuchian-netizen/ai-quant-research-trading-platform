@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "handoff_id": "CODEX-HANDOFF-EXAMPLE",
+  "task_id": "PHASE-C9-EXAMPLE",
+  "task_name": "Example scoped Codex task",
+  "status": "draft",
+  "created_by": "orchestrator",
+  "target": {
+    "repo_root": "~/stock-ai",
+    "branch": "main"
+  },
+  "scope": {
+    "allowed_task_type": "orchestrator_low_risk",
+    "allowed_paths": [
+      "docs/",
+      "orchestrator/templates/",
+      "scripts/orchestrator/"
+    ],
+    "blocked_paths": [
+      ".env",
+      "data/stock_analysis.db",
+      "data/backups/",
+      "analysis/output/"
+    ]
+  },
+  "task": {
+    "objective": "Describe the single scoped change here.",
+    "instructions": [
+      "Inspect the relevant files before making changes.",
+      "Keep the change limited to the declared scope.",
+      "Do not modify runtime state files."
+    ],
+    "non_goals": [
+      "Do not run production workflows.",
+      "Do not read local secret files.",
+      "Do not change scheduler settings."
+    ]
+  },
+  "validation": {
+    "commands": [
+      {
+        "id": "py_compile_orchestrator_file",
+        "type": "py_compile",
+        "args": [
+          "scripts/orchestrator/example.py"
+        ],
+        "required": true
+      }
+    ]
+  },
+  "expected_summary": {
+    "fields": [
+      "changed_files",
+      "commit_hash",
+      "validation_result",
+      "git_status"
+    ]
+  },
+  "execution": {
+    "manual_start_required": true,
+    "agent_started": false,
+    "agent_finished": false
+  }
+}
