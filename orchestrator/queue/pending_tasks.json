@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "queue_name": "ai-development-pending-tasks",
+  "status": "active",
+  "description": "Runtime queue for PR-based AI development tasks. Keep tasks low-risk and review-gated.",
+  "defaults": {
+    "target_base_branch": "main",
+    "branch_prefix": "ai-dev/",
+    "max_changed_files": 12,
+    "requires_pull_request": true,
+    "allow_direct_main_push": false,
+    "allow_production_commands": false,
+    "allow_line_notifications": false,
+    "allow_trading_execution": false
+  },
+  "blocked_paths": [
+    ".env",
+    "data/stock_analysis.db",
+    "data/backups/",
+    "analysis/output/"
+  ],
+  "blocked_keywords": [
+    "send_line_report(",
+    "line_bot_api.push_message",
+    "api.place_order",
+    "place_order(",
+    "run_pipeline("
+  ],
+  "tasks": []
+}

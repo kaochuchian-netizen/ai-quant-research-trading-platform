@@ -39,7 +39,39 @@ Do not allow AI automation to:
 - modify `analysis/output/`
 - modify cron, systemd, or timer settings without an explicit reviewed task
 
-## Step 1: Prepare a Task Plan
+## Step 1: Promote a Queue Task
+
+Use the formal queue promotion layer to prepare runtime branch and PR artifacts
+from `orchestrator/queue/pending_tasks.json`.
+
+Preview the next task without writing files:
+
+```bash
+cd ~/stock-ai
+python3 scripts/orchestrator/promote_next_ai_task.py --dry-run --pretty
+```
+
+Promote the next task:
+
+```bash
+python3 scripts/orchestrator/promote_next_ai_task.py --pretty
+```
+
+Outputs:
+
+```text
+~/.local/state/stock-ai-orchestrator/ai_task_branch_plan.json
+~/.local/state/stock-ai-orchestrator/ai_task_pr_body.md
+```
+
+The promotion step does not create branches, modify implementation files,
+commit, push, open PRs, merge, run production workflows, send LINE messages, or
+place orders. See `docs/ai_task_queue_runbook.md` for queue schema and safety
+rules.
+
+## Legacy Task Plan Helper
+
+The original helper remains available for scaffold testing and example queues:
 
 ```bash
 cd ~/stock-ai

@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "queue_name": "ai-development-completed-tasks",
+  "status": "active",
+  "description": "Archive for AI development tasks after PR review and completion.",
+  "completed_tasks": []
+}
