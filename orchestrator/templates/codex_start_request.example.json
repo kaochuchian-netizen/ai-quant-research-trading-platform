@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "request_id": "CODEX-START-REQUEST-EXAMPLE",
+  "status": "draft",
+  "created_by": "human_or_operator",
+  "created_at": "YYYY-MM-DDTHH:MM:SS+08:00",
+  "description": "Example request file format for manually allowing a materialized Codex handoff to be started later. This example file is not an active request.",
+  "handoff_id": "CODEX-HANDOFF-EXAMPLE-001",
+  "task_id": "PHASE-CODEX-EXAMPLE-001",
+  "manual_review_completed": false,
+  "operator_approved": false,
+  "codex_start_allowed": false,
+  "codex_autostart_allowed": false,
+  "expires_at": "YYYY-MM-DDTHH:MM:SS+08:00",
+  "required_preconditions": {
+    "loop_status_ok": true,
+    "git_working_tree_clean": true,
+    "timer_active": true,
+    "queue_gate_passed": true,
+    "handoff_materialized": true,
+    "manual_start_ready": true
+  },
+  "allowed_scope": {
+    "task_type": "orchestrator_low_risk",
+    "allowed_paths": [
+      "docs/",
+      "orchestrator/templates/",
+      "scripts/orchestrator/"
+    ],
+    "blocked_paths": [
+      ".env",
+      "data/stock_analysis.db",
+      "data/backups/",
+      "analysis/output/"
+    ]
+  },
+  "safety_acknowledgements": [
+    "Do not run production workflows.",
+    "Do not read local secret files.",
+    "Do not change scheduler settings.",
+    "Do not send LINE messages.",
+    "Do not modify production database files."
+  ],
+  "notes": "To become active in a future phase, this shape would need to be copied into the VM runtime directory with operator_approved=true and codex_start_allowed=true. The current loop still does not start Codex."
+}
