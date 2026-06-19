@@ -41,6 +41,30 @@ Do not allow AI automation to:
 - modify `analysis/output/`
 - modify cron, systemd, or timer settings
 
+## Low-Intervention Approval Boundary
+
+This project uses a low-intervention AI Dev closed loop. Codex should continue
+ordinary low-risk AI Dev work to the final repo and runtime status without
+repeatedly asking whether to continue.
+
+User approval is required only before these action categories:
+
+- real trading execution, order placement, position closing, or enabling trading
+  automation
+- sending LINE, email, or other external notifications
+- modifying credentials, passwords, API keys, tokens, `.env`, or secret files
+
+All other ordinary AI Dev steps should proceed under the existing safety gates,
+including runtime queue inspection, dry-run, promotion and handoff, task branch
+creation, implementation within `allowed_paths`, validation bundle, PR creation,
+GitHub Actions checks, merge when required checks pass and the PR is clean,
+completed-task archive, branch cleanup, syncing `main`, and final repo/runtime
+status confirmation.
+
+This boundary does not permit expanding a task's `allowed_paths`, bypassing
+validators, running production commands, sending notifications, trading, changing
+scheduler configuration, or pushing directly to `main`.
+
 ## Step 1: Initialize Runtime Queue
 
 Repository queue files are seed/example/reference files. Formal promotion uses
@@ -140,9 +164,9 @@ python3 scripts/orchestrator/run_ai_dev_closed_loop_once.py --create-pr --pretty
 
 The supervised runner composes the read-only inspector, local validation bundle,
 and existing PR-capable one-shot queue runner. It never passes `--auto-merge`
-and never calls the archive helper. If GitHub Actions, merge eligibility, or
-archive readiness require judgment, it reports `next_action` for human review
-instead of merging or archiving automatically.
+and never calls the archive helper by itself. Under the low-intervention
+approval boundary, Codex may perform the remaining ordinary steps outside this
+runner after confirming the PR checks pass and the PR is clean.
 
 The preserved boundary is:
 
@@ -151,8 +175,8 @@ branch implementation
 → local validation
 → explicit PR creation
 → GitHub Actions and review
-→ manual or separately approved merge
-→ manual or separately approved archive
+→ clean merge when checks pass
+→ completed archive
 ```
 
 ## Status And Failure Handling
@@ -189,9 +213,9 @@ Common recovery rules:
    and rerun validation.
 3. If PR creation is skipped, confirm `--create-pr` was intentional and the
    working tree is clean.
-4. If GitHub Actions are pending or failing, wait or fix the branch. Do not
-   merge until required checks pass and the PR is clean.
-5. Archive only after a successful merge and only with the merged PR metadata.
+4. If GitHub Actions are pending or failing, wait or fix the branch. Merge only
+   after required checks pass and the PR is clean.
+5. Archive after a successful merge and only with the merged PR metadata.
 
 Never resolve a failure by expanding task `allowed_paths`, disabling validators,
 running production commands, sending notifications, placing orders, changing

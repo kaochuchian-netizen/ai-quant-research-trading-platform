@@ -28,6 +28,41 @@ Formal runtime queue files live outside git:
 Runtime queue status transitions do not dirty `main` because the runtime files
 are not git-tracked.
 
+## Low-Intervention Approval Boundary
+
+The AI Dev queue is operated as a low-intervention closed loop for low-risk
+tasks. Codex should not repeatedly ask whether to continue ordinary queue work
+when the task remains inside its safety envelope.
+
+Ask the user before only these three action categories:
+
+- real trading execution, order placement, position closing, or enabling trading
+  automation
+- sending LINE, email, or any other external notification
+- modifying credentials, passwords, API keys, tokens, `.env`, or secret files
+
+Outside those categories, continue the normal AI Dev flow to completion:
+
+- inspect runtime queue and repository state
+- run dry-run previews
+- promote the task and prepare handoff artifacts
+- create or switch to the `ai-dev/*` task branch
+- implement only within task `allowed_paths`
+- run the validation bundle
+- commit branch work and create the PR
+- check GitHub Actions
+- merge when required checks pass and `mergeStateStatus` is clean or an
+  equivalent clean state
+- archive the completed task with merged PR metadata
+- clean up local and remote task branches
+- sync local `main`
+- confirm final repository and runtime queue status
+
+This boundary does not override hard safety gates. Do not expand
+`allowed_paths`, bypass validators, run `python3 main.py`, run production
+pipelines, send notifications, trade, modify scheduler configuration, change
+secrets, or push directly to `main`.
+
 ## Initialize Runtime Queue
 
 Initialize runtime queue files from the repository seed files:
@@ -266,8 +301,8 @@ runtime queue is available:
 8. Let GitHub Actions run the required gate, including `validate-ai-branch`.
    Do not merge while required checks are pending or failing.
 
-9. Merge only after review and required checks pass. Conditional auto merge is
-   optional and remains gated by the task policy, local validation, PR state,
+9. Merge after required checks pass and the PR is clean. Conditional auto merge
+   is optional and remains gated by the task policy, local validation, PR state,
    GitHub check status, allowed paths, and a clean working tree.
 
 10. After a successful merge, archive the task into the runtime completed queue.
