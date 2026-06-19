@@ -5,66 +5,52 @@ REPO_DIR="${REPO_DIR:-$HOME/stock-ai}"
 RUNTIME_DIR="${RUNTIME_DIR:-$HOME/.local/state/stock-ai-orchestrator}"
 HANDOFF_MD="$RUNTIME_DIR/current_codex_handoff.md"
 HANDOFF_JSON="$RUNTIME_DIR/current_codex_handoff.json"
+PREFLIGHT_JSON="$RUNTIME_DIR/codex_manual_launcher_preflight.json"
 
 cd "$REPO_DIR"
+mkdir -p "$RUNTIME_DIR"
 
 echo "== Codex manual launcher =="
 echo "Repository: $REPO_DIR"
 echo "Runtime:    $RUNTIME_DIR"
 echo
 
-if ! command -v git >/dev/null 2>&1; then
-  echo "ERROR: git command not found"
-  exit 1
-fi
+python3 scripts/orchestrator/codex_autostart_preflight.py \
+  --repo-dir "$REPO_DIR" \
+  --runtime-dir "$RUNTIME_DIR" \
+  --skip-enable-flag-check \
+  --skip-tmux-check \
+  --pretty > "$PREFLIGHT_JSON"
 
-if ! command -v codex >/dev/null 2>&1; then
-  echo "ERROR: codex command not found"
-  exit 1
-fi
-
-if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  echo "ERROR: not inside a Git repository"
-  exit 1
-fi
-
-CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
-if [[ "$CURRENT_BRANCH" != "main" ]]; then
-  echo "ERROR: expected to start from branch main, got: $CURRENT_BRANCH"
-  exit 1
-fi
-
-if [[ -n "$(git status --short)" ]]; then
-  echo "ERROR: working tree is not clean"
-  git status --short
-  exit 1
-fi
-
-if [[ ! -s "$HANDOFF_MD" ]]; then
-  echo "ERROR: handoff markdown missing or empty: $HANDOFF_MD"
-  exit 1
-fi
-
-if [[ ! -s "$HANDOFF_JSON" ]]; then
-  echo "ERROR: handoff JSON missing or empty: $HANDOFF_JSON"
-  exit 1
-fi
-
-TASK_ID="$(python3 - << 'PY'
-import json, os, re
-path = os.environ.get('HANDOFF_JSON')
-with open(path, 'r', encoding='utf-8') as f:
+PREFLIGHT_PASSED="$(PREFLIGHT_JSON="$PREFLIGHT_JSON" python3 - << 'PY'
+import json, os
+with open(os.environ['PREFLIGHT_JSON'], 'r', encoding='utf-8') as f:
     data = json.load(f)
-raw = data.get('task_id') or data.get('handoff_id') or 'manual-task'
-safe = re.sub(r'[^A-Za-z0-9._-]+', '-', str(raw)).strip('-').lower()
-print(safe or 'manual-task')
+print('true' if data.get('preflight_passed') else 'false')
 PY
 )"
 
-BRANCH_NAME="codex/${TASK_ID}"
+if [[ "$PREFLIGHT_PASSED" != "true" ]]; then
+  echo "ERROR: preflight blocked manual Codex launcher"
+  echo "Preflight result: $PREFLIGHT_JSON"
+  cat "$PREFLIGHT_JSON"
+  exit 1
+fi
 
+BRANCH_NAME="$(PREFLIGHT_JSON="$PREFLIGHT_JSON" python3 - << 'PY'
+import json, os
+with open(os.environ['PREFLIGHT_JSON'], 'r', encoding='utf-8') as f:
+    data = json.load(f)
+print(data.get('branch_name') or 'codex/manual-task')
+PY
+)"
+
+CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+
+echo "Preflight:      passed"
 echo "Current branch: $CURRENT_BRANCH"
 echo "Task branch:    $BRANCH_NAME"
+echo "Preflight log:  $PREFLIGHT_JSON"
 echo
 
 echo "== Handoff preview =="
@@ -80,6 +66,7 @@ echo "Do not change scheduler or timer settings."
 echo "Do not run production workflows."
 echo "Do not send LINE notifications."
 echo "Do not perform trading or order execution."
+echo "Only work within handoff allowed_paths."
 echo
 
 read -r -p "Type START to create/switch branch and open Codex: " CONFIRM
@@ -100,6 +87,8 @@ echo
 echo "請先不要修改任何檔案。"
 echo "請閱讀 $HANDOFF_MD，理解任務範圍、允許路徑、禁止路徑與驗證指令。"
 echo "讀完後先回報你的執行計畫，不要先動手。"
+echo
+echo "安全邊界：不要發 LINE、不要下單、不要跑 production、不要碰 DB/secrets。"
 echo
 
 codex
