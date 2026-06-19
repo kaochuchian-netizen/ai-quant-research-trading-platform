@@ -8,6 +8,7 @@ The initial Phase C implementation is intentionally limited to static templates,
 
 - Define task state format.
 - Define review bundle format.
+- Define email summary draft format.
 - Provide a read-only validation snapshot tool.
 - Keep all Orchestrator artifacts human-reviewable.
 - Preserve production safety gates.
@@ -28,6 +29,7 @@ The initial Phase C implementation is intentionally limited to static templates,
 
 - `templates/task_state.example.json`: example task state file for a single Orchestrator task.
 - `templates/review_bundle_template.md`: markdown template for summarizing task results before approval.
+- `templates/email_summary_template.md`: static email summary draft template with continue / pause approval actions.
 - `../scripts/orchestrator/collect_validation_snapshot.py`: read-only tool that collects Git status, diff metadata, branch / HEAD, optional in-memory Python syntax validation, and forbidden-path flags.
 
 Future phases may add email draft generation, email sending, approval-state handling, and carefully scoped automation, but each addition should remain scoped, reviewable, and guarded by explicit safety rules.
