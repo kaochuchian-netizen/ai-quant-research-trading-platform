@@ -141,6 +141,53 @@ It is read-only and must not create branches, write runtime artifacts, commit,
 push, open PRs, merge, archive, run production commands, send notifications,
 trade, or modify scheduler settings.
 
+## Platform Status Inspector
+
+Use the read-only platform status inspector as the standard status check before
+and after each closed-loop task:
+
+```bash
+python3 scripts/orchestrator/inspect_ai_platform_status.py
+python3 scripts/orchestrator/inspect_ai_platform_status.py --pretty
+```
+
+Run it:
+
+- before starting a task, before dry-run or promotion, to confirm the repo and
+  runtime queue are in the expected state
+- after PR merge, completed-task archive, branch cleanup, and `main` sync, to
+  confirm the final platform state
+- whenever runtime queue state, active handoff files, local branches, or
+  `main` / `origin/main` sync status look inconsistent
+
+The inspector is read-only. It does not modify repository files, runtime queue
+files, data files, `.env`, credentials, secrets, or Git state. It does not run
+`python3 main.py`, execute the production pipeline, send LINE/email/external
+notifications, place trades, submit orders, or change cron, systemd, or timer
+configuration.
+
+Interpret the output as an operator status snapshot:
+
+- `git.current_branch`, `git.clean`, and `git.status_short` show the current
+  branch and whether local files are dirty.
+- `git.main_origin_main_sync` compares local `main` with local `origin/main`
+  refs and reports whether `main` is in sync, ahead, behind, diverged, or
+  missing a ref. The inspector does not fetch or pull.
+- `runtime.pending_queue.count`, `pending_count`, `promoted_count`, and
+  `task_ids` show pending queue size and active task ids.
+- `runtime.completed_queue.count` and `task_ids` show archived completed task
+  ids.
+- `runtime.active_handoff_or_branch_plan` shows whether branch plan, PR body,
+  or current Codex handoff files exist.
+- `repo_files.key_orchestrator_scripts` confirms expected orchestrator helper
+  scripts are present.
+- `repo_files.pipeline_entrypoints` and `pipeline_entrypoint_check` confirm
+  production entrypoints exist while also recording that they were not run.
+- `safety_boundary_reminder` and `side_effects` should confirm the inspection
+  stayed inside the read-only safety boundary.
+
+Treat this command as the normal pre-task and post-task closed-loop checkpoint.
+
 ## Supervised Closed-Loop Runner
 
 Use the supervised runner to reduce manual status checks while preserving the
