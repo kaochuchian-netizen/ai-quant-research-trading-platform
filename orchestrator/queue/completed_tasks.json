@@ -2,6 +2,6 @@
   "schema_version": 1,
   "queue_name": "ai-development-completed-tasks",
   "status": "active",
-  "description": "Archive for AI development tasks after PR review and completion.",
+  "description": "Seed/example/reference archive schema for AI development tasks. Formal runtime completed state lives under ~/.local/state/stock-ai-orchestrator/completed_tasks.json.",
   "completed_tasks": []
 }

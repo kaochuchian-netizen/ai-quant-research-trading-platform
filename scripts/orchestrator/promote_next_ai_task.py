@@ -19,9 +19,12 @@ from pathlib import Path
 from typing import Any
 
 
-DEFAULT_PENDING_QUEUE_PATH = "orchestrator/queue/pending_tasks.json"
-DEFAULT_COMPLETED_QUEUE_PATH = "orchestrator/queue/completed_tasks.json"
 DEFAULT_RUNTIME_DIR = "~/.local/state/stock-ai-orchestrator"
+RUNTIME_PENDING_QUEUE_FILE = "pending_tasks.json"
+RUNTIME_COMPLETED_QUEUE_FILE = "completed_tasks.json"
+INIT_RUNTIME_QUEUE_COMMAND = "python3 scripts/orchestrator/init_ai_runtime_queue.py --pretty"
+SEED_PENDING_QUEUE_PATH = "orchestrator/queue/pending_tasks.json"
+SEED_COMPLETED_QUEUE_PATH = "orchestrator/queue/completed_tasks.json"
 
 REQUIRED_SCHEMA_VERSION = 1
 REQUIRED_ROOT_STATUS = "active"
@@ -65,6 +68,25 @@ def load_json(path: Path) -> dict[str, Any]:
     if not isinstance(data, dict):
         raise ValueError(f"JSON root must be object: {path}")
     return data
+
+
+def resolve_queue_path(repo_root: Path, runtime_dir: Path, value: str | None, filename: str) -> Path:
+    if value is None:
+        return (runtime_dir / filename).resolve()
+    path = Path(value).expanduser()
+    if not path.is_absolute():
+        path = repo_root / path
+    return path.resolve()
+
+
+def seed_queue_warning(repo_root: Path, path: Path, seed_path: str) -> str | None:
+    seed = (repo_root / seed_path).resolve()
+    if path == seed:
+        return (
+            f"{seed_path} is a seed/example/reference queue; "
+            "runtime promotion should normally use ~/.local/state/stock-ai-orchestrator"
+        )
+    return None
 
 
 def atomic_write_json(path: Path, data: dict[str, Any]) -> None:
@@ -231,8 +253,8 @@ def read_existing_plan_task_id(plan_path: Path) -> str | None:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Promote next AI task from queue into runtime artifacts.")
     parser.add_argument("--repo-root", default=".")
-    parser.add_argument("--pending-queue-path", default=DEFAULT_PENDING_QUEUE_PATH)
-    parser.add_argument("--completed-queue-path", default=DEFAULT_COMPLETED_QUEUE_PATH)
+    parser.add_argument("--pending-queue-path", default=None)
+    parser.add_argument("--completed-queue-path", default=None)
     parser.add_argument("--runtime-dir", default=DEFAULT_RUNTIME_DIR)
     parser.add_argument("--task-id", default=None)
     parser.add_argument("--dry-run", action="store_true")
@@ -241,17 +263,30 @@ def main() -> int:
     args = parser.parse_args()
 
     repo_root = Path(args.repo_root).resolve()
-    pending_path = (repo_root / args.pending_queue_path).resolve()
-    completed_path = (repo_root / args.completed_queue_path).resolve()
     runtime_dir = Path(args.runtime_dir).expanduser().resolve()
+    pending_path = resolve_queue_path(repo_root, runtime_dir, args.pending_queue_path, RUNTIME_PENDING_QUEUE_FILE)
+    completed_path = resolve_queue_path(repo_root, runtime_dir, args.completed_queue_path, RUNTIME_COMPLETED_QUEUE_FILE)
     plan_path = runtime_dir / "ai_task_branch_plan.json"
     pr_body_path = runtime_dir / "ai_task_pr_body.md"
 
     reasons: list[str] = []
-    pending_queue = load_json(pending_path)
-    completed_queue = load_json(completed_path)
-    reasons.extend(queue_root_reasons(pending_queue, "pending queue"))
-    reasons.extend(queue_root_reasons(completed_queue, "completed queue"))
+    warnings = [
+        warning for warning in (
+            seed_queue_warning(repo_root, pending_path, SEED_PENDING_QUEUE_PATH),
+            seed_queue_warning(repo_root, completed_path, SEED_COMPLETED_QUEUE_PATH),
+        ) if warning
+    ]
+    pending_queue: dict[str, Any] = {}
+    completed_queue: dict[str, Any] = {}
+    if not pending_path.exists():
+        reasons.append(f"missing pending queue: {pending_path}; initialize with: {INIT_RUNTIME_QUEUE_COMMAND}")
+    if not completed_path.exists():
+        reasons.append(f"missing completed queue: {completed_path}; initialize with: {INIT_RUNTIME_QUEUE_COMMAND}")
+    if not reasons:
+        pending_queue = load_json(pending_path)
+        completed_queue = load_json(completed_path)
+        reasons.extend(queue_root_reasons(pending_queue, "pending queue"))
+        reasons.extend(queue_root_reasons(completed_queue, "completed queue"))
 
     defaults = pending_queue.get("defaults", {})
     if not isinstance(defaults, dict):
@@ -356,7 +391,7 @@ def main() -> int:
         side_effects["runtime_pr_body_written"] = True
 
     output = {
-        "ok": True,
+        "ok": not reasons,
         "dry_run": args.dry_run,
         "promoted": prepared and not args.dry_run,
         "would_promote": prepared if args.dry_run else False,
@@ -373,6 +408,7 @@ def main() -> int:
         "runtime_plan_path": str(plan_path),
         "runtime_pr_body_path": str(pr_body_path),
         "existing_runtime_plan_task_id": existing_plan_task_id,
+        "warnings": warnings,
         "safety_check": {
             "passed": not reasons,
             "reasons": reasons,

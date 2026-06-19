@@ -2,7 +2,7 @@
   "schema_version": 1,
   "queue_name": "ai-development-pending-tasks",
   "status": "active",
-  "description": "Runtime queue for PR-based AI development tasks. Keep tasks low-risk and review-gated.",
+  "description": "Seed/example/reference queue for PR-based AI development tasks. Formal runtime queue state lives under ~/.local/state/stock-ai-orchestrator/pending_tasks.json.",
   "defaults": {
     "target_base_branch": "main",
     "branch_prefix": "ai-dev/",

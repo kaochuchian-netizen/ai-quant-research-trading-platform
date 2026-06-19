@@ -2,36 +2,59 @@
 
 ## Purpose
 
-The formal AI task queue promotes one reviewed pending task into runtime branch
-and PR artifacts. It keeps the existing closed-loop scaffold intact: queue
-promotion prepares files for review, while branch creation, implementation,
-commit, push, PR creation, merge, production runs, LINE notifications, and
-trading execution remain outside this script.
+The AI task queue promotes one low-risk runtime task into branch and PR
+artifacts, then supports a one-shot reviewed path through validation, optional
+PR creation, optional conditional auto merge, and completed-task archiving.
+
+This is not a daemon. It does not add cron, systemd, timers, or background
+workers.
 
 ## Queue Files
 
-Runtime queue:
+Repository queue files are seeds, examples, and schema references only:
 
 ```text
 orchestrator/queue/pending_tasks.json
-```
-
-Completed-task archive:
-
-```text
 orchestrator/queue/completed_tasks.json
 ```
 
-Both files must use:
+Formal runtime queue files live outside git:
 
-```json
-{
-  "schema_version": 1,
-  "status": "active"
-}
+```text
+~/.local/state/stock-ai-orchestrator/pending_tasks.json
+~/.local/state/stock-ai-orchestrator/completed_tasks.json
 ```
 
-## Pending Task Requirements
+Runtime queue status transitions do not dirty `main` because the runtime files
+are not git-tracked.
+
+## Initialize Runtime Queue
+
+Initialize runtime queue files from the repository seed files:
+
+```bash
+cd ~/stock-ai
+python3 scripts/orchestrator/init_ai_runtime_queue.py --pretty
+```
+
+The initializer creates the runtime directory and only writes missing runtime
+queue files. It does not overwrite existing runtime state unless `--force` is
+provided:
+
+```bash
+python3 scripts/orchestrator/init_ai_runtime_queue.py --force --pretty
+```
+
+## Add Runtime Tasks
+
+Add real pending tasks to:
+
+```text
+~/.local/state/stock-ai-orchestrator/pending_tasks.json
+```
+
+Do not add real tasks to the repository seed queue. The repository queue remains
+a schema/reference fixture.
 
 Each promotable task must have:
 
@@ -42,23 +65,20 @@ Each promotable task must have:
 - `requires_pull_request` resolved to `true`
 - direct main push, production commands, LINE notifications, and trading execution disabled
 - blocked paths containing `.env`, `data/stock_analysis.db`, `data/backups/`, and `analysis/output/`
-- allowed paths limited to `docs/`, `tests/`, `scripts/orchestrator/`, and `orchestrator/queue/`
-- blocked keyword policy described by category only, without listing exact
-  production, LINE, or broker helper call literals
+- allowed paths limited to reviewed low-risk paths
 
-## Promotion Command
+## Promote Runtime Task
 
-Preview the next promotable task:
+Preview the next promotable runtime task:
 
 ```bash
 cd ~/stock-ai
 python3 scripts/orchestrator/promote_next_ai_task.py --dry-run --pretty
 ```
 
-Promote the highest-priority pending task:
+Promote the highest-priority pending runtime task:
 
 ```bash
-cd ~/stock-ai
 python3 scripts/orchestrator/promote_next_ai_task.py --pretty
 ```
 
@@ -68,68 +88,128 @@ Promote a specific task:
 python3 scripts/orchestrator/promote_next_ai_task.py --task-id AI-DEV-001 --pretty
 ```
 
-If a runtime branch plan already exists for a different task, the script refuses
-to overwrite it. Use `--force` only after confirming the existing runtime plan is
-stale and safe to replace.
+If runtime queue files are missing, initialize them first:
 
-## Runtime Artifacts
+```bash
+python3 scripts/orchestrator/init_ai_runtime_queue.py --pretty
+```
 
-Successful non-dry-run promotion writes:
+Promotion writes:
 
 ```text
 ~/.local/state/stock-ai-orchestrator/ai_task_branch_plan.json
 ~/.local/state/stock-ai-orchestrator/ai_task_pr_body.md
 ```
 
-It also updates the selected task in `pending_tasks.json`:
+It updates the selected task in the runtime pending queue:
 
 - `status`: `promoted`
 - `promoted_at`: UTC timestamp
 - `runtime_plan_path`
 - `runtime_pr_body_path`
 
-The embedded task in `ai_task_branch_plan.json` uses the same promoted task
-record written back to the pending queue. After a successful non-dry-run
-promotion, both locations should show `status` as `promoted`.
+The promotion script keeps the clean working tree guard. It writes runtime
+queue state, not repository seed queue state. If an override points at the repo
+seed queue, the output warns that the path is seed/example/reference only.
 
-The command output includes a status transition summary, such as `pending` to
-`promoted`. This means the task was promoted into runtime artifacts only; it
-does not mean a branch, pull request, or merge has been performed.
+## One-Shot Runner
 
-The queue write is atomic. Dry-run mode does not write queue files or runtime
-artifacts.
+Run one queue iteration without opening a PR:
 
-## Task Selection
+```bash
+python3 scripts/orchestrator/run_ai_task_queue_once.py --pretty
+```
 
-Promotion selects only tasks with `status == "pending"`.
+The runner can promote one task, prepare the `ai-dev/*` branch, and stop at
+`handoff_ready` when no implementation changes exist. It does not call Codex or
+any AI CLI to modify files.
 
-Selection order:
+Dry-run mode does not write queue state, create branches, push, create PRs,
+merge, or archive:
 
-1. Higher `priority` first.
-2. Same priority keeps queue order.
-3. `--task-id` restricts selection to one task.
+```bash
+python3 scripts/orchestrator/run_ai_task_queue_once.py --dry-run --pretty
+```
+
+In dry-run mode, the runner only returns a preview such as
+`handoff_ready_preview`; it does not write a runtime plan, create a branch,
+open a PR, merge, or archive.
+
+## PR Creation
+
+PR creation is opt-in:
+
+```bash
+python3 scripts/orchestrator/run_ai_task_queue_once.py --create-pr --pretty
+```
+
+The runner only pushes and creates a PR after local validation passes and the
+working tree is clean. Without `--create-pr`, it must not push or create a PR.
+
+## Conditional Auto Merge
+
+Auto merge is disabled by default. It requires both `--create-pr` and
+`--auto-merge`, or an existing matching PR plus `--auto-merge`:
+
+```bash
+python3 scripts/orchestrator/run_ai_task_queue_once.py --create-pr --auto-merge --pretty
+```
+
+Auto merge is allowed only when all gates pass:
+
+- task allows auto merge
+- task risk is low
+- base branch is `main`
+- branch starts with `ai-dev/`
+- local validation bundle passes
+- forbidden-change and AI branch validators pass
+- changed files stay inside task allowed paths
+- PR is open and clean
+- required GitHub check `validate-ai-branch` succeeds
+- working tree is clean
+
+The merge mode is fixed to merge commits. Squash and rebase auto merge are not
+used by this runner.
+
+## Completed Archive
+
+After a successful merge, archive the task:
+
+```bash
+python3 scripts/orchestrator/archive_completed_ai_task.py \
+  --task-id AI-DEV-001 \
+  --pr-number 123 \
+  --pr-url https://github.com/OWNER/REPO/pull/123 \
+  --branch-name ai-dev/example \
+  --base-branch main \
+  --pretty
+```
+
+The archive script removes the task from runtime pending queue and appends a
+completed record to runtime completed queue. It refuses duplicate `task_id` or
+`pr_number` by default and supports `--dry-run`.
 
 ## Safety Boundaries
 
-The promotion layer does not:
+These tools must not:
 
-- create branches
-- edit implementation files
-- commit
-- push
-- open PRs
-- merge
+- push directly to `main`
+- modify GitHub rulesets
+- relax validators or GitHub Actions
+- execute arbitrary shell commands supplied by a task
 - run `python3 main.py`
 - send LINE notifications
 - place orders
 - run production pipelines
-- modify systemd, cron, or timers
-- read `.env`
-- touch `data/stock_analysis.db`, `data/backups/`, or `analysis/output/`
+- modify `.env` or secret files
+- modify `data/stock_analysis.db`
+- modify `data/backups/`
+- modify `analysis/output/`
+- modify cron, systemd, or timer settings
 
-The queue may describe blocked keyword categories such as LINE sending helpers,
-broker order helpers, and production pipeline helpers. It must not list exact
-callable literals because those are intentionally caught by the branch
-validator when they appear in a diff.
+Production, notification, trading, and scheduler tasks are not eligible for
+auto merge.
 
-After promotion, continue with the existing branch launcher and validation flow.
+The queue runner subprocess layer uses a fixed command allowlist for the small
+set of Git, GitHub CLI, and orchestrator script commands it needs. It does not
+execute arbitrary `validation_commands` strings from task definitions.
