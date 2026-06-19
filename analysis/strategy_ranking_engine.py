@@ -159,6 +159,13 @@ def build_ranking(rows):
         completed = len(returns)
         pending = data["pending"]
         total = data["total"]
+        pending_ratio = calc_pending_ratio(completed, pending)
+        max_drawdown = calc_max_drawdown(returns)
+        ranking_status, ranking_reason = determine_ranking_status(
+            completed,
+            pending,
+            max_drawdown,
+        )
 
         if completed == 0:
             ranking.append({
@@ -167,11 +174,15 @@ def build_ranking(rows):
                 "total": total,
                 "completed": 0,
                 "pending": pending,
+                "pending_ratio": pending_ratio,
                 "win_rate": None,
                 "avg_return": None,
                 "cumulative_return": None,
+                "max_drawdown": None,
                 "sharpe": None,
                 "consistency": "N/A",
+                "ranking_status": ranking_status,
+                "ranking_reason": ranking_reason,
                 "ranking_score": -999999,
             })
             continue
@@ -201,11 +212,15 @@ def build_ranking(rows):
             "total": total,
             "completed": completed,
             "pending": pending,
+            "pending_ratio": pending_ratio,
             "win_rate": win_rate,
             "avg_return": avg_return,
             "cumulative_return": cumulative_return,
+            "max_drawdown": max_drawdown,
             "sharpe": sharpe,
             "consistency": consistency_star(sharpe),
+            "ranking_status": ranking_status,
+            "ranking_reason": ranking_reason,
             "ranking_score": ranking_score,
         })
 
