@@ -302,8 +302,8 @@ def print_ranking(ranking):
         print("沒有策略資料")
         return
 
-    print("排名 | 策略 | 持有天期 | 總筆數 | 完成 | pending | 勝率 | 平均報酬 | 累積報酬 | Sharpe | 穩定度")
-    print("-" * 110)
+    print("排名 | 策略 | 持有天期 | 總筆數 | 完成 | pending | 勝率 | 平均報酬 | 累積報酬 | Sharpe | 穩定度 | 狀態 | 原因")
+    print("-" * 150)
 
     for idx, item in enumerate(ranking, start=1):
         print(
@@ -317,7 +317,9 @@ def print_ranking(ranking):
             f"{fmt_pct(item['avg_return'])} | "
             f"{fmt_pct(item['cumulative_return'])} | "
             f"{fmt_num(item['sharpe'])} | "
-            f"{item['consistency']}"
+            f"{item['consistency']} | "
+            f"{item['ranking_status']} | "
+            f"{item['ranking_reason']}"
         )
 
 
