@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Run one safe Orchestrator loop iteration.
 
-This script checks local runtime state, repository state, timer health, and optional
-remote Git availability, then writes loop_status.json unless --dry-run is used.
+This script checks local runtime state, repository state, timer health, optional remote Git
+availability, and Codex handoff queue state. It writes loop_status.json unless --dry-run is used.
 
 It does not pull, start Codex, send notifications, or run production workflows.
 """
@@ -21,6 +21,7 @@ from zoneinfo import ZoneInfo
 
 DEFAULT_RUNTIME_DIR = "~/.local/state/stock-ai-orchestrator"
 DEFAULT_TIMEZONE = "Asia/Taipei"
+DEFAULT_CODEX_QUEUE_PATH = "orchestrator/templates/codex_handoff_queue.example.json"
 TIMER_NAME = "stock-ai-orchestrator-loop.timer"
 SERVICE_NAME = "stock-ai-orchestrator-loop.service"
 
@@ -148,6 +149,73 @@ def check_timer_state() -> dict[str, Any]:
     }
 
 
+def summarize_codex_queue(queue_path: Path) -> dict[str, Any]:
+    queue = load_json_if_exists(queue_path)
+    if not queue.get("ok", True) and queue.get("state") in {"missing", "invalid"}:
+        return {
+            "ok": queue.get("state") == "missing",
+            "queue_path": str(queue_path),
+            "state": queue.get("state"),
+            "error": queue.get("reason"),
+            "item_count": 0,
+            "pending_count": 0,
+            "manual_start_required_count": 0,
+            "agent_started_count": 0,
+            "next_pending_item": None,
+            "codex_start_allowed": False,
+            "notes": "Queue is read-only in this phase. Codex is not started by this loop.",
+        }
+
+    items = queue.get("items", [])
+    if not isinstance(items, list):
+        return {
+            "ok": False,
+            "queue_path": str(queue_path),
+            "state": "invalid",
+            "error": "items is not a list",
+            "item_count": 0,
+            "pending_count": 0,
+            "manual_start_required_count": 0,
+            "agent_started_count": 0,
+            "next_pending_item": None,
+            "codex_start_allowed": False,
+        }
+
+    pending_items = [item for item in items if isinstance(item, dict) and item.get("status") == "pending"]
+    manual_required = [item for item in items if isinstance(item, dict) and item.get("manual_start_required") is True]
+    agent_started = [item for item in items if isinstance(item, dict) and item.get("agent_started") is True]
+    pending_items_sorted = sorted(pending_items, key=lambda item: int(item.get("priority", 999999)))
+    next_item = pending_items_sorted[0] if pending_items_sorted else None
+
+    safe_next_item = None
+    if isinstance(next_item, dict):
+        safe_next_item = {
+            "handoff_id": next_item.get("handoff_id"),
+            "task_id": next_item.get("task_id"),
+            "task_name": next_item.get("task_name"),
+            "status": next_item.get("status"),
+            "priority": next_item.get("priority"),
+            "manual_start_required": next_item.get("manual_start_required"),
+            "agent_started": next_item.get("agent_started"),
+            "allowed_task_type": next_item.get("allowed_task_type"),
+        }
+
+    return {
+        "ok": True,
+        "queue_path": str(queue_path),
+        "schema_version": queue.get("schema_version"),
+        "queue_id": queue.get("queue_id"),
+        "queue_status": queue.get("status"),
+        "item_count": len(items),
+        "pending_count": len(pending_items),
+        "manual_start_required_count": len(manual_required),
+        "agent_started_count": len(agent_started),
+        "next_pending_item": safe_next_item,
+        "codex_start_allowed": False,
+        "notes": "Queue is read-only in this phase. Codex is not started by this loop.",
+    }
+
+
 def write_json(path: Path, data: dict[str, Any], pretty: bool) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2 if pretty else None) + "\n", encoding="utf-8")
@@ -167,6 +235,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--timezone", default=DEFAULT_TIMEZONE)
     parser.add_argument("--check-remote", action="store_true", help="Check remote availability using git fetch --dry-run.")
     parser.add_argument("--remote", default="origin")
+    parser.add_argument("--codex-queue-path", default=DEFAULT_CODEX_QUEUE_PATH)
     parser.add_argument(
         "--dry-run",
         action="store_true",
@@ -180,6 +249,10 @@ def main() -> int:
     args = parse_args()
     repo_root = Path(args.repo_root).resolve()
     runtime_dir = Path(args.runtime_dir).expanduser().resolve()
+    codex_queue_path = Path(args.codex_queue_path)
+    if not codex_queue_path.is_absolute():
+        codex_queue_path = repo_root / codex_queue_path
+
     if not args.dry_run:
         runtime_dir.mkdir(parents=True, exist_ok=True)
 
@@ -201,6 +274,7 @@ def main() -> int:
         "has_remote_changes": False,
     }
     timer_state = check_timer_state()
+    codex_queue_state = summarize_codex_queue(codex_queue_path)
     task_state = load_json_if_exists(paths["current_task_state"])
     approval_state = load_json_if_exists(paths["latest_approval_state"])
     validation_result = load_json_if_exists(paths["latest_validation_result"])
@@ -209,7 +283,7 @@ def main() -> int:
     notice_status = read_text_status(paths["latest_notice"])
 
     status = {
-        "ok": bool(git_state.get("ok") and timer_state.get("ok") and remote_state.get("ok")),
+        "ok": bool(git_state.get("ok") and timer_state.get("ok") and remote_state.get("ok") and codex_queue_state.get("ok")),
         "checked_at": now_iso(args.timezone),
         "mode": "dry_run" if args.dry_run else "single_iteration",
         "dry_run": bool(args.dry_run),
@@ -220,6 +294,7 @@ def main() -> int:
         "git_state": git_state,
         "remote_state": remote_state,
         "timer_state": timer_state,
+        "codex_queue_state": codex_queue_state,
         "runtime_state": {
             "current_task_state": task_state,
             "latest_approval_state": approval_state,
@@ -231,6 +306,7 @@ def main() -> int:
         "actions": {
             "git_pull_run": False,
             "git_fetch_dry_run": bool(args.check_remote),
+            "codex_queue_read": True,
             "codex_started": False,
             "notification_sent": False,
             "production_command_run": False,
@@ -238,12 +314,15 @@ def main() -> int:
             "loop_status_written": False,
             "loop_log_written": False,
         },
-        "next_action": "ready_for_conditional_codex_handoff_generation",
+        "next_action": "ready_for_codex_handoff_queue_gate",
     }
 
     if not args.dry_run:
         write_json(paths["loop_status"], status, args.pretty)
-        append_log(paths["loop_log"], f"{status['checked_at']} single_iteration ok={status['ok']} remote_changes={remote_state.get('has_remote_changes')}")
+        append_log(
+            paths["loop_log"],
+            f"{status['checked_at']} single_iteration ok={status['ok']} remote_changes={remote_state.get('has_remote_changes')} queue_pending={codex_queue_state.get('pending_count')}",
+        )
         status["actions"]["loop_status_written"] = True
         status["actions"]["loop_log_written"] = True
         write_json(paths["loop_status"], status, args.pretty)
