@@ -69,6 +69,11 @@ commit, push, open PRs, merge, run production workflows, send LINE messages, or
 place orders. See `docs/ai_task_queue_runbook.md` for queue schema and safety
 rules.
 
+After a successful non-dry-run promotion, the runtime branch plan's embedded
+task status and the pending queue task status should both be `promoted`. This
+only records promotion into runtime artifacts; branch launch, PR creation, and
+merge remain separate reviewed steps.
+
 ## Legacy Task Plan Helper
 
 The original helper remains available for scaffold testing and example queues:
