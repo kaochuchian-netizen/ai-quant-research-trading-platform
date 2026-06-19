@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "queue_id": "CODEX-HANDOFF-QUEUE-EXAMPLE",
+  "status": "draft",
+  "created_by": "orchestrator",
+  "description": "Queue of scoped Codex handoff items. The VM loop may inspect this file, but must not start Codex unless a later explicit gate is enabled.",
+  "items": [
+    {
+      "handoff_id": "CODEX-HANDOFF-EXAMPLE-001",
+      "task_id": "PHASE-CODEX-EXAMPLE-001",
+      "task_name": "Example low-risk orchestrator task",
+      "status": "pending",
+      "priority": 100,
+      "manual_start_required": true,
+      "agent_started": false,
+      "agent_finished": false,
+      "allowed_task_type": "orchestrator_low_risk",
+      "allowed_paths": [
+        "docs/",
+        "orchestrator/templates/",
+        "scripts/orchestrator/"
+      ],
+      "blocked_paths": [
+        ".env",
+        "data/stock_analysis.db",
+        "data/backups/",
+        "analysis/output/"
+      ],
+      "objective": "Describe the single scoped change here.",
+      "validation_commands": [
+        "python3 -m py_compile scripts/orchestrator/example.py"
+      ],
+      "safety_boundaries": [
+        "Do not run production workflows.",
+        "Do not read local secret files.",
+        "Do not change scheduler settings.",
+        "Do not send LINE messages.",
+        "Do not modify production database files."
+      ]
+    }
+  ]
+}
