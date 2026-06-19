@@ -135,6 +135,66 @@ In dry-run mode, the runner only returns a preview such as
 `handoff_ready_preview`; it does not write a runtime plan, create a branch,
 open a PR, merge, or archive.
 
+## Runner Status Report
+
+Read the top-level JSON fields before taking the next action:
+
+- `ok`: whether the current runner step completed its own checks.
+- `state`: the current workflow state; this is the primary operator signal.
+- `reasons`: blocking reasons or explicit skip reasons for this step.
+- `side_effects`: the action ledger. Confirm unwanted actions remain `false`.
+- `current_branch`: the branch observed before or during the runner step.
+- `git_status_short`: must be empty before promotion and PR creation.
+- `validation`: local validation bundle result when branch work exists.
+- `pr`: GitHub PR metadata when an existing or newly created PR is found.
+- `preview`: dry-run intent, including whether promotion or branch preparation
+  would happen.
+
+Common `state` values:
+
+- `handoff_ready_preview`: dry-run found a promotable task and would prepare a
+  branch, but stopped before writing runtime state or touching Git.
+- `handoff_ready`: a task branch is ready and implementation is still manual.
+- `validation_passed`: branch work passed local validation; PR creation may
+  still require `--create-pr`.
+- `validation_failed`: local validation failed; inspect `blocked_reasons`.
+- `pr_ready_blocked_dirty`: validation passed but the working tree is not clean.
+- `pr_created`: the runner pushed the task branch and opened the PR.
+- `auto_merge_skipped`: PR exists or was created, but merge was intentionally
+  skipped because `--auto-merge` was not provided.
+- `auto_merge_blocked`: auto-merge was requested but safety gates failed.
+- `archived`: the runner merged and archived after all auto-merge gates passed.
+
+For low-risk supervised work, `auto_merge_skipped` is normally the expected
+terminal runner state after PR creation. Human review, GitHub Actions, merge,
+archive, and branch cleanup remain separate steps unless an explicit policy
+enables conditional auto-merge.
+
+## Failure Cases
+
+Use this table to interpret blocked states without weakening safety gates.
+
+| Symptom | Meaning | Safe next action |
+| --- | --- | --- |
+| `blocked_preflight` with missing queue files | Runtime queue has not been initialized. | Run `python3 scripts/orchestrator/init_ai_runtime_queue.py --pretty`. |
+| `blocked_preflight` with dirty Git status | Promotion started with local source changes. | Review or commit/stash the unrelated work before retrying. |
+| `runtime plan already exists for different task_id` | A previous handoff plan remains active. | Confirm the old task is completed, then move `ai_task_branch_plan.json` and `ai_task_pr_body.md` into `stale_handoff/<task-id>/`. |
+| `no pending task found` | There is no pending runtime task matching the request. | Add a valid low-risk task to runtime `pending_tasks.json`. |
+| `validation_failed` | Local validators found forbidden paths, forbidden keywords, wrong branch, or invalid scope. | Fix the branch changes; do not push or create a PR until validation passes. |
+| `no changed files found for PR` | The branch has no committed diff against `main`; untracked files do not count. | Commit allowed-path work, then rerun the validation bundle. |
+| `pr_ready_blocked_dirty` | Validation passed but there are uncommitted files. | Commit or remove the worktree changes, then rerun with `--create-pr`. |
+| `failed to push branch or create PR` | GitHub CLI push or PR creation failed. | Check auth/network/duplicate PR state; do not retry with broader permissions. |
+| `auto_merge_blocked` | One or more merge safety gates failed. | Inspect `reasons`, wait for checks or request manual review; do not bypass gates. |
+
+After any failure, rerun the read-only inspector:
+
+```bash
+python3 scripts/orchestrator/inspect_ai_runtime_queue.py --pretty
+```
+
+The inspector should show the expected pending/completed queue state, active
+handoff task, current branch, and clean/dirty worktree state before continuing.
+
 ## First Real Runtime Queue Task Flow
 
 Use this sequence for the first real low-risk runtime queue task after the

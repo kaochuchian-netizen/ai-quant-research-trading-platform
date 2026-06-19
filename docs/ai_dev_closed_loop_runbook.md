@@ -155,6 +155,48 @@ branch implementation
 → manual or separately approved archive
 ```
 
+## Status And Failure Handling
+
+The supervised runner is a status reporter first. Treat `state`, `next_action`,
+`reasons`, and `side_effects` as the operator handoff:
+
+- `state` tells where the loop stopped.
+- `next_action` names the next human-safe action.
+- `reasons` explains blockers or intentional skips.
+- `side_effects` confirms whether runtime state, Git, push, PR, merge, archive,
+  production, notification, trading, or scheduler actions happened.
+
+Expected supervised states:
+
+- `dry_run_preview`: read-only preview; no validation report, branch, push, PR,
+  merge, or archive side effects.
+- `handoff_ready`: branch exists but implementation is still needed.
+- `branch_work_uncommitted`: source changes exist but are not committed; commit
+  before PR creation.
+- `validation_failed`: local validation failed; fix the branch before pushing.
+- `validation_passed_dirty`: validation passed but the working tree is dirty.
+- `validation_passed`: branch work is valid and can move to explicit PR
+  creation.
+- `auto_merge_skipped`: PR was found or created and merge remains manual.
+
+Common recovery rules:
+
+1. If stale handoff files point at a completed task, move them into
+   `~/.local/state/stock-ai-orchestrator/stale_handoff/<task-id>/` after
+   confirming the task is present in completed queue with `merged: true`.
+2. If the validation bundle reports `no changed files found for PR`, check
+   whether files are still untracked or uncommitted. Commit allowed-path work
+   and rerun validation.
+3. If PR creation is skipped, confirm `--create-pr` was intentional and the
+   working tree is clean.
+4. If GitHub Actions are pending or failing, wait or fix the branch. Do not
+   merge until required checks pass and the PR is clean.
+5. Archive only after a successful merge and only with the merged PR metadata.
+
+Never resolve a failure by expanding task `allowed_paths`, disabling validators,
+running production commands, sending notifications, placing orders, changing
+scheduler configuration, or pushing directly to `main`.
+
 ## Step 4: Run AI/Codex Work
 
 Use the manual Codex launcher:
