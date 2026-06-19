@@ -2,7 +2,8 @@
 """Run one safe Orchestrator loop iteration.
 
 This script checks local runtime state, repository state, timer health, optional remote Git
-availability, and Codex handoff queue state. It writes loop_status.json unless --dry-run is used.
+availability, Codex handoff queue state, and Codex queue gate state. It writes
+loop_status.json unless --dry-run is used.
 
 It does not pull, start Codex, send notifications, or run production workflows.
 """
@@ -24,6 +25,18 @@ DEFAULT_TIMEZONE = "Asia/Taipei"
 DEFAULT_CODEX_QUEUE_PATH = "orchestrator/templates/codex_handoff_queue.example.json"
 TIMER_NAME = "stock-ai-orchestrator-loop.timer"
 SERVICE_NAME = "stock-ai-orchestrator-loop.service"
+ALLOWED_CODEX_TASK_TYPES = {"orchestrator_low_risk"}
+REQUIRED_CODEX_BLOCKED_PATHS = {
+    ".env",
+    "data/stock_analysis.db",
+    "data/backups/",
+    "analysis/output/",
+}
+REQUIRED_CODEX_BOUNDARIES = [
+    "Do not run production workflows.",
+    "Do not read local secret files.",
+    "Do not change scheduler settings.",
+]
 
 
 def now_iso(timezone_name: str) -> str:
@@ -149,10 +162,87 @@ def check_timer_state() -> dict[str, Any]:
     }
 
 
-def summarize_codex_queue(queue_path: Path) -> dict[str, Any]:
+def safe_codex_item_summary(item: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "handoff_id": item.get("handoff_id"),
+        "task_id": item.get("task_id"),
+        "task_name": item.get("task_name"),
+        "status": item.get("status"),
+        "priority": item.get("priority"),
+        "manual_start_required": item.get("manual_start_required"),
+        "agent_started": item.get("agent_started"),
+        "agent_finished": item.get("agent_finished"),
+        "allowed_task_type": item.get("allowed_task_type"),
+    }
+
+
+def evaluate_codex_queue_gate(item: dict[str, Any] | None) -> dict[str, Any]:
+    if item is None:
+        return {
+            "ok": True,
+            "gate_passed": False,
+            "codex_start_allowed": False,
+            "blocked_reasons": ["no pending queue item"],
+            "next_pending_item": None,
+            "notes": "No pending item. Codex is not started by this loop.",
+        }
+
+    blocked: list[str] = []
+    if item.get("allowed_task_type") not in ALLOWED_CODEX_TASK_TYPES:
+        blocked.append("allowed_task_type is not permitted")
+    if item.get("manual_start_required") is not True:
+        blocked.append("manual_start_required must be true")
+    if item.get("agent_started") is not False:
+        blocked.append("agent_started must be false")
+    if item.get("agent_finished") is not False:
+        blocked.append("agent_finished must be false")
+
+    allowed_paths = item.get("allowed_paths", [])
+    if not isinstance(allowed_paths, list) or not allowed_paths:
+        blocked.append("allowed_paths must be a non-empty list")
+    else:
+        for path in allowed_paths:
+            if not isinstance(path, str):
+                blocked.append("allowed_paths contains non-string value")
+                break
+            if path.startswith("/") or ".." in path.split("/"):
+                blocked.append("allowed_paths must be relative safe paths")
+                break
+
+    blocked_paths = item.get("blocked_paths", [])
+    if not isinstance(blocked_paths, list):
+        blocked.append("blocked_paths must be a list")
+    else:
+        missing = sorted(REQUIRED_CODEX_BLOCKED_PATHS.difference(set(blocked_paths)))
+        if missing:
+            blocked.append("missing required blocked paths: " + ", ".join(missing))
+
+    validation_commands = item.get("validation_commands", [])
+    if not isinstance(validation_commands, list) or not validation_commands:
+        blocked.append("validation_commands must be a non-empty list")
+
+    safety_boundaries = item.get("safety_boundaries", [])
+    if not isinstance(safety_boundaries, list):
+        blocked.append("safety_boundaries must be a list")
+    else:
+        for phrase in REQUIRED_CODEX_BOUNDARIES:
+            if phrase not in safety_boundaries:
+                blocked.append("missing safety boundary: " + phrase)
+
+    return {
+        "ok": True,
+        "gate_passed": not blocked,
+        "codex_start_allowed": False,
+        "blocked_reasons": blocked,
+        "next_pending_item": safe_codex_item_summary(item),
+        "notes": "Gate pass only marks structural readiness. Codex is not started by this loop.",
+    }
+
+
+def summarize_codex_queue(queue_path: Path) -> tuple[dict[str, Any], dict[str, Any]]:
     queue = load_json_if_exists(queue_path)
     if not queue.get("ok", True) and queue.get("state") in {"missing", "invalid"}:
-        return {
+        queue_state = {
             "ok": queue.get("state") == "missing",
             "queue_path": str(queue_path),
             "state": queue.get("state"),
@@ -165,10 +255,11 @@ def summarize_codex_queue(queue_path: Path) -> dict[str, Any]:
             "codex_start_allowed": False,
             "notes": "Queue is read-only in this phase. Codex is not started by this loop.",
         }
+        return queue_state, evaluate_codex_queue_gate(None)
 
     items = queue.get("items", [])
     if not isinstance(items, list):
-        return {
+        queue_state = {
             "ok": False,
             "queue_path": str(queue_path),
             "state": "invalid",
@@ -180,6 +271,14 @@ def summarize_codex_queue(queue_path: Path) -> dict[str, Any]:
             "next_pending_item": None,
             "codex_start_allowed": False,
         }
+        gate_state = {
+            "ok": False,
+            "gate_passed": False,
+            "codex_start_allowed": False,
+            "blocked_reasons": ["queue items is not a list"],
+            "next_pending_item": None,
+        }
+        return queue_state, gate_state
 
     pending_items = [item for item in items if isinstance(item, dict) and item.get("status") == "pending"]
     manual_required = [item for item in items if isinstance(item, dict) and item.get("manual_start_required") is True]
@@ -187,20 +286,8 @@ def summarize_codex_queue(queue_path: Path) -> dict[str, Any]:
     pending_items_sorted = sorted(pending_items, key=lambda item: int(item.get("priority", 999999)))
     next_item = pending_items_sorted[0] if pending_items_sorted else None
 
-    safe_next_item = None
-    if isinstance(next_item, dict):
-        safe_next_item = {
-            "handoff_id": next_item.get("handoff_id"),
-            "task_id": next_item.get("task_id"),
-            "task_name": next_item.get("task_name"),
-            "status": next_item.get("status"),
-            "priority": next_item.get("priority"),
-            "manual_start_required": next_item.get("manual_start_required"),
-            "agent_started": next_item.get("agent_started"),
-            "allowed_task_type": next_item.get("allowed_task_type"),
-        }
-
-    return {
+    safe_next_item = safe_codex_item_summary(next_item) if isinstance(next_item, dict) else None
+    queue_state = {
         "ok": True,
         "queue_path": str(queue_path),
         "schema_version": queue.get("schema_version"),
@@ -214,6 +301,7 @@ def summarize_codex_queue(queue_path: Path) -> dict[str, Any]:
         "codex_start_allowed": False,
         "notes": "Queue is read-only in this phase. Codex is not started by this loop.",
     }
+    return queue_state, evaluate_codex_queue_gate(next_item if isinstance(next_item, dict) else None)
 
 
 def write_json(path: Path, data: dict[str, Any], pretty: bool) -> None:
@@ -274,7 +362,7 @@ def main() -> int:
         "has_remote_changes": False,
     }
     timer_state = check_timer_state()
-    codex_queue_state = summarize_codex_queue(codex_queue_path)
+    codex_queue_state, codex_queue_gate_state = summarize_codex_queue(codex_queue_path)
     task_state = load_json_if_exists(paths["current_task_state"])
     approval_state = load_json_if_exists(paths["latest_approval_state"])
     validation_result = load_json_if_exists(paths["latest_validation_result"])
@@ -283,7 +371,13 @@ def main() -> int:
     notice_status = read_text_status(paths["latest_notice"])
 
     status = {
-        "ok": bool(git_state.get("ok") and timer_state.get("ok") and remote_state.get("ok") and codex_queue_state.get("ok")),
+        "ok": bool(
+            git_state.get("ok")
+            and timer_state.get("ok")
+            and remote_state.get("ok")
+            and codex_queue_state.get("ok")
+            and codex_queue_gate_state.get("ok")
+        ),
         "checked_at": now_iso(args.timezone),
         "mode": "dry_run" if args.dry_run else "single_iteration",
         "dry_run": bool(args.dry_run),
@@ -295,6 +389,7 @@ def main() -> int:
         "remote_state": remote_state,
         "timer_state": timer_state,
         "codex_queue_state": codex_queue_state,
+        "codex_queue_gate_state": codex_queue_gate_state,
         "runtime_state": {
             "current_task_state": task_state,
             "latest_approval_state": approval_state,
@@ -307,6 +402,7 @@ def main() -> int:
             "git_pull_run": False,
             "git_fetch_dry_run": bool(args.check_remote),
             "codex_queue_read": True,
+            "codex_gate_checked": True,
             "codex_started": False,
             "notification_sent": False,
             "production_command_run": False,
@@ -314,14 +410,14 @@ def main() -> int:
             "loop_status_written": False,
             "loop_log_written": False,
         },
-        "next_action": "ready_for_codex_handoff_queue_gate",
+        "next_action": "ready_for_codex_handoff_materializer",
     }
 
     if not args.dry_run:
         write_json(paths["loop_status"], status, args.pretty)
         append_log(
             paths["loop_log"],
-            f"{status['checked_at']} single_iteration ok={status['ok']} remote_changes={remote_state.get('has_remote_changes')} queue_pending={codex_queue_state.get('pending_count')}",
+            f"{status['checked_at']} single_iteration ok={status['ok']} remote_changes={remote_state.get('has_remote_changes')} queue_pending={codex_queue_state.get('pending_count')} gate_passed={codex_queue_gate_state.get('gate_passed')}",
         )
         status["actions"]["loop_status_written"] = True
         status["actions"]["loop_log_written"] = True
