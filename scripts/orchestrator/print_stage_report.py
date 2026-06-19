@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -52,8 +53,13 @@ def render(task: dict[str, Any], snapshot: dict[str, Any]) -> str:
         if isinstance(item, dict):
             status = "passed" if item.get("ok") else "failed"
             validations.append(f"{item.get('path')}: {status}")
+    tree_status = value(snapshot, "git", "status_short", "stdout", default="clean")
+    if tree_status == "":
+        tree_status = "clean"
 
     return f"""# Orchestrator Stage Report
+
+Report title: Task {task_id} completed: {task_name}
 
 ## Task
 
@@ -72,7 +78,7 @@ def render(task: dict[str, Any], snapshot: dict[str, Any]) -> str:
 
 - Branch: {value(snapshot, 'git', 'branch', 'stdout')}
 - HEAD: {value(snapshot, 'git', 'head', 'stdout')}
-- Working tree: {value(snapshot, 'git', 'status_short', 'stdout', default='clean')}
+- Working tree: {tree_status}
 - Forbidden path changes: {', '.join(str(x) for x in forbidden) if forbidden else 'none'}
 
 ## Next step choices
@@ -86,8 +92,16 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--task-state", required=True)
     parser.add_argument("--validation-snapshot", required=True)
+    parser.add_argument("--output")
     args = parser.parse_args()
-    print(render(load_json(Path(args.task_state)), load_json(Path(args.validation_snapshot))))
+
+    report = render(load_json(Path(args.task_state)), load_json(Path(args.validation_snapshot)))
+    if args.output:
+        output_path = Path(args.output)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(report, encoding="utf-8")
+    else:
+        sys.stdout.write(report)
     return 0
 
 
