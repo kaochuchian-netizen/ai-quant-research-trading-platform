@@ -320,11 +320,16 @@ def main() -> int:
     if prepared and not args.dry_run and selected_index is not None and selected_task is not None:
         runtime_dir.mkdir(parents=True, exist_ok=True)
         promoted_at = now_iso()
+        updated_task = dict(selected_task)
+        updated_task["status"] = "promoted"
+        updated_task["promoted_at"] = promoted_at
+        updated_task["runtime_plan_path"] = str(plan_path)
+        updated_task["runtime_pr_body_path"] = str(pr_body_path)
         plan = {
             "schema_version": 1,
             "prepared_at": promoted_at,
             "prepared": True,
-            "task": selected_task,
+            "task": updated_task,
             "base_branch": base_branch,
             "branch_name": branch_name,
             "validation_blocked_reasons": [],
@@ -343,11 +348,6 @@ def main() -> int:
         }
         atomic_write_json(plan_path, plan)
         atomic_write_text(pr_body_path, pr_body or "")
-        updated_task = dict(selected_task)
-        updated_task["status"] = "promoted"
-        updated_task["promoted_at"] = promoted_at
-        updated_task["runtime_plan_path"] = str(plan_path)
-        updated_task["runtime_pr_body_path"] = str(pr_body_path)
         tasks[selected_index] = updated_task
         pending_queue["tasks"] = tasks
         atomic_write_json(pending_path, pending_queue)
@@ -362,6 +362,10 @@ def main() -> int:
         "would_promote": prepared if args.dry_run else False,
         "task_id": selected_task.get("task_id") if selected_task else None,
         "priority": selected_task.get("priority") if selected_task else None,
+        "status_transition": {
+            "from": selected_task.get("status"),
+            "to": "promoted",
+        } if selected_task else None,
         "base_branch": base_branch,
         "branch_name": branch_name,
         "pending_queue_path": str(pending_path),

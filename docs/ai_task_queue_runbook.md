@@ -88,6 +88,14 @@ It also updates the selected task in `pending_tasks.json`:
 - `runtime_plan_path`
 - `runtime_pr_body_path`
 
+The embedded task in `ai_task_branch_plan.json` uses the same promoted task
+record written back to the pending queue. After a successful non-dry-run
+promotion, both locations should show `status` as `promoted`.
+
+The command output includes a status transition summary, such as `pending` to
+`promoted`. This means the task was promoted into runtime artifacts only; it
+does not mean a branch, pull request, or merge has been performed.
+
 The queue write is atomic. Dry-run mode does not write queue files or runtime
 artifacts.
 
