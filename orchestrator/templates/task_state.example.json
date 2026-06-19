@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "task_id": "TASK-EXAMPLE",
+  "task_name": "Example Orchestrator Task",
+  "phase": "phase_c_1",
+  "status": "draft",
+  "created_at": "YYYY-MM-DDTHH:MM:SS+08:00",
+  "updated_at": "YYYY-MM-DDTHH:MM:SS+08:00",
+  "source": {
+    "requested_by": "user",
+    "task_prompt_path": "prompts/tasks/next_codex_task.md",
+    "design_reference": "docs/ai_devops_orchestrator_phase_c_design.md"
+  },
+  "scope": {
+    "expected_files": [],
+    "forbidden_files": [
+      ".env",
+      "data/stock_analysis.db",
+      "data/backups/",
+      "analysis/output/",
+      "crontab",
+      "production credentials"
+    ],
+    "allowed_task_type": "docs_only_or_low_risk_code",
+    "production_side_effect_allowed": false
+  },
+  "validation": {
+    "commands": [],
+    "results": [],
+    "all_required_checks_passed": false
+  },
+  "git": {
+    "base_branch": "main",
+    "starting_commit": null,
+    "commit_created": false,
+    "commit_hash": null,
+    "commit_message": null,
+    "push_created": false
+  },
+  "safety_check": {
+    "working_tree_clean_at_start": null,
+    "only_expected_files_changed": null,
+    "forbidden_files_changed": null,
+    "db_or_migration_touched": null,
+    "line_or_cron_touched": null,
+    "main_py_formal_run_touched": null,
+    "credentials_touched": null,
+    "production_side_effect_detected": null,
+    "auto_commit_allowed": false,
+    "blocked_reason": null
+  },
+  "email_summary": {
+    "required": false,
+    "draft_created": false,
+    "sent": false,
+    "recipient": null,
+    "subject": null,
+    "body_path": null
+  },
+  "approval": {
+    "state": "not_required",
+    "allowed_actions": ["continue", "pause"],
+    "selected_action": null,
+    "token_id": null,
+    "expires_at": null,
+    "approved_at": null
+  },
+  "next_task": {
+    "suggested_task_id": null,
+    "suggested_task_name": null,
+    "requires_user_approval": true
+  }
+}
