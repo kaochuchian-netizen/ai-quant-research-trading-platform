@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Preflight checks for controlled Codex autostart.
+"""Preflight checks for controlled Codex launcher workflows.
 
 This script checks whether the local VM is allowed to open an interactive Codex
-session in tmux. It is intentionally conservative and does not start Codex, run
+session. It is intentionally conservative and does not start Codex, run
 production commands, send notifications, commit, push, or merge.
 """
 
@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -61,9 +62,11 @@ def safe_branch_value(value: Any) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Check controlled Codex autostart preflight.")
+    parser = argparse.ArgumentParser(description="Check controlled Codex launcher preflight.")
     parser.add_argument("--repo-dir", default=DEFAULT_REPO_DIR)
     parser.add_argument("--runtime-dir", default=DEFAULT_RUNTIME_DIR)
+    parser.add_argument("--skip-enable-flag-check", action="store_true")
+    parser.add_argument("--skip-tmux-check", action="store_true")
     parser.add_argument("--pretty", action="store_true")
     args = parser.parse_args()
 
@@ -75,7 +78,7 @@ def main() -> int:
 
     blocked: list[str] = []
 
-    if not enable_flag_path.exists():
+    if not args.skip_enable_flag_check and not enable_flag_path.exists():
         blocked.append("enable flag missing")
     if not repo_dir.exists():
         blocked.append("repo dir missing")
@@ -98,15 +101,16 @@ def main() -> int:
         if not git_clean:
             blocked.append("git working tree is not clean")
 
-    if run_command(["command", "-v", "codex"]).returncode != 0:
+    if shutil.which("codex") is None:
         blocked.append("codex command not found")
-    if run_command(["command", "-v", "tmux"]).returncode != 0:
-        blocked.append("tmux command not found")
-
-    tmux_check = run_command(["tmux", "has-session", "-t", SESSION_NAME])
-    tmux_session_exists = tmux_check.returncode == 0
-    if tmux_session_exists:
-        blocked.append("codex tmux session already exists")
+    if not args.skip_tmux_check:
+        if shutil.which("tmux") is None:
+            blocked.append("tmux command not found")
+        else:
+            tmux_check = run_command(["tmux", "has-session", "-t", SESSION_NAME])
+            tmux_session_exists = tmux_check.returncode == 0
+            if tmux_session_exists:
+                blocked.append("codex tmux session already exists")
 
     handoff_loaded = load_json(handoff_json_path)
     handoff = handoff_loaded.get("data") if handoff_loaded.get("ok") else None
@@ -139,11 +143,15 @@ def main() -> int:
 
     result = {
         "ok": True,
-        "autostart_allowed": not blocked,
+        "preflight_passed": not blocked,
+        "autostart_allowed": not blocked and not args.skip_enable_flag_check and not args.skip_tmux_check,
+        "manual_launch_allowed": not blocked and args.skip_enable_flag_check,
         "codex_started": False,
         "repo_dir": str(repo_dir),
         "runtime_dir": str(runtime_dir),
         "enable_flag_path": str(enable_flag_path),
+        "enable_flag_required": not args.skip_enable_flag_check,
+        "tmux_check_required": not args.skip_tmux_check,
         "current_branch": current_branch,
         "git_clean": git_clean,
         "tmux_session_name": SESSION_NAME,
