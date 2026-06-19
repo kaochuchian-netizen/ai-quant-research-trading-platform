@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Run one safe Orchestrator loop iteration.
 
-This script checks local runtime state and repository state, then writes loop_status.json
-unless --dry-run is used.
+This script checks local runtime state, repository state, and timer health, then writes
+loop_status.json unless --dry-run is used.
 
 It does not pull, start Codex, send notifications, or run production workflows.
 """
@@ -21,21 +21,32 @@ from zoneinfo import ZoneInfo
 
 DEFAULT_RUNTIME_DIR = "~/.local/state/stock-ai-orchestrator"
 DEFAULT_TIMEZONE = "Asia/Taipei"
+TIMER_NAME = "stock-ai-orchestrator-loop.timer"
+SERVICE_NAME = "stock-ai-orchestrator-loop.service"
 
 
 def now_iso(timezone_name: str) -> str:
     return datetime.now(ZoneInfo(timezone_name)).replace(microsecond=0).isoformat()
 
 
-def run_command(args: list[str], repo_root: Path) -> subprocess.CompletedProcess[str]:
+def run_command(args: list[str], repo_root: Path | None = None) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         args,
-        cwd=str(repo_root),
+        cwd=str(repo_root) if repo_root else None,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         check=False,
     )
+
+
+def command_summary(name: str, completed: subprocess.CompletedProcess[str]) -> dict[str, Any]:
+    return {
+        "name": name,
+        "returncode": completed.returncode,
+        "stdout": completed.stdout.strip(),
+        "stderr": completed.stderr.strip(),
+    }
 
 
 def load_json_if_exists(path: Path) -> dict[str, Any]:
@@ -95,6 +106,34 @@ def check_git_state(repo_root: Path, expected_branch: str) -> dict[str, Any]:
     }
 
 
+def check_timer_state() -> dict[str, Any]:
+    timer_enabled = run_command(["systemctl", "--user", "is-enabled", TIMER_NAME])
+    timer_active = run_command(["systemctl", "--user", "is-active", TIMER_NAME])
+    service_active = run_command(["systemctl", "--user", "is-active", SERVICE_NAME])
+    list_timers = run_command(["systemctl", "--user", "list-timers", "--all", TIMER_NAME, "--no-pager"])
+
+    enabled_value = timer_enabled.stdout.strip()
+    active_value = timer_active.stdout.strip()
+    service_value = service_active.stdout.strip()
+
+    ok = enabled_value == "enabled" and active_value == "active"
+
+    return {
+        "ok": ok,
+        "timer_name": TIMER_NAME,
+        "service_name": SERVICE_NAME,
+        "timer_enabled": enabled_value,
+        "timer_active": active_value,
+        "service_active": service_value,
+        "commands": {
+            "timer_enabled": command_summary("timer_enabled", timer_enabled),
+            "timer_active": command_summary("timer_active", timer_active),
+            "service_active": command_summary("service_active", service_active),
+            "list_timers": command_summary("list_timers", list_timers),
+        },
+    }
+
+
 def write_json(path: Path, data: dict[str, Any], pretty: bool) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2 if pretty else None) + "\n", encoding="utf-8")
@@ -140,6 +179,7 @@ def main() -> int:
     }
 
     git_state = check_git_state(repo_root, args.expected_branch)
+    timer_state = check_timer_state()
     task_state = load_json_if_exists(paths["current_task_state"])
     approval_state = load_json_if_exists(paths["latest_approval_state"])
     validation_result = load_json_if_exists(paths["latest_validation_result"])
@@ -148,7 +188,7 @@ def main() -> int:
     notice_status = read_text_status(paths["latest_notice"])
 
     status = {
-        "ok": bool(git_state.get("ok")),
+        "ok": bool(git_state.get("ok") and timer_state.get("ok")),
         "checked_at": now_iso(args.timezone),
         "mode": "dry_run" if args.dry_run else "single_iteration",
         "dry_run": bool(args.dry_run),
@@ -157,6 +197,7 @@ def main() -> int:
         "loop_running": False,
         "codex_running": False,
         "git_state": git_state,
+        "timer_state": timer_state,
         "runtime_state": {
             "current_task_state": task_state,
             "latest_approval_state": approval_state,
@@ -170,10 +211,11 @@ def main() -> int:
             "codex_started": False,
             "notification_sent": False,
             "production_command_run": False,
+            "timer_modified": False,
             "loop_status_written": False,
             "loop_log_written": False,
         },
-        "next_action": "ready_for_timer_plan",
+        "next_action": "ready_for_github_pull_check_mode",
     }
 
     if not args.dry_run:
