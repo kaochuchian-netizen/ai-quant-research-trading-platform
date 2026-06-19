@@ -241,8 +241,12 @@ def fmt_num(value):
     return f"{value:.2f}"
 
 
-def export_ranking(ranking):
-    os.makedirs(os.path.dirname(OUTPUT_FILE), exist_ok=True)
+def export_ranking(ranking, output_path=None):
+    target_path = output_path or OUTPUT_FILE
+    target_dir = os.path.dirname(target_path)
+
+    if target_dir:
+        os.makedirs(target_dir, exist_ok=True)
 
     fieldnames = [
         "rank",
@@ -263,7 +267,7 @@ def export_ranking(ranking):
         "ranking_score",
     ]
 
-    with open(OUTPUT_FILE, "w", encoding="utf-8-sig", newline="") as f:
+    with open(target_path, "w", encoding="utf-8-sig", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
 
@@ -287,7 +291,7 @@ def export_ranking(ranking):
                 "ranking_score": round(item["ranking_score"], 4),
             })
 
-    return OUTPUT_FILE
+    return target_path
 
 
 def print_ranking(ranking):
@@ -348,6 +352,7 @@ def run_strategy_ranking():
     print(f"排名筆數：{len(ranking)}")
 
     return ranking
+
 
 def main():
     run_strategy_ranking()
