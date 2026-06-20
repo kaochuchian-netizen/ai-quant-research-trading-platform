@@ -268,6 +268,14 @@ Read the output as a platform-level status snapshot:
   and completed task ids.
 - `runtime.active_handoff_or_branch_plan` reports whether active branch plan,
   PR body, or current Codex handoff files exist.
+- `runtime.handoff_diagnostics.classification` reports whether active handoff
+  artifacts are absent, present, or suspected stale/example material.
+- `runtime.handoff_diagnostics.example_indicators` flags active handoff JSON
+  metadata that still looks like an example task or handoff.
+- `runtime.handoff_diagnostics.stale_indicators` flags active handoff metadata
+  that points at a task already recorded as merged in the completed queue.
+- `runtime.handoff_diagnostics.stale_handoff_dir` and `archive_dir` summarize
+  existing stale/archive artifact locations without moving or deleting files.
 - `repo_files.key_orchestrator_scripts` confirms the expected queue and
   validation helpers are present.
 - `repo_files.pipeline_entrypoints` and `pipeline_entrypoint_check` confirm
@@ -277,6 +285,13 @@ Read the output as a platform-level status snapshot:
   push, PR, merge, or production side effect occurred.
 
 Use this command as the normal closed-loop pre-task and post-task status check.
+
+If `runtime.handoff_diagnostics.classification` is
+`stale_or_example_suspected`, treat it as an operator review signal only. The
+inspector does not repair state. Confirm the task id against
+`runtime.completed_queue.merged_task_ids`, inspect the active handoff files, and
+only then move confirmed stale artifacts into
+`~/.local/state/stock-ai-orchestrator/stale_handoff/<task-id>/`.
 
 ## First Real Runtime Queue Task Flow
 

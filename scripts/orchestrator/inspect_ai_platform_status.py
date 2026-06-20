@@ -29,6 +29,16 @@ OPTIONAL_ACTIVE_RUNTIME_FILES = [
     "ai_dev_validation_bundle.json",
 ]
 
+ACTIVE_HANDOFF_RUNTIME_FILES = [
+    "ai_task_branch_plan.json",
+    "ai_task_pr_body.md",
+    "current_codex_handoff.json",
+    "current_codex_handoff.md",
+]
+
+STALE_HANDOFF_DIR_NAME = "stale_handoff"
+RUNTIME_ARCHIVE_DIR_NAME = "archive"
+
 KEY_ORCHESTRATOR_SCRIPTS = [
     "scripts/orchestrator/inspect_ai_runtime_queue.py",
     "scripts/orchestrator/promote_next_ai_task.py",
@@ -91,6 +101,83 @@ def file_status(path: Path) -> dict[str, Any]:
         "path": str(path),
         "exists": path.exists(),
         "is_file": path.is_file() if path.exists() else False,
+        "size_bytes": path.stat().st_size if path.exists() and path.is_file() else None,
+    }
+
+
+def merged_completed_task_ids(tasks: list[Any]) -> set[str]:
+    task_ids: set[str] = set()
+    for item in tasks:
+        if not isinstance(item, dict):
+            continue
+        task_id = item.get("task_id")
+        pull_request = item.get("pull_request")
+        pull_request_merged = pull_request.get("merged") if isinstance(pull_request, dict) else None
+        merged = item.get("merged")
+        if task_id and (merged is True or pull_request_merged is True):
+            task_ids.add(str(task_id))
+    return task_ids
+
+
+def extract_handoff_metadata(path: Path) -> tuple[dict[str, Any], str | None]:
+    if path.suffix != ".json":
+        return {}, None
+    data, error = load_json_if_exists(path)
+    if error:
+        return {}, error
+    if not isinstance(data, dict):
+        return {}, "JSON root must be object"
+
+    task = data.get("task")
+    task_data = task if isinstance(task, dict) else {}
+    target = data.get("target")
+    target_data = target if isinstance(target, dict) else {}
+
+    return {
+        "schema_version": data.get("schema_version"),
+        "task_id": data.get("task_id") or task_data.get("task_id"),
+        "handoff_id": data.get("handoff_id"),
+        "status": data.get("status") or task_data.get("status"),
+        "prepared": data.get("prepared"),
+        "branch_name": data.get("branch_name") or task_data.get("branch_name") or target_data.get("branch"),
+        "base_branch": data.get("base_branch") or task_data.get("target_base_branch"),
+    }, None
+
+
+def looks_like_example(value: Any) -> bool:
+    if value is None:
+        return False
+    return "EXAMPLE" in str(value).upper() or "example_only" == str(value)
+
+
+def summarize_stale_handoff_dir(runtime_dir: Path) -> dict[str, Any]:
+    path = runtime_dir / STALE_HANDOFF_DIR_NAME
+    task_ids: list[str] = []
+    file_count = 0
+    if path.exists() and path.is_dir():
+        for child in sorted(path.iterdir()):
+            if child.is_dir():
+                task_ids.append(child.name)
+                file_count += sum(1 for item in child.iterdir() if item.is_file())
+            elif child.is_file():
+                file_count += 1
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "task_ids": task_ids,
+        "file_count": file_count,
+    }
+
+
+def summarize_archive_dir(runtime_dir: Path) -> dict[str, Any]:
+    path = runtime_dir / RUNTIME_ARCHIVE_DIR_NAME
+    file_count = 0
+    if path.exists() and path.is_dir():
+        file_count = sum(1 for item in path.iterdir() if item.is_file())
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "file_count": file_count,
     }
 
 
@@ -206,6 +293,7 @@ def summarize_completed_queue(runtime_dir: Path) -> tuple[dict[str, Any], list[s
         "error": error,
         "count": len(tasks),
         "task_ids": [task.get("task_id") for task in tasks if isinstance(task, dict)],
+        "merged_task_ids": sorted(merged_completed_task_ids(tasks)),
     }, warnings
 
 
@@ -222,6 +310,44 @@ def collect_runtime_status(runtime_dir: Path) -> tuple[dict[str, Any], list[str]
             warnings.append(f"required runtime file missing: {name}")
 
     active_files = {name: file_status(runtime_dir / name) for name in OPTIONAL_ACTIVE_RUNTIME_FILES}
+    merged_task_ids = set(completed.get("merged_task_ids", []))
+    handoff_files: dict[str, dict[str, Any]] = {}
+    example_indicators: list[str] = []
+    stale_indicators: list[str] = []
+    active_task_ids: set[str] = set()
+
+    for name in OPTIONAL_ACTIVE_RUNTIME_FILES:
+        path = runtime_dir / name
+        status = dict(active_files[name])
+        metadata, metadata_error = extract_handoff_metadata(path) if path.exists() else ({}, None)
+        task_id = metadata.get("task_id")
+        handoff_id = metadata.get("handoff_id")
+        status["metadata"] = metadata
+        status["metadata_error"] = metadata_error
+        handoff_files[name] = status
+
+        if task_id:
+            active_task_ids.add(str(task_id))
+        if metadata_error:
+            stale_indicators.append(f"{name} metadata unavailable: {metadata_error}")
+        if any(looks_like_example(value) for value in (task_id, handoff_id, metadata.get("status"))):
+            example_indicators.append(f"{name} contains example metadata")
+        if task_id and str(task_id) in merged_task_ids:
+            stale_indicators.append(f"{name} points at merged completed task: {task_id}")
+
+    active_handoff_exists = any(active_files[name]["exists"] for name in ACTIVE_HANDOFF_RUNTIME_FILES)
+    stale_handoff_dir = summarize_stale_handoff_dir(runtime_dir)
+    archive_dir = summarize_archive_dir(runtime_dir)
+    classification = "no_active_handoff"
+    if active_handoff_exists and (example_indicators or stale_indicators):
+        classification = "stale_or_example_suspected"
+    elif active_handoff_exists:
+        classification = "active_handoff_present"
+
+    if example_indicators:
+        warnings.append("active handoff appears to contain example metadata")
+    if stale_indicators:
+        warnings.append("active handoff may be stale")
 
     return {
         "runtime_dir": str(runtime_dir),
@@ -232,6 +358,23 @@ def collect_runtime_status(runtime_dir: Path) -> tuple[dict[str, Any], list[str]
             "pr_body_exists": active_files["ai_task_pr_body.md"]["exists"],
             "current_codex_handoff_json_exists": active_files["current_codex_handoff.json"]["exists"],
             "current_codex_handoff_md_exists": active_files["current_codex_handoff.md"]["exists"],
+        },
+        "handoff_diagnostics": {
+            "classification": classification,
+            "active_task_ids": sorted(active_task_ids),
+            "example_indicators": example_indicators,
+            "stale_indicators": stale_indicators,
+            "completed_task_matches": sorted(active_task_ids.intersection(merged_task_ids)),
+            "files": handoff_files,
+            "stale_handoff_dir": stale_handoff_dir,
+            "archive_dir": archive_dir,
+            "read_only": True,
+            "auto_repair_attempted": False,
+            "recommended_operator_action": (
+                "inspect active handoff files and move confirmed stale artifacts to stale_handoff/<task-id>/"
+                if classification == "stale_or_example_suspected"
+                else None
+            ),
         },
         "required_runtime_files": required_files,
         "optional_active_runtime_files": active_files,

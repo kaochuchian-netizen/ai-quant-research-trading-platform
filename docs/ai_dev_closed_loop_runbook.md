@@ -179,6 +179,14 @@ Interpret the output as an operator status snapshot:
   ids.
 - `runtime.active_handoff_or_branch_plan` shows whether branch plan, PR body,
   or current Codex handoff files exist.
+- `runtime.handoff_diagnostics.classification` shows whether active handoff
+  artifacts are absent, present, or suspected stale/example material.
+- `runtime.handoff_diagnostics.example_indicators` flags active handoff JSON
+  metadata that still looks like an example task or handoff.
+- `runtime.handoff_diagnostics.stale_indicators` flags active handoff metadata
+  that points at a task already recorded as merged in the completed queue.
+- `runtime.handoff_diagnostics.stale_handoff_dir` and `archive_dir` summarize
+  stale/archive artifact locations without moving or deleting files.
 - `repo_files.key_orchestrator_scripts` confirms expected orchestrator helper
   scripts are present.
 - `repo_files.pipeline_entrypoints` and `pipeline_entrypoint_check` confirm
@@ -187,6 +195,12 @@ Interpret the output as an operator status snapshot:
   stayed inside the read-only safety boundary.
 
 Treat this command as the normal pre-task and post-task closed-loop checkpoint.
+
+If `runtime.handoff_diagnostics.classification` is
+`stale_or_example_suspected`, stop before promoting another task and review the
+active handoff files. The inspector is intentionally read-only; it only reports
+the stale/example indicators and never moves artifacts into `stale_handoff/` by
+itself.
 
 ## Supervised Closed-Loop Runner
 
