@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "record_id": "company-intel-2330-guidance-example",
+  "company_intel_id": "company-intel-2330-guidance-example",
+  "entity_id": "2330",
+  "entity_type": "company",
+  "company_id": "2330",
+  "stock_id": "2330",
+  "company_name": "台積電",
+  "as_of_date": "2026-06-21",
+  "created_at": "2026-06-21T07:15:00+08:00",
+  "event_type": "guidance",
+  "event_date": "2026-06-20",
+  "summary": "Company guidance indicates stable demand conditions in this example record.",
+  "metrics": {
+    "revenue_growth_yoy_pct": null,
+    "gross_margin_pct": null
+  },
+  "guidance": {
+    "status": "available",
+    "summary": "Official guidance paraphrase for example only."
+  },
+  "management_commentary": {
+    "available": true,
+    "attribution": "management"
+  },
+  "source": [
+    {
+      "source_id": "src-company-guidance-example",
+      "source_tier": "tier_1_company_official",
+      "source_type": "company_guidance",
+      "publisher": "company",
+      "published_at": "2026-06-20",
+      "retrieved_at": "2026-06-21T07:05:00+08:00",
+      "excerpt_policy": "paraphrase_only"
+    }
+  ],
+  "source_tier": "tier_1_company_official",
+  "confidence": 0.84,
+  "data_quality": {
+    "freshness": "current",
+    "completeness": 0.82,
+    "source_count": 1,
+    "conflicting_sources": false,
+    "conflict_notes": "",
+    "requires_human_review": false,
+    "legacy_record": false
+  },
+  "missing_data_policy": "explicit_null",
+  "market_reaction": {
+    "available": false,
+    "reason": "not_required_for_example"
+  },
+  "risk_flags": [
+    "research_only"
+  ],
+  "notes": "Example company intelligence record. Missing metrics are explicit nulls."
+}

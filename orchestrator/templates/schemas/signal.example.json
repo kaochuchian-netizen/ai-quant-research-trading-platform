@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "record_id": "signal-2330-2026-06-21-pre-open-example",
+  "signal_id": "signal-2330-2026-06-21-pre-open-example",
+  "entity_id": "2330",
+  "entity_type": "stock",
+  "stock_id": "2330",
+  "stock_name": "台積電",
+  "as_of_date": "2026-06-21",
+  "created_at": "2026-06-21T07:00:00+08:00",
+  "signal_session": "pre_open",
+  "signal_time": "2026-06-21T07:00:00+08:00",
+  "pipeline_type": "pre_open",
+  "pipeline_run_id": "pre_open-20260621-070000-example",
+  "strategy_name": "fundamental_industry_watch",
+  "strategy_version": "planning-v1",
+  "signal_type": "score_rank",
+  "direction": "positive",
+  "rating": "research_watch",
+  "action_label": "watchlist_only",
+  "total_score": 82.5,
+  "technical_score": 70.0,
+  "chip_score": 66.0,
+  "news_score": 75.0,
+  "fundamental_score": 90.0,
+  "industry_score": 86.0,
+  "source": [
+    {
+      "source_id": "src-2330-quarterly-report-example",
+      "source_tier": "tier_1_official_filing",
+      "source_type": "financial_statement",
+      "publisher": "company_or_regulator",
+      "published_at": "2026-06-20",
+      "retrieved_at": "2026-06-21T06:55:00+08:00",
+      "excerpt_policy": "paraphrase_only"
+    }
+  ],
+  "source_tier": "tier_1_official_filing",
+  "confidence": 0.82,
+  "data_quality": {
+    "freshness": "current",
+    "completeness": 0.9,
+    "source_count": 1,
+    "conflicting_sources": false,
+    "conflict_notes": "",
+    "requires_human_review": false,
+    "legacy_record": false
+  },
+  "missing_data_policy": "explicit_null",
+  "is_backtest_eligible": false,
+  "is_valid_for_ranking": false,
+  "risk_flags": [
+    "research_only",
+    "not_trading_instruction"
+  ],
+  "notes": "Example only. This is not a trading order, LINE report, or production signal."
+}

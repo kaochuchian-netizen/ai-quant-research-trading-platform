@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "record_id": "industry-intel-semiconductor-demand-example",
+  "industry_intel_id": "industry-intel-semiconductor-demand-example",
+  "entity_id": "semiconductor",
+  "entity_type": "industry",
+  "industry_id": "semiconductor",
+  "industry_name": "Semiconductor",
+  "as_of_date": "2026-06-21",
+  "created_at": "2026-06-21T07:18:00+08:00",
+  "topic": "demand",
+  "summary": "Peer and supply-chain disclosures suggest stable demand in this example.",
+  "metrics": {
+    "inventory_trend": "stable",
+    "pricing_trend": "mixed",
+    "capacity_utilization": null
+  },
+  "affected_company_ids": [
+    "2330"
+  ],
+  "peer_references": [
+    {
+      "company_id": "peer-example",
+      "reference_type": "peer_earnings"
+    }
+  ],
+  "upstream_downstream_context": {
+    "upstream": "equipment_and_materials",
+    "downstream": "consumer_and_ai_compute"
+  },
+  "source": [
+    {
+      "source_id": "src-peer-earnings-example",
+      "source_tier": "tier_2_peer_and_industry_primary",
+      "source_type": "peer_earnings",
+      "publisher": "peer_company",
+      "published_at": "2026-06-20",
+      "retrieved_at": "2026-06-21T07:12:00+08:00",
+      "excerpt_policy": "paraphrase_only"
+    }
+  ],
+  "source_tier": "tier_2_peer_and_industry_primary",
+  "confidence": 0.7,
+  "data_quality": {
+    "freshness": "current",
+    "completeness": 0.75,
+    "source_count": 1,
+    "conflicting_sources": false,
+    "conflict_notes": "",
+    "requires_human_review": false,
+    "legacy_record": false
+  },
+  "missing_data_policy": "explicit_null",
+  "risk_flags": [
+    "industry_context_only"
+  ],
+  "notes": "Example industry intelligence record for planning use."
+}
