@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "record_id": "forecast-2330-quarter-example",
+  "forecast_id": "forecast-2330-quarter-example",
+  "entity_id": "2330",
+  "entity_type": "stock",
+  "as_of_date": "2026-06-21",
+  "created_at": "2026-06-21T07:10:00+08:00",
+  "forecast_horizon": "quarter",
+  "forecast_target": "revenue_growth_direction",
+  "forecast_value": {
+    "type": "categorical",
+    "value": "improving",
+    "unit": null
+  },
+  "forecast_direction": "up",
+  "base_case": {
+    "description": "Revenue growth improves if official guidance and peer demand indicators remain stable."
+  },
+  "bull_case": {
+    "description": "Upside if industry supply constraints support pricing."
+  },
+  "bear_case": {
+    "description": "Downside if peer earnings indicate demand slowdown."
+  },
+  "assumptions": [
+    "Company guidance remains unchanged.",
+    "Peer financial reports show stable demand."
+  ],
+  "source": [
+    {
+      "source_id": "src-company-guidance-example",
+      "source_tier": "tier_1_company_official",
+      "source_type": "company_guidance",
+      "publisher": "company",
+      "published_at": "2026-06-20",
+      "retrieved_at": "2026-06-21T07:05:00+08:00",
+      "excerpt_policy": "paraphrase_only"
+    }
+  ],
+  "source_tier": "tier_1_company_official",
+  "confidence": 0.74,
+  "data_quality": {
+    "freshness": "current",
+    "completeness": 0.8,
+    "source_count": 1,
+    "conflicting_sources": false,
+    "conflict_notes": "",
+    "requires_human_review": false,
+    "legacy_record": false
+  },
+  "missing_data_policy": "review_required",
+  "invalidated_by": [
+    "company_guidance_revision",
+    "material_peer_demand_warning"
+  ],
+  "review_due_date": "2026-09-30",
+  "linked_signal_ids": [
+    "signal-2330-2026-06-21-pre-open-example"
+  ],
+  "notes": "Example forecast for review workflow planning only."
+}

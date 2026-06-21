@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "record_id": "dashboard-payload-2026-06-21-example",
+  "entity_id": "dashboard_payload",
+  "entity_type": "dashboard_payload",
+  "as_of_date": "2026-06-21",
+  "created_at": "2026-06-21T07:30:00+08:00",
+  "source": [
+    {
+      "source_id": "src-dashboard-derived-records-example",
+      "source_tier": "tier_1_company_official",
+      "source_type": "derived_payload",
+      "publisher": "stock-ai",
+      "published_at": "2026-06-21",
+      "retrieved_at": "2026-06-21T07:30:00+08:00",
+      "excerpt_policy": "no_external_excerpt"
+    }
+  ],
+  "source_tier": "tier_1_company_official",
+  "confidence": 0.78,
+  "data_quality": {
+    "freshness": "current",
+    "completeness": 0.82,
+    "source_count": 3,
+    "conflicting_sources": false,
+    "conflict_notes": "",
+    "requires_human_review": false,
+    "legacy_record": false
+  },
+  "missing_data_policy": "exclude_from_ranking",
+  "signal_summary": [
+    {
+      "signal_id": "signal-2330-2026-06-21-pre-open-example",
+      "stock_id": "2330",
+      "display_status": "research_only",
+      "ranking_status": "not_ranked_example",
+      "source_tier_badge": "tier_1_official_filing",
+      "confidence_label": "high",
+      "data_quality_flags": [],
+      "human_review_required": false
+    }
+  ],
+  "forecast_summary": [
+    {
+      "forecast_id": "forecast-2330-quarter-example",
+      "entity_id": "2330",
+      "forecast_horizon": "quarter",
+      "review_due_date": "2026-09-30"
+    }
+  ],
+  "prediction_review_summary": [],
+  "company_intelligence_feed": [
+    "company-intel-2330-guidance-example"
+  ],
+  "industry_intelligence_feed": [
+    "industry-intel-semiconductor-demand-example"
+  ],
+  "source_quality_summary": {
+    "tier_1_official_filing": 1,
+    "tier_1_company_official": 1,
+    "tier_2_peer_and_industry_primary": 1
+  },
+  "report_registry": [
+    "report-pre-open-2026-06-21-example"
+  ],
+  "notes": "Example dashboard payload only. No UI, notification, or trading action is implemented."
+}

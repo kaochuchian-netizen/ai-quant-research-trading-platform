@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "record_id": "source-credibility-taxonomy-example",
+  "entity_id": "source_credibility_policy",
+  "entity_type": "policy",
+  "as_of_date": "2026-06-21",
+  "created_at": "2026-06-21T07:25:00+08:00",
+  "source": [
+    {
+      "source_id": "src-source-credibility-taxonomy-doc",
+      "source_tier": "tier_1_company_official",
+      "source_type": "internal_policy_document",
+      "publisher": "stock-ai",
+      "published_at": "2026-06-21",
+      "retrieved_at": "2026-06-21T07:25:00+08:00",
+      "excerpt_policy": "internal_reference"
+    }
+  ],
+  "source_tier": "tier_1_company_official",
+  "confidence": 0.9,
+  "data_quality": {
+    "freshness": "current",
+    "completeness": 0.9,
+    "source_count": 1,
+    "conflicting_sources": false,
+    "conflict_notes": "",
+    "requires_human_review": false,
+    "legacy_record": false
+  },
+  "missing_data_policy": "explicit_null",
+  "source_tiers": [
+    {
+      "source_tier": "tier_1_official_filing",
+      "source_category": "official_filing",
+      "allowed_usage": [
+        "core_factual_fields",
+        "core_scoring",
+        "forecast_assumptions",
+        "dashboard_display",
+        "email_report"
+      ],
+      "disallowed_usage": [],
+      "decision_weight_policy": "primary_evidence"
+    },
+    {
+      "source_tier": "tier_4_consensus_and_analyst",
+      "source_category": "analyst_or_broker_metadata",
+      "allowed_usage": [
+        "market_sentiment_metadata",
+        "consensus_context"
+      ],
+      "disallowed_usage": [
+        "core_decision_input",
+        "core_score_component",
+        "trading_instruction",
+        "forecast_primary_basis"
+      ],
+      "decision_weight_policy": "low_priority_context_only"
+    }
+  ],
+  "analyst_target_price_handling_policy": {
+    "source_tier": "tier_4_consensus_and_analyst",
+    "allowed_usage": [
+      "market_sentiment_metadata",
+      "consensus_context"
+    ],
+    "disallowed_usage": [
+      "core_decision_input",
+      "core_score_component",
+      "buy_sell_rule",
+      "order_trigger"
+    ],
+    "decision_weight_policy": "must_not_drive_core_decision"
+  },
+  "notes": "Example policy payload. Analyst target prices are metadata only."
+}

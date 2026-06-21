@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "record_id": "email-report-payload-2026-06-21-example",
+  "email_report_id": "email-report-payload-2026-06-21-example",
+  "entity_id": "email_report_payload",
+  "entity_type": "email_report_payload",
+  "report_id": "report-pre-open-2026-06-21-example",
+  "as_of_date": "2026-06-21",
+  "created_at": "2026-06-21T07:35:00+08:00",
+  "recipient_scope": "operator_preview",
+  "source": [
+    {
+      "source_id": "src-email-derived-records-example",
+      "source_tier": "tier_1_company_official",
+      "source_type": "derived_payload",
+      "publisher": "stock-ai",
+      "published_at": "2026-06-21",
+      "retrieved_at": "2026-06-21T07:35:00+08:00",
+      "excerpt_policy": "no_external_excerpt"
+    }
+  ],
+  "source_tier": "tier_1_company_official",
+  "confidence": 0.76,
+  "data_quality": {
+    "freshness": "current",
+    "completeness": 0.8,
+    "source_count": 3,
+    "conflicting_sources": false,
+    "conflict_notes": "",
+    "requires_human_review": false,
+    "legacy_record": false
+  },
+  "missing_data_policy": "review_required",
+  "report_header": {
+    "report_type": "pre_open",
+    "schema_version": 1,
+    "research_only": true
+  },
+  "top_research_changes": [
+    {
+      "record_id": "company-intel-2330-guidance-example",
+      "summary": "Company guidance example changed watchlist context."
+    }
+  ],
+  "watchlist_summary": [
+    {
+      "stock_id": "2330",
+      "display_status": "research_only",
+      "confidence": 0.82,
+      "source_tier": "tier_1_official_filing",
+      "data_quality_flags": []
+    }
+  ],
+  "forecast_updates": [
+    "forecast-2330-quarter-example"
+  ],
+  "prediction_review_updates": [],
+  "source_tier_summary": {
+    "tier_1_official_filing": 1,
+    "tier_1_company_official": 1,
+    "tier_2_peer_and_industry_primary": 1,
+    "tier_4_consensus_and_analyst": 0
+  },
+  "confidence_summary": {
+    "high": 1,
+    "medium": 2,
+    "low": 0
+  },
+  "data_quality_summary": {
+    "missing": 0,
+    "stale": 0,
+    "conflicting": 0,
+    "requires_human_review": 0
+  },
+  "included_record_ids": [
+    "signal-2330-2026-06-21-pre-open-example",
+    "forecast-2330-quarter-example",
+    "company-intel-2330-guidance-example"
+  ],
+  "excluded_record_summary": {
+    "count": 0,
+    "reasons": []
+  },
+  "analyst_metadata_summary": {
+    "available": false,
+    "restriction_label": "context_only_not_core_decision_input"
+  },
+  "notification_sent": false,
+  "send_allowed": false,
+  "risk_and_caveats": [
+    "Research-only example.",
+    "Does not authorize email delivery, LINE delivery, trading, or order placement."
+  ],
+  "notes": "Example email payload only. It must not be sent by validation."
+}

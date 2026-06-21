@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "record_id": "report-pre-open-2026-06-21-example",
+  "report_id": "report-pre-open-2026-06-21-example",
+  "entity_id": "pre_open_report",
+  "entity_type": "report",
+  "report_type": "pre_open",
+  "as_of_date": "2026-06-21",
+  "created_at": "2026-06-21T07:20:00+08:00",
+  "pipeline_type": "pre_open",
+  "pipeline_run_id": "pre_open-20260621-070000-example",
+  "entity_scope": [
+    {
+      "entity_id": "2330",
+      "entity_type": "stock"
+    }
+  ],
+  "input_record_ids": [
+    "signal-2330-2026-06-21-pre-open-example",
+    "company-intel-2330-guidance-example",
+    "industry-intel-semiconductor-demand-example"
+  ],
+  "source_summary": {
+    "tier_1_official_filing": 1,
+    "tier_1_company_official": 1,
+    "tier_2_peer_and_industry_primary": 1,
+    "tier_4_consensus_and_analyst": 0
+  },
+  "source": [
+    {
+      "source_id": "src-report-input-summary-example",
+      "source_tier": "tier_1_company_official",
+      "source_type": "derived_metadata",
+      "publisher": "stock-ai",
+      "published_at": "2026-06-21",
+      "retrieved_at": "2026-06-21T07:20:00+08:00",
+      "excerpt_policy": "no_external_excerpt"
+    }
+  ],
+  "source_tier": "tier_1_company_official",
+  "confidence": 0.78,
+  "data_quality": {
+    "freshness": "current",
+    "completeness": 0.85,
+    "source_count": 3,
+    "conflicting_sources": false,
+    "conflict_notes": "",
+    "requires_human_review": false,
+    "legacy_record": false
+  },
+  "missing_data_policy": "explicit_null",
+  "audience": "research",
+  "publication_status": "preview",
+  "notification_sent": false,
+  "notes": "Example metadata only. This does not send email or LINE."
+}
