@@ -47,11 +47,60 @@ ALLOWED_SOURCE_TIERS = {
     "tier_5_unverified_or_social",
 }
 
+ALLOWED_EVALUATION_STATUS = {
+    "pending",
+    "completed",
+    "inconclusive",
+    "not_reviewable",
+}
+
+ALLOWED_EVALUATION_WINDOWS = {
+    "intraday",
+    "same_day",
+    "T+1",
+    "5D",
+    "20D",
+    "1M",
+    "quarter",
+    "fy",
+}
+
 TYPE_REQUIRED_FIELDS = {
     "signal.example.json": ["signal_id", "stock_id", "signal_session", "signal_time", "signal_type"],
-    "forecast.example.json": ["forecast_id", "forecast_horizon", "forecast_target", "forecast_value"],
+    "forecast.example.json": [
+        "forecast_id",
+        "forecast_horizon",
+        "forecast_window",
+        "forecast_type",
+        "forecast_target",
+        "forecast_value",
+        "predicted_range",
+        "actual_value_placeholder",
+        "evaluation_status",
+        "evaluation_window",
+        "evaluation_metrics_expected",
+        "model_version",
+        "prompt_version",
+        "confidence_calibration",
+    ],
     "report_metadata.example.json": ["report_id", "report_type", "input_record_ids", "publication_status"],
-    "prediction_review.example.json": ["review_id", "review_date", "expected_outcome", "actual_outcome"],
+    "prediction_review.example.json": [
+        "review_id",
+        "review_date",
+        "review_horizon",
+        "forecast_type",
+        "forecast_target",
+        "evaluation_status",
+        "evaluation_window",
+        "expected_outcome",
+        "actual_outcome",
+        "outcome_status",
+        "error_metrics",
+        "evaluation_metrics",
+        "model_version",
+        "prompt_version",
+        "confidence_calibration",
+    ],
     "company_intelligence.example.json": ["company_intel_id", "company_id", "event_type", "event_date"],
     "industry_intelligence.example.json": ["industry_intel_id", "industry_id", "topic", "summary"],
     "source_credibility.example.json": [
@@ -158,6 +207,67 @@ def validate_data_quality(data: dict[str, Any]) -> list[str]:
     return reasons
 
 
+def validate_forecast_evaluation_fields(data: dict[str, Any]) -> list[str]:
+    reasons: list[str] = []
+    if data.get("evaluation_status") not in ALLOWED_EVALUATION_STATUS:
+        reasons.append(f"invalid evaluation_status: {data.get('evaluation_status')}")
+    if data.get("evaluation_window") not in ALLOWED_EVALUATION_WINDOWS:
+        reasons.append(f"invalid evaluation_window: {data.get('evaluation_window')}")
+    if not isinstance(data.get("predicted_range"), dict):
+        reasons.append("predicted_range must be an object")
+    else:
+        predicted_range = data["predicted_range"]
+        for field in ["low", "high", "unit"]:
+            if field not in predicted_range:
+                reasons.append(f"predicted_range missing field: {field}")
+        low = predicted_range.get("low")
+        high = predicted_range.get("high")
+        if isinstance(low, (int, float)) and isinstance(high, (int, float)) and low > high:
+            reasons.append("predicted_range.low must be <= predicted_range.high")
+    if not isinstance(data.get("actual_value_placeholder"), dict):
+        reasons.append("actual_value_placeholder must be an object")
+    if not isinstance(data.get("evaluation_metrics_expected"), list) or not data.get("evaluation_metrics_expected"):
+        reasons.append("evaluation_metrics_expected must be a non-empty list")
+    if not isinstance(data.get("model_version"), str) or not data.get("model_version"):
+        reasons.append("model_version must be a non-empty string")
+    if not isinstance(data.get("prompt_version"), str) or not data.get("prompt_version"):
+        reasons.append("prompt_version must be a non-empty string")
+    if not isinstance(data.get("confidence_calibration"), dict):
+        reasons.append("confidence_calibration must be an object")
+    return reasons
+
+
+def validate_prediction_review_evaluation_fields(data: dict[str, Any]) -> list[str]:
+    reasons: list[str] = []
+    if data.get("evaluation_status") not in ALLOWED_EVALUATION_STATUS:
+        reasons.append(f"invalid evaluation_status: {data.get('evaluation_status')}")
+    if data.get("evaluation_window") not in ALLOWED_EVALUATION_WINDOWS:
+        reasons.append(f"invalid evaluation_window: {data.get('evaluation_window')}")
+    expected = data.get("expected_outcome")
+    if not isinstance(expected, dict):
+        reasons.append("expected_outcome must be an object")
+    elif not isinstance(expected.get("predicted_range"), dict):
+        reasons.append("expected_outcome.predicted_range must be an object")
+    actual = data.get("actual_outcome")
+    if not isinstance(actual, dict):
+        reasons.append("actual_outcome must be an object")
+    else:
+        for field in ["actual_low", "actual_high", "actual_close", "actual_direction"]:
+            if field not in actual:
+                reasons.append(f"actual_outcome missing field: {field}")
+    if not isinstance(data.get("error_metrics"), dict):
+        reasons.append("error_metrics must be an object")
+    if not isinstance(data.get("evaluation_metrics"), dict):
+        reasons.append("evaluation_metrics must be an object")
+    if not isinstance(data.get("model_version"), str) or not data.get("model_version"):
+        reasons.append("model_version must be a non-empty string")
+    if not isinstance(data.get("prompt_version"), str) or not data.get("prompt_version"):
+        reasons.append("prompt_version must be a non-empty string")
+    if not isinstance(data.get("confidence_calibration"), dict):
+        reasons.append("confidence_calibration must be an object")
+    return reasons
+
+
 def validate_example(path: Path) -> dict[str, Any]:
     data, error = load_json(path)
     reasons: list[str] = []
@@ -194,6 +304,11 @@ def validate_example(path: Path) -> dict[str, Any]:
     for field in TYPE_REQUIRED_FIELDS.get(path.name, []):
         if field not in data:
             reasons.append(f"missing type-specific field: {field}")
+
+    if path.name == "forecast.example.json":
+        reasons.extend(validate_forecast_evaluation_fields(data))
+    if path.name == "prediction_review.example.json":
+        reasons.extend(validate_prediction_review_evaluation_fields(data))
 
     return {
         "path": str(path),

@@ -42,10 +42,10 @@
   ],
   "forecast_summary": [
     {
-      "forecast_id": "forecast-2330-quarter-example",
+      "forecast_id": "forecast-2330-t-plus-1-range-example",
       "entity_id": "2330",
-      "forecast_horizon": "quarter",
-      "review_due_date": "2026-09-30"
+      "forecast_horizon": "T+1",
+      "review_due_date": "2026-06-23"
     }
   ],
   "prediction_review_summary": [],

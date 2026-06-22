@@ -125,6 +125,18 @@ research inputs only after a separate reviewed implementation.
 Future Prediction review consumers may use forecast, signal, and outcome records
 to evaluate forecast quality. Reviews must preserve original assumptions.
 
+Forecast evaluation planning is documented in:
+
+```text
+docs/prediction_review_forecast_evaluation.md
+```
+
+The read-only evaluation prototype is:
+
+```bash
+python3 scripts/orchestrator/evaluate_prediction_review_examples.py --pretty
+```
+
 ## Research-Only Boundary
 
 The schema registry and examples do not:

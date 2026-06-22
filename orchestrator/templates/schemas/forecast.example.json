@@ -1,21 +1,58 @@
 {
   "schema_version": 1,
-  "record_id": "forecast-2330-quarter-example",
-  "forecast_id": "forecast-2330-quarter-example",
+  "record_id": "forecast-2330-t-plus-1-range-example",
+  "forecast_id": "forecast-2330-t-plus-1-range-example",
   "entity_id": "2330",
   "entity_type": "stock",
   "as_of_date": "2026-06-21",
   "created_at": "2026-06-21T07:10:00+08:00",
-  "forecast_horizon": "quarter",
-  "forecast_target": "revenue_growth_direction",
+  "forecast_horizon": "T+1",
+  "forecast_window": {
+    "start_date": "2026-06-22",
+    "end_date": "2026-06-22",
+    "window_type": "next_trading_day"
+  },
+  "forecast_type": "next_day_high_low_interval",
+  "forecast_target": "next_day_price_range",
   "forecast_value": {
-    "type": "categorical",
-    "value": "improving",
-    "unit": null
+    "type": "interval",
+    "predicted_low": 930.0,
+    "predicted_high": 965.0,
+    "midpoint": 947.5,
+    "unit": "TWD"
   },
   "forecast_direction": "up",
+  "predicted_range": {
+    "low": 930.0,
+    "high": 965.0,
+    "unit": "TWD",
+    "range_basis": "research_example_only"
+  },
+  "actual_value_placeholder": {
+    "status": "pending",
+    "actual_low": null,
+    "actual_high": null,
+    "actual_close": null,
+    "unit": "TWD"
+  },
+  "evaluation_status": "pending",
+  "evaluation_window": "T+1",
+  "evaluation_metrics_expected": [
+    "direction_match",
+    "interval_hit",
+    "absolute_error",
+    "confidence_bucket"
+  ],
+  "model_version": "research-eval-example-v1",
+  "prompt_version": "forecast-template-example-v1",
+  "confidence_calibration": {
+    "method": "bucketed_confidence_example",
+    "bucket": "0.70-0.79",
+    "expected_hit_rate": null,
+    "sample_size": 0
+  },
   "base_case": {
-    "description": "Revenue growth improves if official guidance and peer demand indicators remain stable."
+    "description": "Next-day range stays inside the predicted interval if official guidance and peer demand indicators remain stable."
   },
   "bull_case": {
     "description": "Upside if industry supply constraints support pricing."
@@ -54,9 +91,9 @@
     "company_guidance_revision",
     "material_peer_demand_warning"
   ],
-  "review_due_date": "2026-09-30",
+  "review_due_date": "2026-06-23",
   "linked_signal_ids": [
     "signal-2330-2026-06-21-pre-open-example"
   ],
-  "notes": "Example forecast for review workflow planning only."
+  "notes": "Example forecast for review workflow planning only. It is not a price target, trading signal, LINE report, or production forecast."
 }

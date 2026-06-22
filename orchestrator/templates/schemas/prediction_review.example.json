@@ -1,43 +1,78 @@
 {
   "schema_version": 1,
-  "record_id": "review-forecast-2330-quarter-example",
-  "review_id": "review-forecast-2330-quarter-example",
-  "forecast_id": "forecast-2330-quarter-example",
+  "record_id": "review-forecast-2330-t-plus-1-range-example",
+  "review_id": "review-forecast-2330-t-plus-1-range-example",
+  "forecast_id": "forecast-2330-t-plus-1-range-example",
   "signal_id": "signal-2330-2026-06-21-pre-open-example",
   "entity_id": "2330",
   "entity_type": "stock",
   "as_of_date": "2026-06-21",
-  "review_date": "2026-09-30",
-  "created_at": "2026-09-30T18:00:00+08:00",
-  "review_horizon": "quarter",
+  "review_date": "2026-06-23",
+  "created_at": "2026-06-23T18:00:00+08:00",
+  "review_horizon": "T+1",
+  "forecast_type": "next_day_high_low_interval",
+  "forecast_target": "next_day_price_range",
+  "evaluation_status": "completed",
+  "evaluation_window": "T+1",
   "expected_outcome": {
-    "forecast_target": "revenue_growth_direction",
-    "value": "improving"
+    "forecast_target": "next_day_price_range",
+    "forecast_direction": "up",
+    "predicted_range": {
+      "low": 930.0,
+      "high": 965.0,
+      "unit": "TWD"
+    },
+    "confidence": 0.74
   },
   "actual_outcome": {
-    "observed_value": "improving",
-    "source_record_id": "company-intel-2330-quarterly-result-example"
+    "actual_low": 934.0,
+    "actual_high": 960.0,
+    "actual_close": 958.0,
+    "actual_direction": "up",
+    "unit": "TWD",
+    "source_record_id": "market-data-2330-2026-06-22-example"
   },
   "outcome_status": "hit",
   "error_metrics": {
-    "categorical_match": true,
-    "rank_error": null
+    "direction_match": true,
+    "interval_hit": true,
+    "absolute_error": 0.0,
+    "high_forecast_error": -5.0,
+    "low_forecast_error": 4.0,
+    "confidence_bucket": "0.70-0.79",
+    "confidence_calibration_status": "sample_only"
+  },
+  "evaluation_metrics": {
+    "direction_match": true,
+    "interval_hit": true,
+    "absolute_error": 0.0,
+    "false_positive": false,
+    "false_negative": false,
+    "rating_drift": "unchanged"
+  },
+  "model_version": "research-eval-example-v1",
+  "prompt_version": "forecast-template-example-v1",
+  "confidence_calibration": {
+    "bucket": "0.70-0.79",
+    "observed_hit": true,
+    "calibration_sample_size": 1,
+    "calibration_status": "example_only_not_statistically_valid"
   },
   "attribution": [
-    "Official revenue disclosure confirmed improvement."
+    "Example market-data outcome stayed inside the forecast range."
   ],
   "source": [
     {
-      "source_id": "src-quarterly-result-example",
-      "source_tier": "tier_1_official_filing",
-      "source_type": "financial_statement",
-      "publisher": "company_or_regulator",
-      "published_at": "2026-09-30",
-      "retrieved_at": "2026-09-30T17:55:00+08:00",
+      "source_id": "src-market-data-outcome-example",
+      "source_tier": "tier_3_market_data",
+      "source_type": "market_data",
+      "publisher": "market_data_provider",
+      "published_at": "2026-06-22",
+      "retrieved_at": "2026-06-23T17:55:00+08:00",
       "excerpt_policy": "paraphrase_only"
     }
   ],
-  "source_tier": "tier_1_official_filing",
+  "source_tier": "tier_3_market_data",
   "confidence": 0.88,
   "data_quality": {
     "freshness": "current",
@@ -50,7 +85,7 @@
   },
   "missing_data_policy": "explicit_null",
   "lessons_learned": [
-    "Keep official revenue disclosure as the review source of truth."
+    "Keep evaluation examples separate from production backtest and trading logic."
   ],
-  "notes": "Example prediction review only."
+  "notes": "Example prediction review only. It is not a trading result, production backtest, or LINE report."
 }

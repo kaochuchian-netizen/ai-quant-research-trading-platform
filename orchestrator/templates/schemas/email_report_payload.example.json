@@ -52,7 +52,7 @@
     }
   ],
   "forecast_updates": [
-    "forecast-2330-quarter-example"
+    "forecast-2330-t-plus-1-range-example"
   ],
   "prediction_review_updates": [],
   "source_tier_summary": {
@@ -74,7 +74,7 @@
   },
   "included_record_ids": [
     "signal-2330-2026-06-21-pre-open-example",
-    "forecast-2330-quarter-example",
+    "forecast-2330-t-plus-1-range-example",
     "company-intel-2330-guidance-example"
   ],
   "excluded_record_summary": {

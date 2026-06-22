@@ -69,6 +69,8 @@ The validator checks:
 - Registry entries remain `research_planning_only`.
 - Registry governance keeps production pipeline, notification sender, trading
   execution, and order execution as disallowed consumers.
+- Forecast and prediction review examples include evaluation status, evaluation
+  window, model version, prompt version, and calibration fields.
 
 The validator is read-only. It does not write files, modify runtime queue state,
 write databases, modify production data, call external APIs, send notifications,
@@ -96,6 +98,20 @@ Governance details are documented in:
 ```text
 docs/schema_registry_governance.md
 ```
+
+## Forecast Evaluation Prototype
+
+AI-DEV-017 adds a read-only evaluator prototype:
+
+```bash
+python3 scripts/orchestrator/evaluate_prediction_review_examples.py --pretty
+```
+
+It reads only the forecast and prediction review examples, calculates sample
+direction, interval, error, and confidence-bucket metrics, and prints JSON. It
+does not read production data, write DB data, update historical CSV, send LINE or
+email, run production pipelines, change schedulers, trade, place orders, or read
+secrets.
 
 ## Future Use
 
