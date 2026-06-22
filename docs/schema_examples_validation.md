@@ -197,3 +197,39 @@ The `dashboard_cards` and `email_report_sections` fields are lists, not mapping
 objects. Cards must carry `card_id`, `title`, `value`, `unit`, `status`,
 `description`, and `drilldown_key`. Sections must carry `section_id`, `title`,
 `priority`, `summary`, `bullets`, and `metrics`.
+
+## AI-DEV-021 Actual Outcome Backfill Prototype
+
+AI-DEV-021 adds a research-only actual outcome backfill plan and read-only
+prototype for the same prediction review storage samples.
+
+Use:
+
+```bash
+python3 scripts/orchestrator/backfill_actual_outcome_examples.py --pretty
+```
+
+The prototype reads only:
+
+```text
+orchestrator/templates/research_samples/prediction_review_storage/
+```
+
+It emits a JSON summary with `schema_version`, `operation`, `generated_at`,
+`safety_mode`, `input_records`, `backfill_candidates`,
+`backfill_status_counts`, `window_alignment_summary`,
+`actual_outcome_summary`, `missing_data_summary`, `data_quality_flags`,
+`lookahead_bias_controls`, `evaluable_records`, `non_evaluable_records`,
+`next_actions`, and `limitations`.
+
+Allowed `backfill_status` values are `pending`, `completed`,
+`missing_market_data`, `non_trading_day`, `suspended`, `invalid_window`, and
+`not_due`. Allowed data quality flags are `sample_data_only`, `research_only`,
+`missing_actual_close`, `missing_actual_high`, `missing_actual_low`,
+`missing_actual_return`, `window_not_elapsed`, and
+`manual_review_required`.
+
+Pending records are non-evaluable and do not fail validation. The prototype is
+read-only: it does not write files or databases, call external services, send
+notifications, change schedulers, run production pipelines, trade, place
+orders, read secrets, or generate investment advice.
