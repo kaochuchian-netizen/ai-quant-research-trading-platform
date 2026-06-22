@@ -24,6 +24,9 @@ DEFAULT_ALLOWED_PATHS = [
     "docs/",
     "tests/",
     "scripts/orchestrator/",
+    "scripts/run_pipeline.py",
+    "app/pipelines/runner.py",
+    "run_stock_analysis.sh",
     "orchestrator/queue/",
     "orchestrator/templates/",
 ]

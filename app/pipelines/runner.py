@@ -12,9 +12,13 @@ SUPPORTED_PIPELINES = {
 }
 
 
-def run_pipeline(pipeline_type, dry_run=False, limit=None):
-    if pipeline_type == "pre_open" and not dry_run:
-        raise ValueError("pre_open pipeline is only allowed with dry_run=True")
+def run_pipeline(pipeline_type, dry_run=False, limit=None, production_approved=False):
+    if dry_run and production_approved:
+        raise ValueError("--production-approved cannot be combined with --dry-run")
+    if production_approved and pipeline_type != "pre_open":
+        raise ValueError("--production-approved is only supported for pre_open pipeline")
+    if pipeline_type == "pre_open" and not dry_run and not production_approved:
+        raise ValueError("pre_open production run requires --production-approved")
     if limit is not None and pipeline_type != "pre_open":
         raise ValueError("limit is only supported for pre_open pipeline")
 
@@ -38,10 +42,20 @@ def main():
     parser = argparse.ArgumentParser(description="Run a supported stock-ai pipeline.")
     parser.add_argument("pipeline_type", choices=sorted(SUPPORTED_PIPELINES))
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--production-approved",
+        action="store_true",
+        help="Allow an explicitly reviewed production run for scheduled entrypoints.",
+    )
     parser.add_argument("--limit", type=int, default=None)
     args = parser.parse_args()
 
-    run_pipeline(args.pipeline_type, dry_run=args.dry_run, limit=args.limit)
+    run_pipeline(
+        args.pipeline_type,
+        dry_run=args.dry_run,
+        limit=args.limit,
+        production_approved=args.production_approved,
+    )
 
 
 if __name__ == "__main__":

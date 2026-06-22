@@ -18,7 +18,7 @@ python3 scripts/run_pipeline.py post_close --dry-run
 
 ## pre_open 正式模式防呆
 
-以下指令會被 runner 防呆擋下，這是正確行為：
+以下指令未提供明確正式執行授權，會被 runner 防呆擋下，這是正確行為：
 
 ```bash
 python3 scripts/run_pipeline.py pre_open
@@ -27,7 +27,14 @@ python3 scripts/run_pipeline.py pre_open
 預期錯誤：
 
 ```text
-ValueError: pre_open pipeline is only allowed with dry_run=True
+ValueError: pre_open production run requires --production-approved
+```
+
+以下指令可能發送 LINE、寫入 SQLite、更新 historical CSV 並執行回測自動補值，驗證時不得執行，除非 operator 明確核准正式推播測試：
+
+```bash
+python3 scripts/run_pipeline.py pre_open --production-approved
+./run_stock_analysis.sh
 ```
 
 ## limit 支援範圍
@@ -49,7 +56,7 @@ ValueError: limit is only supported for pre_open pipeline
 ## 安全原則
 
 - 不直接執行 `python3 main.py`。
-- `pre_open` 正式模式目前不能從 runner 執行。
+- `pre_open` 正式模式只能透過 `--production-approved` 明確授權。
 - `pre_open` dry-run 已接既有完整盤前流程，但會跳過副作用。
 - `intraday`、`pre_close`、`post_close` 僅輸出 context summary，無副作用。
 - dry-run 不應寫 SQLite。
@@ -62,17 +69,20 @@ ValueError: limit is only supported for pre_open pipeline
 1. 先執行 `py_compile`，確認 runner 與 pipeline 檔案語法正確。
 2. 再執行 `pre_open --dry-run --limit 1`，確認有限股票數的盤前 dry-run 可跑。
 3. 再執行其他安全骨架 pipeline dry-run，確認 runner dispatch 與 context summary 輸出正常。
-4. 最後驗證防呆錯誤，確認正式 `pre_open` 與非 `pre_open` 的 `limit` 都會被擋下。
+4. 最後驗證防呆錯誤，確認未授權正式 `pre_open` 與非 `pre_open` 的 `limit` 都會被擋下。
+5. 使用 read-only validator 確認 scheduled shell entrypoint 指向正確 runner。
 
 建議驗證指令：
 
 ```bash
 python3 -m py_compile app/pipelines/pre_open_pipeline.py app/pipelines/runner.py scripts/run_pipeline.py
+python3 scripts/orchestrator/validate_scheduled_runner.py --pretty
 cat docs/pipeline_smoke_tests.md
 ```
 
 預期結果：
 
 - `py_compile` 通過。
+- `validate_scheduled_runner.py` 通過。
 - 文件內容清楚列出安全 dry-run、防呆錯誤、安全原則與驗證順序。
 - 不執行任何會發 LINE 的流程。

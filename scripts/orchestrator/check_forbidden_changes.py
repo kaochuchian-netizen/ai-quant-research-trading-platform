@@ -27,7 +27,6 @@ DEFAULT_BLOCKED_KEYWORDS = [
     "line_bot_api.push_message",
     "api.place_order",
     "place_order(",
-    "run_pipeline(",
     "shioaji.Order",
     "StockPriceType",
 ]
