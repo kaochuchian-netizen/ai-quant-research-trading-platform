@@ -165,7 +165,7 @@ become trading evaluation.
 ## Future Migration Path
 
 - **Phase A**: docs + sample records + read-only loader
-- **Phase B**: dry-run generated review records
+- **Phase B**: read-only sample loader summary prototype
 - **Phase C**: actual outcome backfill prototype
 - **Phase D**: summary report prototype
 - **Phase E**: controlled DB migration with explicit approval

@@ -152,3 +152,19 @@ The storage validator checks:
 The validator remains read-only. It does not write files, modify databases,
 change production data, call external services, send LINE or email, modify
 cron/systemd/timers, or run any production pipeline.
+
+## AI-DEV-019 Sample Loader Summary
+
+AI-DEV-019 adds a read-only sample loader summary prototype for the research
+bundle created in AI-DEV-018.
+
+Use:
+
+```bash
+python3 scripts/orchestrator/summarize_prediction_review_storage_examples.py --pretty
+```
+
+The loader summary reads the same research-only storage samples and reports
+linkage, lifecycle, and status counts. It is still a read-only check. It does
+not write files, modify databases, call external services, send notifications,
+change cron/systemd/timers, or run production pipelines.
