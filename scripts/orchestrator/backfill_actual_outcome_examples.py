@@ -155,7 +155,13 @@ def ensure_allowed_statuses(candidates: list[dict[str, Any]]) -> list[str]:
     return reasons
 
 
-def summarize(forecast: dict[str, Any], outcome: dict[str, Any], index: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
+def summarize(
+    forecast: dict[str, Any],
+    outcome: dict[str, Any],
+    index: dict[str, Any],
+    *,
+    dry_run: bool,
+) -> tuple[dict[str, Any], list[str]]:
     reasons: list[str] = []
     forecast_window = require_mapping(forecast.get("forecast_window"), "forecast.forecast_window", reasons)
     outcome_window = require_mapping(outcome.get("outcome_window"), "outcome.outcome_window", reasons)
@@ -243,7 +249,7 @@ def summarize(forecast: dict[str, Any], outcome: dict[str, Any], index: dict[str
 
     summary = {
         "schema_version": 1,
-        "operation": "actual_outcome_backfill_read_only_prototype",
+        "operation": "actual_outcome_backfill_dry_run" if dry_run else "actual_outcome_backfill_read_only_prototype",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "safety_mode": "research_only_read_only",
         "input_records": {
@@ -301,6 +307,31 @@ def summarize(forecast: dict[str, Any], outcome: dict[str, Any], index: dict[str
             "suspended_trading_policy": backfill_policy.get("suspended_trading_policy"),
         },
         "data_quality_flags": all_flags,
+        "governance_summary": {
+            "dry_run": dry_run,
+            "dry_run_first_required": True,
+            "db_mutation_allowed": False,
+            "production_file_mutation_allowed": False,
+            "external_service_calls_allowed": False,
+            "notification_delivery_allowed": False,
+            "schema_compatibility_check": {
+                "forecast_window_present": bool(forecast_window),
+                "outcome_window_present": bool(outcome_window),
+                "actual_outcome_fields_checked": ACTUAL_OUTCOME_FIELDS,
+                "allowed_backfill_statuses": sorted(ALLOWED_BACKFILL_STATUSES),
+                "allowed_data_quality_flags": sorted(ALLOWED_DATA_QUALITY_FLAGS),
+            },
+            "audit_summary": {
+                "candidate_count": len(candidates),
+                "evaluable_record_count": len(evaluable_records),
+                "non_evaluable_record_count": len(non_evaluable_records),
+                "backfill_status_counts": dict(sorted(backfill_status_counts.items())),
+                "data_quality_flags": all_flags,
+                "pending_is_failure": False,
+            },
+            "rollback_policy": "no_op_for_research_samples",
+            "no_op_policy": "dry_run_outputs_stdout_only_and_does_not_mutate_state",
+        },
         "lookahead_bias_controls": {
             "forecast_snapshot_immutable": storage_policy.get("immutability") == "forecast_snapshot_immutable",
             "forecast_created_at": forecast.get("created_at"),
@@ -332,6 +363,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Summarize actual outcome backfill candidates from research samples.")
     parser.add_argument("--repo-root", default=".")
     parser.add_argument("--pretty", action="store_true")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Emit explicit dry-run governance metadata; still read-only and stdout-only.",
+    )
     args = parser.parse_args()
 
     repo_root = Path(args.repo_root).resolve()
@@ -341,7 +377,7 @@ def main() -> int:
         pass
 
     forecast, outcome, index, load_reasons = load_bundle()
-    summary, summary_reasons = summarize(forecast, outcome, index)
+    summary, summary_reasons = summarize(forecast, outcome, index, dry_run=args.dry_run)
     reasons = load_reasons + summary_reasons
     output = {
         "ok": True,

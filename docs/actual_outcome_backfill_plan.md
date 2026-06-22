@@ -11,6 +11,7 @@ The companion prototype is:
 
 ```bash
 python3 scripts/orchestrator/backfill_actual_outcome_examples.py --pretty
+python3 scripts/orchestrator/backfill_actual_outcome_examples.py --dry-run --pretty
 ```
 
 It reads only the AI-DEV-018 research samples, emits JSON to stdout, and does
@@ -204,6 +205,34 @@ That migration must be a separate approved task with explicit safeguards for:
 
 AI-DEV-021 does not create or modify any database.
 
+## Dry-run Governance Before Production Integration
+
+Any future actual outcome backfill integration must pass a dry-run governance
+step before production use. The dry-run step must:
+
+- run before any database write path is enabled
+- read only approved sample or explicitly approved read-only source records
+- validate example data and schema compatibility
+- emit an audit summary to stdout or another reviewed non-production artifact
+- preserve pending, not-due, holiday, suspended, and missing-market-data states
+- keep DB mutation disabled by default
+- keep notification delivery disabled by default
+- keep external service access disabled unless a separate task explicitly
+  approves it
+- provide a rollback or no-op policy before any future write mode exists
+
+The current prototype supports an explicit dry-run governance command:
+
+```bash
+python3 scripts/orchestrator/backfill_actual_outcome_examples.py --dry-run --pretty
+```
+
+The dry-run output includes `governance_summary` with `dry_run`,
+`dry_run_first_required`, `db_mutation_allowed`, `schema_compatibility_check`,
+`audit_summary`, `rollback_policy`, and `no_op_policy`. This output is a
+research governance artifact only. It does not create records, change runtime
+state, or imply approval for production ingestion.
+
 ## Safety Boundaries
 
 AI-DEV-021 is limited to docs and read-only scripts. It must not:
@@ -224,7 +253,9 @@ Use these local read-only checks:
 
 ```bash
 python3 -m py_compile scripts/orchestrator/backfill_actual_outcome_examples.py
+python3 scripts/orchestrator/backfill_actual_outcome_examples.py --help
 python3 scripts/orchestrator/backfill_actual_outcome_examples.py --pretty
+python3 scripts/orchestrator/backfill_actual_outcome_examples.py --dry-run --pretty
 python3 scripts/orchestrator/validate_prediction_review_storage_examples.py --pretty
 python3 scripts/orchestrator/summarize_prediction_review_storage_examples.py --pretty
 python3 scripts/orchestrator/export_prediction_review_report_summary.py --pretty
