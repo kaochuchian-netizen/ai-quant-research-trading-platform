@@ -168,3 +168,32 @@ The loader summary reads the same research-only storage samples and reports
 linkage, lifecycle, and status counts. It is still a read-only check. It does
 not write files, modify databases, call external services, send notifications,
 change cron/systemd/timers, or run production pipelines.
+
+## AI-DEV-020 Report Summary Export
+
+AI-DEV-020 adds a read-only report summary export prototype for the same
+research-only bundle.
+
+Use:
+
+```bash
+python3 scripts/orchestrator/export_prediction_review_report_summary.py --pretty
+```
+
+The export summary converts the research-only storage samples into a
+report-shaped JSON preview. It remains read-only and does not write files,
+modify databases, call external services, send notifications, change
+cron/systemd/timers, or run production pipelines.
+
+The export contract now requires top-level `schema_version`, `report_type`,
+`generated_at`, `source`, `safety_mode`, `record_summary`,
+`forecast_quality_summary`, `pending_outcome_summary`, `metric_summary`,
+`confidence_summary`, `stock_summary`, `window_summary`,
+`data_quality_summary`, `dashboard_cards`, `email_report_sections`,
+`next_actions`, and `limitations` fields. This keeps the preview contract
+stable while still remaining research-only.
+
+The `dashboard_cards` and `email_report_sections` fields are lists, not mapping
+objects. Cards must carry `card_id`, `title`, `value`, `unit`, `status`,
+`description`, and `drilldown_key`. Sections must carry `section_id`, `title`,
+`priority`, `summary`, `bullets`, and `metrics`.
