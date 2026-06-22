@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "record_version": 1,
+  "record_id": "forecast-review-link-2330-example",
+  "forecast_id": "forecast-2330-t-plus-1-range-example",
+  "review_id": "review-forecast-2330-t-plus-1-range-example",
+  "signal_id": "signal-2330-2026-06-21-pre-open-example",
+  "run_date": "2026-06-21",
+  "stock_id": "2330",
+  "stock_name": "TSMC",
+  "entity_type": "stock",
+  "forecast_window": {
+    "start_date": "2026-06-22",
+    "end_date": "2026-06-22",
+    "window_type": "next_trading_day",
+    "horizon": "T+1"
+  },
+  "forecast_payload": {
+    "forecast_type": "next_day_high_low_interval",
+    "forecast_target": "next_day_price_range",
+    "predicted_direction": "up",
+    "predicted_range": {
+      "low": 930.0,
+      "high": 965.0,
+      "unit": "TWD"
+    },
+    "confidence": 0.74,
+    "evaluation_status": "review_record_created",
+    "source_pipeline_metadata": {
+      "pipeline_name": "research_forecast_pipeline",
+      "pipeline_run_id": "research-run-2026-06-21-0710",
+      "source_schema_version": 1
+    }
+  },
+  "lifecycle_status": "review_record_created",
+  "data_status": "research_only",
+  "created_at": "2026-06-21T07:10:00+08:00",
+  "source_type": "research_example",
+  "source_tier": "tier_1_company_official",
+  "pending_policy": {
+    "review_state": "pending_until_outcome_backfill",
+    "missing_outcome_state": "outcome_pending",
+    "manual_override_required": false
+  },
+  "missing_data_policy": "explicit_pending",
+  "notes": "Research-only linkage example. It does not imply production storage, dashboard publishing, or trading advice."
+}

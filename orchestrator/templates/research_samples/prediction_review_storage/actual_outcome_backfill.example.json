@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "record_version": 1,
+  "record_id": "outcome-backfill-2330-example",
+  "review_id": "review-forecast-2330-t-plus-1-range-example",
+  "forecast_id": "forecast-2330-t-plus-1-range-example",
+  "stock_id": "2330",
+  "stock_name": "TSMC",
+  "outcome_window": {
+    "start_date": "2026-06-22",
+    "end_date": "2026-06-22",
+    "window_type": "next_trading_day",
+    "horizon": "T+1"
+  },
+  "backfill_status": "completed",
+  "lifecycle_status": "outcome_backfilled",
+  "data_status": "completed",
+  "updated_at": "2026-06-23T18:05:00+08:00",
+  "backfill_timestamp": "2026-06-23T18:05:00+08:00",
+  "actual_outcome": {
+    "actual_close": 958.0,
+    "actual_high": 960.0,
+    "actual_low": 934.0,
+    "actual_return": 0.0187,
+    "actual_direction": "up",
+    "unit": "TWD",
+    "market_data_source": "research_market_data_example",
+    "captured_at": "2026-06-23T18:00:00+08:00"
+  },
+  "pending_example": {
+    "backfill_status": "pending",
+    "lifecycle_status": "outcome_pending",
+    "data_status": "pending",
+    "actual_outcome": null,
+    "notes": "Keep the record pending when the market outcome is not yet available or is suspended."
+  },
+  "backfill_policy": {
+    "pending_when_missing": true,
+    "allow_manual_override": false,
+    "holiday_policy": "preserve_pending_state",
+    "suspended_trading_policy": "preserve_pending_state"
+  },
+  "missing_data_policy": "explicit_pending",
+  "source_type": "research_example",
+  "source_tier": "tier_3_market_data",
+  "notes": "Research-only actual outcome sample. It is not a trading result, production backfill, or notification trigger."
+}
