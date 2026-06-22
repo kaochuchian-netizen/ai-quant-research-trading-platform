@@ -1,0 +1,450 @@
+{
+  "schema_version": 1,
+  "registry_name": "investment_research_schema_registry",
+  "production_status": "research_planning_only",
+  "created_at": "2026-06-22T00:00:00+08:00",
+  "updated_at": "2026-06-22T00:00:00+08:00",
+  "governance_policy": {
+    "schema_lifecycle": "draft_example_to_reviewed_contract_to_future_integration",
+    "versioning_policy": "Increment schema_version only when field semantics or required fields change.",
+    "source_policy_doc": "docs/source_credibility_taxonomy.md",
+    "analyst_target_price_policy": "Analyst target prices, broker ratings, and buy/sell calls are low-priority metadata only and must not be core decision inputs.",
+    "production_boundary": "Registry entries are research_planning_only and do not enable production pipelines, notifications, trading, order placement, scheduler changes, or database writes."
+  },
+  "entries": [
+    {
+      "schema_name": "signal",
+      "schema_version": 1,
+      "example_path": "orchestrator/templates/schemas/signal.example.json",
+      "owner_area": "research_signal",
+      "intended_usage": "Research signal and ranking-state planning record.",
+      "production_status": "research_planning_only",
+      "required_fields": [
+        "schema_version",
+        "record_id",
+        "signal_id",
+        "entity_id",
+        "entity_type",
+        "stock_id",
+        "as_of_date",
+        "created_at",
+        "signal_session",
+        "signal_time",
+        "signal_type",
+        "source",
+        "source_tier",
+        "confidence",
+        "data_quality",
+        "missing_data_policy",
+        "notes"
+      ],
+      "optional_fields": [
+        "stock_name",
+        "pipeline_type",
+        "pipeline_run_id",
+        "strategy_name",
+        "strategy_version",
+        "direction",
+        "rating",
+        "action_label",
+        "total_score",
+        "technical_score",
+        "chip_score",
+        "news_score",
+        "fundamental_score",
+        "industry_score",
+        "is_backtest_eligible",
+        "is_valid_for_ranking",
+        "risk_flags"
+      ],
+      "validation_level": "example_required_fields",
+      "allowed_consumers": [
+        "future_dashboard_payload",
+        "future_email_report_payload",
+        "future_forecast_pipeline",
+        "future_prediction_review"
+      ],
+      "disallowed_consumers": [
+        "production_pipeline",
+        "notification_sender",
+        "trading_execution",
+        "order_execution"
+      ],
+      "notes": "Signals are research records only and must not imply order execution."
+    },
+    {
+      "schema_name": "forecast",
+      "schema_version": 1,
+      "example_path": "orchestrator/templates/schemas/forecast.example.json",
+      "owner_area": "forecast_research",
+      "intended_usage": "Reviewable forecast planning record with assumptions and review due date.",
+      "production_status": "research_planning_only",
+      "required_fields": [
+        "schema_version",
+        "record_id",
+        "forecast_id",
+        "entity_id",
+        "entity_type",
+        "as_of_date",
+        "created_at",
+        "forecast_horizon",
+        "forecast_target",
+        "forecast_value",
+        "source",
+        "source_tier",
+        "confidence",
+        "data_quality",
+        "missing_data_policy",
+        "notes"
+      ],
+      "optional_fields": [
+        "forecast_direction",
+        "base_case",
+        "bull_case",
+        "bear_case",
+        "assumptions",
+        "invalidated_by",
+        "review_due_date",
+        "linked_signal_ids"
+      ],
+      "validation_level": "example_required_fields",
+      "allowed_consumers": [
+        "future_dashboard_payload",
+        "future_email_report_payload",
+        "future_prediction_review"
+      ],
+      "disallowed_consumers": [
+        "production_pipeline",
+        "notification_sender",
+        "trading_execution",
+        "order_execution"
+      ],
+      "notes": "Forecast confidence is source confidence, not guaranteed investment outcome."
+    },
+    {
+      "schema_name": "report_metadata",
+      "schema_version": 1,
+      "example_path": "orchestrator/templates/schemas/report_metadata.example.json",
+      "owner_area": "reporting_metadata",
+      "intended_usage": "Research report lineage and publication-state metadata.",
+      "production_status": "research_planning_only",
+      "required_fields": [
+        "schema_version",
+        "record_id",
+        "report_id",
+        "entity_id",
+        "entity_type",
+        "report_type",
+        "as_of_date",
+        "created_at",
+        "input_record_ids",
+        "publication_status",
+        "source",
+        "source_tier",
+        "confidence",
+        "data_quality",
+        "missing_data_policy",
+        "notes"
+      ],
+      "optional_fields": [
+        "pipeline_type",
+        "pipeline_run_id",
+        "entity_scope",
+        "source_summary",
+        "audience",
+        "notification_sent"
+      ],
+      "validation_level": "example_required_fields",
+      "allowed_consumers": [
+        "future_dashboard_payload",
+        "future_email_report_payload",
+        "future_report_registry"
+      ],
+      "disallowed_consumers": [
+        "production_pipeline",
+        "notification_sender",
+        "trading_execution",
+        "order_execution"
+      ],
+      "notes": "Report metadata does not authorize publishing or notifications."
+    },
+    {
+      "schema_name": "prediction_review",
+      "schema_version": 1,
+      "example_path": "orchestrator/templates/schemas/prediction_review.example.json",
+      "owner_area": "prediction_review",
+      "intended_usage": "Forecast or signal outcome review record.",
+      "production_status": "research_planning_only",
+      "required_fields": [
+        "schema_version",
+        "record_id",
+        "review_id",
+        "entity_id",
+        "entity_type",
+        "as_of_date",
+        "review_date",
+        "created_at",
+        "expected_outcome",
+        "actual_outcome",
+        "source",
+        "source_tier",
+        "confidence",
+        "data_quality",
+        "missing_data_policy",
+        "notes"
+      ],
+      "optional_fields": [
+        "forecast_id",
+        "signal_id",
+        "review_horizon",
+        "outcome_status",
+        "error_metrics",
+        "attribution",
+        "lessons_learned"
+      ],
+      "validation_level": "example_required_fields",
+      "allowed_consumers": [
+        "future_dashboard_payload",
+        "future_email_report_payload",
+        "future_forecast_quality_review"
+      ],
+      "disallowed_consumers": [
+        "production_pipeline",
+        "notification_sender",
+        "trading_execution",
+        "order_execution"
+      ],
+      "notes": "Reviews preserve original forecast assumptions and compare later outcomes."
+    },
+    {
+      "schema_name": "company_intelligence",
+      "schema_version": 1,
+      "example_path": "orchestrator/templates/schemas/company_intelligence.example.json",
+      "owner_area": "company_intelligence",
+      "intended_usage": "Source-grounded company fact and event record.",
+      "production_status": "research_planning_only",
+      "required_fields": [
+        "schema_version",
+        "record_id",
+        "company_intel_id",
+        "entity_id",
+        "entity_type",
+        "company_id",
+        "as_of_date",
+        "created_at",
+        "event_type",
+        "event_date",
+        "source",
+        "source_tier",
+        "confidence",
+        "data_quality",
+        "missing_data_policy",
+        "notes"
+      ],
+      "optional_fields": [
+        "stock_id",
+        "company_name",
+        "summary",
+        "metrics",
+        "guidance",
+        "management_commentary",
+        "market_reaction",
+        "risk_flags"
+      ],
+      "validation_level": "example_required_fields",
+      "allowed_consumers": [
+        "future_dashboard_payload",
+        "future_email_report_payload",
+        "future_forecast_pipeline"
+      ],
+      "disallowed_consumers": [
+        "production_pipeline",
+        "notification_sender",
+        "trading_execution",
+        "order_execution"
+      ],
+      "notes": "Company intelligence prioritizes official filings, guidance, and attributed management commentary."
+    },
+    {
+      "schema_name": "industry_intelligence",
+      "schema_version": 1,
+      "example_path": "orchestrator/templates/schemas/industry_intelligence.example.json",
+      "owner_area": "industry_intelligence",
+      "intended_usage": "Supply-chain, peer, demand, inventory, pricing, and policy context record.",
+      "production_status": "research_planning_only",
+      "required_fields": [
+        "schema_version",
+        "record_id",
+        "industry_intel_id",
+        "entity_id",
+        "entity_type",
+        "industry_id",
+        "as_of_date",
+        "created_at",
+        "topic",
+        "summary",
+        "source",
+        "source_tier",
+        "confidence",
+        "data_quality",
+        "missing_data_policy",
+        "notes"
+      ],
+      "optional_fields": [
+        "industry_name",
+        "metrics",
+        "affected_company_ids",
+        "peer_references",
+        "upstream_downstream_context",
+        "risk_flags"
+      ],
+      "validation_level": "example_required_fields",
+      "allowed_consumers": [
+        "future_dashboard_payload",
+        "future_email_report_payload",
+        "future_forecast_pipeline"
+      ],
+      "disallowed_consumers": [
+        "production_pipeline",
+        "notification_sender",
+        "trading_execution",
+        "order_execution"
+      ],
+      "notes": "Industry intelligence should use primary industry and peer sources before analyst commentary."
+    },
+    {
+      "schema_name": "source_credibility",
+      "schema_version": 1,
+      "example_path": "orchestrator/templates/schemas/source_credibility.example.json",
+      "owner_area": "source_governance",
+      "intended_usage": "Source tier and analyst target price handling policy record.",
+      "production_status": "research_planning_only",
+      "required_fields": [
+        "schema_version",
+        "record_id",
+        "entity_id",
+        "entity_type",
+        "as_of_date",
+        "created_at",
+        "source",
+        "source_tier",
+        "confidence",
+        "data_quality",
+        "missing_data_policy",
+        "source_tiers",
+        "analyst_target_price_handling_policy",
+        "notes"
+      ],
+      "optional_fields": [],
+      "validation_level": "example_required_fields",
+      "allowed_consumers": [
+        "future_schema_validator",
+        "future_dashboard_payload",
+        "future_email_report_payload"
+      ],
+      "disallowed_consumers": [
+        "production_pipeline",
+        "notification_sender",
+        "trading_execution",
+        "order_execution"
+      ],
+      "notes": "Analyst target prices are context metadata only and cannot become core decision inputs."
+    },
+    {
+      "schema_name": "dashboard_payload",
+      "schema_version": 1,
+      "example_path": "orchestrator/templates/schemas/dashboard_payload.example.json",
+      "owner_area": "dashboard_planning",
+      "intended_usage": "Future dashboard data payload planning record.",
+      "production_status": "research_planning_only",
+      "required_fields": [
+        "schema_version",
+        "record_id",
+        "entity_id",
+        "entity_type",
+        "as_of_date",
+        "created_at",
+        "source",
+        "source_tier",
+        "confidence",
+        "data_quality",
+        "missing_data_policy",
+        "signal_summary",
+        "source_quality_summary",
+        "report_registry",
+        "notes"
+      ],
+      "optional_fields": [
+        "forecast_summary",
+        "prediction_review_summary",
+        "company_intelligence_feed",
+        "industry_intelligence_feed"
+      ],
+      "validation_level": "example_required_fields",
+      "allowed_consumers": [
+        "future_dashboard_ui",
+        "future_operator_preview"
+      ],
+      "disallowed_consumers": [
+        "production_pipeline",
+        "notification_sender",
+        "trading_execution",
+        "order_execution"
+      ],
+      "notes": "Dashboard payload does not authorize UI deployment, notifications, or trading actions."
+    },
+    {
+      "schema_name": "email_report_payload",
+      "schema_version": 1,
+      "example_path": "orchestrator/templates/schemas/email_report_payload.example.json",
+      "owner_area": "email_report_planning",
+      "intended_usage": "Future email report payload planning record.",
+      "production_status": "research_planning_only",
+      "required_fields": [
+        "schema_version",
+        "record_id",
+        "email_report_id",
+        "entity_id",
+        "entity_type",
+        "report_id",
+        "as_of_date",
+        "created_at",
+        "source",
+        "source_tier",
+        "confidence",
+        "data_quality",
+        "missing_data_policy",
+        "source_tier_summary",
+        "notification_sent",
+        "send_allowed",
+        "notes"
+      ],
+      "optional_fields": [
+        "recipient_scope",
+        "report_header",
+        "top_research_changes",
+        "watchlist_summary",
+        "forecast_updates",
+        "prediction_review_updates",
+        "confidence_summary",
+        "data_quality_summary",
+        "included_record_ids",
+        "excluded_record_summary",
+        "analyst_metadata_summary",
+        "risk_and_caveats"
+      ],
+      "validation_level": "example_required_fields",
+      "allowed_consumers": [
+        "future_email_report_preview",
+        "future_operator_preview"
+      ],
+      "disallowed_consumers": [
+        "production_pipeline",
+        "notification_sender",
+        "trading_execution",
+        "order_execution"
+      ],
+      "notes": "Email payload is data-only and does not authorize delivery; send_allowed remains false in this phase."
+    }
+  ]
+}
