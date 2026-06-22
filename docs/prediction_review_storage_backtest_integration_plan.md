@@ -160,14 +160,14 @@ become trading evaluation.
 4. `prediction_review_storage_index.example.json`
 5. `validate_prediction_review_storage_examples.py`
 6. `evaluate_prediction_review_examples.py`
-7. future summary report prototype
+7. `export_prediction_review_report_summary.py`
 
 ## Future Migration Path
 
 - **Phase A**: docs + sample records + read-only loader
 - **Phase B**: read-only sample loader summary prototype
 - **Phase C**: actual outcome backfill prototype
-- **Phase D**: summary report prototype
+- **Phase D**: report summary export prototype
 - **Phase E**: controlled DB migration with explicit approval
 
 ## Risks and Controls

@@ -43,6 +43,11 @@ The summary is useful for future research-only reporting because it shows
 whether the sample storage bundle is internally consistent before any future
 automation or backtest integration is considered.
 
+The loader summary is the upstream input for
+`docs/prediction_review_report_summary_export.md`, which turns the same sample
+bundle into a report-shaped JSON preview with `dashboard_cards` and
+`email_report_sections` fields.
+
 ## Read-Only Validation
 
 Validate and summarize the bundle with:
@@ -67,6 +72,7 @@ The prototype is read-only. It does not:
 
 - `docs/prediction_review_storage_backtest_integration_plan.md`
 - `docs/prediction_review_forecast_evaluation.md`
+- `docs/prediction_review_report_summary_export.md`
 - `docs/schema_examples_validation.md`
 
 The sample loader summary is a research-only bridge between storage samples and
