@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "record_version": 1,
+  "index_id": "prediction-review-storage-index-example",
+  "generated_at": "2026-06-23T18:10:00+08:00",
+  "storage_policy": {
+    "mode": "research_only",
+    "immutability": "forecast_snapshot_immutable",
+    "enrichment_layer": "mutable_review_and_outcome_backfill",
+    "queryability": "metadata_index_only"
+  },
+  "non_goals": [
+    "No production database writes",
+    "No notification sends",
+    "No trading or order placement",
+    "No cron or timer changes",
+    "No production pipeline changes"
+  ],
+  "safety_boundaries": [
+    "Read-only sample validation only",
+    "No external API calls",
+    "No secrets or credentials",
+    "No production data access"
+  ],
+  "records": [
+    {
+      "record_id": "forecast-review-link-2330-example",
+      "record_type": "forecast_to_review_record",
+      "path": "orchestrator/templates/research_samples/prediction_review_storage/forecast_to_review_record.example.json",
+      "lifecycle_status": "review_record_created",
+      "data_status": "research_only"
+    },
+    {
+      "record_id": "outcome-backfill-2330-example",
+      "record_type": "actual_outcome_backfill",
+      "path": "orchestrator/templates/research_samples/prediction_review_storage/actual_outcome_backfill.example.json",
+      "lifecycle_status": "outcome_backfilled",
+      "data_status": "completed"
+    }
+  ],
+  "notes": "Research-only metadata index. It documents the future storage shape but does not register a production storage backend."
+}

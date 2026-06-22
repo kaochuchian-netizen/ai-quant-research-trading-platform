@@ -120,3 +120,35 @@ changes should remain separate and reviewed. Any production integration must
 preserve source traceability, data-quality flags, missing-data policy, and the
 rule that analyst target prices and broker ratings are context metadata only,
 not core decision inputs.
+
+## AI-DEV-018 Storage Samples
+
+AI-DEV-018 adds a separate research-only storage bundle under:
+
+```text
+orchestrator/templates/research_samples/prediction_review_storage/
+```
+
+This bundle is **not** part of the formal schema registry. It is a planning
+fixture for prediction review storage, actual outcome backfill, and future
+backtest boundary design.
+
+Validate the storage bundle with:
+
+```bash
+python3 scripts/orchestrator/validate_prediction_review_storage_examples.py --pretty
+```
+
+The storage validator checks:
+
+- JSON parse success for the sample records.
+- Required fields for the forecast-to-review mapping sample.
+- Required fields for the actual outcome backfill sample.
+- Required fields for the storage index sample.
+- Allowed lifecycle status values.
+- Allowed data status values.
+- Linkage between the forecast, review, and outcome example record ids.
+
+The validator remains read-only. It does not write files, modify databases,
+change production data, call external services, send LINE or email, modify
+cron/systemd/timers, or run any production pipeline.
