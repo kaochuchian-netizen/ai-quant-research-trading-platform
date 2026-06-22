@@ -29,6 +29,9 @@
 - `scripts/run_pipeline.py`
   - CLI 入口。
   - 從 `app.pipelines.runner` 匯入 `SUPPORTED_PIPELINES` 與 `run_pipeline`。
+- `run_stock_analysis.sh`
+  - cron 使用的 shell entrypoint。
+  - 呼叫 `scripts/run_pipeline.py pre_open --production-approved`，不直接呼叫 `main.py`。
 
 ## 每個 pipeline 目前狀態
 
@@ -36,7 +39,7 @@
 
 - 已接完整既有盤前流程。
 - dry-run 已跳過 SQLite 初始化、historical CSV 更新、SQLite 寫入、LINE 推播、回測自動補值。
-- 從 runner 執行時目前只允許 dry-run。
+- 從 runner 執行正式模式時必須明確帶 `--production-approved`。
 - 支援 `--limit` 測試參數。
 
 ### intraday
@@ -61,7 +64,8 @@
 
 - `SUPPORTED_PIPELINES` 統一管理支援清單。
 - `scripts/run_pipeline.py` 從 runner 匯入 `SUPPORTED_PIPELINES`。
-- `pre_open` 非 dry-run 會被 `ValueError` 擋下。
+- `pre_open` 非 dry-run 且未帶 `--production-approved` 會被 `ValueError` 擋下。
+- `--production-approved` 只能用於 `pre_open`，且不得與 `--dry-run` 同時使用。
 - `limit` 目前只支援 `pre_open`，其他 pipeline 使用 `limit` 會被 `ValueError` 擋下。
 
 ## 安全原則
@@ -72,7 +76,8 @@
 - 不在 dry-run 更新 historical CSV。
 - 不在 dry-run 跑回測自動補值。
 - `intraday`、`pre_close`、`post_close` 目前僅輸出 context summary，不執行副作用流程。
-- 正式 cron 尚未切換到 `scripts/run_pipeline.py`。
+- 正式 cron shell entrypoint 已切換到 `scripts/run_pipeline.py pre_open --production-approved`。
+- `main.py` 保留 dry-run-only safety guard，不作為正式排程入口。
 
 ## 與 pipeline_smoke_tests.md 的關係
 
