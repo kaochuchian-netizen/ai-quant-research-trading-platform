@@ -11,6 +11,7 @@ from typing import Any
 
 
 DEFAULT_EXAMPLES_DIR = "orchestrator/templates/schemas"
+DEFAULT_REGISTRY_PATH = "orchestrator/templates/schema_registry.json"
 
 REQUIRED_COMMON_FIELDS = [
     "schema_version",
@@ -65,6 +66,49 @@ TYPE_REQUIRED_FIELDS = {
         "notification_sent",
         "send_allowed",
     ],
+}
+
+REGISTRY_REQUIRED_ENTRY_FIELDS = [
+    "schema_name",
+    "schema_version",
+    "example_path",
+    "owner_area",
+    "intended_usage",
+    "production_status",
+    "required_fields",
+    "optional_fields",
+    "validation_level",
+    "allowed_consumers",
+    "disallowed_consumers",
+    "notes",
+]
+
+REQUIRED_REGISTRY_GOVERNANCE_FIELDS = [
+    "schema_lifecycle",
+    "versioning_policy",
+    "source_policy_doc",
+    "analyst_target_price_policy",
+    "production_boundary",
+]
+
+PROHIBITED_REGISTRY_TERMS = [
+    "production_enabled",
+    "production-ready",
+    "production ready",
+    "trading_enabled",
+    "trading-enabled",
+    "order_enabled",
+    "order-enabled",
+    "auto_trade",
+    "place_order",
+    "send_line_report",
+]
+
+REQUIRED_DISALLOWED_CONSUMERS = {
+    "production_pipeline",
+    "notification_sender",
+    "trading_execution",
+    "order_execution",
 }
 
 
@@ -158,6 +202,172 @@ def validate_example(path: Path) -> dict[str, Any]:
     }
 
 
+def repo_relative(path: Path, repo_root: Path) -> str:
+    try:
+        return path.resolve().relative_to(repo_root.resolve()).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def collect_strings(value: Any) -> list[str]:
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, dict):
+        result: list[str] = []
+        for item in value.values():
+            result.extend(collect_strings(item))
+        return result
+    if isinstance(value, list):
+        result = []
+        for item in value:
+            result.extend(collect_strings(item))
+        return result
+    return []
+
+
+def validate_registry(
+    registry_path: Path,
+    example_paths: list[Path],
+    repo_root: Path,
+) -> dict[str, Any]:
+    data, error = load_json(registry_path)
+    reasons: list[str] = []
+    if error:
+        return {
+            "path": str(registry_path),
+            "passed": False,
+            "entry_count": 0,
+            "registry_example_paths": [],
+            "reasons": [error],
+        }
+    assert data is not None
+
+    schema_version = data.get("schema_version")
+    if not isinstance(schema_version, int):
+        reasons.append("registry schema_version must be an integer")
+    if data.get("production_status") != "research_planning_only":
+        reasons.append("registry production_status must be research_planning_only")
+
+    governance_policy = data.get("governance_policy")
+    if not isinstance(governance_policy, dict):
+        reasons.append("registry governance_policy must be an object")
+    else:
+        for field in REQUIRED_REGISTRY_GOVERNANCE_FIELDS:
+            if field not in governance_policy:
+                reasons.append(f"governance_policy missing field: {field}")
+
+    entries = data.get("entries")
+    if not isinstance(entries, list) or not entries:
+        reasons.append("registry entries must be a non-empty list")
+        entries = []
+
+    expected_example_paths = {
+        repo_relative(path, repo_root)
+        for path in example_paths
+    }
+    registry_example_paths: set[str] = set()
+    schema_names: set[str] = set()
+
+    for index, entry in enumerate(entries):
+        if not isinstance(entry, dict):
+            reasons.append(f"entries[{index}] must be an object")
+            continue
+
+        for field in REGISTRY_REQUIRED_ENTRY_FIELDS:
+            if field not in entry:
+                reasons.append(f"entries[{index}] missing field: {field}")
+
+        schema_name = entry.get("schema_name")
+        if not isinstance(schema_name, str) or not schema_name:
+            reasons.append(f"entries[{index}] schema_name must be a non-empty string")
+        elif schema_name in schema_names:
+            reasons.append(f"duplicate schema_name: {schema_name}")
+        else:
+            schema_names.add(schema_name)
+
+        if entry.get("production_status") != "research_planning_only":
+            reasons.append(f"{schema_name or index}: production_status must be research_planning_only")
+
+        entry_schema_version = entry.get("schema_version")
+        if not isinstance(entry_schema_version, int):
+            reasons.append(f"{schema_name or index}: schema_version must be an integer")
+
+        example_path_value = entry.get("example_path")
+        if not isinstance(example_path_value, str) or not example_path_value:
+            reasons.append(f"{schema_name or index}: example_path must be a non-empty string")
+            continue
+
+        registry_example_paths.add(example_path_value)
+        example_path = repo_root / example_path_value
+        example_data, example_error = load_json(example_path)
+        if example_error:
+            reasons.append(f"{schema_name or index}: example_path invalid: {example_path_value}: {example_error}")
+            continue
+        assert example_data is not None
+
+        if example_data.get("schema_version") != entry_schema_version:
+            reasons.append(
+                f"{schema_name or index}: registry schema_version does not match example schema_version"
+            )
+
+        required_fields = entry.get("required_fields")
+        if not isinstance(required_fields, list) or not required_fields:
+            reasons.append(f"{schema_name or index}: required_fields must be a non-empty list")
+            required_fields = []
+        for field in required_fields:
+            if not isinstance(field, str) or not field:
+                reasons.append(f"{schema_name or index}: required_fields contains invalid value")
+            elif field not in example_data:
+                reasons.append(f"{schema_name or index}: required field missing from example: {field}")
+
+        for field in ["source_tier", "confidence", "data_quality", "missing_data_policy"]:
+            if field not in required_fields:
+                reasons.append(f"{schema_name or index}: required_fields must include {field}")
+
+        optional_fields = entry.get("optional_fields")
+        if not isinstance(optional_fields, list):
+            reasons.append(f"{schema_name or index}: optional_fields must be a list")
+        else:
+            for field in optional_fields:
+                if not isinstance(field, str) or not field:
+                    reasons.append(f"{schema_name or index}: optional_fields contains invalid value")
+
+        allowed_consumers = entry.get("allowed_consumers")
+        if not isinstance(allowed_consumers, list):
+            reasons.append(f"{schema_name or index}: allowed_consumers must be a list")
+
+        disallowed_consumers = entry.get("disallowed_consumers")
+        if not isinstance(disallowed_consumers, list):
+            reasons.append(f"{schema_name or index}: disallowed_consumers must be a list")
+            disallowed_consumers_set: set[str] = set()
+        else:
+            disallowed_consumers_set = {str(item) for item in disallowed_consumers}
+        missing_disallowed = REQUIRED_DISALLOWED_CONSUMERS - disallowed_consumers_set
+        for consumer in sorted(missing_disallowed):
+            reasons.append(f"{schema_name or index}: disallowed_consumers missing {consumer}")
+
+    missing_from_registry = sorted(expected_example_paths - registry_example_paths)
+    extra_registry_paths = sorted(registry_example_paths - expected_example_paths)
+    for path in missing_from_registry:
+        reasons.append(f"example not registered: {path}")
+    for path in extra_registry_paths:
+        reasons.append(f"registry example_path has no matching example file: {path}")
+
+    registry_strings = [text.lower() for text in collect_strings(data)]
+    for term in PROHIBITED_REGISTRY_TERMS:
+        if any(term in text for text in registry_strings):
+            reasons.append(f"registry contains prohibited production/trading term: {term}")
+
+    return {
+        "path": str(registry_path),
+        "passed": not reasons,
+        "entry_count": len(entries),
+        "registry_example_paths": sorted(registry_example_paths),
+        "expected_example_paths": sorted(expected_example_paths),
+        "reasons": reasons,
+    }
+
+
 def collect_example_paths(examples_dir: Path) -> list[Path]:
     if not examples_dir.exists():
         return []
@@ -168,6 +378,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Validate investment schema example JSON files.")
     parser.add_argument("--repo-root", default=".")
     parser.add_argument("--examples-dir", default=DEFAULT_EXAMPLES_DIR)
+    parser.add_argument("--registry-path", default=DEFAULT_REGISTRY_PATH)
     parser.add_argument("--pretty", action="store_true")
     return parser.parse_args()
 
@@ -178,21 +389,28 @@ def main() -> int:
     examples_dir = Path(args.examples_dir)
     if not examples_dir.is_absolute():
         examples_dir = repo_root / examples_dir
+    registry_path = Path(args.registry_path)
+    if not registry_path.is_absolute():
+        registry_path = repo_root / registry_path
 
     paths = collect_example_paths(examples_dir)
     results = [validate_example(path) for path in paths]
+    registry_result = validate_registry(registry_path, paths, repo_root)
     reasons: list[str] = []
     if not paths:
         reasons.append(f"no schema example files found: {examples_dir}")
     for result in results:
         reasons.extend(f"{result['path']}: {reason}" for reason in result["reasons"])
+    reasons.extend(f"{registry_result['path']}: {reason}" for reason in registry_result["reasons"])
 
     output = {
         "ok": True,
         "passed": not reasons,
         "examples_dir": str(examples_dir),
+        "registry_path": str(registry_path),
         "example_count": len(paths),
         "validated_files": [str(path) for path in paths],
+        "registry": registry_result,
         "results": results,
         "reasons": reasons,
         "side_effects": {

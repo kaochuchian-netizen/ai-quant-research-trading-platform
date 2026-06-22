@@ -61,11 +61,41 @@ The validator checks:
 - `data_quality` is present and contains required quality fields.
 - `missing_data_policy` is present.
 - Type-specific fields exist for each known example file.
+- `orchestrator/templates/schema_registry.json` parses successfully.
+- Registry entries point to existing example files.
+- Every example file is covered by the registry.
+- Registry `required_fields` are present in the example payload.
+- Registry and example `schema_version` values match.
+- Registry entries remain `research_planning_only`.
+- Registry governance keeps production pipeline, notification sender, trading
+  execution, and order execution as disallowed consumers.
 
 The validator is read-only. It does not write files, modify runtime queue state,
 write databases, modify production data, call external APIs, send notifications,
 trade, place orders, run production pipelines, change cron/systemd/timers, or
 read secrets.
+
+## Registry
+
+AI-DEV-016 adds the schema registry at:
+
+```text
+orchestrator/templates/schema_registry.json
+```
+
+The registry is the reviewable index for schema names, schema versions, example
+paths, owner areas, intended usage, required fields, optional fields, validation
+level, allowed future consumers, disallowed consumers, and research-only notes.
+
+All current registry entries use `production_status = research_planning_only`.
+The registry does not enable Dashboard, Email, Forecast, Prediction review,
+LINE, cron, production pipeline, trading, or order execution behavior.
+
+Governance details are documented in:
+
+```text
+docs/schema_registry_governance.md
+```
 
 ## Future Use
 
@@ -74,4 +104,3 @@ changes should remain separate and reviewed. Any production integration must
 preserve source traceability, data-quality flags, missing-data policy, and the
 rule that analyst target prices and broker ratings are context metadata only,
 not core decision inputs.
-
