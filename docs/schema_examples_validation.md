@@ -207,6 +207,7 @@ Use:
 
 ```bash
 python3 scripts/orchestrator/backfill_actual_outcome_examples.py --pretty
+python3 scripts/orchestrator/backfill_actual_outcome_examples.py --dry-run --pretty
 ```
 
 The prototype reads only:
@@ -219,8 +220,8 @@ It emits a JSON summary with `schema_version`, `operation`, `generated_at`,
 `safety_mode`, `input_records`, `backfill_candidates`,
 `backfill_status_counts`, `window_alignment_summary`,
 `actual_outcome_summary`, `missing_data_summary`, `data_quality_flags`,
-`lookahead_bias_controls`, `evaluable_records`, `non_evaluable_records`,
-`next_actions`, and `limitations`.
+`governance_summary`, `lookahead_bias_controls`, `evaluable_records`,
+`non_evaluable_records`, `next_actions`, and `limitations`.
 
 Allowed `backfill_status` values are `pending`, `completed`,
 `missing_market_data`, `non_trading_day`, `suspended`, `invalid_window`, and
@@ -233,3 +234,9 @@ Pending records are non-evaluable and do not fail validation. The prototype is
 read-only: it does not write files or databases, call external services, send
 notifications, change schedulers, run production pipelines, trade, place
 orders, read secrets, or generate investment advice.
+
+The optional `--dry-run` flag keeps the same read-only behavior while making
+dry-run governance explicit in the output. The `governance_summary` field
+records dry-run-first policy, DB mutation disabled by default, schema
+compatibility checks, audit counts, and rollback/no-op policy for future
+production-readiness review.
