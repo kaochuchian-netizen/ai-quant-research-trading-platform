@@ -127,6 +127,21 @@ def main() -> int:
         for reason in forbidden_result.get("reasons", []):
             reasons.append(str(reason))
 
+    source_inventory_proc = run_command(
+        [
+            sys.executable,
+            "scripts/orchestrator/audit_source_inventory_registry.py",
+            "--pretty",
+        ],
+        repo_root,
+    )
+    source_inventory_result = parse_json_output(source_inventory_proc.stdout)
+    if source_inventory_proc.returncode not in (0, 2):
+        reasons.append("source inventory registry audit failed to run")
+    if not source_inventory_result.get("passed", False):
+        for reason in source_inventory_result.get("reasons", []):
+            reasons.append(str(reason))
+
     result = {
         "ok": True,
         "passed": not reasons,
@@ -139,6 +154,7 @@ def main() -> int:
         "changed_file_count": len(changed_files),
         "disallowed_files": disallowed_files,
         "forbidden_changes": forbidden_result,
+        "source_inventory_audit": source_inventory_result,
         "reasons": reasons,
         "side_effects": {
             "files_modified": False,
