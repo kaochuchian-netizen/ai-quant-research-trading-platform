@@ -202,6 +202,40 @@ active handoff files. The inspector is intentionally read-only; it only reports
 the stale/example indicators and never moves artifacts into `stale_handoff/` by
 itself.
 
+## Post-Merge Validation
+
+Use the dedicated post-merge validator after a PR has been merged to `main`.
+Keep this separate from PR branch validation so `validate_ai_branch.py` remains
+PR-focused and is not reused on `main`.
+
+Real post-merge closeout:
+
+```bash
+cd ~/stock-ai
+git checkout main
+git pull --ff-only
+python3 scripts/orchestrator/inspect_ai_platform_status.py --pretty
+python3 scripts/orchestrator/validate_post_merge_status.py --pretty
+```
+
+For local format checks on a feature branch, use the simulation flag:
+
+```bash
+python3 scripts/orchestrator/validate_post_merge_status.py --pretty --simulate-post-merge-success
+```
+
+Treat the post-merge validator as the merge-closeout gate. In the JSON output,
+these fields are the operator-facing signals:
+
+- `post_merge_validator` or `ok` should be `true`
+- `inspector_ok` should be `true`
+- `main_in_sync` should be `true`
+- `git_status_clean` should be `true`
+
+The post-merge validator is read-only. It does not modify repo files, runtime
+queue files, data files, `.env`, secrets, notifications, trading state, or
+scheduler settings.
+
 ## Supervised Closed-Loop Runner
 
 Use the supervised runner to reduce manual status checks while preserving the
