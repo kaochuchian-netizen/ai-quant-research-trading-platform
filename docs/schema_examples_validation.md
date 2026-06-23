@@ -240,3 +240,48 @@ dry-run governance explicit in the output. The `governance_summary` field
 records dry-run-first policy, DB mutation disabled by default, schema
 compatibility checks, audit counts, and rollback/no-op policy for future
 production-readiness review.
+
+## AI-DEV-023 Source Inventory Registry and Audit
+
+AI-DEV-023 adds a source inventory registry example and a read-only audit
+helper for source cost governance and notification separation.
+
+Use:
+
+```bash
+python3 scripts/orchestrator/audit_source_inventory_registry.py --pretty
+```
+
+The registry example lives at:
+
+```text
+orchestrator/templates/source_inventory_registry.example.json
+```
+
+The registry tracks these connected sources:
+
+- `google_sheet`
+- `shioaji_sinopac`
+- `twse_openapi`
+- `google_news_rss`
+- `gemini_google_generative_ai`
+- `yfinance_yahoo`
+- `sqlite_historical_csv`
+
+It tracks these notification outputs separately:
+
+- `line_push`
+- `smtp_email`
+
+It keeps these candidate sources unconnected:
+
+- `finmind`
+- `mops_public_information_observatory`
+- `eyuanta`
+
+The audit helper validates required fields, enums, unique `source_id` values,
+credentials consistency, notification separation, Gemini category handling,
+and that FinMind and MOPS remain unconnected. It also reports a cost-governance
+summary. The script is read-only and does not write files, call external
+services, modify databases, send notifications, change schedulers, run
+production pipelines, trade, place orders, or read secrets.
