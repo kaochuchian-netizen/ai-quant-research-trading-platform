@@ -104,6 +104,25 @@ The audit is read-only. It validates required fields, enumerations, unique
 source ids, credentials consistency, notification separation, Gemini category,
 and that FinMind and MOPS remain unconnected.
 
+## Runtime Loader
+
+The registry can also be loaded through the reusable helper:
+
+```bash
+python3 scripts/orchestrator/source_inventory_registry_loader.py --pretty
+```
+
+That helper returns a read-only summary contract for scripts that need to reuse
+the registry without re-implementing JSON parsing or source-group counting.
+The loader does not call external services, read secrets, write files, touch
+databases, send notifications, or run production workflows.
+
+## Validation Flow
+
+The AI development validation flow is expected to include both the registry
+loader and the registry audit so source governance stays part of branch
+validation instead of being checked only as a standalone script.
+
 ## Relationship to Other Governance Docs
 
 - `docs/schema_examples_validation.md`

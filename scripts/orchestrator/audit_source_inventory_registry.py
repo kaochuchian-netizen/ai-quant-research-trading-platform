@@ -17,9 +17,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from source_inventory_registry_loader import (
+    DEFAULT_REGISTRY_PATH,
+    load_source_inventory_registry,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
-REGISTRY_PATH = ROOT / "orchestrator" / "templates" / "source_inventory_registry.example.json"
+REGISTRY_PATH = DEFAULT_REGISTRY_PATH
 
 ALLOWED_REGISTRY_STATUS = {"research_planning_only"}
 ALLOWED_SOURCE_ROLES = {
@@ -73,14 +77,6 @@ CANDIDATE_SOURCE_IDS = {
     "eyuanta",
 }
 NOTIFICATION_CATEGORIES = {"notification_push", "email_smtp"}
-
-
-def load_registry(path: Path) -> dict[str, Any]:
-    with path.open("r", encoding="utf-8") as handle:
-        payload = json.load(handle)
-    if not isinstance(payload, dict):
-        raise ValueError("registry JSON root must be an object")
-    return payload
 
 
 def require_fields(payload: dict[str, Any], fields: list[str], *, label: str, reasons: list[str]) -> None:
@@ -197,7 +193,7 @@ def main() -> int:
     warnings: list[str] = []
 
     try:
-        registry = load_registry(registry_path)
+        registry = load_source_inventory_registry(registry_path)
     except Exception as exc:  # noqa: BLE001
         output = {
             "ok": False,

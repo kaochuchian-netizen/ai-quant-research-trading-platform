@@ -63,6 +63,7 @@ def main() -> int:
 
     commands = [
         [sys.executable, "scripts/orchestrator/check_forbidden_changes.py", "--base", args.base, "--head", args.head, "--pretty"],
+        [sys.executable, "scripts/orchestrator/audit_source_inventory_registry.py", "--pretty"],
         [sys.executable, "scripts/orchestrator/validate_ai_branch.py", "--base", args.base, "--head", args.head, "--pretty"],
         [sys.executable, "scripts/orchestrator/prepare_ai_pr_summary.py", "--runtime-dir", str(runtime_dir), "--pretty"],
     ]

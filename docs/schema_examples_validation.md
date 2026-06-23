@@ -285,3 +285,22 @@ and that FinMind and MOPS remain unconnected. It also reports a cost-governance
 summary. The script is read-only and does not write files, call external
 services, modify databases, send notifications, change schedulers, run
 production pipelines, trade, place orders, or read secrets.
+
+## AI-DEV-024 Source Inventory Registry Runtime Loader and CI Validation
+
+AI-DEV-024 adds a reusable runtime loader for the source inventory registry
+example and wires the registry audit into the AI branch validation flow.
+
+Use:
+
+```bash
+python3 scripts/orchestrator/source_inventory_registry_loader.py --pretty
+python3 scripts/orchestrator/audit_source_inventory_registry.py --pretty
+```
+
+The loader provides a read-only summary contract for other scripts. The audit
+continues to validate the registry example and now participates in branch and
+CI validation, so source inventory governance is checked before PR review.
+Both commands remain read-only and do not write files, call external services,
+touch databases, send notifications, modify schedulers, run production
+pipelines, trade, place orders, or read secrets.

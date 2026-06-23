@@ -27,6 +27,8 @@ jobs:
         run: |
           python3 -m py_compile \
             scripts/orchestrator/check_forbidden_changes.py \
+            scripts/orchestrator/source_inventory_registry_loader.py \
+            scripts/orchestrator/audit_source_inventory_registry.py \
             scripts/orchestrator/validate_ai_branch.py \
             scripts/orchestrator/codex_autostart_preflight.py
 
@@ -42,4 +44,9 @@ jobs:
           python3 scripts/orchestrator/validate_ai_branch.py \
             --base origin/main \
             --head HEAD \
+            --pretty
+
+      - name: Audit source inventory registry
+        run: |
+          python3 scripts/orchestrator/audit_source_inventory_registry.py \
             --pretty
