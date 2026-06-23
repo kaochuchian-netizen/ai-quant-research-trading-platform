@@ -24,6 +24,7 @@ DEFAULT_ALLOWED_PATHS = [
     "docs/",
     "tests/",
     "scripts/orchestrator/",
+    ".github/workflows/ai_dev_validation.yml",
     "scripts/run_pipeline.py",
     "app/pipelines/runner.py",
     "run_stock_analysis.sh",
