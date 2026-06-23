@@ -1,0 +1,254 @@
+{
+  "schema_version": 1,
+  "registry_name": "source_inventory_registry",
+  "inventory_scope": "research_only_read_only",
+  "production_status": "research_planning_only",
+  "created_at": "2026-06-23T09:00:00+08:00",
+  "updated_at": "2026-06-23T09:00:00+08:00",
+  "governance_policy": {
+    "dry_run_first": true,
+    "read_only_audit_default": true,
+    "db_mutation_disabled_by_default": true,
+    "notification_delivery_disabled_by_default": true,
+    "secrets_or_env_values_disallowed": true,
+    "source_id_uniqueness_required": true,
+    "notification_separation_required": true,
+    "candidate_sources_must_remain_unconnected": true,
+    "schema_compatibility_required": true,
+    "audit_summary_required": true,
+    "rollback_or_no_op_policy_required": true
+  },
+  "summary": {
+    "connected_source_count": 7,
+    "notification_output_count": 2,
+    "candidate_source_count": 3,
+    "total_source_count": 12
+  },
+  "connected_sources": [
+    {
+      "source_id": "google_sheet",
+      "source_name": "Google Sheet stock universe",
+      "source_category": "sheet",
+      "source_role": "data_source",
+      "connection_state": "connected",
+      "credentials_required": true,
+      "credential_fields": [
+        "GOOGLE_SHEET_ID",
+        "GOOGLE_CREDENTIALS_FILE"
+      ],
+      "env_vars": [
+        "GOOGLE_SHEET_ID",
+        "GOOGLE_CREDENTIALS_FILE"
+      ],
+      "cost_tier": "low",
+      "external_service": true,
+      "read_only": true,
+      "notes": "Read-only stock universe source used by the pre-open pipeline."
+    },
+    {
+      "source_id": "shioaji_sinopac",
+      "source_name": "Shioaji / Sinopac market API",
+      "source_category": "broker_api",
+      "source_role": "data_source",
+      "connection_state": "connected",
+      "credentials_required": true,
+      "credential_fields": [
+        "SINOPAC_API_KEY",
+        "SINOPAC_SECRET_KEY"
+      ],
+      "env_vars": [
+        "SINOPAC_API_KEY",
+        "SINOPAC_SECRET_KEY"
+      ],
+      "cost_tier": "variable",
+      "external_service": true,
+      "read_only": true,
+      "notes": "Used for contract lookup, snapshots, and historical market pulls."
+    },
+    {
+      "source_id": "twse_openapi",
+      "source_name": "TWSE open API",
+      "source_category": "exchange_openapi",
+      "source_role": "data_source",
+      "connection_state": "connected",
+      "credentials_required": false,
+      "credential_fields": [],
+      "env_vars": [],
+      "cost_tier": "free",
+      "external_service": true,
+      "read_only": true,
+      "notes": "Used for institutional and margin-related market data."
+    },
+    {
+      "source_id": "google_news_rss",
+      "source_name": "Google News RSS",
+      "source_category": "news_rss",
+      "source_role": "data_source",
+      "connection_state": "connected",
+      "credentials_required": false,
+      "credential_fields": [],
+      "env_vars": [],
+      "cost_tier": "free",
+      "external_service": true,
+      "read_only": true,
+      "notes": "Used as a research-only news feed source."
+    },
+    {
+      "source_id": "gemini_google_generative_ai",
+      "source_name": "Gemini / Google Generative AI",
+      "source_category": "llm_api",
+      "source_role": "data_source",
+      "connection_state": "connected",
+      "credentials_required": true,
+      "credential_fields": [
+        "GEMINI_API_KEY"
+      ],
+      "env_vars": [
+        "GEMINI_API_KEY"
+      ],
+      "cost_tier": "variable",
+      "external_service": true,
+      "read_only": true,
+      "notes": "Used for research-only analysis generation."
+    },
+    {
+      "source_id": "yfinance_yahoo",
+      "source_name": "yfinance / Yahoo Finance",
+      "source_category": "market_data",
+      "source_role": "data_source",
+      "connection_state": "connected",
+      "credentials_required": false,
+      "credential_fields": [],
+      "env_vars": [],
+      "cost_tier": "free",
+      "external_service": true,
+      "read_only": true,
+      "notes": "Used for ADR change lookup."
+    },
+    {
+      "source_id": "sqlite_historical_csv",
+      "source_name": "SQLite and historical CSV storage",
+      "source_category": "local_storage",
+      "source_role": "data_source",
+      "connection_state": "connected",
+      "credentials_required": false,
+      "credential_fields": [],
+      "env_vars": [],
+      "cost_tier": "internal",
+      "external_service": false,
+      "read_only": false,
+      "notes": "Local storage layer for analysis results and historical market data."
+    }
+  ],
+  "notification_outputs": [
+    {
+      "source_id": "line_push",
+      "source_name": "LINE push notifications",
+      "source_category": "notification_push",
+      "source_role": "notification_output",
+      "connection_state": "notification_output",
+      "credentials_required": true,
+      "credential_fields": [
+        "LINE_CHANNEL_ACCESS_TOKEN",
+        "LINE_USER_ID",
+        "LINE_USER_IDS"
+      ],
+      "env_vars": [
+        "LINE_CHANNEL_ACCESS_TOKEN",
+        "LINE_USER_ID",
+        "LINE_USER_IDS"
+      ],
+      "cost_tier": "variable",
+      "external_service": true,
+      "read_only": false,
+      "notes": "Outbound delivery surface only; must stay separate from data ingestion."
+    },
+    {
+      "source_id": "smtp_email",
+      "source_name": "SMTP email notifications",
+      "source_category": "email_smtp",
+      "source_role": "notification_output",
+      "connection_state": "notification_output",
+      "credentials_required": true,
+      "credential_fields": [
+        "ORCH_MAIL_HOST",
+        "ORCH_MAIL_PORT",
+        "ORCH_MAIL_USER",
+        "ORCH_MAIL_PASS",
+        "ORCH_MAIL_FROM",
+        "ORCH_MAIL_TO"
+      ],
+      "env_vars": [
+        "ORCH_MAIL_HOST",
+        "ORCH_MAIL_PORT",
+        "ORCH_MAIL_USER",
+        "ORCH_MAIL_PASS",
+        "ORCH_MAIL_FROM",
+        "ORCH_MAIL_TO"
+      ],
+      "cost_tier": "variable",
+      "external_service": true,
+      "read_only": false,
+      "notes": "Outbound delivery surface only; must stay separate from data ingestion."
+    }
+  ],
+  "candidate_sources": [
+    {
+      "source_id": "finmind",
+      "source_name": "FinMind market data",
+      "source_category": "market_data_candidate",
+      "source_role": "candidate_source",
+      "connection_state": "candidate",
+      "credentials_required": true,
+      "credential_fields": [
+        "FINMIND_API_TOKEN"
+      ],
+      "env_vars": [
+        "FINMIND_API_TOKEN"
+      ],
+      "cost_tier": "variable",
+      "external_service": true,
+      "read_only": true,
+      "notes": "Candidate only. Not connected in the current codebase."
+    },
+    {
+      "source_id": "mops_public_information_observatory",
+      "source_name": "MOPS Public Information Observatory",
+      "source_category": "official_filing_candidate",
+      "source_role": "candidate_source",
+      "connection_state": "candidate",
+      "credentials_required": false,
+      "credential_fields": [],
+      "env_vars": [],
+      "cost_tier": "free",
+      "external_service": true,
+      "read_only": true,
+      "notes": "Candidate only. Not connected in the current codebase."
+    },
+    {
+      "source_id": "eyuanta",
+      "source_name": "eYuanta / 元大",
+      "source_category": "broker_data_candidate",
+      "source_role": "candidate_source",
+      "connection_state": "candidate",
+      "credentials_required": true,
+      "credential_fields": [
+        "EYUANTA_API_KEY",
+        "EYUANTA_SECRET_KEY"
+      ],
+      "env_vars": [
+        "EYUANTA_API_KEY",
+        "EYUANTA_SECRET_KEY"
+      ],
+      "cost_tier": "unknown",
+      "external_service": true,
+      "read_only": true,
+      "notes": "Candidate only. Not connected in the current codebase."
+    }
+  ],
+  "notes": [
+    "Read-only source inventory example.",
+    "Notification outputs are separated from connected data sources.",
+    "Candidate sources remain unconnected until a future task explicitly approves them."
+  ]
+}
