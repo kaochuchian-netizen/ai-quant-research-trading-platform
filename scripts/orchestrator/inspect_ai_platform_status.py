@@ -141,6 +141,7 @@ def extract_handoff_metadata(path: Path) -> tuple[dict[str, Any], str | None]:
         "prepared": data.get("prepared"),
         "branch_name": data.get("branch_name") or task_data.get("branch_name") or target_data.get("branch"),
         "base_branch": data.get("base_branch") or task_data.get("target_base_branch"),
+        "source_queue_path": data.get("source_queue_path"),
     }, None
 
 
@@ -148,6 +149,19 @@ def looks_like_example(value: Any) -> bool:
     if value is None:
         return False
     return "EXAMPLE" in str(value).upper() or "example_only" == str(value)
+
+
+def is_known_example_handoff_seed(name: str, metadata: dict[str, Any], path: Path) -> bool:
+    if name != "current_codex_handoff.json":
+        return False
+    if path.name != "current_codex_handoff.json":
+        return False
+    return (
+        metadata.get("task_id") == "PHASE-CODEX-EXAMPLE-001"
+        and metadata.get("handoff_id") == "CODEX-HANDOFF-EXAMPLE-001"
+        and metadata.get("status") == "materialized"
+        and str(metadata.get("source_queue_path", "")).endswith("codex_handoff_queue.example.json")
+    )
 
 
 def summarize_stale_handoff_dir(runtime_dir: Path) -> dict[str, Any]:
@@ -315,6 +329,7 @@ def collect_runtime_status(runtime_dir: Path) -> tuple[dict[str, Any], list[str]
     example_indicators: list[str] = []
     stale_indicators: list[str] = []
     active_task_ids: set[str] = set()
+    known_example_seed_present = False
 
     for name in OPTIONAL_ACTIVE_RUNTIME_FILES:
         path = runtime_dir / name
@@ -330,7 +345,9 @@ def collect_runtime_status(runtime_dir: Path) -> tuple[dict[str, Any], list[str]
             active_task_ids.add(str(task_id))
         if metadata_error:
             stale_indicators.append(f"{name} metadata unavailable: {metadata_error}")
-        if any(looks_like_example(value) for value in (task_id, handoff_id, metadata.get("status"))):
+        if is_known_example_handoff_seed(name, metadata, path):
+            known_example_seed_present = True
+        elif any(looks_like_example(value) for value in (task_id, handoff_id, metadata.get("status"))):
             example_indicators.append(f"{name} contains example metadata")
         if task_id and str(task_id) in merged_task_ids:
             stale_indicators.append(f"{name} points at merged completed task: {task_id}")
@@ -339,7 +356,16 @@ def collect_runtime_status(runtime_dir: Path) -> tuple[dict[str, Any], list[str]
     stale_handoff_dir = summarize_stale_handoff_dir(runtime_dir)
     archive_dir = summarize_archive_dir(runtime_dir)
     classification = "no_active_handoff"
-    if active_handoff_exists and (example_indicators or stale_indicators):
+    if (
+        active_handoff_exists
+        and known_example_seed_present
+        and not example_indicators
+        and not stale_indicators
+        and not active_files["ai_task_branch_plan.json"]["exists"]
+        and not active_files["ai_task_pr_body.md"]["exists"]
+    ):
+        classification = "no_active_handoff"
+    elif active_handoff_exists and (example_indicators or stale_indicators):
         classification = "stale_or_example_suspected"
     elif active_handoff_exists:
         classification = "active_handoff_present"
