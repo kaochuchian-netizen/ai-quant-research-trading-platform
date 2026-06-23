@@ -426,6 +426,37 @@ The archive script removes the task from runtime pending queue and appends a
 completed record to runtime completed queue. It refuses duplicate `task_id` or
 `pr_number` by default and supports `--dry-run`.
 
+## Post-Merge Closeout
+
+After the PR merges and before treating the task as fully closed, run the
+standard post-merge status check:
+
+```bash
+cd ~/stock-ai
+git checkout main
+git pull --ff-only
+python3 scripts/orchestrator/inspect_ai_platform_status.py --pretty
+python3 scripts/orchestrator/validate_post_merge_status.py --pretty
+```
+
+Use the simulation flag only for feature-branch format checks:
+
+```bash
+python3 scripts/orchestrator/validate_post_merge_status.py --pretty --simulate-post-merge-success
+```
+
+Record these closeout fields in the completion report or checklist when the
+task is archived:
+
+- `post_merge_validator` pass/fail
+- `inspector_ok` true/false
+- `main_in_sync` true/false
+- `git_status_clean` true/false
+
+The validator is read-only and is part of the standard operator closeout
+workflow. It does not replace PR branch validation, and it does not authorize
+production commands, notifications, trading, or scheduler changes.
+
 ## Safety Boundaries
 
 These tools must not:
