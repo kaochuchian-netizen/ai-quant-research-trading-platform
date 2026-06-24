@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "artifact_type": "n8n_dify_task_draft_response",
+  "request_id": "req-ai-dev-033-example",
+  "task_id": "AI-DEV-033",
+  "generated_by": "Dify",
+  "draft_status": "DRAFT_READY",
+  "output_format": "markdown",
+  "draft_markdown": "## Task\nCreate the AI-DEV-033 automation contract documents and JSON examples.\n\n## Safety\nDocumentation and JSON examples only. No runtime workflow, credentials, production, notifications, database writes, or trading logic.",
+  "assumptions": [
+    "ChatGPT approval is required before merge.",
+    "GitHub remains the source of truth for PR and CI state.",
+    "GCP tmux Codex is the official repo developer."
+  ],
+  "missing_inputs": [],
+  "safety_confirmation": {
+    "repository_modified_by_dify": false,
+    "merge_decision_made_by_dify": false,
+    "production_action_requested": false,
+    "credentials_requested": false,
+    "notifications_requested": false,
+    "trading_or_order_logic_requested": false
+  },
+  "next_owner": "n8n"
+}

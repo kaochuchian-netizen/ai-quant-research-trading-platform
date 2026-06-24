@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "artifact_type": "chatgpt_merge_gate_decision",
+  "decision_id": "decision-ai-dev-033-example",
+  "task_id": "AI-DEV-033",
+  "decided_by": "ChatGPT",
+  "decided_at": "2026-06-24T09:15:00+08:00",
+  "input_report": {
+    "artifact_type": "n8n_merge_gate_report",
+    "task_id": "AI-DEV-033",
+    "pr_number": 33,
+    "head_sha": "1111111111111111111111111111111111111111"
+  },
+  "decision": "PASS",
+  "decision_values_allowed": [
+    "PASS",
+    "FAIL",
+    "NEEDS_HUMAN_REVIEW"
+  ],
+  "conditions": {
+    "chatgpt_decision": "PASS",
+    "github_actions_status": "success",
+    "merge_state_status": "CLEAN",
+    "pr_state": "OPEN",
+    "draft": false,
+    "head_sha_unchanged": true,
+    "validate_ai_branch": "pass",
+    "inspector_ok": true,
+    "prohibited_scope_touched": false,
+    "human_gate_required": false
+  },
+  "merge_authorization": {
+    "n8n_may_auto_merge": true,
+    "n8n_decides_merge": false,
+    "github_is_source_of_truth": true
+  },
+  "notes": [
+    "Example decision only. Real execution must verify current GitHub state immediately before merge."
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "artifact_type": "n8n_dify_task_draft_request",
+  "request_id": "req-ai-dev-033-example",
+  "requested_by": "n8n",
+  "target_system": "Dify",
+  "task_id": "AI-DEV-033",
+  "request_type": "codex_task_package_draft",
+  "input_context": {
+    "approved_title": "n8n Dify Codex Automation Contract",
+    "branch": "ai-dev/033-n8n-dify-codex-automation-contract",
+    "base_branch": "main",
+    "commit_message": "Add n8n Dify Codex automation contract",
+    "pr_title": "AI-DEV-033 n8n Dify Codex Automation Contract",
+    "scope_summary": "Create documentation and JSON templates for the n8n, Dify, ChatGPT, Codex, and GitHub automation contract.",
+    "files_in_scope": [
+      "docs/n8n_dify_codex_automation_contract.md",
+      "templates/*.example.json"
+    ],
+    "reference_only_files": [
+      "docs/n8n_github_pr_status_workflow_spec.md",
+      "templates/n8n_pr_status_report.example.json",
+      "docs/dify_ai_dev_knowledge_base_plan.md",
+      "templates/dify_*.md"
+    ]
+  },
+  "requested_output": {
+    "format": "markdown",
+    "sections": [
+      "Task",
+      "Scope",
+      "Files",
+      "Validation",
+      "Safety",
+      "Report"
+    ]
+  },
+  "safety_boundary": {
+    "dify_may": [
+      "draft task package text",
+      "summarize supplied status",
+      "identify missing context"
+    ],
+    "dify_must_not": [
+      "modify repository files",
+      "merge pull requests",
+      "run shell commands",
+      "configure Dify or n8n runtime settings",
+      "access secrets or credentials",
+      "send notifications",
+      "run production or trading logic"
+    ]
+  }
+}
