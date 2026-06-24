@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "artifact_type": "n8n_dify_manual_trigger_response",
+  "request_id": "req-ai-dev-034-example",
+  "task_id": "AI-DEV-034",
+  "source_system": "Dify",
+  "target_system": "n8n",
+  "status": "succeeded",
+  "outputs": {
+    "draft_type": "codex_task_package_draft",
+    "draft_markdown": "## Task\nImplement AI-DEV-034 repo-contained workflow pack files only.\n\n## Safety\nDo not activate runtime workflows, configure credentials, send notifications, run production, trade, or perform real auto-merge execution.",
+    "assumptions": [
+      "ChatGPT approval is required before Codex receives an executable task package.",
+      "This response is draft text only."
+    ],
+    "missing_inputs": [],
+    "risk_flags": {
+      "requires_human_credential_setup": true,
+      "runtime_activation_requested": false,
+      "real_auto_merge_requested": false,
+      "production_scope_requested": false,
+      "notification_scope_requested": false,
+      "trading_scope_requested": false
+    }
+  },
+  "metadata": {
+    "example_only": true,
+    "repo_modified_by_dify": false,
+    "credentials_included": false
+  }
+}

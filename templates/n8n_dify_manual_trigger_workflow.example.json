@@ -1,0 +1,152 @@
+{
+  "name": "AI-DEV-034 Manual Trigger Dify Draft Workflow Example",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -800,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "jsonOutput": "={{ $json }}"
+      },
+      "id": "normalize-chatgpt-payload",
+      "name": "Normalize ChatGPT Payload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        -560,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "jsonOutput": "={\n  \"inputs\": {\n    \"task_id\": $json.task_id,\n    \"approved_title\": $json.scope.title,\n    \"scope_summary\": $json.scope.summary,\n    \"branch\": $json.branch,\n    \"base_branch\": $json.base_branch,\n    \"files_in_scope\": $json.files_in_scope,\n    \"validation_commands\": $json.validation_commands,\n    \"safety_boundary\": $json.safety_boundary\n  },\n  \"response_mode\": \"blocking\",\n  \"user\": \"ai-dev-manual-trigger-example\"\n}"
+      },
+      "id": "build-dify-workflow-request",
+      "name": "Build Dify Workflow Request",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        -320,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.dify.ai/v1/workflows/run",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}"
+      },
+      "id": "call-dify-workflow-api",
+      "name": "Call Dify Workflow API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -80,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "DIFY_HTTP_HEADER_AUTH_PLACEHOLDER",
+          "name": "Dify HTTP Header Auth Placeholder"
+        }
+      },
+      "notes": "Example placeholder credential only. Do not store real credentials in this export."
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "jsonOutput": "={\n  \"schema_version\": 1,\n  \"artifact_type\": \"n8n_chatgpt_ready_task_draft_summary\",\n  \"task_id\": $json.data?.outputs?.task_id || \"AI-DEV-034\",\n  \"draft_status\": $json.data?.status || \"example_not_executed\",\n  \"summary\": $json.data?.outputs?.draft_markdown || \"Example workflow output placeholder.\",\n  \"requires_chatgpt_review\": true,\n  \"runtime_side_effects\": {\n    \"repo_modified\": false,\n    \"notification_sent\": false,\n    \"production_pipeline_run\": false,\n    \"trading_or_order_run\": false,\n    \"real_auto_merge_executed\": false\n  }\n}"
+      },
+      "id": "build-chatgpt-ready-summary",
+      "name": "Build ChatGPT-Ready Summary",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        160,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalize ChatGPT Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize ChatGPT Payload": {
+      "main": [
+        [
+          {
+            "node": "Build Dify Workflow Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Dify Workflow Request": {
+      "main": [
+        [
+          {
+            "node": "Call Dify Workflow API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Dify Workflow API": {
+      "main": [
+        [
+          {
+            "node": "Build ChatGPT-Ready Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "staticData": null,
+  "pinData": {},
+  "versionId": "AI-DEV-034-EXAMPLE-ONLY",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "example_only": true,
+    "contains_real_credentials": false,
+    "runtime_activation_allowed": false
+  },
+  "tags": [
+    {
+      "name": "AI-DEV-034"
+    },
+    {
+      "name": "manual-trigger-example"
+    }
+  ]
+}

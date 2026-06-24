@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "artifact_type": "n8n_chatgpt_approved_payload",
+  "task_id": "AI-DEV-034",
+  "approved_by": "ChatGPT",
+  "approval_status": "APPROVED",
+  "approved_at": "2026-06-24T10:00:00+08:00",
+  "requested_flow": "manual_trigger_dify_task_draft",
+  "repository": {
+    "owner": "example-org",
+    "name": "example-repo",
+    "default_branch": "main"
+  },
+  "branch": "ai-dev/034-n8n-dify-manual-trigger-workflow-pack",
+  "base_branch": "main",
+  "scope": {
+    "title": "n8n Dify Manual Trigger Workflow Pack",
+    "summary": "Create repo-contained documentation, example workflow export, payload examples, validator, and activation runbook for a future manual-trigger dry-run."
+  },
+  "files_in_scope": [
+    "docs/n8n_dify_manual_trigger_workflow_pack.md",
+    "templates/n8n_dify_manual_trigger_workflow.example.json",
+    "templates/n8n_chatgpt_approved_payload.example.json",
+    "templates/n8n_dify_manual_trigger_request.example.json",
+    "templates/n8n_dify_manual_trigger_response.example.json",
+    "templates/n8n_chatgpt_ready_task_draft_summary.example.json",
+    "scripts/orchestrator/validate_n8n_dify_workflow_pack.py"
+  ],
+  "validation_commands": [
+    "git diff --check",
+    "python3 -m json.tool templates/n8n_dify_manual_trigger_workflow.example.json",
+    "python3 -m json.tool templates/n8n_chatgpt_approved_payload.example.json",
+    "python3 -m json.tool templates/n8n_dify_manual_trigger_request.example.json",
+    "python3 -m json.tool templates/n8n_dify_manual_trigger_response.example.json",
+    "python3 -m json.tool templates/n8n_chatgpt_ready_task_draft_summary.example.json",
+    "python3 -m py_compile scripts/orchestrator/validate_n8n_dify_workflow_pack.py",
+    "python3 scripts/orchestrator/validate_n8n_dify_workflow_pack.py --pretty"
+  ],
+  "safety_boundary": {
+    "allowed": [
+      "repo-contained documentation",
+      "example JSON templates",
+      "read-only validation"
+    ],
+    "prohibited": [
+      "trading / order execution",
+      "secrets / .env / credentials",
+      "production DB writes",
+      "production-approved runner",
+      "formal LINE / Email / notification sending",
+      "cron / systemd / timer modification",
+      "Dify / n8n credential setup",
+      "paid data source integration",
+      "public dashboard publishing",
+      "trading / order logic",
+      "real auto-merge execution"
+    ]
+  },
+  "human_gates": [
+    "Dify / n8n credential setup",
+    "runtime activation",
+    "dry-run execution",
+    "real auto-merge execution",
+    "production deployment",
+    "notification sending"
+  ]
+}
