@@ -30,6 +30,7 @@ DEFAULT_ALLOWED_PATHS = [
     "run_stock_analysis.sh",
     "orchestrator/queue/",
     "orchestrator/templates/",
+    "templates/",
 ]
 
 DEFAULT_MAX_CHANGED_FILES = 12
