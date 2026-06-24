@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "artifact_type": "n8n_dify_manual_trigger_request",
+  "request_id": "req-ai-dev-034-example",
+  "source_system": "n8n",
+  "target_system": "Dify",
+  "task_id": "AI-DEV-034",
+  "workflow": {
+    "trigger": "manual",
+    "dify_endpoint": "https://api.dify.ai/v1/workflows/run",
+    "credential_reference": "DIFY_HTTP_HEADER_AUTH_PLACEHOLDER"
+  },
+  "inputs": {
+    "approved_by": "ChatGPT",
+    "approval_status": "APPROVED",
+    "requested_output": "codex_task_package_draft",
+    "approved_title": "n8n Dify Manual Trigger Workflow Pack",
+    "scope_summary": "Draft a Codex-ready task package from supplied approved AI-DEV scope.",
+    "branch": "ai-dev/034-n8n-dify-manual-trigger-workflow-pack",
+    "base_branch": "main",
+    "files_in_scope": [
+      "docs/n8n_dify_manual_trigger_workflow_pack.md",
+      "templates/n8n_dify_manual_trigger_workflow.example.json",
+      "scripts/orchestrator/validate_n8n_dify_workflow_pack.py"
+    ],
+    "validation_commands": [
+      "python3 scripts/orchestrator/validate_n8n_dify_workflow_pack.py --pretty"
+    ],
+    "safety_boundary": [
+      "No runtime activation.",
+      "No real credentials.",
+      "No production, notification, auto-merge, or trading action."
+    ]
+  },
+  "response_mode": "blocking",
+  "user": "ai-dev-manual-trigger-example"
+}

@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "artifact_type": "n8n_chatgpt_ready_task_draft_summary",
+  "summary_id": "summary-ai-dev-034-example",
+  "task_id": "AI-DEV-034",
+  "generated_by": "n8n",
+  "source_response": {
+    "artifact_type": "n8n_dify_manual_trigger_response",
+    "request_id": "req-ai-dev-034-example",
+    "status": "succeeded"
+  },
+  "draft_status": "ready_for_chatgpt_review",
+  "draft_type": "codex_task_package_draft",
+  "draft_markdown": "## Task\nImplement AI-DEV-034 repo-contained workflow pack files only.\n\n## Validation\nRun the workflow pack validator and JSON parsing checks.\n\n## Safety\nNo runtime activation, credential setup, production, notifications, trading, or real auto-merge execution.",
+  "missing_inputs": [],
+  "safety_flags": {
+    "requires_chatgpt_approval_before_codex": true,
+    "requires_human_credential_setup": true,
+    "runtime_activation_requested": false,
+    "repo_mutation_by_dify": false,
+    "production_pipeline_run": false,
+    "notification_sent": false,
+    "trading_or_order_run": false,
+    "real_auto_merge_executed": false
+  },
+  "recommended_chatgpt_action": "review_draft_before_codex_execution",
+  "blockers": []
+}
