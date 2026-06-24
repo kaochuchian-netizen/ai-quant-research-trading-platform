@@ -106,11 +106,17 @@ The contract should at least include:
 - state
 - mergeable
 - merge_state_status
-- checks
+- checks.required_check
+- checks.status
 - files_changed
 - recommendation
 - manual_gate_required
-- risk_flags
+- risk_flags.production_pipeline_changed
+- risk_flags.db_changed
+- risk_flags.cron_or_timer_changed
+- risk_flags.secrets_or_env_changed
+- risk_flags.notification_changed
+- risk_flags.trading_or_order_logic_changed
 - generated_at
 
 The report should separate raw status values from the final recommendation so
@@ -154,6 +160,7 @@ An example report should look like this:
 
 ```json
 {
+  "schema_version": 1,
   "task_id": "AI-DEV-031",
   "pr_number": 31,
   "pr_url": "https://github.com/example-org/example-repo/pull/31",
@@ -162,29 +169,28 @@ An example report should look like this:
   "state": "OPEN",
   "mergeable": true,
   "merge_state_status": "CLEAN",
-  "checks": [
-    {
-      "name": "AI Dev Validation",
-      "status": "success"
-    },
-    {
-      "name": "validate-ai-branch",
-      "status": "success"
-    }
-  ],
+  "checks": {
+    "required_check": "AI Dev Validation",
+    "status": "success"
+  },
   "files_changed": [
     "docs/example.md"
   ],
   "risk_flags": {
-    "production": false,
-    "db": false,
-    "cron": false,
-    "secrets": false,
-    "notification": false,
-    "trading": false
+    "production_pipeline_changed": false,
+    "db_changed": false,
+    "cron_or_timer_changed": false,
+    "secrets_or_env_changed": false,
+    "notification_changed": false,
+    "trading_or_order_logic_changed": false
   },
   "recommendation": "ready_for_human_merge_review",
-  "manual_gate_required": true
+  "manual_gate_required": true,
+  "generated_at": "2026-06-24T08:00:00+08:00",
+  "notes": [
+    "Example PR status report for n8n GitHub integration planning only.",
+    "This example does not authorize merge, archive, notifications, or trading."
+  ]
 }
 ```
 
@@ -220,4 +226,3 @@ AI-DEV-031 is complete when:
 - future Dify integration is described as downstream and read-only at this
   stage
 - no formal n8n workflow or GitHub credential configuration is created
-
