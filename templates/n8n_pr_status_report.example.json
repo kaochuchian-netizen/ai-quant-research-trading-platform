@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "task_id": "AI-DEV-031",
+  "pr_number": 31,
+  "pr_url": "https://github.com/example-org/example-repo/pull/31",
+  "branch": "ai-dev/example",
+  "base_branch": "main",
+  "state": "OPEN",
+  "mergeable": true,
+  "merge_state_status": "CLEAN",
+  "checks": [
+    {
+      "name": "AI Dev Validation",
+      "required_check": "AI Dev Validation",
+      "status": "success"
+    },
+    {
+      "name": "validate-ai-branch",
+      "required_check": "validate-ai-branch",
+      "status": "success"
+    }
+  ],
+  "files_changed": [
+    "docs/example.md"
+  ],
+  "risk_flags": {
+    "production": false,
+    "db": false,
+    "cron": false,
+    "secrets": false,
+    "notification": false,
+    "trading": false
+  },
+  "recommendation": "ready_for_human_merge_review",
+  "manual_gate_required": true,
+  "generated_at": "2026-06-24T08:00:00+08:00",
+  "notes": [
+    "Example PR status report for n8n GitHub integration planning only.",
+    "This example does not authorize merge, archive, notifications, or trading."
+  ]
+}
