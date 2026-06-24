@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "artifact_type": "n8n_auto_merge_execution",
+  "execution_id": "merge-ai-dev-033-example",
+  "task_id": "AI-DEV-033",
+  "source_decision": {
+    "decision_id": "decision-ai-dev-033-example",
+    "decided_by": "ChatGPT",
+    "decision": "PASS"
+  },
+  "repository": "example-org/example-repo",
+  "pull_request": {
+    "number": 33,
+    "url": "https://github.com/example-org/example-repo/pull/33",
+    "expected_head_sha": "1111111111111111111111111111111111111111"
+  },
+  "eligibility": {
+    "chatgpt_decision": "PASS",
+    "github_actions_status": "success",
+    "merge_state_status": "CLEAN",
+    "pr_state": "OPEN",
+    "draft": false,
+    "head_sha_unchanged": true,
+    "validate_ai_branch": "pass",
+    "inspector_ok": true,
+    "prohibited_scope_touched": false,
+    "human_gate_required": false
+  },
+  "pre_execution_check": {
+    "all_eligibility_rules_true": true,
+    "github_state_refetched_at": "2026-06-24T09:20:00+08:00",
+    "abort_reason": null
+  },
+  "merge_request": {
+    "method": "squash",
+    "commit_title": "AI-DEV-033 n8n Dify Codex Automation Contract",
+    "commit_message": "Add n8n Dify Codex automation contract"
+  },
+  "execution_result": {
+    "status": "example_not_executed",
+    "merged": false,
+    "merge_commit_sha": null,
+    "notes": [
+      "Template example only. It does not execute a merge."
+    ]
+  }
+}

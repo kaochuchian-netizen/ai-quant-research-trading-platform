@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "artifact_type": "n8n_post_merge_closeout_payload",
+  "task_id": "AI-DEV-033",
+  "generated_by": "n8n",
+  "generated_at": "2026-06-24T09:30:00+08:00",
+  "repository": "example-org/example-repo",
+  "pull_request": {
+    "number": 33,
+    "url": "https://github.com/example-org/example-repo/pull/33",
+    "merged": true,
+    "merge_commit_sha": "2222222222222222222222222222222222222222"
+  },
+  "post_merge_validation": {
+    "validate_ai_branch": "pass",
+    "inspector_ok": true,
+    "github_actions_status": "success"
+  },
+  "closeout_status": {
+    "archive_completed_task": "not_requested",
+    "branch_cleanup": "not_requested",
+    "human_gate_required_for_archive": true,
+    "human_gate_required_for_branch_cleanup": true
+  },
+  "safety_confirmation": {
+    "production_pipeline_touched": false,
+    "db_touched": false,
+    "cron_or_timer_touched": false,
+    "secrets_or_env_touched": false,
+    "notification_touched": false,
+    "trading_or_order_logic_touched": false,
+    "dify_or_n8n_credentials_touched": false
+  },
+  "residual_blockers": [],
+  "next_owner": "Human operator"
+}

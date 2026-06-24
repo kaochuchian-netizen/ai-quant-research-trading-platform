@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "artifact_type": "chatgpt_approved_codex_task_package",
+  "task_id": "AI-DEV-033",
+  "approved_by": "ChatGPT",
+  "approval_status": "APPROVED",
+  "approved_at": "2026-06-24T08:00:00+08:00",
+  "repository": {
+    "owner": "example-org",
+    "name": "example-repo",
+    "default_branch": "main"
+  },
+  "branch": "ai-dev/033-n8n-dify-codex-automation-contract",
+  "base_branch": "main",
+  "commit_message": "Add n8n Dify Codex automation contract",
+  "pr_title": "AI-DEV-033 n8n Dify Codex Automation Contract",
+  "files_to_create": [
+    "docs/n8n_dify_codex_automation_contract.md",
+    "templates/n8n_approved_codex_task_package.example.json",
+    "templates/n8n_dify_task_draft_request.example.json",
+    "templates/n8n_dify_task_draft_response.example.json",
+    "templates/n8n_codex_relay_payload.example.json",
+    "templates/n8n_merge_gate_report.example.json",
+    "templates/chatgpt_merge_gate_decision.example.json",
+    "templates/n8n_auto_merge_execution.example.json",
+    "templates/n8n_post_merge_closeout_payload.example.json"
+  ],
+  "files_to_modify": [],
+  "validation_commands": [
+    "git diff --check",
+    "python3 -m json.tool templates/n8n_approved_codex_task_package.example.json",
+    "python3 -m json.tool templates/n8n_dify_task_draft_request.example.json",
+    "python3 -m json.tool templates/n8n_dify_task_draft_response.example.json",
+    "python3 -m json.tool templates/n8n_codex_relay_payload.example.json",
+    "python3 -m json.tool templates/n8n_merge_gate_report.example.json",
+    "python3 -m json.tool templates/chatgpt_merge_gate_decision.example.json",
+    "python3 -m json.tool templates/n8n_auto_merge_execution.example.json",
+    "python3 -m json.tool templates/n8n_post_merge_closeout_payload.example.json",
+    "python3 -m py_compile scripts/orchestrator/validate_ai_branch.py",
+    "python3 scripts/orchestrator/validate_ai_branch.py --base origin/main --head HEAD --pretty",
+    "python3 scripts/orchestrator/inspect_ai_platform_status.py --pretty"
+  ],
+  "restrictions": [
+    "Do not run python3 main.py.",
+    "Do not run production pipelines.",
+    "Do not modify secrets, .env, credentials, Dify runtime settings, n8n workflows, GitHub credentials, notification systems, scheduler settings, databases, or trading/order logic.",
+    "Do not run AI-DEV-034."
+  ],
+  "human_gates": [
+    "PR merge decision",
+    "completed task archive",
+    "branch cleanup",
+    "credential setup",
+    "production deployment",
+    "notification sending",
+    "trading/order logic changes"
+  ]
+}
