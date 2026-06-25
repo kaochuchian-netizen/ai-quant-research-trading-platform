@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "artifact_type": "n8n_merge_gate_dry_run_report",
+  "task_id": "AI-DEV-035",
+  "dry_run": true,
+  "pr_number": null,
+  "pr_state": "not_collected",
+  "draft": null,
+  "mergeable": null,
+  "head_sha": null,
+  "ci_status": "not_collected",
+  "changed_files_summary": {
+    "changed_file_count": 0,
+    "files": []
+  },
+  "prohibited_scope_touched": false,
+  "chatgpt_decision_required": true,
+  "would_merge": false,
+  "actual_merge_executed": false,
+  "blocked_reasons": [
+    "dry-run report only",
+    "ChatGPT merge decision not requested",
+    "GitHub PR status not collected by runtime",
+    "real auto-merge execution is prohibited"
+  ]
+}

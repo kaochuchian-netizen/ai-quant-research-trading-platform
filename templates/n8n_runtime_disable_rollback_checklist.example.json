@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "artifact_type": "n8n_runtime_disable_rollback_checklist",
+  "task_id": "AI-DEV-035",
+  "disable_workflow_steps": [
+    "open non-production n8n workspace",
+    "disable AI-DEV-035 dry-run workflow",
+    "confirm workflow active=false",
+    "stop follow-up manual executions"
+  ],
+  "revoke_or_rotate_credentials_steps": [
+    "remove sandbox Dify credential from workflow",
+    "rotate credential if it was exposed outside approved sandbox",
+    "do not store replacement credentials in repo"
+  ],
+  "remove_webhook_exposure_steps": [
+    "confirm no webhook trigger exists",
+    "confirm no public URL is exposed",
+    "confirm Manual Trigger remains the only entry point"
+  ],
+  "audit_logs_to_check": [
+    "n8n execution log",
+    "Dify sandbox workflow log",
+    "GitHub PR and Actions audit surface",
+    "notification provider logs, if accidentally connected"
+  ],
+  "restore_previous_state_steps": [
+    "keep workflow inactive",
+    "remove dry-run test payloads from runtime input storage",
+    "preserve redacted evidence for follow-up task"
+  ],
+  "escalation_conditions": [
+    "credential exposure suspected",
+    "production endpoint called",
+    "notification sent",
+    "trading or order action attempted",
+    "actual merge executed",
+    "AI-DEV-036 started"
+  ]
+}
