@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "artifact_type": "n8n_dify_runtime_activation_checklist",
+  "checklist_version": "AI-DEV-035.1",
+  "task_id": "AI-DEV-035",
+  "environment": "non_production_sandbox",
+  "required_credentials": [
+    {
+      "name": "DIFY_HTTP_HEADER_AUTH_PLACEHOLDER",
+      "scope": "sandbox_dify_workflow_only",
+      "configured_by_human": true,
+      "stored_in_repo": false
+    }
+  ],
+  "workflow_nodes": [
+    "Manual Trigger",
+    "Normalize ChatGPT Payload",
+    "Build Dify Workflow Request",
+    "Call Dify Workflow API",
+    "Build ChatGPT-Ready Summary"
+  ],
+  "dry_run_steps": [
+    "validate_repo_pack",
+    "import_workflow_into_non_production_n8n",
+    "keep_workflow_inactive",
+    "attach_sandbox_dify_credential",
+    "execute_one_manual_trigger",
+    "capture_chatgpt_ready_summary",
+    "confirm_no_prohibited_side_effects"
+  ],
+  "rollback_steps": [
+    "disable_n8n_workflow",
+    "remove_sandbox_dify_credential",
+    "stop_follow_up_runtime_executions",
+    "export_redacted_execution_metadata",
+    "confirm_no_prohibited_side_effects"
+  ],
+  "human_gates": [
+    "trading / order execution",
+    "secrets / .env / credentials",
+    "production DB writes",
+    "production-approved runner",
+    "formal LINE / Email / notification sending",
+    "cron / systemd / timer modification",
+    "Dify / n8n credential setup",
+    "paid data source integration",
+    "public dashboard publishing",
+    "trading / order logic",
+    "real auto-merge execution"
+  ],
+  "prohibited_actions": [
+    "production pipeline execution",
+    "python3 main.py",
+    "production DB writes",
+    "cron / systemd / timer modification",
+    "secrets / .env / credentials access",
+    "formal LINE / Email / notification sending",
+    "trading / order execution",
+    "real auto-merge execution",
+    "archive or branch cleanup",
+    "AI-DEV-036 execution"
+  ],
+  "notes": [
+    "Example checklist only.",
+    "Do not store real credentials in this repository."
+  ]
+}

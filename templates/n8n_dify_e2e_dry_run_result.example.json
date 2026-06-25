@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "artifact_type": "n8n_dify_e2e_dry_run_result",
+  "task_id": "AI-DEV-035-DRY-RUN-EXAMPLE",
+  "ok": true,
+  "dry_run": true,
+  "dify_request_built": true,
+  "dify_response_received": false,
+  "chatgpt_ready_summary_built": true,
+  "codex_relay_payload_built": true,
+  "merge_gate_report_built": true,
+  "external_side_effects": {
+    "repo_modified_by_runtime": false,
+    "production_pipeline_run": false,
+    "production_db_written": false,
+    "scheduler_modified": false,
+    "secrets_read_or_modified": false,
+    "notification_sent": false,
+    "trading_or_order_run": false,
+    "actual_merge_executed": false,
+    "archive_or_branch_cleanup_run": false,
+    "ai_dev_036_run": false
+  },
+  "blocked_actions": [
+    "production pipeline execution",
+    "production DB writes",
+    "cron / systemd / timer modification",
+    "secrets / .env / credentials access",
+    "formal LINE / Email / notification sending",
+    "trading / order execution",
+    "actual merge execution",
+    "archive or branch cleanup",
+    "AI-DEV-036 execution"
+  ],
+  "operator_next_steps": [
+    "review dry-run artifacts",
+    "keep workflow disabled unless separately approved",
+    "do not merge or archive from this dry-run result"
+  ]
+}

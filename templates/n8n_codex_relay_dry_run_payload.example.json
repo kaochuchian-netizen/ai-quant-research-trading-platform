@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "artifact_type": "n8n_codex_relay_dry_run_payload",
+  "task_id": "AI-DEV-035",
+  "dry_run": true,
+  "target": "gcp_tmux_codex_dev",
+  "task_package_preview": {
+    "draft_type": "codex_task_package_draft",
+    "source_result": "templates/n8n_dify_e2e_dry_run_result.example.json",
+    "codex_execution_authorized": false,
+    "requires_chatgpt_review": true
+  },
+  "no_execution_guarantee": {
+    "codex_must_not_execute": true,
+    "chatgpt_approval_required": true,
+    "dry_run_payload_only": true
+  },
+  "prohibited_runtime_actions": [
+    "modify repository files from this dry-run payload",
+    "run production pipelines",
+    "run python3 main.py",
+    "read or modify secrets / .env / credentials",
+    "send notifications",
+    "execute trading / order logic",
+    "perform real auto-merge execution",
+    "run AI-DEV-036"
+  ]
+}

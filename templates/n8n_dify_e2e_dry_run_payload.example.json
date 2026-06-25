@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "artifact_type": "n8n_dify_e2e_dry_run_payload",
+  "task_id": "AI-DEV-035-DRY-RUN-EXAMPLE",
+  "source": {
+    "system": "ChatGPT",
+    "approval_status": "APPROVED_FOR_DRY_RUN_ONLY",
+    "repository": "example-org/example-repo",
+    "branch": "ai-dev/035-n8n-dify-runtime-activation-e2e-dry-run"
+  },
+  "mode": "dry_run",
+  "requested_actions": [
+    "build_dify_request",
+    "receive_draft_response",
+    "build_chatgpt_ready_summary",
+    "build_codex_relay_preview",
+    "build_merge_gate_dry_run_report"
+  ],
+  "safety_constraints": [
+    "manual trigger only",
+    "sandbox Dify credential placeholder only",
+    "no production DB writes",
+    "no cron / systemd / timer modification",
+    "no secrets / .env / credentials in payload",
+    "no formal LINE / Email / notification sending",
+    "no trading / order execution",
+    "no real auto-merge execution",
+    "no archive or branch cleanup",
+    "no AI-DEV-036 execution"
+  ],
+  "expected_outputs": [
+    "n8n_dify_e2e_dry_run_result",
+    "n8n_codex_relay_dry_run_payload",
+    "n8n_merge_gate_dry_run_report"
+  ]
+}
