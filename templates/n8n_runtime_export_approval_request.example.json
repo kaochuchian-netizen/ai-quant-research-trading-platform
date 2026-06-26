@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "artifact_type": "n8n_runtime_export_approval_request",
+  "task_id": "AI-DEV-040",
+  "request_status": "draft_for_human_review",
+  "requested_by": "chatgpt_pm",
+  "requested_for": "future_supervised_runtime_export",
+  "workflow_identity": {
+    "name": "AI-DEV manual dry-run workflow",
+    "expected_trigger": "Manual Trigger",
+    "expected_active_state": false,
+    "expected_publish_state": false
+  },
+  "gates": {
+    "approved_by_human": false,
+    "export_scope": "single manually selected n8n workflow export for dry-run recovery review",
+    "raw_export_local_only": true,
+    "sanitize_required": true,
+    "secrets_must_not_leave_runtime": true,
+    "no_publish": true,
+    "no_active_workflow": true,
+    "no_notification": true,
+    "no_auto_merge": true,
+    "no_trading": true
+  },
+  "sanitizer": {
+    "script": "scripts/orchestrator/sanitize_n8n_workflow_export.py",
+    "required_placeholders": [
+      "DIFY_API_KEY_STORED_IN_N8N_ONLY",
+      "DO_NOT_COMMIT_REAL_SECRET"
+    ],
+    "raw_export_commit_forbidden": true
+  },
+  "validation_commands": [
+    "python3 scripts/orchestrator/validate_n8n_dify_export_recovery.py --pretty",
+    "python3 scripts/orchestrator/validate_runtime_export_approval_procedure.py --pretty"
+  ],
+  "prohibited_actions": [
+    "start_n8n",
+    "login_or_call_dify_runtime",
+    "commit_raw_export",
+    "read_print_save_or_commit_secrets",
+    "modify_runtime_queue",
+    "send_notification",
+    "send_codex_real_task",
+    "auto_merge",
+    "trading_or_order_execution",
+    "run_python3_main_py",
+    "run_ai_dev_041"
+  ]
+}
