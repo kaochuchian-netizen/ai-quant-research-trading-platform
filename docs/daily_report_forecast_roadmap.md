@@ -219,6 +219,25 @@ AI-DEV-045 itself does not call Dify or n8n and does not activate any delivery
 channel. Future production pipeline integration requires a separate reviewed
 task, explicit validation, and human approval.
 
+
+## AI-DEV-046 Dify n8n Draft Integration Package
+
+AI-DEV-046 connects the AI-DEV-045 dry-run JSON contract to repo-only Dify and
+n8n draft integration templates. It adds Dify input/output contracts, a
+sanitized n8n manual-trigger workflow template, a ChatGPT review package
+example, and a validator. This is still a contract verification and draft
+handoff layer only.
+
+AI-DEV-046 does not start n8n, does not call Dify runtime, does not use API keys
+or tokens, does not send LINE or Email, does not write production databases,
+does not mutate runtime queue, and does not change cron, systemd, timers,
+trading, order, or production pipeline behavior.
+
+AI-DEV-047 is the earliest task that may request a separately approved
+controlled runtime dry-run. Until then, the n8n template remains a sanitized repo
+artifact, the Dify contracts remain examples, and all channel output remains
+review-only.
+
 ## Validation, Backtest, And Monitoring Plan
 
 Validation should check:

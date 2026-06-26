@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "package_name": "chatgpt_daily_report_review_package",
+  "task_id": "AI-DEV-046",
+  "dry_run": true,
+  "input_contract_summary": {
+    "source_payload": "templates/daily_report_forecast_dry_run_output.example.json",
+    "report_window": "pre_open_0700",
+    "forecast_horizons": [
+      "same_day_high_low",
+      "next_day_high_low",
+      "one_month_trend",
+      "three_month_trend"
+    ],
+    "channel_split": [
+      "dashboard_detail",
+      "email_detail",
+      "line_reminder_only"
+    ]
+  },
+  "dify_draft_summary": {
+    "report_summary_ready": true,
+    "per_stock_summary_ready": true,
+    "dashboard_detail_text_ready": true,
+    "email_detail_text_ready": true,
+    "line_reminder_text_ready": true
+  },
+  "safety_checklist": {
+    "dry_run": true,
+    "research_only": true,
+    "no_trading_instruction": true,
+    "no_order_execution": true,
+    "review_required": true,
+    "line_reminder_only": true,
+    "no_notification_sent": true,
+    "no_production_db_write": true,
+    "no_runtime_queue_mutation": true,
+    "no_secrets_required": true
+  },
+  "validation_checklist": {
+    "input_contract_valid": true,
+    "dify_output_contract_valid": true,
+    "n8n_template_sanitized": true,
+    "secret_pattern_check_passed": true,
+    "human_review_required": true
+  },
+  "open_questions": [
+    "Which dashboard layout should consume the detailed draft first?",
+    "Should email remain a draft-only artifact until sender approval?",
+    "What exact LINE reminder length limit should be enforced in AI-DEV-047?"
+  ],
+  "next_step_recommendation": "Proceed to AI-DEV-047 only after explicit approval for controlled runtime dry-run; do not enable notifications or production writes."
+}
