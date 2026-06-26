@@ -1,0 +1,45 @@
+{
+  "review_date": "2026-06-26",
+  "forecast_date": "2026-06-26",
+  "stock_id": "2330",
+  "horizon": "same_day_high_low",
+  "predicted_range": {
+    "low": 930.0,
+    "high": 965.0,
+    "unit": "TWD"
+  },
+  "actual_high_low": {
+    "actual_low": 934.0,
+    "actual_high": 960.0,
+    "actual_close": 958.0,
+    "unit": "TWD",
+    "source": "market_data_example"
+  },
+  "direction_prediction": "up",
+  "actual_direction": "up",
+  "hit_metrics": {
+    "direction_match": true,
+    "interval_hit": true,
+    "high_inside_interval": true,
+    "low_inside_interval": true
+  },
+  "interval_coverage": {
+    "covered_actual_high": true,
+    "covered_actual_low": true,
+    "coverage_status": "covered"
+  },
+  "error_metrics": {
+    "high_forecast_error": -5.0,
+    "low_forecast_error": 4.0,
+    "absolute_error": 0.0,
+    "confidence_bucket": "0.70-0.79"
+  },
+  "evidence_quality": {
+    "source_tier": "tier_3_market_data",
+    "source_count": 1,
+    "conflicting_sources": false,
+    "requires_human_review": false,
+    "analyst_metadata_used_as_core_basis": false
+  },
+  "review_status": "completed"
+}
