@@ -190,6 +190,35 @@ The work is research-only. Future output must preserve `research_only`,
    - define human approval, monitoring, rollback, and audit requirements before
      any production use
 
+
+## AI-DEV-045 Dry-Run Generator Stage
+
+AI-DEV-045 adds a deterministic daily report forecast dry-run generator as a
+contract verification layer between the roadmap contract and any future channel
+or production integration. The generator reads
+`templates/daily_report_forecast_contract.example.json` and emits a synthetic
+`pre_open_0700` payload that can be validated before any Dashboard, Email, LINE
+reminder, Dify, n8n, or production pipeline work is considered.
+
+The generator is dry-run only. It does not read production databases, does not
+call external APIs, does not require secrets or credentials, does not send LINE
+or Email, does not mutate the runtime queue, and does not change cron, systemd,
+timers, trading, order, or production pipeline behavior.
+
+Operator commands:
+
+```bash
+python3 scripts/orchestrator/generate_daily_report_forecast_dry_run.py --pretty
+python3 scripts/orchestrator/generate_daily_report_forecast_dry_run.py --pretty --output /tmp/daily_report_forecast_dry_run_output.json
+python3 scripts/orchestrator/validate_daily_report_forecast_dry_run.py --pretty
+```
+
+The generated payload may be used in future AI-DEV tasks as draft input for
+Dashboard, Email, LINE reminder shape checks, or Dify/n8n draft workflows.
+AI-DEV-045 itself does not call Dify or n8n and does not activate any delivery
+channel. Future production pipeline integration requires a separate reviewed
+task, explicit validation, and human approval.
+
 ## Validation, Backtest, And Monitoring Plan
 
 Validation should check:
