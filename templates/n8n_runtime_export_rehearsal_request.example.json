@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "artifact_type": "n8n_runtime_export_rehearsal_request",
+  "task_id": "AI-DEV-041",
+  "request_status": "synthetic_fixture_rehearsal_only",
+  "source_procedure": "docs/n8n_dify_runtime_export_approval_procedure.md",
+  "workflow_fixture": "templates/n8n_runtime_export_synthetic_raw_workflow.fixture.json",
+  "gates": {
+    "dry_run": true,
+    "raw_export_is_synthetic": true,
+    "no_runtime_access": true,
+    "no_secrets": true,
+    "no_publish": true,
+    "no_active_workflow": true,
+    "no_notification": true,
+    "no_auto_merge": true,
+    "no_trading": true
+  },
+  "rehearsal_flow": [
+    "approval_request",
+    "synthetic_raw_export_placeholder",
+    "sanitize",
+    "validator",
+    "supervised_result",
+    "cleanup_checklist",
+    "closeout_report"
+  ],
+  "sanitizer": {
+    "script": "scripts/orchestrator/sanitize_n8n_workflow_export.py",
+    "input": "templates/n8n_runtime_export_synthetic_raw_workflow.fixture.json",
+    "output_location": "temporary_directory_only",
+    "requires_redaction_count_gt_zero": true
+  },
+  "prohibited_actions": [
+    "start_n8n",
+    "login_or_call_dify_runtime",
+    "export_real_raw_n8n_workflow",
+    "read_print_save_or_commit_real_secrets",
+    "modify_runtime_queue",
+    "send_notification",
+    "send_codex_real_task",
+    "auto_merge",
+    "trading_or_order_execution",
+    "run_python3_main_py",
+    "run_ai_dev_042"
+  ]
+}
