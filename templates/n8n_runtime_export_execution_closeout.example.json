@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "artifact_type": "n8n_runtime_export_execution_closeout",
+  "task_id": "AI-DEV-042",
+  "approval_scope": "example closeout shape for future human-approved runtime export",
+  "approved_by_human": false,
+  "approved_runtime_access": false,
+  "approved_n8n_start": false,
+  "approved_raw_export_local_only": false,
+  "approved_sanitize_after_export": false,
+  "approved_no_publish": false,
+  "approved_no_active_workflow": false,
+  "approved_no_notification": false,
+  "approved_no_auto_merge": false,
+  "approved_no_trading": false,
+  "approved_no_secret_disclosure": false,
+  "approval_expiry": "2026-12-31T23:59:59Z",
+  "dry_run": true,
+  "n8n_started": false,
+  "raw_export_created": false,
+  "local_path_placeholder": "/tmp/stock-ai-n8n-export/AI-DEV-043/raw-workflow-export.json",
+  "sanitizer_output": {
+    "path_placeholder": "/tmp/stock-ai-n8n-export/AI-DEV-043/sanitized-workflow-export.json",
+    "redaction_count": 0,
+    "contains_real_secret": false
+  },
+  "validator_ok": false,
+  "cleanup": {
+    "local_raw_export_removed": false,
+    "local_sanitized_export_reviewed": false,
+    "repo_contains_raw_export": false
+  },
+  "n8n_stopped": false,
+  "no_secret_leak": true,
+  "recovery_package_updated": false,
+  "side_effects": {
+    "notification_sent": false,
+    "auto_merge_executed": false,
+    "trading_or_order_execution": false,
+    "runtime_queue_modified": false,
+    "production_modified": false,
+    "codex_real_task_sent": false,
+    "ai_dev_043_run": false
+  }
+}
