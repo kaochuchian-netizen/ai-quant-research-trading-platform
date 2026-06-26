@@ -1,0 +1,240 @@
+{
+  "confidence": {
+    "method": "source_quality_weighted_research_example",
+    "overall": 0.64,
+    "requires_confidence_for_all_horizons": true
+  },
+  "dashboard_detail_ready": true,
+  "downstream_usage": {
+    "dashboard": "contract_preview_only",
+    "dify_n8n": "future_draft_input_only_not_called_by_this_generator",
+    "email": "draft_payload_preview_only",
+    "line_reminder": "reminder_shape_preview_only"
+  },
+  "dry_run": true,
+  "dry_run_notes": [
+    "synthetic_fixture_values_only",
+    "no_production_database_read",
+    "no_external_api_call",
+    "no_notification_sent",
+    "not_a_trading_or_order_instruction"
+  ],
+  "email_detail_ready": true,
+  "evidence_sources": [
+    {
+      "published_at": "2026-06-25",
+      "publisher": "company",
+      "retrieved_at": "2026-06-26T06:40:00+08:00",
+      "source_id": "src-official-guidance-example",
+      "source_tier": "tier_1_company_official",
+      "source_type": "company_guidance",
+      "usage": "core_evidence"
+    },
+    {
+      "published_at": "2026-06-25",
+      "publisher": "broker_example",
+      "retrieved_at": "2026-06-26T06:45:00+08:00",
+      "source_id": "src-analyst-context-example",
+      "source_tier": "tier_4_consensus_and_analyst",
+      "source_type": "analyst_metadata",
+      "usage": "low_priority_sentiment_metadata_only"
+    }
+  ],
+  "forecast_horizons": [
+    "same_day_high_low",
+    "next_day_high_low",
+    "one_month_trend",
+    "three_month_trend"
+  ],
+  "generated_at": "2026-06-26T07:00:00+08:00",
+  "interval_bounds": {
+    "policy": "lower_and_upper_bounds_required_with_unit_and_confidence",
+    "required_for": [
+      "same_day_high_low",
+      "next_day_high_low"
+    ]
+  },
+  "line_reminder_only": true,
+  "market": "TW",
+  "next_day_high_low": {
+    "confidence": 0.66,
+    "horizon": "next_day_high_low",
+    "missing_data_policy": "review_required",
+    "predicted_range": {
+      "high": 970.0,
+      "low": 925.0,
+      "unit": "TWD"
+    },
+    "review_due": "2026-06-29T15:00:00+08:00",
+    "target": "next_trading_day_price_range"
+  },
+  "no_order_execution": true,
+  "no_trading_instruction": true,
+  "one_month_trend": {
+    "confidence": 0.61,
+    "horizon": "one_month_trend",
+    "review_due": "2026-07-26",
+    "scenario_notes": {
+      "base_case": "Official guidance and peer demand indicators remain stable.",
+      "bear_case": "Company guidance weakens or industry inventory rises.",
+      "bull_case": "Monthly revenue and upstream demand improve."
+    },
+    "target": "one_month_directional_trend",
+    "trend": "mildly_positive"
+  },
+  "output_channels": {
+    "dashboard": {
+      "delivery_status": "not_sent",
+      "detail_ready": true,
+      "enabled_for_dry_run": true
+    },
+    "email": {
+      "delivery_status": "not_sent",
+      "detail_ready": true,
+      "enabled_for_dry_run": true
+    },
+    "line_reminder": {
+      "delivery_status": "not_sent",
+      "enabled_for_dry_run": true,
+      "full_report_carried": false,
+      "reminder_only": true
+    }
+  },
+  "per_stock_forecasts": [
+    {
+      "confidence": {
+        "method": "source_quality_weighted_research_example",
+        "overall": 0.64,
+        "requires_confidence_for_all_horizons": true
+      },
+      "evidence_sources": [
+        {
+          "published_at": "2026-06-25",
+          "publisher": "company",
+          "retrieved_at": "2026-06-26T06:40:00+08:00",
+          "source_id": "src-official-guidance-example",
+          "source_tier": "tier_1_company_official",
+          "source_type": "company_guidance",
+          "usage": "core_evidence"
+        },
+        {
+          "published_at": "2026-06-25",
+          "publisher": "broker_example",
+          "retrieved_at": "2026-06-26T06:45:00+08:00",
+          "source_id": "src-analyst-context-example",
+          "source_tier": "tier_4_consensus_and_analyst",
+          "source_type": "analyst_metadata",
+          "usage": "low_priority_sentiment_metadata_only"
+        }
+      ],
+      "forecast_status": "dry_run_generated",
+      "interval_bounds": {
+        "policy": "lower_and_upper_bounds_required_with_unit_and_confidence",
+        "required_for": [
+          "same_day_high_low",
+          "next_day_high_low"
+        ]
+      },
+      "next_day_high_low": {
+        "confidence": 0.66,
+        "horizon": "next_day_high_low",
+        "missing_data_policy": "review_required",
+        "predicted_range": {
+          "high": 970.0,
+          "low": 925.0,
+          "unit": "TWD"
+        },
+        "review_due": "2026-06-29T15:00:00+08:00",
+        "target": "next_trading_day_price_range"
+      },
+      "no_order_execution": true,
+      "no_trading_instruction": true,
+      "one_month_trend": {
+        "confidence": 0.61,
+        "horizon": "one_month_trend",
+        "review_due": "2026-07-26",
+        "scenario_notes": {
+          "base_case": "Official guidance and peer demand indicators remain stable.",
+          "bear_case": "Company guidance weakens or industry inventory rises.",
+          "bull_case": "Monthly revenue and upstream demand improve."
+        },
+        "target": "one_month_directional_trend",
+        "trend": "mildly_positive"
+      },
+      "research_only": true,
+      "review_required": true,
+      "risk_flags": [
+        "research_example_only",
+        "requires_human_review_before_channel_delivery",
+        "analyst_metadata_not_core_decision_basis"
+      ],
+      "same_day_high_low": {
+        "confidence": 0.72,
+        "horizon": "same_day_high_low",
+        "missing_data_policy": "review_required",
+        "predicted_range": {
+          "high": 965.0,
+          "low": 930.0,
+          "unit": "TWD"
+        },
+        "review_due": "2026-06-26T15:00:00+08:00",
+        "target": "same_day_price_range"
+      },
+      "stock_id": "2330",
+      "stock_name": "Example Semiconductor",
+      "three_month_trend": {
+        "confidence": 0.58,
+        "horizon": "three_month_trend",
+        "review_due": "2026-09-26",
+        "scenario_notes": {
+          "base_case": "Financial report trend remains consistent with guidance.",
+          "bear_case": "Financial reports or peer disclosures show demand weakness.",
+          "bull_case": "Earnings call and upstream/downstream evidence improve."
+        },
+        "target": "three_month_directional_trend",
+        "trend": "neutral_to_positive"
+      }
+    }
+  ],
+  "report_date": "2026-06-26",
+  "report_window": "pre_open_0700",
+  "research_only": true,
+  "review_required": true,
+  "risk_flags": [
+    "research_example_only",
+    "requires_human_review_before_channel_delivery",
+    "analyst_metadata_not_core_decision_basis"
+  ],
+  "same_day_high_low": {
+    "confidence": 0.72,
+    "horizon": "same_day_high_low",
+    "missing_data_policy": "review_required",
+    "predicted_range": {
+      "high": 965.0,
+      "low": 930.0,
+      "unit": "TWD"
+    },
+    "review_due": "2026-06-26T15:00:00+08:00",
+    "target": "same_day_price_range"
+  },
+  "schema_version": 1,
+  "stock_universe": [
+    {
+      "selection_basis": "research_watchlist_example",
+      "stock_id": "2330",
+      "stock_name": "Example Semiconductor"
+    }
+  ],
+  "three_month_trend": {
+    "confidence": 0.58,
+    "horizon": "three_month_trend",
+    "review_due": "2026-09-26",
+    "scenario_notes": {
+      "base_case": "Financial report trend remains consistent with guidance.",
+      "bear_case": "Financial reports or peer disclosures show demand weakness.",
+      "bull_case": "Earnings call and upstream/downstream evidence improve."
+    },
+    "target": "three_month_directional_trend",
+    "trend": "neutral_to_positive"
+  }
+}
