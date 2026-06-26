@@ -1,0 +1,167 @@
+{
+  "name": "AI-DEV-039 Sanitized Manual Dify Dry-Run Workflow Example",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -800,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "jsonOutput": "={{ $json }}"
+      },
+      "id": "normalize-chatgpt-dry-run-payload",
+      "name": "Normalize ChatGPT Dry-Run Payload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        -560,
+        0
+      ],
+      "notes": "dry_run input only; no_auto_merge; no_notification; no_trading; no_secrets"
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "jsonOutput": "={\n  \"inputs\": {\n    \"task_id\": $json.task_id,\n    \"mode\": \"dry_run\",\n    \"no_auto_merge\": true,\n    \"no_notification\": true,\n    \"no_trading\": true,\n    \"no_secrets\": true\n  },\n  \"response_mode\": \"blocking\",\n  \"user\": \"ai-dev-039-sanitized-example\"\n}"
+      },
+      "id": "build-dify-dry-run-request",
+      "name": "Build Dify Dry-Run Request",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        -320,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.dify.ai/v1/workflows/run",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "DIFY_API_KEY_STORED_IN_N8N_ONLY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}"
+      },
+      "id": "call-dify-workflow-api-sanitized",
+      "name": "Call Dify Workflow API Sanitized Placeholder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -80,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "DO_NOT_COMMIT_REAL_SECRET",
+          "name": "DIFY_API_KEY_STORED_IN_N8N_ONLY"
+        }
+      },
+      "notes": "Sanitized example only. Do not commit real Authorization, Bearer, api_key, token, or credential values."
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "jsonOutput": "={\n  \"schema_version\": 1,\n  \"artifact_type\": \"n8n_chatgpt_ready_dry_run_summary\",\n  \"task_id\": $json.data?.outputs?.task_id || \"AI-DEV-039-DRY-RUN-EXAMPLE\",\n  \"dry_run\": true,\n  \"no_auto_merge\": true,\n  \"no_notification\": true,\n  \"no_trading\": true,\n  \"no_secrets\": true,\n  \"runtime_side_effects\": {\n    \"repo_modified\": false,\n    \"notification_sent\": false,\n    \"trading_or_order_run\": false,\n    \"auto_merge_executed\": false\n  }\n}"
+      },
+      "id": "build-chatgpt-ready-dry-run-summary",
+      "name": "Build ChatGPT-Ready Dry-Run Summary",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        160,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalize ChatGPT Dry-Run Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize ChatGPT Dry-Run Payload": {
+      "main": [
+        [
+          {
+            "node": "Build Dify Dry-Run Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Dify Dry-Run Request": {
+      "main": [
+        [
+          {
+            "node": "Call Dify Workflow API Sanitized Placeholder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Dify Workflow API Sanitized Placeholder": {
+      "main": [
+        [
+          {
+            "node": "Build ChatGPT-Ready Dry-Run Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": false
+  },
+  "staticData": null,
+  "pinData": {},
+  "versionId": "AI-DEV-039-SANITIZED-EXAMPLE-ONLY",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "sanitized_example_only": true,
+    "contains_real_credentials": false,
+    "dry_run": true,
+    "no_auto_merge": true,
+    "no_notification": true,
+    "no_trading": true,
+    "no_secrets": true,
+    "runtime_activation_allowed": false
+  },
+  "tags": [
+    {
+      "name": "AI-DEV-039"
+    },
+    {
+      "name": "sanitized-dry-run-example"
+    }
+  ]
+}
