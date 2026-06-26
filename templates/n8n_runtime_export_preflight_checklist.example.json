@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "artifact_type": "n8n_runtime_export_preflight_checklist",
+  "task_id": "AI-DEV-042",
+  "approval_scope": "future preflight checklist only; no runtime export in AI-DEV-042",
+  "approved_by_human": false,
+  "approved_runtime_access": false,
+  "approved_n8n_start": false,
+  "approved_raw_export_local_only": false,
+  "approved_sanitize_after_export": false,
+  "approved_no_publish": false,
+  "approved_no_active_workflow": false,
+  "approved_no_notification": false,
+  "approved_no_auto_merge": false,
+  "approved_no_trading": false,
+  "approved_no_secret_disclosure": false,
+  "approval_expiry": "2026-12-31T23:59:59Z",
+  "dry_run": true,
+  "n8n_container_state": {
+    "expected_before_future_export": "stopped",
+    "ai_dev_042_started_container": false
+  },
+  "ssh_tunnel": {
+    "expected_before_future_export": "closed",
+    "ai_dev_042_opened_tunnel": false
+  },
+  "browser_only_ui_export": {
+    "required_for_future_export": true,
+    "api_export_allowed": false
+  },
+  "raw_export_handling": {
+    "local_only_raw_path": "/tmp/stock-ai-n8n-export/AI-DEV-043/raw-workflow-export.json",
+    "ignored_not_repo_path": true,
+    "raw_export_commit_forbidden": true
+  },
+  "sanitizer_commands": [
+    "python3 scripts/orchestrator/sanitize_n8n_workflow_export.py --input /tmp/stock-ai-n8n-export/AI-DEV-043/raw-workflow-export.json --output /tmp/stock-ai-n8n-export/AI-DEV-043/sanitized-workflow-export.json"
+  ],
+  "validator_commands": [
+    "python3 scripts/orchestrator/validate_n8n_dify_export_recovery.py --pretty",
+    "python3 scripts/orchestrator/validate_runtime_export_execution_approval.py --pretty"
+  ],
+  "cleanup_rollback": [
+    "stop n8n if started by future approved task",
+    "close SSH tunnel if opened by future approved task",
+    "remove local raw export after sanitized recovery is verified",
+    "confirm no secret values entered repo, logs, chat, or PR",
+    "stop immediately if workflow is published or active"
+  ]
+}

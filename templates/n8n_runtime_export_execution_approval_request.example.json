@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "artifact_type": "n8n_runtime_export_execution_approval_request",
+  "task_id": "AI-DEV-042",
+  "approval_scope": "future human-supervised n8n runtime export planning only",
+  "approved_by_human": false,
+  "approved_runtime_access": false,
+  "approved_n8n_start": false,
+  "approved_raw_export_local_only": false,
+  "approved_sanitize_after_export": false,
+  "approved_no_publish": false,
+  "approved_no_active_workflow": false,
+  "approved_no_notification": false,
+  "approved_no_auto_merge": false,
+  "approved_no_trading": false,
+  "approved_no_secret_disclosure": false,
+  "approval_expiry": "2026-12-31T23:59:59Z",
+  "dry_run": true,
+  "runtime_export_executed": false,
+  "real_export_requires_ai_dev_043_or_later": true,
+  "required_commands": [
+    "python3 scripts/orchestrator/sanitize_n8n_workflow_export.py --input <local-raw-export.json> --output <local-sanitized-output.json>",
+    "python3 scripts/orchestrator/validate_n8n_dify_export_recovery.py --pretty",
+    "python3 scripts/orchestrator/validate_runtime_export_execution_approval.py --pretty"
+  ],
+  "prohibited_actions": [
+    "start_n8n_without_future_human_approval",
+    "login_or_call_dify_runtime",
+    "commit_raw_export",
+    "read_print_save_or_commit_secrets",
+    "modify_runtime_queue",
+    "send_notification",
+    "send_codex_real_task",
+    "auto_merge",
+    "trading_or_order_execution",
+    "run_python3_main_py",
+    "run_ai_dev_043"
+  ]
+}
