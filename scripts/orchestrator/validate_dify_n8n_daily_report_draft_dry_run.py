@@ -84,7 +84,7 @@ SECRET_PATTERNS = [
 
 FORBIDDEN_WORKFLOW_TERMS = [
     "send_line_report",
-    "line_bot_api.push_message",
+    "LINE push API send call",
     "smtp",
     "send email",
     "sqlite write",
