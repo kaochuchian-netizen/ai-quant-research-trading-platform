@@ -21,6 +21,7 @@ from typing import Any
 REQUIRED_FILES = [
     "docs/n8n_dify_dry_run_export_recovery.md",
     "templates/n8n_dify_manual_dry_run_workflow.sanitized.example.json",
+    "templates/n8n_dify_manual_dry_run_workflow.ai_dev_043_sanitized.example.json",
     "templates/dify_ai_dev_task_draft_dry_run_reconstruction.example.json",
     "scripts/orchestrator/sanitize_n8n_workflow_export.py",
     "scripts/orchestrator/validate_n8n_dify_export_recovery.py",
@@ -28,6 +29,7 @@ REQUIRED_FILES = [
 
 JSON_FILES = [
     "templates/n8n_dify_manual_dry_run_workflow.sanitized.example.json",
+    "templates/n8n_dify_manual_dry_run_workflow.ai_dev_043_sanitized.example.json",
     "templates/dify_ai_dev_task_draft_dry_run_reconstruction.example.json",
 ]
 

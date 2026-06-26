@@ -193,3 +193,24 @@ AI-DEV-040 is complete when:
 - no runtime export, n8n start, Dify login/call, secret handling, notification,
   trading, auto-merge, runtime queue mutation, production mutation, or
   AI-DEV-041 execution occurred
+
+## AI-DEV-043 Supervised Export Result Summary
+
+AI-DEV-043 completed the separately approved controlled runtime export before
+this repo packaging task.
+
+Closeout facts:
+
+- raw export was local-only and did not enter the repository
+- sanitized output was produced and packaged into the repository
+- redaction count was `1`
+- sanitized secret pattern hit count was `0`
+- secret values leaked was `false`
+- n8n stopped was `true`
+- workflow not published / not active
+- no notification, auto-merge, trading, production, or runtime queue mutation
+  occurred
+- AI-DEV-044 was not run
+
+Future operators must continue to sanitize before repo inclusion and must never
+commit raw workflow exports.
