@@ -426,6 +426,40 @@ The archive script removes the task from runtime pending queue and appends a
 completed record to runtime completed queue. It refuses duplicate `task_id` or
 `pr_number` by default and supports `--dry-run`.
 
+### Completed Record Backfill Recovery
+
+Use `archive_completed_ai_task.py` as the primary closeout path whenever the
+merged task is still present in the runtime pending queue.
+
+If post-merge closeout confirms the pending queue is already empty, the PR is
+merged, and the runtime completed queue is missing the completed record, use the
+backfill recovery tool instead of manually editing runtime JSON:
+
+```bash
+python3 scripts/orchestrator/backfill_completed_ai_task_record.py \
+  --task-id AI-DEV-037 \
+  --pr-number 36 \
+  --pr-url https://github.com/OWNER/REPO/pull/36 \
+  --branch-name ai-dev/037-n8n-runtime-dry-run-runbook \
+  --base-branch main \
+  --merge-commit MERGE_COMMIT_SHA \
+  --pretty
+```
+
+The recovery tool is dry-run by default. It writes only with `--apply`, backs
+up `completed_tasks.json` before writing, refuses duplicate `task_id` or
+`pr_number`, and never modifies `pending_tasks.json` or creates the next task.
+
+Validate the recovery behavior with a temporary runtime fixture only:
+
+```bash
+python3 scripts/orchestrator/validate_completed_record_backfill.py --pretty
+```
+
+This recovery path is not a replacement for primary closeout. It is only for
+the narrow case where the pending record is already gone but the completed
+record is missing.
+
 ## Post-Merge Closeout
 
 After the PR merges and before treating the task as fully closed, run the
