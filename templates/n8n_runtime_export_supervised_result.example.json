@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "artifact_type": "n8n_runtime_export_supervised_result",
+  "task_id": "AI-DEV-040",
+  "result_status": "example_not_executed",
+  "executed_by_ai_dev_040": false,
+  "real_runtime_export_performed": false,
+  "gates": {
+    "approved_by_human": false,
+    "export_scope": "example only; no runtime export was performed",
+    "raw_export_local_only": true,
+    "sanitize_required": true,
+    "secrets_must_not_leave_runtime": true,
+    "no_publish": true,
+    "no_active_workflow": true,
+    "no_notification": true,
+    "no_auto_merge": true,
+    "no_trading": true
+  },
+  "local_handling": {
+    "raw_export_path_recorded_in_repo": false,
+    "raw_export_committed": false,
+    "raw_export_printed": false,
+    "raw_export_deleted_after_verification": "not_applicable_example_only"
+  },
+  "sanitize_result": {
+    "sanitizer_used": "scripts/orchestrator/sanitize_n8n_workflow_export.py",
+    "sanitized_output_reviewed": false,
+    "secret_values_found": false,
+    "required_placeholders_present": [
+      "DIFY_API_KEY_STORED_IN_N8N_ONLY",
+      "DO_NOT_COMMIT_REAL_SECRET"
+    ]
+  },
+  "validation_result": {
+    "validate_n8n_dify_export_recovery": "not_run_by_template",
+    "validate_runtime_export_approval_procedure": "not_run_by_template"
+  },
+  "recovery_verification": {
+    "workflow_unpublished": true,
+    "workflow_not_active": true,
+    "manual_trigger_only": true,
+    "no_runtime_queue_mutation": true,
+    "no_notification_sent": true,
+    "no_auto_merge_executed": true,
+    "no_trading_or_order_execution": true,
+    "no_codex_real_task_sent": true
+  },
+  "cleanup": {
+    "raw_export_removed_from_local_temp": "not_applicable_example_only",
+    "repo_contains_only_sanitized_examples": true,
+    "secrets_absent_from_repo": true,
+    "ai_dev_041_not_run": true
+  },
+  "operator_closeout_notes": [
+    "Example result only. AI-DEV-040 did not perform runtime export.",
+    "A real export requires separate human approval."
+  ]
+}
