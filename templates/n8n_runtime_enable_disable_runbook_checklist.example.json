@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "artifact_type": "n8n_runtime_enable_disable_runbook_checklist",
+  "task_id": "AI-DEV-037",
+  "activation_mode": "manual_human_gated_dry_run_only",
+  "enable_preconditions": [
+    "workflow saved but not published",
+    "workflow not active",
+    "manual trigger only",
+    "no webhook trigger",
+    "no scheduler trigger",
+    "no queue polling trigger",
+    "no secrets in repo",
+    "sandbox Dify credential configured outside repo",
+    "no production mutation path",
+    "no notification path",
+    "no auto-merge path"
+  ],
+  "enable_steps": [
+    "open non-production n8n workspace",
+    "confirm workflow saved but not published",
+    "confirm workflow not active",
+    "confirm manual trigger only",
+    "attach sandbox credential outside repo",
+    "run one human-approved manual dry-run",
+    "capture redacted dry-run metadata",
+    "disable workflow after dry-run"
+  ],
+  "disable_steps": [
+    "stop manual executions",
+    "set workflow active=false",
+    "confirm n8n container stopped",
+    "confirm SSH tunnel closed",
+    "remove sandbox credential reference if requested",
+    "confirm no notification, production mutation, trading, auto-merge, archive, or Codex real execution occurred"
+  ],
+  "rollback_steps": [
+    "keep workflow disabled",
+    "close network tunnel",
+    "remove runtime test payloads from n8n input storage",
+    "preserve redacted evidence for follow-up",
+    "open a separate AI-DEV task for fixes"
+  ],
+  "human_gates": [
+    "Dify / n8n credential setup",
+    "workflow publish",
+    "workflow activation",
+    "notification sending",
+    "production mutation",
+    "trading / order execution",
+    "Codex real execution task relay",
+    "auto-merge",
+    "archive or branch cleanup",
+    "AI-DEV-038"
+  ],
+  "must_remain_false": {
+    "workflow_published": false,
+    "workflow_active": false,
+    "secrets_in_repo": false,
+    "production_mutation": false,
+    "notification_sent": false,
+    "codex_real_execution_task_sent": false,
+    "trading_or_order_run": false,
+    "auto_merge_executed": false,
+    "ai_dev_038_run": false
+  }
+}
