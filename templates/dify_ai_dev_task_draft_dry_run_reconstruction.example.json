@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "artifact_type": "dify_ai_dev_task_draft_dry_run_reconstruction",
+  "task_id": "AI-DEV-039-DRY-RUN-EXAMPLE",
+  "source": "sanitized_manual_reconstruction",
+  "mode": "dry_run",
+  "dify_runtime_called_by_this_repo_task": false,
+  "raw_export_included": false,
+  "placeholders": {
+    "dify_api_key": "DIFY_API_KEY_STORED_IN_N8N_ONLY",
+    "redacted_secret_value": "DO_NOT_COMMIT_REAL_SECRET"
+  },
+  "draft_outputs": {
+    "task_draft_markdown": "Example reconstructed dry-run draft. This is not an approved Codex execution task.",
+    "codex_package_draft_markdown": "Example package draft for ChatGPT review only.",
+    "chatgpt_ready_summary": "Dry-run reconstruction contains no secrets and no runtime side effects."
+  },
+  "safety_markers": {
+    "dry_run": true,
+    "no_auto_merge": true,
+    "no_notification": true,
+    "no_trading": true,
+    "no_secrets": true
+  },
+  "runtime_side_effects": {
+    "n8n_started": false,
+    "dify_called": false,
+    "repo_modified_by_runtime": false,
+    "runtime_queue_modified": false,
+    "notification_sent": false,
+    "codex_real_task_sent": false,
+    "auto_merge_executed": false,
+    "trading_or_order_run": false
+  },
+  "operator_notes": [
+    "This file is a sanitized reconstruction example only.",
+    "Do not commit raw n8n workflow exports.",
+    "Do not commit real secrets, tokens, API keys, .env values, or credentials."
+  ],
+  "blocked_actions": [
+    "start_n8n",
+    "call_or_login_dify",
+    "export_raw_workflow",
+    "commit_secrets",
+    "send_notification",
+    "send_codex_real_task",
+    "auto_merge",
+    "run_ai_dev_040"
+  ]
+}
