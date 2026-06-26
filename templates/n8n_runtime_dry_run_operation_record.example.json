@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "artifact_type": "n8n_runtime_dry_run_operation_record",
+  "task_id": "AI-DEV-037",
+  "source_task": "AI-DEV-036",
+  "record_type": "post_dry_run_runtime_state",
+  "observed_runtime_state": {
+    "dify_workflow_api_dry_run_completed": true,
+    "n8n_manual_workflow_saved": true,
+    "n8n_manual_workflow_published": false,
+    "saved_but_not_published": true,
+    "workflow_not_active": true,
+    "manual_trigger_only": true,
+    "n8n_container_stopped": true,
+    "ssh_tunnel_closed": true
+  },
+  "side_effects": {
+    "repo_modified_by_runtime": false,
+    "codex_real_execution_task_sent": false,
+    "production_mutation": false,
+    "production_db_written": false,
+    "cron_systemd_timer_modified": false,
+    "secrets_in_repo": false,
+    "credentials_in_repo": false,
+    "notification_sent": false,
+    "line_or_email_sent": false,
+    "trading_or_order_run": false,
+    "auto_merge_executed": false,
+    "archive_or_branch_cleanup_run": false,
+    "ai_dev_038_run": false
+  },
+  "required_phrases": [
+    "saved but not published",
+    "workflow not active",
+    "manual trigger only",
+    "no secrets in repo",
+    "no production mutation",
+    "no notification",
+    "no auto-merge"
+  ],
+  "notes": [
+    "Example operation record only.",
+    "This template does not activate n8n, call Dify, send Codex tasks, notify users, trade, merge, or archive."
+  ]
+}

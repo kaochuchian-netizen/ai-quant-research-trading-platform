@@ -172,3 +172,94 @@ AI-DEV-035 is complete when:
 
 AI-DEV-036 must be a separate explicitly approved task. It must not inherit
 runtime permission from this dry-run pack.
+
+## AI-DEV-037 Runtime Dry-Run Operation Record
+
+AI-DEV-037 records the post-AI-DEV-036 runtime dry-run state without changing
+runtime systems.
+
+Recorded AI-DEV-036 outcome:
+
+- Dify workflow API dry-run completed.
+- n8n manual workflow was saved but not published.
+- n8n workflow not active.
+- Manual Trigger only.
+- n8n container stopped.
+- SSH tunnel closed.
+- no secrets in repo.
+- no production mutation.
+- no notification.
+- no Codex real execution task was sent.
+- no auto-merge.
+- no repo mutation from the runtime dry-run.
+
+This section is an operation record and runbook extension only. It is not
+evidence that n8n is active, published, scheduled, reachable by webhook, or
+allowed to perform production actions.
+
+## AI-DEV-037 n8n Enable / Disable Runbook
+
+This runbook is for a future human operator. It must not be executed by this
+repo task.
+
+### Enable Preconditions
+
+Before any future enable action, a human operator must confirm:
+
+- the workflow remains saved but not published until approval
+- workflow not active before the dry-run
+- Manual Trigger only; no webhook, scheduler, queue polling, or GitHub trigger
+- no secrets in repo and no `.env` or credential values copied into templates
+- sandbox Dify credential is configured manually outside the repository
+- no production DB, production pipeline, notification, trading, merge, archive,
+  or branch cleanup node is present
+- rollback checklist has been reviewed
+
+### Enable Steps
+
+1. Open the non-production n8n workspace.
+2. Confirm the workflow is saved but not published.
+3. Confirm the workflow not active state.
+4. Attach only a human-created sandbox Dify credential.
+5. Confirm Manual Trigger only.
+6. Execute at most one approved dry-run manually.
+7. Capture redacted execution metadata.
+8. Disable the workflow after the dry-run.
+
+### Disable Steps
+
+1. Stop manual executions.
+2. Set workflow active state to false.
+3. Confirm n8n container stopped if the dry-run used a local container.
+4. Confirm SSH tunnel closed if a tunnel was used.
+5. Remove sandbox credential references from the workflow if requested by the
+   operator.
+6. Confirm no notification, production, trading, merge, archive, or Codex real
+   execution task occurred.
+
+### Stop Conditions
+
+Stop immediately and escalate if any of the following is observed:
+
+- workflow becomes active without approval
+- workflow is published outside the approved workspace
+- webhook, scheduler, queue polling, or GitHub trigger is present
+- secret, `.env`, token, key, or credential value appears in repo files
+- production endpoint is called
+- notification is sent
+- trading/order action is attempted
+- auto-merge, archive, or branch cleanup is attempted
+- AI-DEV-038 is started
+
+## AI-DEV-037 Validation Artifacts
+
+AI-DEV-037 adds:
+
+- `templates/n8n_runtime_dry_run_operation_record.example.json`
+- `templates/n8n_runtime_enable_disable_runbook_checklist.example.json`
+- `scripts/orchestrator/validate_n8n_runtime_dry_run_runbook.py`
+
+The validator is read-only. It checks that the operation record and runbook
+preserve the runtime state and safety constraints, including saved but not
+published, workflow not active, Manual Trigger only, no secrets in repo, no
+production mutation, no notification, and no auto-merge.
