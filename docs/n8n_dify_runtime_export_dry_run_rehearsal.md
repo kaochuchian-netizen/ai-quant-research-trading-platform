@@ -144,3 +144,22 @@ AI-DEV-041 is complete when:
   production mutation, notification, trading, Codex real task, auto-merge,
   `python3 main.py`, or AI-DEV-042 action occurred
 
+## AI-DEV-043 Rehearsal Outcome Follow-Up
+
+AI-DEV-043 used the approved export process after the synthetic rehearsal path
+was established.
+
+The packaged repository result confirms:
+
+- only the sanitized output was read for repo packaging
+- raw export stayed local-only and was not committed
+- sanitizer redaction count was `1`
+- sanitized secret pattern hit count was `0`
+- secret values leaked was `false`
+- n8n stopped was `true`
+- workflow not published / not active
+- AI-DEV-044 was not run
+
+The synthetic fixture remains only a rehearsal fixture. The AI-DEV-043 artifact
+is a sanitized runtime export package and must not be used as permission for any
+future runtime action.

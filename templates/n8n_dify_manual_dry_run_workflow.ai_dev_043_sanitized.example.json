@@ -1,0 +1,150 @@
+{
+  "active": false,
+  "connections": {
+    "Call Dify Workflow": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Format ChatGPT Ready Summary",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Set Dry Run Payload": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Call Dify Workflow",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "When clicking \u2018Execute workflow\u2019": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Set Dry Run Payload",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": "AI-DEV-043 sanitized supervised n8n export artifact. Runtime metadata removed; raw export stayed local-only.",
+  "isArchived": false,
+  "meta": {
+    "ai_dev_044_run": false,
+    "artifact_type": "n8n_runtime_export_sanitized_workflow",
+    "n8n_stopped": true,
+    "raw_export_in_repo": false,
+    "raw_export_local_only": true,
+    "redaction_count": 1,
+    "sanitized_output_packaged_in_repo": true,
+    "secret_pattern_hit_count": 0,
+    "secret_values_leaked": false,
+    "source": "sanitized_runtime_export",
+    "task_id": "AI-DEV-043",
+    "workflow_not_active": true,
+    "workflow_not_published": true
+  },
+  "name": "AI-DEV Dify Manual Dry Run",
+  "nodes": [
+    {
+      "id": "a980bc7d-ac94-490d-a0f5-1ca65df369b6",
+      "name": "When clicking \u2018Execute workflow\u2019",
+      "parameters": {},
+      "position": [
+        -464,
+        -32
+      ],
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1
+    },
+    {
+      "id": "ec711e4c-da46-439a-92cb-8739438cee7f",
+      "name": "Set Dry Run Payload",
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3fc8caf2-640d-4ec8-8b4a-8a40b8b06e74",
+              "name": "payload",
+              "type": "string",
+              "value": "{   \"task_id\": \"AI-DEV-036-DRY-RUN-001\",   \"source\": \"n8n_manual_trigger\",   \"mode\": \"dry_run\",   \"requested_actions\": [     \"generate_task_draft\",     \"generate_codex_package_draft\",     \"generate_chatgpt_ready_summary\"   ],   \"safety_constraints\": [     \"dry_run_only\",     \"no_repo_mutation\",     \"no_codex_execution\",     \"no_auto_merge\",     \"no_notification\",     \"no_trading\",     \"no_secrets\"   ],   \"expected_outputs\": [     \"task_draft\",     \"codex_package_draft\",     \"safety_checklist\",     \"validation_checklist\",     \"chatgpt_ready_summary\"   ] }"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "position": [
+        -256,
+        -32
+      ],
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4
+    },
+    {
+      "id": "58f812f2-8f71-4982-a057-30baf7a03327",
+      "name": "Call Dify Workflow",
+      "parameters": {
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "DO_NOT_COMMIT_REAL_SECRET"
+            }
+          ]
+        },
+        "jsonBody": "={\n  \"inputs\": {\n    \"payload\": {{ JSON.stringify($json.payload) }}\n  },\n  \"response_mode\": \"blocking\",\n  \"user\": \"ai-dev-orchestrator\"\n}",
+        "method": "POST",
+        "options": {},
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://bot.richardkao.com/v1/workflows/run"
+      },
+      "position": [
+        -80,
+        -32
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4
+    },
+    {
+      "id": "19c35366-1035-4de4-a61b-c382a2c09e4d",
+      "name": "Format ChatGPT Ready Summary",
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8ca18f36-730f-4985-9379-9b80c9fb94a8",
+              "name": "chatgpt_ready_summary",
+              "type": "string",
+              "value": "={{ $json.data.outputs.result }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "position": [
+        64,
+        -32
+      ],
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "binaryMode": "separate",
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0
+}

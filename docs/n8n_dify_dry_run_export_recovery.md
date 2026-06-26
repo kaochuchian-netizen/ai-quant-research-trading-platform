@@ -139,3 +139,23 @@ AI-DEV-039 Stage 1 is complete when:
 - no n8n, Dify, runtime, notification, trading, production, auto-merge, or
   AI-DEV-040 action is executed
 
+## AI-DEV-043 Packaged Sanitized Export Result
+
+AI-DEV-043 Stage 2 packages the supervised n8n export result after the runtime
+export was completed outside this repo task.
+
+Recorded result:
+
+- raw export stayed local-only and was not added to the repository
+- sanitized workflow artifact is packaged at
+  `templates/n8n_dify_manual_dry_run_workflow.ai_dev_043_sanitized.example.json`
+- sanitizer redaction count was `1`
+- sanitized secret pattern hit count was `0`
+- secret values leaked was `false`
+- n8n stopped was `true`
+- workflow not published / not active
+- runtime queue was not modified
+- AI-DEV-044 was not run
+
+The repo artifact is derived only from the sanitized output. Raw workflow
+contents remain out of scope and must not be committed.
