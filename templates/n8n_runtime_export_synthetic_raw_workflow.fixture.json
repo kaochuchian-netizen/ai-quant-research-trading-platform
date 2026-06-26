@@ -1,0 +1,87 @@
+{
+  "name": "AI-DEV-041 Synthetic Raw Workflow Fixture - Fake Values Only",
+  "synthetic_fixture": true,
+  "do_not_use_in_runtime": true,
+  "contains_real_secret": false,
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -600,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://example.invalid/fake-dify-workflow-endpoint",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer FAKE_DO_NOT_USE_SYNTHETIC_TOKEN_FOR_SANITIZER_TEST"
+            },
+            {
+              "name": "X-Fake-Api-Key",
+              "value": "FAKE_DO_NOT_USE_SYNTHETIC_API_KEY_FOR_SANITIZER_TEST"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"mode\":\"dry_run\",\"synthetic_fixture\":true,\"token\":\"FAKE_DO_NOT_USE_SYNTHETIC_BODY_TOKEN\"}"
+      },
+      "id": "synthetic-http-request",
+      "name": "Synthetic HTTP Request With Fake Do Not Use Token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -360,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "FAKE_DO_NOT_USE_SYNTHETIC_CREDENTIAL_ID",
+          "name": "FAKE_DO_NOT_USE_SYNTHETIC_CREDENTIAL_NAME"
+        }
+      },
+      "notes": "Synthetic fixture only. Fake Authorization and fake token values are intentionally present for sanitizer redaction testing. Do not use in runtime."
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Synthetic HTTP Request With Fake Do Not Use Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": false
+  },
+  "meta": {
+    "synthetic_fixture": true,
+    "fake_values_only": true,
+    "dry_run": true,
+    "raw_export_is_synthetic": true,
+    "no_runtime_access": true,
+    "no_secrets": true,
+    "no_publish": true,
+    "no_active_workflow": true,
+    "no_notification": true,
+    "no_auto_merge": true,
+    "no_trading": true
+  }
+}

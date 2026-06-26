@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "artifact_type": "n8n_runtime_export_rehearsal_result",
+  "task_id": "AI-DEV-041",
+  "result_status": "example_not_executed",
+  "gates": {
+    "dry_run": true,
+    "raw_export_is_synthetic": true,
+    "no_runtime_access": true,
+    "no_secrets": true,
+    "no_publish": true,
+    "no_active_workflow": true,
+    "no_notification": true,
+    "no_auto_merge": true,
+    "no_trading": true
+  },
+  "sanitizer_rehearsal": {
+    "fixture": "templates/n8n_runtime_export_synthetic_raw_workflow.fixture.json",
+    "temp_output_only": true,
+    "redaction_count_gt_zero": true,
+    "sanitized_output_contains_real_bearer": false,
+    "real_secret_values_used": false
+  },
+  "cleanup_checklist": {
+    "temp_sanitized_output_removed_by_tempdir": true,
+    "raw_runtime_export_created": false,
+    "raw_runtime_export_committed": false,
+    "secret_value_printed_or_committed": false,
+    "runtime_queue_modified": false,
+    "notification_sent": false,
+    "codex_real_task_sent": false,
+    "auto_merge_executed": false,
+    "trading_or_order_execution": false,
+    "ai_dev_042_run": false
+  },
+  "closeout_report": {
+    "include_branch": true,
+    "include_commit": true,
+    "include_changed_files": true,
+    "include_validator_result": true,
+    "include_git_status": true,
+    "exclude_secret_values": true,
+    "exclude_raw_runtime_export": true
+  }
+}
