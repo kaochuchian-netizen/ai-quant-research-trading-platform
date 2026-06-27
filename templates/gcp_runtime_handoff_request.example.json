@@ -1,0 +1,76 @@
+{
+  "schema_version": "1.0.0",
+  "request_id": "gcp-runtime-handoff-ai-dev-053",
+  "ai_dev_id": "AI-DEV-053",
+  "created_at": "2026-06-27T00:00:00Z",
+  "created_by": "codex_app_repo_side",
+  "repo_ref": {
+    "repository": "kaochuchian-netizen/ai-quant-research-trading-platform",
+    "base_branch": "main",
+    "handoff_branch": "ai-dev/053-gcp-runtime-handoff-runner-package"
+  },
+  "runtime_target": {
+    "type": "gcp_resident_runner_or_n8n_relay",
+    "host_label": "stock-ai-gcp",
+    "direct_codex_app_connection_allowed": false
+  },
+  "request_type": "runtime_handoff_contract_dry_run",
+  "allowed_runtime_actions": [
+    "read_merged_repo_handoff_request",
+    "validate_request_contract",
+    "prepare_local_only_runtime_plan",
+    "write_sanitized_result_summary"
+  ],
+  "forbidden_runtime_actions": [
+    "order_execution",
+    "secret_read_or_print",
+    "line_email_delivery",
+    "production_db_mutation",
+    "direct_codex_app_connection",
+    "external_delivery",
+    "raw_runtime_output_commit"
+  ],
+  "expected_inputs": [
+    "merged_repo_handoff_request",
+    "validated_ai_dev_task_context",
+    "repo_side_safety_policy"
+  ],
+  "expected_outputs": [
+    "runtime_status_summary",
+    "sanitized_result_summary",
+    "blocked_or_fallback_report"
+  ],
+  "local_only_paths_allowed": [
+    "~/.local/state/stock-ai-orchestrator/runtime_exports/<ai_dev_id>/"
+  ],
+  "local_only_paths_forbidden": [
+    "repo_tracked_runtime_raw_outputs",
+    "private_key_material",
+    "credential_store_values"
+  ],
+  "safety_gates": {
+    "no_order_execution": true,
+    "no_secret_values": true,
+    "no_external_delivery": true,
+    "no_production_db_mutation": true,
+    "no_codex_app_direct_connection": true,
+    "no_raw_runtime_output_in_repo": true,
+    "dry_run_default": true
+  },
+  "result_collection": {
+    "sanitized_result_required": true,
+    "raw_runtime_output_repo_allowed": false,
+    "sanitized_result_path": "templates/gcp_runtime_handoff_result.example.json",
+    "blocked_report_allowed": true
+  },
+  "blocked_policy": {
+    "on_missing_runtime_mapping": "write_blocked_report_without_external_call",
+    "on_safety_gate_hit": "stop_without_runtime_execution",
+    "on_validation_failure": "return_errors_without_side_effects"
+  },
+  "notes": [
+    "Codex App submits repo-side handoff only.",
+    "GCP resident runner or n8n relay owns future local runtime pickup.",
+    "Examples contain placeholders and policy text only."
+  ]
+}
