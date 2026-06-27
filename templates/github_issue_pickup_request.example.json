@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0.0",
+  "issue_number": 57,
+  "issue_url": "https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/issues/57",
+  "state": "open",
+  "title": "AI-DEV: Add a mobile GitHub Issue pickup inbox",
+  "body": "Please add a dry-run repo-side contract, sanitized templates, and validators for a future GCP resident runner to pick up AI-DEV tasks from labeled GitHub Issues. Do not run production services or mutate real Issues.",
+  "labels": [
+    "ai-dev",
+    "gcp-pickup",
+    "dry-run",
+    "contract",
+    "repo-only"
+  ],
+  "author": "mobile-user",
+  "created_at": "2026-06-27T00:00:00Z",
+  "updated_at": "2026-06-27T00:00:00Z"
+}

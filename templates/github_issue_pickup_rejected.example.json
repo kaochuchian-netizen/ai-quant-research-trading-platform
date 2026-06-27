@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0.0",
+  "issue_number": 58,
+  "issue_url": "https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/issues/58",
+  "title": "Run production pipeline and send notification",
+  "eligible": false,
+  "decision": "rejected",
+  "reasons": [
+    "missing required labels: dry-run",
+    "blocked action terms detected"
+  ],
+  "labels_seen": [
+    "ai-dev",
+    "gcp-pickup"
+  ],
+  "required_labels_present": false,
+  "missing_required_labels": [
+    "dry-run"
+  ],
+  "blocked_terms_detected": [
+    "send notification",
+    "production pipeline"
+  ],
+  "task_class": "blocked_runtime_action",
+  "dry_run": true,
+  "runtime_action_performed": false,
+  "mutation_performed": false,
+  "github_issue_mutation_performed": false,
+  "sanitized_summary": "Rejected dry-run GitHub Issue pickup request because required labels are missing and blocked runtime action language was detected.",
+  "next_step_recommendation": "Create a new dry-run repo-side Issue without runtime, notification, production, secret, or trading instructions.",
+  "idempotency": {
+    "key": "58|https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/issues/58|ai-dev,gcp-pickup|blocked_runtime_action",
+    "duplicate_terminal_result_found": false,
+    "on_duplicate_terminal_result": "skip_without_github_or_runtime_mutation"
+  },
+  "safety": {
+    "secret_values_included": false,
+    "external_delivery_performed": false,
+    "production_db_modified": false,
+    "runtime_or_background_worker_started": false,
+    "github_api_called": false,
+    "issue_comment_created": false,
+    "issue_labels_modified": false
+  },
+  "errors": [],
+  "warnings": []
+}
