@@ -570,3 +570,7 @@ python3 scripts/orchestrator/validate_ai_dev_050_n8n_one_shot_runtime_intake_res
 The package records that n8n was started and stopped, the workflow was dry-run
 only and inactive, and no external runtime, notification, production write, or
 trading path was used.
+
+## AI-DEV-051 Runtime Review Closeout Note
+
+When a Dify review package runtime dry-run cannot identify a safe workflow/app mapping from names/IDs alone, operators should treat fallback/readiness output as a safe completed result for the current governance task. Do not inspect credentials or node parameters to force a runtime call. Package the sanitized summary, validate it with `python3 scripts/orchestrator/validate_ai_dev_051_dify_review_package_runtime_result.py --pretty`, and continue through the normal PR and post-merge closeout gates.
