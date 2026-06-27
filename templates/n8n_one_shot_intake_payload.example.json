@@ -1,0 +1,79 @@
+{
+  "schema_version": "1.0.0",
+  "task_id": "AI-DEV-049",
+  "dry_run": true,
+  "intake_source": "chatgpt_approved_task_request",
+  "entry_points": {
+    "webhook_supported": true,
+    "manual_trigger_supported": true,
+    "runtime_enabled": false
+  },
+  "chatgpt_task_request_metadata": {
+    "user_goal": "Create n8n one-shot runtime intake dry-run package.",
+    "branch": "ai-dev/049-n8n-one-shot-runtime-intake-dry-run",
+    "pr_base": "main",
+    "pr_title": "AI-DEV-049 n8n one-shot runtime intake dry-run package",
+    "mode": "repo_contract_n8n_intake_template_validator_runner_update",
+    "runtime_policy": "no n8n startup, no Dify runtime call, no ChatGPT/OpenAI API call"
+  },
+  "safety_gates": {
+    "no_n8n_start": true,
+    "no_dify_runtime_call": true,
+    "no_chatgpt_openai_api_call": true,
+    "no_api_key_token_secret_env_credential_use": true,
+    "no_line_email_notification": true,
+    "no_production_db_change": true,
+    "no_cron_systemd_timer_change": true,
+    "no_python3_main_py": true,
+    "no_trading_or_order_execution": true,
+    "no_ai_dev_050": true
+  },
+  "autonomous_permission_profile": {
+    "repo_changes_allowed": true,
+    "create_pr_allowed": true,
+    "conditional_auto_merge_allowed": true,
+    "runtime_closeout_allowed_after_merge": true,
+    "runtime_workflow_execution_allowed": false,
+    "credential_access_allowed": false
+  },
+  "conditional_auto_merge_policy": {
+    "enabled": true,
+    "all_gates_required": true,
+    "required_conditions": [
+      "PR state OPEN",
+      "mergeStateStatus CLEAN",
+      "GitHub checks successful",
+      "validators ok:true",
+      "git diff --check passed",
+      "git status clean",
+      "no forbidden paths",
+      "no secrets or credential values",
+      "no notifications",
+      "no trading or order execution",
+      "no production DB or scheduler changes",
+      "scope remains inside AI-DEV-049"
+    ]
+  },
+  "codex_one_shot_runner_command": {
+    "summary": "Run repo-only dry-run orchestration plan and validators; do not call external runtimes.",
+    "command": "python3 scripts/orchestrator/run_ai_dev_one_shot_plan.py --pretty"
+  },
+  "expected_outputs": [
+    "n8n intake contract validation",
+    "sanitized n8n workflow template readiness",
+    "Codex runner dry-run summary",
+    "PR gate summary",
+    "post-merge closeout summary if merged"
+  ],
+  "stop_conditions": [
+    "secret_or_credential_value_detected",
+    "notification_send_path_detected",
+    "trading_or_order_execution_detected",
+    "production_infra_change_detected",
+    "validator_failure",
+    "github_check_failure",
+    "merge_state_not_clean",
+    "scope_exceeded",
+    "runtime_credential_approval_required"
+  ]
+}

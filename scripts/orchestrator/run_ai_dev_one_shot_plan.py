@@ -17,6 +17,8 @@ from typing import Any
 DEFAULT_TASK_REQUEST = Path("templates/chatgpt_ai_dev_task_request.example.json")
 DEFAULT_CODEX_REQUEST = Path("templates/codex_ai_dev_one_shot_execution_request.example.json")
 DEFAULT_CODEX_PLAN = Path("templates/codex_ai_dev_one_shot_execution_plan.example.json")
+DEFAULT_N8N_INTAKE_PAYLOAD = Path("templates/n8n_one_shot_intake_payload.example.json")
+DEFAULT_N8N_INTAKE_RESULT = Path("templates/n8n_one_shot_intake_result.example.json")
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -30,10 +32,15 @@ def build_plan(repo_root: Path, task_request_path: Path, codex_request_path: Pat
     task_request = load_json(repo_root / task_request_path)
     codex_request = load_json(repo_root / codex_request_path)
     codex_plan = load_json(repo_root / codex_plan_path)
+    intake_payload = load_json(repo_root / DEFAULT_N8N_INTAKE_PAYLOAD) if (repo_root / DEFAULT_N8N_INTAKE_PAYLOAD).is_file() else {}
+    intake_result = load_json(repo_root / DEFAULT_N8N_INTAKE_RESULT) if (repo_root / DEFAULT_N8N_INTAKE_RESULT).is_file() else {}
 
-    task_id = str(task_request.get("task_id"))
-    safety_constraints = task_request.get("safety_constraints", {})
-    stop_gates = task_request.get("stop_gates", [])
+    task_id = str(intake_payload.get("task_id") or task_request.get("task_id"))
+    intake_metadata = intake_payload.get("chatgpt_task_request_metadata", {}) if isinstance(intake_payload, dict) else {}
+    branch_name = intake_metadata.get("branch") or task_request.get("scope", {}).get("branch")
+    pr_title = intake_metadata.get("pr_title") or task_request.get("scope", {}).get("pr_title")
+    safety_constraints = intake_payload.get("safety_gates") or task_request.get("safety_constraints", {})
+    stop_gates = intake_payload.get("stop_conditions") or task_request.get("stop_gates", [])
 
     role_steps = {
         "ChatGPT": [
@@ -75,8 +82,8 @@ def build_plan(repo_root: Path, task_request_path: Path, codex_request_path: Pat
         "ok": True,
         "dry_run": True,
         "task_id": task_id,
-        "branch": task_request.get("scope", {}).get("branch"),
-        "pr_title": task_request.get("scope", {}).get("pr_title"),
+        "branch": branch_name,
+        "pr_title": pr_title,
         "external_calls": {
             "github_api_called": False,
             "n8n_started": False,
@@ -96,6 +103,14 @@ def build_plan(repo_root: Path, task_request_path: Path, codex_request_path: Pat
             "stop_gates": stop_gates,
         },
         "codex_execution_steps": codex_request.get("required_steps", []),
+        "n8n_intake_contract": {
+            "available": bool(intake_payload),
+            "payload_task_id": intake_payload.get("task_id"),
+            "dry_run": intake_payload.get("dry_run"),
+            "entry_points": intake_payload.get("entry_points", {}),
+            "result_contract_ready": bool(intake_result),
+            "runtime_side_effects": intake_result.get("runtime_side_effects", {}),
+        },
         "closeout_policy": codex_plan.get("closeout_policy", {}),
         "safety_constraints": safety_constraints,
         "next_action": "Use this dry-run plan as the local orchestration contract; do not call external runtimes from this runner.",

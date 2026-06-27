@@ -10,7 +10,9 @@
     "no_line_email_notification_nodes": true,
     "no_production_db_write_nodes": true,
     "no_cron_activation": true,
-    "no_real_credentials": true
+    "no_real_credentials": true,
+    "intake_dry_run_only": true,
+    "task_id_required": true
   },
   "nodes": [
     {
@@ -34,6 +36,21 @@
       "type": "n8n-nodes-base.function",
       "parameters": {
         "purpose": "Validate task_id, scope, safety constraints, and required outputs without reading secrets."
+      }
+    },
+    {
+      "id": "normalize_one_shot_intake_payload",
+      "name": "Normalize One-Shot Intake Payload",
+      "type": "n8n-nodes-base.function",
+      "parameters": {
+        "purpose": "Normalize webhook/manual trigger input into n8n_one_shot_intake_payload contract without reading secrets.",
+        "required_fields": [
+          "task_id",
+          "chatgpt_task_request_metadata",
+          "safety_gates",
+          "autonomous_permission_profile",
+          "conditional_auto_merge_policy"
+        ]
       }
     },
     {
@@ -125,5 +142,11 @@
       "Format ChatGPT Ready Report"
     ]
   },
-  "notes": "Sanitized example only. No real Authorization, Bearer token, API key, credential value, notification node, production write node, cron activation, or unconditional merge node is included."
+  "notes": "Sanitized example only. No real Authorization, Bearer token, API key, credential value, notification node, production write node, cron activation, or unconditional merge node is included.",
+  "intake_contract": {
+    "payload_template": "templates/n8n_one_shot_intake_payload.example.json",
+    "result_template": "templates/n8n_one_shot_intake_result.example.json",
+    "dry_run_only": true,
+    "task_id_required": true
+  }
 }
