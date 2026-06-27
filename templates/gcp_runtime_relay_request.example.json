@@ -1,0 +1,126 @@
+{
+  "schema_version": "1.0.0",
+  "relay_request_id": "gcp-runtime-relay-ai-dev-054",
+  "ai_dev_id": "AI-DEV-054",
+  "created_at": "2026-06-27T00:00:00Z",
+  "created_by": "codex_app_repo_side",
+  "source": {
+    "repository": "kaochuchian-netizen/ai-quant-research-trading-platform",
+    "base_branch": "main",
+    "handoff_pr": 53,
+    "merge_commit": "cc0279db094e05ccd1ba6d068e1ce8c61a246cc7",
+    "request_path": "templates/gcp_runtime_relay_request.example.json",
+    "pickup_location": "merged_repo_default_branch"
+  },
+  "trigger": {
+    "source": "gcp_resident_pickup_loop",
+    "external_trigger_allowed": false,
+    "manual_ui_trigger_allowed": false,
+    "requires_merged_request": true
+  },
+  "validation": {
+    "validator": "scripts/orchestrator/validate_gcp_runtime_relay_request.py",
+    "must_pass_before_runtime_boundary": true,
+    "fail_closed_on_error": true,
+    "n8n_is_first_validation_point": false
+  },
+  "execution_mode": {
+    "mode": "dry_run",
+    "runtime_execution_allowed": false,
+    "separate_runtime_approval_required": true
+  },
+  "action": {
+    "name": "prepare_runtime_plan",
+    "description": "Validate relay contract and prepare a sanitized dry-run result only."
+  },
+  "allowed_actions": [
+    "validate_relay_request",
+    "prepare_runtime_plan",
+    "write_sanitized_result"
+  ],
+  "forbidden_actions": [
+    "order_execution",
+    "trade_execution",
+    "line_email_delivery",
+    "external_notification_delivery",
+    "production_db_mutation",
+    "scheduler_or_infra_mutation",
+    "production_n8n_mutation",
+    "dify_runtime_call",
+    "openai_chatgpt_api_call",
+    "credential_disclosure",
+    "direct_codex_app_connection",
+    "raw_runtime_output_commit"
+  ],
+  "payload_schema": {
+    "root_type": "object",
+    "sensitive_values_allowed": false,
+    "raw_runtime_outputs_allowed": false,
+    "local_only_runtime_paths_allowed": [
+      "~/.local/state/stock-ai-orchestrator/runtime_relay/<relay_request_id>/"
+    ]
+  },
+  "result_output": {
+    "sanitized_result_required": true,
+    "result_schema": "templates/gcp_runtime_relay_result.example.json",
+    "result_validator": "scripts/orchestrator/validate_gcp_runtime_relay_result.py",
+    "raw_output_repo_allowed": false,
+    "blocked_result_allowed": true
+  },
+  "retry_policy": {
+    "max_attempts": 2,
+    "retry_on": [
+      "transient_relay_error"
+    ],
+    "do_not_retry_on": [
+      "validation_error",
+      "safety_gate_hit",
+      "forbidden_action",
+      "missing_action_mapping",
+      "duplicate_terminal_result"
+    ]
+  },
+  "idempotency": {
+    "required": true,
+    "key_fields": [
+      "relay_request_id",
+      "ai_dev_id",
+      "source.merge_commit",
+      "action.name"
+    ],
+    "on_duplicate_terminal_result": "skip_without_runtime_execution"
+  },
+  "redaction_policy": {
+    "sensitive_values_allowed": false,
+    "store_only_redacted_error_messages": true,
+    "store_raw_headers_or_credentials": false
+  },
+  "audit": {
+    "required": true,
+    "events": [
+      "picked_up",
+      "validated",
+      "planned",
+      "runtime_boundary_blocked",
+      "result_written",
+      "closed_out"
+    ],
+    "raw_runtime_output_in_audit_allowed": false
+  },
+  "closeout": {
+    "result_validation_required": true,
+    "safety_confirmation_required": true,
+    "repo_pr_for_sanitized_result_required": true
+  },
+  "safety_gates": {
+    "no_order_execution": true,
+    "no_secret_values": true,
+    "no_external_delivery": true,
+    "no_production_db_mutation": true,
+    "no_infra_mutation": true,
+    "no_dify_runtime_call": true,
+    "no_openai_chatgpt_api_call": true,
+    "no_codex_app_direct_connection": true,
+    "dry_run_default": true
+  }
+}
