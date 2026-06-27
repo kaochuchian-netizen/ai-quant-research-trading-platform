@@ -62,6 +62,11 @@ The key blocker is that a Dify review workflow/app mapping must be explicitly cr
 
 A future task should create or safely label a Dify review workflow/app mapping for AI-DEV one-shot review packages. The mapping should make the intended Dify app discoverable without exposing credentials or node parameters.
 
+AI-DEV-052 addresses this required follow-up at the repo contract level by
+adding a credential-safe mapping setup package and validator. Runtime lookup and
+any Dify review package call remain blocked until a later task can verify the
+mapping from safe metadata only.
+
 ## Safety Confirmation
 
 AI-DEV-051 did not:
