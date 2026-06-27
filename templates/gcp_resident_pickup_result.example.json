@@ -1,0 +1,76 @@
+{
+  "schema_version": "1.0.0",
+  "pickup_request_id": "gcp-resident-pickup-ai-dev-055",
+  "pickup_result_id": "gcp-resident-pickup-result-ai-dev-055",
+  "ai_dev_id": "AI-DEV-055",
+  "created_at": "2026-06-27T00:00:00Z",
+  "status": "succeeded",
+  "status_reason": "dry_run_pickup_result_generated_without_runtime_action",
+  "execution": {
+    "mode": "dry_run",
+    "runtime_action_performed": false,
+    "n8n_started": false,
+    "n8n_called": false,
+    "dify_called": false,
+    "openai_chatgpt_api_called": false,
+    "notification_sent": false,
+    "order_or_trade_executed": false,
+    "production_db_modified": false,
+    "production_infra_modified": false
+  },
+  "validation": {
+    "pickup_request_validation_passed": true,
+    "handoff_request_validation_passed": true,
+    "relay_request_validation_passed": true,
+    "pickup_result_validation_required": true,
+    "errors": [],
+    "warnings": []
+  },
+  "pickup_outcome": {
+    "request_picked_up": true,
+    "request_source": "merged_repo_default_branch",
+    "handoff_request_path": "templates/gcp_runtime_handoff_request.example.json",
+    "relay_request_path": "templates/gcp_runtime_relay_request.example.json",
+    "sanitized_result_generated": true,
+    "runtime_boundary_crossed": false,
+    "dry_run_helper": "scripts/orchestrator/gcp_resident_pickup_dry_run.py"
+  },
+  "artifacts": {
+    "sanitized_result_path": "templates/gcp_resident_pickup_result.example.json",
+    "raw_runtime_output_repo_committed": false,
+    "local_only_artifact_refs": [
+      "~/.local/state/stock-ai-orchestrator/runtime_relay/gcp-resident-pickup-ai-dev-055/"
+    ]
+  },
+  "idempotency": {
+    "key": "gcp-resident-pickup-ai-dev-055|AI-DEV-055|86acfa6afe564b7e8c1dee9229f6963184e5b6ea|dry_run_pickup_and_write_sanitized_result",
+    "duplicate_terminal_result_found": false,
+    "execution_skipped_for_duplicate": false,
+    "on_duplicate_terminal_result": "skip_without_runtime_execution"
+  },
+  "safety": {
+    "secret_values_included": false,
+    "raw_runtime_output_included": false,
+    "external_delivery_performed": false,
+    "forbidden_action_performed": false,
+    "safety_gates_passed": true
+  },
+  "audit": {
+    "events": [
+      "picked_up",
+      "validated",
+      "planned",
+      "dry_run_result_written",
+      "closed_out"
+    ],
+    "raw_runtime_output_in_audit": false
+  },
+  "closeout": {
+    "request_validation_recorded": true,
+    "result_validation_required": true,
+    "sanitized_artifact_ready_for_repo_pr": true,
+    "runtime_action_performed": false,
+    "safety_confirmation": "Dry-run pickup only; no n8n, Dify, OpenAI, notification, trading, production database, infrastructure, or runtime action occurred."
+  },
+  "errors": []
+}

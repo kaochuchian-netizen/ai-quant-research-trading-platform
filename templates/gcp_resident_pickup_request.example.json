@@ -1,0 +1,62 @@
+{
+  "schema_version": "1.0.0",
+  "pickup_request_id": "gcp-resident-pickup-ai-dev-055",
+  "ai_dev_id": "AI-DEV-055",
+  "created_at": "2026-06-27T00:00:00Z",
+  "created_by": "codex_app_repo_side",
+  "source": {
+    "repository": "kaochuchian-netizen/ai-quant-research-trading-platform",
+    "base_branch": "main",
+    "required_main_commit": "86acfa6afe564b7e8c1dee9229f6963184e5b6ea",
+    "handoff_request_path": "templates/gcp_runtime_handoff_request.example.json",
+    "relay_request_path": "templates/gcp_runtime_relay_request.example.json",
+    "pickup_contract_path": "docs/gcp_resident_pickup_loop_contract.md"
+  },
+  "execution_mode": {
+    "mode": "dry_run",
+    "runtime_execution_allowed": false,
+    "external_runtime_calls_allowed": false
+  },
+  "pickup": {
+    "requested_state": "picked_up",
+    "validate_handoff_request": true,
+    "validate_relay_request": true,
+    "generate_sanitized_result": true,
+    "write_local_runtime_state": false
+  },
+  "idempotency": {
+    "required": true,
+    "key_fields": [
+      "pickup_request_id",
+      "ai_dev_id",
+      "source.required_main_commit"
+    ],
+    "on_duplicate_terminal_result": "skip_without_runtime_execution"
+  },
+  "safety_gates": {
+    "no_runtime_action": true,
+    "no_secret_values": true,
+    "no_external_delivery": true,
+    "no_production_db_mutation": true,
+    "no_trading_or_order_execution": true,
+    "no_n8n_start": true,
+    "no_dify_runtime_call": true,
+    "no_openai_chatgpt_api_call": true,
+    "dry_run_only": true
+  },
+  "result_output": {
+    "result_path": "templates/gcp_resident_pickup_result.example.json",
+    "raw_runtime_output_repo_allowed": false,
+    "sanitized_result_required": true,
+    "blocked_result_allowed": true
+  },
+  "expected_outputs": [
+    "validated_pickup_plan",
+    "sanitized_pickup_result",
+    "blocked_or_fallback_report_if_needed"
+  ],
+  "notes": [
+    "This request proves the resident pickup contract in dry-run mode only.",
+    "It does not execute GCP runtime, n8n, Dify, OpenAI, notifications, production DB writes, or trading."
+  ]
+}
