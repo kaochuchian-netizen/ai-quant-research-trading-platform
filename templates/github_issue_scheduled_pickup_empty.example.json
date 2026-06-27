@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0.0",
+  "run_id": "scheduled-pickup-dry-run-empty-2026-06-27T00-00-00Z",
+  "generated_at": "2026-06-27T00:00:00Z",
+  "dry_run": true,
+  "scheduler_enabled": false,
+  "runtime_action_performed": false,
+  "github_issue_mutated": false,
+  "daemon_or_background_service_created": false,
+  "source": "fixture",
+  "total_issues_seen": 0,
+  "eligible_count": 0,
+  "rejected_count": 0,
+  "needs_manual_review_count": 0,
+  "candidate_issue_numbers": [],
+  "candidates": [],
+  "rejected": [],
+  "idempotency_keys": [],
+  "next_step_recommendation": "No eligible scheduled pickup candidates were found in the fixture.",
+  "safety_confirmation": "Scheduler is disabled. No runtime action, GitHub Issue mutation, daemon, schedule, background service, branch, PR, merge, notification, Dify, OpenAI, n8n, trading, production pipeline, or production database action was performed.",
+  "errors": [],
+  "warnings": []
+}

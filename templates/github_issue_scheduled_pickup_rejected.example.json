@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0.0",
+  "run_id": "scheduled-pickup-dry-run-rejected-2026-06-27T00-00-00Z",
+  "generated_at": "2026-06-27T00:00:00Z",
+  "dry_run": true,
+  "scheduler_enabled": false,
+  "runtime_action_performed": false,
+  "github_issue_mutated": false,
+  "daemon_or_background_service_created": false,
+  "source": "fixture",
+  "total_issues_seen": 1,
+  "eligible_count": 0,
+  "rejected_count": 1,
+  "needs_manual_review_count": 0,
+  "candidate_issue_numbers": [],
+  "candidates": [],
+  "rejected": [
+    {
+      "issue_number": 64,
+      "issue_url": "https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/issues/64",
+      "title": "Run production pipeline and send report",
+      "labels_seen": [
+        "ai-dev",
+        "gcp-pickup",
+        "auto-run",
+        "repo-only",
+        "production",
+        "notification"
+      ],
+      "eligible": false,
+      "decision": "rejected",
+      "task_class": "production_pipeline",
+      "required_labels_present": true,
+      "blocked_terms_detected": [
+        "excluded_label:production",
+        "excluded_label:notification",
+        "production_pipeline",
+        "notification_send"
+      ],
+      "idempotency_key": "scheduled-pickup-v1|64|https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/issues/64|production_pipeline|ai-dev,gcp-pickup,auto-run,repo-only",
+      "sanitized_summary": "Scheduled pickup candidate rejected because blocked labels or task classes were detected.",
+      "proposed_runner_command": null,
+      "execute_repo_only_allowed": false,
+      "manual_approval_required": true
+    }
+  ],
+  "idempotency_keys": [],
+  "next_step_recommendation": "Create a new repo-only dry-run Issue without production, notification, runtime, secret, trading, n8n, Dify, OpenAI, cron, systemd, or daemon instructions.",
+  "safety_confirmation": "Scheduler is disabled. No runtime action, GitHub Issue mutation, daemon, schedule, background service, branch, PR, merge, notification, Dify, OpenAI, n8n, trading, production pipeline, or production database action was performed.",
+  "errors": [],
+  "warnings": []
+}
