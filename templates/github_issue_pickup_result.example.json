@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0.0",
+  "issue_number": 57,
+  "issue_url": "https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/issues/57",
+  "title": "AI-DEV: Add a mobile GitHub Issue pickup inbox",
+  "eligible": true,
+  "decision": "accepted",
+  "reasons": [
+    "issue is open",
+    "required labels are present",
+    "no blocked action terms detected"
+  ],
+  "labels_seen": [
+    "ai-dev",
+    "gcp-pickup",
+    "dry-run",
+    "contract",
+    "repo-only"
+  ],
+  "required_labels_present": true,
+  "missing_required_labels": [],
+  "blocked_terms_detected": [],
+  "task_class": "repo_side_contract",
+  "dry_run": true,
+  "runtime_action_performed": false,
+  "mutation_performed": false,
+  "github_issue_mutation_performed": false,
+  "sanitized_summary": "Eligible dry-run GitHub Issue pickup request for repo-side contract/template/validator work.",
+  "next_step_recommendation": "Future GCP resident runner may convert this Issue into a reviewed AI-DEV branch plan without mutating the Issue in this dry run.",
+  "idempotency": {
+    "key": "57|https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/issues/57|ai-dev,gcp-pickup,dry-run|repo_side_contract",
+    "duplicate_terminal_result_found": false,
+    "on_duplicate_terminal_result": "skip_without_github_or_runtime_mutation"
+  },
+  "safety": {
+    "secret_values_included": false,
+    "external_delivery_performed": false,
+    "production_db_modified": false,
+    "runtime_or_background_worker_started": false,
+    "github_api_called": false,
+    "issue_comment_created": false,
+    "issue_labels_modified": false
+  },
+  "errors": [],
+  "warnings": []
+}
