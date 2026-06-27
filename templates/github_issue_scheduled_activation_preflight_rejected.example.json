@@ -1,0 +1,87 @@
+{
+  "schema_version": "1.0.0",
+  "run_id": "scheduled-activation-preflight-rejected-2026-06-27T00-00-00Z",
+  "generated_at": "2026-06-27T00:00:00Z",
+  "scheduler_activation_requested": true,
+  "scheduler_enabled": false,
+  "activation_ready": false,
+  "decision": "rejected",
+  "proposed_cadence": "5m",
+  "max_issues_per_run": 5,
+  "lock_policy": {
+    "single_active_task": false,
+    "lock_path": "",
+    "stale_lock_requires_manual_review": false
+  },
+  "idempotency_policy": {
+    "key_format": "issue_number_only",
+    "state_path": "",
+    "exclude_issue_body_text": false
+  },
+  "state_paths_proposed": [],
+  "log_paths_proposed": [],
+  "required_labels": [
+    "ai-dev",
+    "gcp-pickup",
+    "auto-run",
+    "repo-only"
+  ],
+  "blocked_labels": [
+    "manual-review",
+    "blocked",
+    "runtime",
+    "production",
+    "secret",
+    "notification",
+    "trading",
+    "n8n",
+    "dify"
+  ],
+  "allowed_task_classes": [
+    "docs_only",
+    "template_only",
+    "validator_only",
+    "repo_side_contract",
+    "test_or_validation_helper"
+  ],
+  "blocked_task_classes": [
+    "runtime_action",
+    "production_pipeline",
+    "secret_handling",
+    "notification_send",
+    "n8n_control",
+    "Dify_runtime_call",
+    "OpenAI_API_call",
+    "trading_or_order",
+    "production_DB_mutation",
+    "cron_systemd_timer_change",
+    "daemon_background_service"
+  ],
+  "required_operator_approvals_for_AI_DEV_061": [
+    "approve_30m_initial_cadence",
+    "approve_max_issues_per_run_1",
+    "approve_single_active_task_lock",
+    "approve_idempotency_state_path",
+    "approve_read_only_issue_discovery",
+    "approve_no_issue_mutation",
+    "approve_no_comment_back",
+    "approve_no_runtime_action",
+    "approve_no_production_pipeline",
+    "approve_rollback_disable_procedure"
+  ],
+  "rollback_plan_summary": "Rejected preflight. Do not enable a scheduler until cadence, max issues, lock, idempotency, state, logs, and approvals are corrected.",
+  "safety_confirmation": "Preflight only. Scheduler remains disabled. No runtime action, GitHub Issue mutation, daemon, schedule, background service, cron/systemd/timer/GitHub Actions schedule mutation, branch, PR from Issue content, merge from Issue content, notification, Dify, OpenAI, n8n, trading, production pipeline, or production database action was performed.",
+  "runtime_action_performed": false,
+  "github_issue_mutated": false,
+  "daemon_or_background_service_created": false,
+  "cron_systemd_timer_modified": false,
+  "next_step_recommendation": "Fix the preflight request and rerun before AI-DEV-061.",
+  "expected_AI_DEV_061_command": null,
+  "errors": [
+    "proposed_cadence must be 15m or 30m",
+    "recommended first activation requires max_issues_per_run=1",
+    "single_active_task lock policy must be enabled",
+    "idempotency policy must exclude Issue body text"
+  ],
+  "warnings": []
+}
