@@ -1,0 +1,67 @@
+{
+  "schema_version": "1.0.0",
+  "run_id": "mobile-auto-pickup-example-already-processed",
+  "generated_at": "2026-06-28T00:00:00Z",
+  "source": "live_read",
+  "dry_run": true,
+  "scheduler_enabled": false,
+  "total_issues_seen": 1,
+  "eligible_count": 0,
+  "rejected_count": 0,
+  "needs_manual_review_count": 0,
+  "candidate_issue_numbers": [],
+  "selected_issue_number": null,
+  "selected_issue_url": null,
+  "task_class": null,
+  "decision": "no_candidate",
+  "branch_created": false,
+  "pr_created": false,
+  "pr_url": null,
+  "merged": false,
+  "merge_commit": null,
+  "files_changed": [],
+  "validations_run": [],
+  "github_actions_result": "not_run",
+  "issue_comment_created": false,
+  "issue_labels_changed": false,
+  "github_issue_mutated": false,
+  "runtime_action_performed": false,
+  "production_action_performed": false,
+  "daemon_or_background_service_created": false,
+  "candidates": [],
+  "rejected": [
+    {
+      "issue_number": 125,
+      "issue_url": "https://github.com/example/repo/issues/125",
+      "title": "AI-DEV docs update",
+      "labels_seen": [
+        "ai-dev",
+        "gcp-pickup",
+        "auto-run",
+        "repo-only",
+        "approved-auto-run"
+      ],
+      "eligible": false,
+      "decision": "already_processed",
+      "task_class": "docs_only",
+      "required_labels_present": true,
+      "approval_label_present": true,
+      "blocked_terms_detected": [
+        "already_processed"
+      ],
+      "idempotency_key": "mobile-auto-pickup-v1|125|https://github.com/example/repo/issues/125|docs_only|ai-dev,gcp-pickup,auto-run,repo-only|approved-auto-run",
+      "sanitized_summary": "Skipped mobile Issue candidate because its idempotency key already has a terminal result.",
+      "execute_repo_only_allowed": false
+    }
+  ],
+  "idempotency_keys": [],
+  "rollback_or_disable_commands": [
+    "systemctl --user disable --now stock-ai-github-issue-scheduled-pickup-dry-run.timer",
+    "systemctl --user reset-failed stock-ai-github-issue-scheduled-pickup-dry-run.service",
+    "systemctl --user daemon-reload"
+  ],
+  "next_step_recommendation": "No eligible mobile Issue candidate was selected.",
+  "safety_confirmation": "No runtime action, production action, Issue mutation, comment-back, label mutation, n8n, Dify, notification, production DB, trading, or shell execution from Issue text was performed.",
+  "errors": [],
+  "warnings": []
+}

@@ -1,0 +1,28 @@
+{
+  "issues": [
+    {
+      "number": 123,
+      "url": "https://github.com/example/repo/issues/123",
+      "state": "open",
+      "title": "AI-DEV mobile runbook update",
+      "body": "Add a runbook-only repo-side update. No runtime action.",
+      "labels": [
+        {
+          "name": "ai-dev"
+        },
+        {
+          "name": "gcp-pickup"
+        },
+        {
+          "name": "auto-run"
+        },
+        {
+          "name": "repo-only"
+        },
+        {
+          "name": "dry-run"
+        }
+      ]
+    }
+  ]
+}
