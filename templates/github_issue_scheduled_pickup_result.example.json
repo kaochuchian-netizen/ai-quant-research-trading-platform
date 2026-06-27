@@ -1,0 +1,131 @@
+{
+  "schema_version": "1.0.0",
+  "run_id": "scheduled-pickup-dry-run-2026-06-27T00-00-00Z",
+  "generated_at": "2026-06-27T00:00:00Z",
+  "dry_run": true,
+  "scheduler_enabled": false,
+  "runtime_action_performed": false,
+  "github_issue_mutated": false,
+  "daemon_or_background_service_created": false,
+  "source": "fixture",
+  "total_issues_seen": 4,
+  "eligible_count": 1,
+  "rejected_count": 3,
+  "needs_manual_review_count": 0,
+  "candidate_issue_numbers": [
+    60
+  ],
+  "candidates": [
+    {
+      "issue_number": 60,
+      "issue_url": "https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/issues/60",
+      "title": "AI-DEV: Add scheduled pickup dry-run docs",
+      "labels_seen": [
+        "ai-dev",
+        "gcp-pickup",
+        "auto-run",
+        "repo-only",
+        "dry-run",
+        "docs"
+      ],
+      "eligible": true,
+      "decision": "accepted",
+      "task_class": "docs_only",
+      "required_labels_present": true,
+      "blocked_terms_detected": [],
+      "idempotency_key": "scheduled-pickup-v1|60|https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/issues/60|docs_only|ai-dev,gcp-pickup,auto-run,repo-only",
+      "sanitized_summary": "Scheduled pickup candidate accepted for docs_only repo-only work.",
+      "proposed_runner_command": "python3 scripts/orchestrator/github_issue_auto_runner.py --input <sanitized_issue_fixture> --output <sanitized_result_json> --pretty --once",
+      "execute_repo_only_allowed": false,
+      "manual_approval_required": true
+    }
+  ],
+  "rejected": [
+    {
+      "issue_number": 61,
+      "issue_url": "https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/issues/61",
+      "title": "AI-DEV: Duplicate scheduled pickup docs task",
+      "labels_seen": [
+        "ai-dev",
+        "gcp-pickup",
+        "auto-run",
+        "repo-only",
+        "dry-run",
+        "docs"
+      ],
+      "eligible": false,
+      "decision": "rejected",
+      "task_class": "docs_only",
+      "required_labels_present": true,
+      "blocked_terms_detected": [
+        "duplicate_idempotency_key"
+      ],
+      "idempotency_key": "scheduled-pickup-v1|61|https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/issues/61|docs_only|ai-dev,gcp-pickup,auto-run,repo-only",
+      "sanitized_summary": "Scheduled pickup candidate rejected because the idempotency key already has a terminal result.",
+      "proposed_runner_command": null,
+      "execute_repo_only_allowed": false,
+      "manual_approval_required": true
+    },
+    {
+      "issue_number": 62,
+      "issue_url": "https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/issues/62",
+      "title": "Start n8n and send LINE alert",
+      "labels_seen": [
+        "ai-dev",
+        "gcp-pickup",
+        "auto-run",
+        "runtime",
+        "n8n",
+        "notification"
+      ],
+      "eligible": false,
+      "decision": "rejected",
+      "task_class": "notification_send",
+      "required_labels_present": false,
+      "blocked_terms_detected": [
+        "excluded_label:runtime",
+        "excluded_label:notification",
+        "excluded_label:n8n",
+        "notification_send",
+        "n8n_control"
+      ],
+      "idempotency_key": "scheduled-pickup-v1|62|https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/issues/62|notification_send|ai-dev,gcp-pickup,auto-run",
+      "sanitized_summary": "Scheduled pickup candidate rejected because blocked labels or task classes were detected.",
+      "proposed_runner_command": null,
+      "execute_repo_only_allowed": false,
+      "manual_approval_required": true
+    },
+    {
+      "issue_number": 63,
+      "issue_url": "https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/issues/63",
+      "title": "AI-DEV: Closed template request",
+      "labels_seen": [
+        "ai-dev",
+        "gcp-pickup",
+        "auto-run",
+        "repo-only",
+        "dry-run",
+        "template"
+      ],
+      "eligible": false,
+      "decision": "rejected",
+      "task_class": "template_only",
+      "required_labels_present": true,
+      "blocked_terms_detected": [
+        "issue_not_open"
+      ],
+      "idempotency_key": "scheduled-pickup-v1|63|https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/issues/63|template_only|ai-dev,gcp-pickup,auto-run,repo-only",
+      "sanitized_summary": "Scheduled pickup candidate rejected because the Issue is not open.",
+      "proposed_runner_command": null,
+      "execute_repo_only_allowed": false,
+      "manual_approval_required": true
+    }
+  ],
+  "idempotency_keys": [
+    "scheduled-pickup-v1|60|https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/issues/60|docs_only|ai-dev,gcp-pickup,auto-run,repo-only"
+  ],
+  "next_step_recommendation": "Review this sanitized report before AI-DEV-060 proposes real schedule activation.",
+  "safety_confirmation": "Scheduler is disabled. No runtime action, GitHub Issue mutation, daemon, schedule, background service, branch, PR, merge, notification, Dify, OpenAI, n8n, trading, production pipeline, or production database action was performed.",
+  "errors": [],
+  "warnings": []
+}

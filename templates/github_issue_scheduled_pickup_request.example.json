@@ -1,0 +1,71 @@
+{
+  "schema_version": "1.0.0",
+  "run_id": "scheduled-pickup-dry-run-2026-06-27T00-00-00Z",
+  "source": "fixture",
+  "max_issues_per_run": 10,
+  "existing_idempotency_keys": [
+    "scheduled-pickup-v1|61|https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/issues/61|docs_only|ai-dev,gcp-pickup,auto-run,repo-only"
+  ],
+  "issues": [
+    {
+      "issue_number": 60,
+      "issue_url": "https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/issues/60",
+      "state": "open",
+      "title": "AI-DEV: Add scheduled pickup dry-run docs",
+      "body": "Please add documentation and sanitized templates for scheduled repo-only GitHub Issue pickup. This is dry-run only.",
+      "labels": [
+        "ai-dev",
+        "gcp-pickup",
+        "auto-run",
+        "repo-only",
+        "dry-run",
+        "docs"
+      ]
+    },
+    {
+      "issue_number": 61,
+      "issue_url": "https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/issues/61",
+      "state": "open",
+      "title": "AI-DEV: Duplicate scheduled pickup docs task",
+      "body": "Please add docs for scheduled pickup. This duplicate fixture proves idempotency skip behavior.",
+      "labels": [
+        "ai-dev",
+        "gcp-pickup",
+        "auto-run",
+        "repo-only",
+        "dry-run",
+        "docs"
+      ]
+    },
+    {
+      "issue_number": 62,
+      "issue_url": "https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/issues/62",
+      "state": "open",
+      "title": "Start n8n and send LINE alert",
+      "body": "Please start n8n and send a LINE notification when the runner finishes.",
+      "labels": [
+        "ai-dev",
+        "gcp-pickup",
+        "auto-run",
+        "runtime",
+        "n8n",
+        "notification"
+      ]
+    },
+    {
+      "issue_number": 63,
+      "issue_url": "https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/issues/63",
+      "state": "closed",
+      "title": "AI-DEV: Closed template request",
+      "body": "Please add a sanitized template.",
+      "labels": [
+        "ai-dev",
+        "gcp-pickup",
+        "auto-run",
+        "repo-only",
+        "dry-run",
+        "template"
+      ]
+    }
+  ]
+}
