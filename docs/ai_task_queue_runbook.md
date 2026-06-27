@@ -574,3 +574,18 @@ trading path was used.
 ## AI-DEV-051 Runtime Review Closeout Note
 
 When a Dify review package runtime dry-run cannot identify a safe workflow/app mapping from names/IDs alone, operators should treat fallback/readiness output as a safe completed result for the current governance task. Do not inspect credentials or node parameters to force a runtime call. Package the sanitized summary, validate it with `python3 scripts/orchestrator/validate_ai_dev_051_dify_review_package_runtime_result.py --pretty`, and continue through the normal PR and post-merge closeout gates.
+
+## AI-DEV-052 Dify Review Mapping Setup Note
+
+AI-DEV-052 adds the safe repo-side mapping setup required before a later Dify
+review runtime attempt. Validate it with:
+
+```bash
+python3 scripts/orchestrator/validate_dify_review_workflow_mapping_setup.py --pretty
+```
+
+The mapping contract is metadata-only and must stop if a lookup would require
+credential values, raw node credential payloads, raw node parameter payloads,
+`.env` content, notification delivery, production mutation, trading, or order
+execution. AI-DEV-053 remains a separate future task and must not be executed as
+part of AI-DEV-052 closeout.

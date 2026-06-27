@@ -231,3 +231,22 @@ executed.
 ## AI-DEV-051 Dify Review Runtime Finding
 
 AI-DEV-051 attempted to pass the AI-DEV-050 one-shot intake runtime result into a Dify review package dry-run. n8n was started and stopped safely, and only workflow names/IDs were inspected. No safe Dify review workflow/app mapping was identifiable without inspecting node parameters or credentials, so the task produced a fallback/readiness review package. Future runtime review generation should first create or safely label the Dify review mapping.
+
+## AI-DEV-052 Dify Review Workflow Mapping Setup
+
+AI-DEV-052 creates the repo-side setup package for that missing Dify review
+mapping. It defines `docs/dify_review_workflow_mapping_setup.md`,
+`templates/dify_review_workflow_mapping.example.json`, a sanitized setup result
+example, and a read-only validator.
+
+The mapping contract is metadata-only. It may use `workflow_name`,
+`workflow_id` when visible without credential inspection, `node_display_name`,
+`contract_version`, `task_id`, `template_file`, and `sanitized_placeholder`.
+It must stop before any authorization value, bearer value, API key value, token
+value, password, credential secret, `.env` content, raw node credential payload,
+or raw node parameter payload is inspected or output.
+
+AI-DEV-052 does not start n8n, call Dify runtime, send notifications, modify
+production systems, trade, place orders, or execute AI-DEV-053. AI-DEV-053 may
+attempt metadata-only runtime lookup only after the mapping setup validator and
+all safety gates pass.

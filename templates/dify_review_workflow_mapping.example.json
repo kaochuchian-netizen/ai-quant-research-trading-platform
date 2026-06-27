@@ -1,0 +1,67 @@
+{
+  "contract_version": "1.0.0",
+  "task_id": "AI-DEV-052",
+  "template_file": "templates/dify_ai_dev_one_shot_review_input.example.json",
+  "sanitized_placeholder": true,
+  "mapping_status": "repo_contract_ready_runtime_unverified",
+  "allowed_metadata_fields": [
+    "workflow_name",
+    "workflow_id",
+    "node_display_name",
+    "contract_version",
+    "task_id",
+    "template_file",
+    "sanitized_placeholder"
+  ],
+  "workflow_name": "AI-DEV One-Shot Review Package",
+  "workflow_id": null,
+  "node_display_name": "Dify Review Package",
+  "runtime_safe_lookup_rule": {
+    "match_order": [
+      "contract_version",
+      "task_id",
+      "workflow_name",
+      "workflow_id_if_visible_without_credential_inspection",
+      "node_display_name",
+      "template_file"
+    ],
+    "stop_if_requires": [
+      "authorization_header_value",
+      "bearer_value",
+      "api_key_value",
+      "token_value",
+      "password_value",
+      "credential_secret",
+      ".env_content",
+      "raw_node_credential_payload",
+      "raw_node_parameter_payload"
+    ],
+    "fallback_output": "readiness_gap_or_blocked_report"
+  },
+  "runtime_verification": {
+    "attempted": false,
+    "n8n_started": false,
+    "n8n_stopped": false,
+    "dify_runtime_called": false,
+    "safe_mapping_found": false,
+    "readiness_gap": "Runtime mapping is not verified in AI-DEV-052. AI-DEV-053 may verify names and IDs only if all safety gates pass."
+  },
+  "ai_dev_053_readiness_checklist": {
+    "repo_mapping_contract_validates": true,
+    "safe_metadata_only": true,
+    "sanitized_placeholder": true,
+    "explicit_review_workflow_name": true,
+    "workflow_id_visible_without_credential_inspection": false,
+    "node_display_name_visible_without_credential_inspection": true,
+    "secret_values_absent": true,
+    "raw_node_credential_payload_absent": true,
+    "raw_node_parameter_payload_absent": true,
+    "n8n_shutdown_required_if_started": true,
+    "dify_call_requires_safe_mapping": true,
+    "notifications_blocked": true,
+    "production_mutation_blocked": true,
+    "trading_and_orders_blocked": true,
+    "ai_dev_053_not_executed": true
+  },
+  "notes": "Metadata-only placeholder contract for future safe runtime lookup. The workflow_id remains null until visible from a safe listing."
+}
