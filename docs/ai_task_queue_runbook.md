@@ -589,3 +589,7 @@ credential values, raw node credential payloads, raw node parameter payloads,
 `.env` content, notification delivery, production mutation, trading, or order
 execution. AI-DEV-053 remains a separate future task and must not be executed as
 part of AI-DEV-052 closeout.
+
+## AI-DEV-053 Safe Mapping Runtime Note
+
+When safe mapping is unavailable, package a sanitized fallback/readiness result and do not request manual terminal work from the user. AI-DEV-054 should be automated by the n8n/GCP runner after a safe review mapping is created or labeled.
