@@ -1,0 +1,73 @@
+{
+  "schema_version": "1.0.0",
+  "task_id": "AI-DEV-048",
+  "dry_run": true,
+  "external_api_calls": false,
+  "runtime_started": false,
+  "roles": {
+    "ChatGPT": [
+      "task request",
+      "GitHub-facing planning",
+      "approval gate",
+      "final review surface"
+    ],
+    "GitHub": [
+      "PR source of truth",
+      "checks",
+      "mergeStateStatus",
+      "merge commit audit"
+    ],
+    "n8n": [
+      "webhook/manual trigger intake",
+      "safety gate routing",
+      "workflow orchestration",
+      "result collation"
+    ],
+    "Dify": [
+      "summary",
+      "review package",
+      "ChatGPT-ready report generation"
+    ],
+    "Codex": [
+      "repo implementation",
+      "validation",
+      "PR creation",
+      "conditional auto-merge",
+      "post-merge validation",
+      "runtime closeout"
+    ]
+  },
+  "steps": [
+    "branch",
+    "implement",
+    "validate",
+    "create_pr",
+    "gate_check",
+    "conditional_auto_merge",
+    "post_merge_validation",
+    "runtime_closeout",
+    "final_report"
+  ],
+  "merge_policy": {
+    "conditional_auto_merge_allowed": true,
+    "all_gates_required": true,
+    "stop_on_gate_failure": true
+  },
+  "closeout_policy": {
+    "tool": "scripts/orchestrator/backfill_completed_ai_task_record.py",
+    "dry_run_before_apply": true,
+    "expected_runtime_mutation": "completed_tasks.json only after merge and post-merge validation"
+  },
+  "safety_flags": {
+    "no_n8n_start": true,
+    "no_dify_runtime_call": true,
+    "no_chatgpt_openai_api_call": true,
+    "no_api_key_token_secret_env_credential_use": true,
+    "no_production_db_change": true,
+    "no_cron_systemd_timer_change": true,
+    "no_line_email_notification": true,
+    "no_python3_main_py": true,
+    "no_trading_or_order_execution": true,
+    "no_ai_dev_049": true
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "schema_version": "1.0.0",
+  "task_id": "AI-DEV-048",
+  "request_type": "codex_one_shot_execution_request",
+  "branch": "ai-dev/048-chatgpt-github-n8n-dify-codex-one-shot",
+  "base_branch": "main",
+  "mode": "repo_design_contracts_runner_skeleton_validator",
+  "required_steps": [
+    "branch",
+    "implement",
+    "validate",
+    "create_pr",
+    "gate_check",
+    "conditional_auto_merge",
+    "post_merge_validation",
+    "runtime_closeout",
+    "final_report"
+  ],
+  "conditional_auto_merge_policy": "conditional_auto_merge_after_all_gates_pass",
+  "stop_gates": [
+    "trading_or_order_execution_detected",
+    "secret_or_credential_value_detected",
+    "notification_send_path_detected",
+    "production_infra_change_detected",
+    "validator_failure",
+    "github_check_failure",
+    "merge_state_not_clean",
+    "dirty_git_status",
+    "scope_exceeded",
+    "runtime_credential_approval_required"
+  ],
+  "safety_constraints": {
+    "no_n8n_start": true,
+    "no_dify_runtime_call": true,
+    "no_chatgpt_openai_api_call": true,
+    "no_api_key_token_secret_env_credential_use": true,
+    "no_production_db_change": true,
+    "no_cron_systemd_timer_change": true,
+    "no_line_email_notification": true,
+    "no_python3_main_py": true,
+    "no_trading_or_order_execution": true,
+    "no_ai_dev_049": true
+  },
+  "required_validators": [
+    "python3 scripts/orchestrator/run_ai_dev_one_shot_plan.py --pretty",
+    "python3 scripts/orchestrator/validate_ai_dev_one_shot_multi_agent_automation.py --pretty",
+    "python3 scripts/orchestrator/inspect_ai_platform_status.py --pretty",
+    "python3 scripts/orchestrator/validate_ai_branch.py --base origin/main --head HEAD --pretty",
+    "git diff --check"
+  ]
+}

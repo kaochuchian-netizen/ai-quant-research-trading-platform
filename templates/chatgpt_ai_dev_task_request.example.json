@@ -1,0 +1,80 @@
+{
+  "schema_version": "1.0.0",
+  "task_id": "AI-DEV-048",
+  "user_goal": "Create a one-shot multi-agent AI-DEV automation design with contracts, dry-run runner, validator, conditional auto-merge governance, and closeout policy.",
+  "scope": {
+    "mode": "repo_design_contracts_runner_skeleton_validator",
+    "branch": "ai-dev/048-chatgpt-github-n8n-dify-codex-one-shot",
+    "pr_base": "main",
+    "pr_title": "AI-DEV-048 ChatGPT GitHub n8n Dify Codex one-shot automation",
+    "allowed_change_types": [
+      "docs",
+      "templates",
+      "orchestrator_dry_run_runner",
+      "validator"
+    ]
+  },
+  "acceptance_criteria": [
+    "one-shot automation roles documented",
+    "conditional auto-merge policy documented",
+    "n8n webhook/manual trigger template includes safety gate routing",
+    "Dify review input/output contracts exist",
+    "Codex one-shot runner emits dry-run orchestration plan",
+    "validator passes",
+    "post-merge closeout uses existing completed record backfill tool"
+  ],
+  "safety_constraints": {
+    "no_n8n_start": true,
+    "no_dify_runtime_call": true,
+    "no_chatgpt_openai_api_call": true,
+    "no_api_key_token_secret_env_credential_use": true,
+    "no_production_db_change": true,
+    "no_cron_systemd_timer_change": true,
+    "no_line_email_notification": true,
+    "no_python3_main_py": true,
+    "no_trading_or_order_execution": true,
+    "no_ai_dev_049": true
+  },
+  "stop_gates": [
+    "trading_or_order_execution_detected",
+    "secret_or_credential_value_detected",
+    "notification_send_path_detected",
+    "production_infra_change_detected",
+    "validator_failure",
+    "github_check_failure",
+    "merge_state_not_clean",
+    "dirty_git_status",
+    "scope_exceeded",
+    "runtime_credential_approval_required"
+  ],
+  "autonomous_permission_profile": {
+    "repo_changes_allowed": true,
+    "create_pr_allowed": true,
+    "conditional_auto_merge_allowed": true,
+    "runtime_closeout_allowed_after_merge": true,
+    "external_runtime_calls_allowed": false,
+    "credential_access_allowed": false
+  },
+  "required_outputs": [
+    "PR URL",
+    "branch",
+    "commit list",
+    "validator summary",
+    "runner dry-run summary",
+    "merge commit if merged",
+    "completed queue status if merged",
+    "safety confirmation"
+  ],
+  "chatgpt_review_expectations": {
+    "review_surface": "final_report_or_blocker_report",
+    "blocker_report_required_on_gate_failure": true,
+    "do_not_request_repeated_shell_paste": true
+  },
+  "github_facing_metadata": {
+    "base": "main",
+    "head": "ai-dev/048-chatgpt-github-n8n-dify-codex-one-shot",
+    "title": "AI-DEV-048 ChatGPT GitHub n8n Dify Codex one-shot automation",
+    "merge_policy": "conditional_auto_merge_after_all_gates_pass"
+  },
+  "codex_start_instruction_summary": "Run AI-DEV-048 one-shot lifecycle: branch, implement scoped repo design/contracts/runner/validator, validate, create PR, gate-check, conditionally auto-merge if all gates pass, post-merge validate, close out runtime completed queue, and report."
+}

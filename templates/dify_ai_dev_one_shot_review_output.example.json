@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0.0",
+  "task_id": "AI-DEV-048",
+  "task_summary": "Summarize one-shot AI-DEV automation task scope and result.",
+  "implementation_summary": "Summarize docs, templates, runner, and validator changes.",
+  "validation_summary": {
+    "ok": true,
+    "validators": [],
+    "failed_validators": []
+  },
+  "pr_gate_summary": {
+    "state": "OPEN_OR_MERGED",
+    "merge_state_status": "CLEAN",
+    "checks_successful": true
+  },
+  "safety_summary": {
+    "secrets_exposed": false,
+    "notifications_sent": false,
+    "trading_executed": false,
+    "production_mutated": false
+  },
+  "blockers": [],
+  "next_action_recommendation": "ready_for_chatgpt_review_or_completed_closeout",
+  "chatgpt_ready_report": "Human-readable final report or blocker report.",
+  "safety_flags": {
+    "dry_run_review_only": true,
+    "research_only": true,
+    "no_secret_values": true,
+    "no_notification": true,
+    "no_trading": true,
+    "no_order_execution": true,
+    "no_production_db_write": true,
+    "no_cron_or_timer_change": true
+  }
+}
