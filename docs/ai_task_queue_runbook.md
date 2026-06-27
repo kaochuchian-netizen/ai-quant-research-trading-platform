@@ -515,3 +515,29 @@ auto merge.
 The queue runner subprocess layer uses a fixed command allowlist for the small
 set of Git, GitHub CLI, and orchestrator script commands it needs. It does not
 execute arbitrary `validation_commands` strings from task definitions.
+
+
+## AI-DEV One-Shot Automation Workflow
+
+AI-DEV-048 introduces a one-shot automation path for low-risk repo governance
+tasks. The operator supplies one ChatGPT task request and one Codex start
+instruction. Codex may then complete branch creation, implementation, local
+validation, PR creation, PR gate checks, conditional auto-merge, post-merge
+validation, and completed-queue closeout without repeated manual shell prompts.
+
+The flow must still stop when any safety gate fails: secrets, credentials,
+notification delivery, trading or order execution, production database writes,
+cron/systemd/timer changes, failed validators, failed GitHub checks, dirty git
+status, or scope expansion.
+
+Use the dry-run runner before adopting this workflow for a new task:
+
+```bash
+python3 scripts/orchestrator/run_ai_dev_one_shot_plan.py --pretty
+python3 scripts/orchestrator/validate_ai_dev_one_shot_multi_agent_automation.py --pretty
+```
+
+Post-merge closeout remains the same controlled two-step path: run
+`backfill_completed_ai_task_record.py` without `--apply`, inspect the dry-run
+summary, then run the same command with `--apply` only when the expected mutation
+is limited to runtime `completed_tasks.json`.

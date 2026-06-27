@@ -1,0 +1,129 @@
+{
+  "name": "AI-DEV One-Shot Orchestration Sanitized Example",
+  "active": false,
+  "sanitized_example": true,
+  "workflow_policy": {
+    "manual_trigger_supported": true,
+    "webhook_trigger_supported": true,
+    "conditional_auto_merge_only": true,
+    "unconditional_auto_merge": false,
+    "no_line_email_notification_nodes": true,
+    "no_production_db_write_nodes": true,
+    "no_cron_activation": true,
+    "no_real_credentials": true
+  },
+  "nodes": [
+    {
+      "id": "manual_trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "parameters": {}
+    },
+    {
+      "id": "webhook_task_request",
+      "name": "Webhook Task Request Placeholder",
+      "type": "n8n-nodes-base.webhook",
+      "parameters": {
+        "path": "ai-dev-one-shot-placeholder",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "id": "validate_task_request",
+      "name": "Validate ChatGPT Task Request",
+      "type": "n8n-nodes-base.function",
+      "parameters": {
+        "purpose": "Validate task_id, scope, safety constraints, and required outputs without reading secrets."
+      }
+    },
+    {
+      "id": "safety_gate_router",
+      "name": "Safety Gate Router",
+      "type": "n8n-nodes-base.switch",
+      "parameters": {
+        "routes": [
+          "safe_repo_task",
+          "blocked_secret_or_credential",
+          "blocked_notification",
+          "blocked_trading",
+          "blocked_production_infra",
+          "blocked_scope"
+        ]
+      }
+    },
+    {
+      "id": "github_status_collector",
+      "name": "GitHub PR Status Collector Placeholder",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "authentication": "credential_placeholder_only",
+        "credential_reference": "GITHUB_READONLY_CREDENTIAL_STORED_IN_N8N_ONLY",
+        "request_type": "metadata_only"
+      }
+    },
+    {
+      "id": "codex_execution_request",
+      "name": "Build Codex One-Shot Execution Request",
+      "type": "n8n-nodes-base.function",
+      "parameters": {
+        "output_contract": "codex_ai_dev_one_shot_execution_request"
+      }
+    },
+    {
+      "id": "dify_review_package",
+      "name": "Dify Review Package Placeholder",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "authentication": "credential_placeholder_only",
+        "credential_reference": "DIFY_WORKFLOW_API_CREDENTIAL_STORED_IN_N8N_ONLY",
+        "request_type": "summary_generation_only"
+      }
+    },
+    {
+      "id": "conditional_merge_gate",
+      "name": "Conditional Auto-Merge Gate",
+      "type": "n8n-nodes-base.if",
+      "parameters": {
+        "all_required_gates_must_pass": true,
+        "blocked_state_routes_to_human_review": true
+      }
+    },
+    {
+      "id": "chatgpt_ready_report",
+      "name": "Format ChatGPT Ready Report",
+      "type": "n8n-nodes-base.function",
+      "parameters": {
+        "output_contract": "chatgpt_ready_report"
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": [
+      "Validate ChatGPT Task Request"
+    ],
+    "Webhook Task Request Placeholder": [
+      "Validate ChatGPT Task Request"
+    ],
+    "Validate ChatGPT Task Request": [
+      "Safety Gate Router"
+    ],
+    "Safety Gate Router": [
+      "Build Codex One-Shot Execution Request",
+      "Format ChatGPT Ready Report"
+    ],
+    "Build Codex One-Shot Execution Request": [
+      "GitHub PR Status Collector Placeholder",
+      "Dify Review Package Placeholder"
+    ],
+    "GitHub PR Status Collector Placeholder": [
+      "Conditional Auto-Merge Gate"
+    ],
+    "Dify Review Package Placeholder": [
+      "Conditional Auto-Merge Gate"
+    ],
+    "Conditional Auto-Merge Gate": [
+      "Format ChatGPT Ready Report"
+    ]
+  },
+  "notes": "Sanitized example only. No real Authorization, Bearer token, API key, credential value, notification node, production write node, cron activation, or unconditional merge node is included."
+}
