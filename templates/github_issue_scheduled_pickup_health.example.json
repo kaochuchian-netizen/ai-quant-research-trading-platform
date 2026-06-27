@@ -1,0 +1,67 @@
+{
+  "schema_version": "1.0.0",
+  "generated_at": "2026-06-28T00:00:00Z",
+  "state_dir": "/home/kaochuchian/.local/state/stock-ai-orchestrator",
+  "timer_name": "stock-ai-github-issue-scheduled-pickup-dry-run.timer",
+  "service_name": "stock-ai-github-issue-scheduled-pickup-dry-run.service",
+  "timer_present": true,
+  "timer_enabled": true,
+  "timer_active": true,
+  "next_trigger_summary": "Trigger: Sun 2026-06-28 00:44:38 CST; 24min left",
+  "service_present": true,
+  "last_service_status_summary": {
+    "loaded_line": "Loaded: loaded (/home/kaochuchian/.config/systemd/user/stock-ai-github-issue-scheduled-pickup-dry-run.service; static)",
+    "active_line": "Active: inactive (dead) since Sun 2026-06-28 00:14:38 CST",
+    "trigger_line": "",
+    "process_line": "Process: 503406 ExecStart=/usr/bin/flock -n /home/kaochuchian/.local/state/stock-ai-orchestrator/github_issue_scheduled_pickup.lock /usr/bin/python3 scripts/orchestrator/github_issue_scheduled_pickup_dry_run.py --input /home/kaochuchian/.local/state/stock-ai-orchestrator/github_issue_scheduled_pickup_request.json --output /home/kaochuchian/.local/state/stock-ai-orchestrator/github_issue_scheduled_pickup_latest.json --pretty --once (code=exited, status=0/SUCCESS)"
+  },
+  "latest_artifact_path": "/home/kaochuchian/.local/state/stock-ai-orchestrator/github_issue_scheduled_pickup_latest.json",
+  "latest_artifact_present": true,
+  "latest_artifact_valid": true,
+  "latest_artifact_summary": {
+    "run_id": "scheduled-pickup-dry-run-local",
+    "source": "fixture",
+    "total_issues_seen": 0,
+    "eligible_count": 0,
+    "rejected_count": 0,
+    "needs_manual_review_count": 0,
+    "candidate_issue_numbers": [],
+    "errors": [],
+    "warnings": []
+  },
+  "latest_artifact_errors": [],
+  "lock_file_path": "/home/kaochuchian/.local/state/stock-ai-orchestrator/github_issue_scheduled_pickup.lock",
+  "lock_file_present": true,
+  "idempotency_file_path": "/home/kaochuchian/.local/state/stock-ai-orchestrator/github_issue_scheduled_pickup_idempotency.json",
+  "idempotency_file_present": true,
+  "log_file_path": "/home/kaochuchian/.local/state/stock-ai-orchestrator/github_issue_scheduled_pickup.log",
+  "log_file_present": true,
+  "file_states": {
+    "lock": {
+      "path": "/home/kaochuchian/.local/state/stock-ai-orchestrator/github_issue_scheduled_pickup.lock",
+      "present": true,
+      "size_bytes": 0
+    },
+    "idempotency": {
+      "path": "/home/kaochuchian/.local/state/stock-ai-orchestrator/github_issue_scheduled_pickup_idempotency.json",
+      "present": true,
+      "size_bytes": 254
+    },
+    "log": {
+      "path": "/home/kaochuchian/.local/state/stock-ai-orchestrator/github_issue_scheduled_pickup.log",
+      "present": true,
+      "size_bytes": 1136
+    }
+  },
+  "side_effect_flags_ok": true,
+  "github_issue_mutated": false,
+  "runtime_action_performed": false,
+  "daemon_or_background_service_created": false,
+  "recommended_operator_action": null,
+  "rollback_disable_commands": [
+    "systemctl --user disable --now stock-ai-github-issue-scheduled-pickup-dry-run.timer",
+    "systemctl --user reset-failed stock-ai-github-issue-scheduled-pickup-dry-run.service",
+    "systemctl --user daemon-reload"
+  ],
+  "safety_confirmation": "Read-only health inspection only. No runtime action, GitHub Issue mutation, schedule mutation, daemon creation, comment-back, notification, Dify, OpenAI, n8n, trading, production pipeline, or production database action was performed."
+}
