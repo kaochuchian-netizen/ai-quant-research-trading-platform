@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "contract_name": "dify_daily_report_draft_input",
+  "task_id": "AI-DEV-046",
+  "source_payload": "templates/daily_report_forecast_dry_run_output.example.json",
+  "mode": "dry_run",
+  "dry_run": true,
+  "research_only": true,
+  "no_trading_instruction": true,
+  "no_order_execution": true,
+  "review_required": true,
+  "report_window": "pre_open_0700",
+  "required_input_keys": [
+    "schema_version",
+    "report_date",
+    "market",
+    "report_window",
+    "generated_at",
+    "dry_run",
+    "stock_universe",
+    "forecast_horizons",
+    "per_stock_forecasts",
+    "confidence",
+    "interval_bounds",
+    "evidence_sources",
+    "risk_flags",
+    "output_channels",
+    "review_required",
+    "no_trading_instruction",
+    "no_order_execution",
+    "research_only"
+  ],
+  "forecast_horizons": [
+    "same_day_high_low",
+    "next_day_high_low",
+    "one_month_trend",
+    "three_month_trend"
+  ],
+  "channel_policy": {
+    "dashboard": "full_detail_draft_allowed",
+    "email": "full_detail_draft_allowed",
+    "line_reminder": "short_reminder_only_no_full_report"
+  },
+  "dify_generation_requirements": {
+    "preserve_uncertainty": true,
+    "preserve_confidence": true,
+    "preserve_evidence": true,
+    "preserve_review_required": true,
+    "analyst_target_price_policy": "low_priority_sentiment_metadata_only",
+    "do_not_create_trading_advice": true,
+    "do_not_create_order_instruction": true
+  },
+  "safety_constraints": [
+    "dry_run_only",
+    "research_only",
+    "no_external_service_call_from_repo_validation",
+    "no_notification_send",
+    "no_production_database_write",
+    "no_secrets_required",
+    "no_runtime_queue_mutation"
+  ]
+}

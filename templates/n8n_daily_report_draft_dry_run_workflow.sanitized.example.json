@@ -1,0 +1,155 @@
+{
+  "name": "AI-DEV Daily Report Draft Dry Run",
+  "active": false,
+  "isArchived": false,
+  "description": "Sanitized repo-only n8n manual-trigger template for AI-DEV-046. Not imported, not active, no credentials included.",
+  "meta": {
+    "task_id": "AI-DEV-046",
+    "artifact_type": "sanitized_n8n_workflow_template",
+    "dry_run": true,
+    "workflow_not_active": true,
+    "workflow_not_published": true,
+    "no_notification_nodes": true,
+    "no_production_write_nodes": true,
+    "no_real_credentials": true,
+    "ai_dev_047_run": false
+  },
+  "nodes": [
+    {
+      "id": "manual-trigger-ai-dev-046",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -600,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "load-daily-report-dry-run-payload",
+      "name": "Generate or Load AI-DEV-045 Dry Run JSON",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -360,
+        0
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "daily-report-payload",
+              "name": "daily_report_forecast_payload",
+              "type": "json",
+              "value": "={{ $json.daily_report_forecast_payload || { dry_run: true, source: 'AI-DEV-045 dry-run JSON placeholder' } }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "call-dify-workflow-placeholder",
+      "name": "Call Dify Workflow Placeholder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -120,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://bot.richardkao.com/v1/workflows/run",
+        "sendHeaders": true,
+        "sendBody": true,
+        "specifyBody": "json",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "DIFY_API_KEY_STORED_IN_N8N_ONLY_DO_NOT_COMMIT_REAL_SECRET"
+            }
+          ]
+        },
+        "jsonBody": "={\n  \"inputs\": {\n    \"daily_report_forecast_payload\": {{ JSON.stringify($json.daily_report_forecast_payload) }}\n  },\n  \"response_mode\": \"blocking\",\n  \"user\": \"ai-dev-daily-report-dry-run\"\n}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "DIFY_WORKFLOW_API_CREDENTIAL_PLACEHOLDER",
+          "name": "DIFY_WORKFLOW_API_CREDENTIAL_PLACEHOLDER"
+        }
+      }
+    },
+    {
+      "id": "format-chatgpt-review-package",
+      "name": "Format ChatGPT Review Package",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        120,
+        0
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "review-package",
+              "name": "chatgpt_daily_report_review_package",
+              "type": "json",
+              "value": "={{ { dry_run: true, input_contract_summary: $json.daily_report_forecast_payload, dify_draft_summary: $json.data || {}, safety_checklist: { no_notification_sent: true, no_production_db_write: true, no_auto_merge: true, no_trading: true }, next_step_recommendation: 'Human review required before AI-DEV-047 runtime dry-run.' } }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Generate or Load AI-DEV-045 Dry Run JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate or Load AI-DEV-045 Dry Run JSON": {
+      "main": [
+        [
+          {
+            "node": "Call Dify Workflow Placeholder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Dify Workflow Placeholder": {
+      "main": [
+        [
+          {
+            "node": "Format ChatGPT Review Package",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "staticData": null,
+  "tags": [
+    {
+      "name": "ai-dev-dry-run-template"
+    }
+  ],
+  "triggerCount": 0
+}

@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "contract_name": "dify_daily_report_draft_output",
+  "task_id": "AI-DEV-046",
+  "dry_run": true,
+  "research_only": true,
+  "no_trading_instruction": true,
+  "no_order_execution": true,
+  "review_required": true,
+  "report_summary": "Synthetic pre-open research draft summarizing forecast horizons, uncertainty, and review requirements.",
+  "per_stock_summary": [
+    {
+      "stock_id": "2330",
+      "stock_name": "Example Semiconductor",
+      "summary": "Synthetic research-only summary preserving same-day, next-day, one-month, and three-month forecast context.",
+      "forecast_horizons": [
+        "same_day_high_low",
+        "next_day_high_low",
+        "one_month_trend",
+        "three_month_trend"
+      ],
+      "review_required": true
+    }
+  ],
+  "forecast_explanation": {
+    "same_day_high_low": "Explain interval bounds and confidence without implying certainty.",
+    "next_day_high_low": "Explain next-day range as a research forecast requiring later review.",
+    "one_month_trend": "Explain trend scenario with base, bull, and bear context.",
+    "three_month_trend": "Explain longer-horizon uncertainty and evidence limits."
+  },
+  "risk_summary": [
+    "Synthetic dry-run output only.",
+    "Forecasts require evidence review and post-close evaluation.",
+    "No trading or order instruction is provided."
+  ],
+  "evidence_summary": {
+    "primary_sources": [
+      "tier_1_company_official"
+    ],
+    "low_priority_metadata": [
+      "analyst_metadata"
+    ],
+    "analyst_target_price_policy": "low_priority_sentiment_metadata_only"
+  },
+  "confidence_disclaimer": "Confidence values are research estimates with uncertainty and must be reviewed against actual outcomes.",
+  "dashboard_detail_text": "Dashboard draft may include full evidence, forecast horizon details, risk flags, and review due dates for operator review.",
+  "email_detail_text": "Email draft may include full daily report detail after separate sender approval; this template does not send email.",
+  "line_reminder_text": "Daily research draft ready for review; open Dashboard or Email draft for details.",
+  "safety_flags": {
+    "dry_run": true,
+    "research_only": true,
+    "no_trading_instruction": true,
+    "no_order_execution": true,
+    "review_required": true,
+    "line_reminder_only": true,
+    "notification_sent": false,
+    "production_db_written": false,
+    "dify_runtime_called_by_repo_validation": false,
+    "n8n_runtime_started_by_repo_validation": false
+  }
+}
