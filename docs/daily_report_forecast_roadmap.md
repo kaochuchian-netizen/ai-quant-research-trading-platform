@@ -238,6 +238,19 @@ controlled runtime dry-run. Until then, the n8n template remains a sanitized rep
 artifact, the Dify contracts remain examples, and all channel output remains
 review-only.
 
+## AI-DEV-047 Runtime Readiness Finding
+
+AI-DEV-047 attempted the first controlled runtime dry-run for the Dify/n8n daily
+report draft path. The result confirmed that the repo contracts and local
+readiness outputs are valid, but the runtime does not yet expose a
+daily-report-specific n8n workflow or Dify daily-report app/input mapping.
+
+The safe fallback result is now part of the roadmap evidence. AI-DEV-048 should
+focus on the missing runtime setup: create or safely import the manual-trigger
+daily-report workflow, map AI-DEV-045 input into the Dify contract, keep
+notification nodes disabled, and require explicit approval before any credential
+use.
+
 ## Validation, Backtest, And Monitoring Plan
 
 Validation should check:
