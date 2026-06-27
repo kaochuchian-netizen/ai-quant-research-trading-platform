@@ -541,3 +541,18 @@ Post-merge closeout remains the same controlled two-step path: run
 `backfill_completed_ai_task_record.py` without `--apply`, inspect the dry-run
 summary, then run the same command with `--apply` only when the expected mutation
 is limited to runtime `completed_tasks.json`.
+
+
+### n8n One-Shot Intake Dry-Run
+
+AI-DEV-049 defines the n8n intake contract for future one-shot tasks. Validate
+the intake package with:
+
+```bash
+python3 scripts/orchestrator/validate_n8n_one_shot_runtime_intake_dry_run.py --pretty
+```
+
+This validation is repo-only. It does not start n8n, call Dify, call ChatGPT or
+OpenAI APIs, read credentials, send notifications, modify production systems, or
+mutate runtime queues. Runtime intake testing is reserved for AI-DEV-050 or a
+later explicitly approved task.

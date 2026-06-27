@@ -205,3 +205,16 @@ python3 scripts/orchestrator/inspect_ai_platform_status.py --pretty
 python3 scripts/orchestrator/validate_ai_branch.py --base origin/main --head HEAD --pretty
 git diff --check
 ```
+
+
+## AI-DEV-049 n8n Intake Dry-Run Package
+
+AI-DEV-049 adds the repo-side n8n one-shot intake contract. The intake payload is
+keyed by `task_id` and carries ChatGPT task request metadata, safety gates,
+autonomous permission profile, conditional auto-merge policy, Codex runner
+command summary, expected outputs, and stop conditions.
+
+The matching result contract records normalized task metadata, safety gate
+routing, Codex/Dify/GitHub readiness, and runtime side effects. This package is
+dry-run only and does not start n8n. AI-DEV-050 is the earliest task that may
+request a separately approved runtime n8n intake dry-run.

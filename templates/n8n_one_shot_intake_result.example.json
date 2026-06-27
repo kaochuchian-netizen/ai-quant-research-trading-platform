@@ -1,0 +1,39 @@
+{
+  "schema_version": "1.0.0",
+  "task_id": "AI-DEV-049",
+  "dry_run": true,
+  "intake_validation_passed": true,
+  "normalized_task": {
+    "task_id": "AI-DEV-049",
+    "branch": "ai-dev/049-n8n-one-shot-runtime-intake-dry-run",
+    "base_branch": "main",
+    "mode": "repo_contract_n8n_intake_template_validator_runner_update"
+  },
+  "safety_gate_routing": {
+    "route": "safe_repo_only_dry_run",
+    "blocked": false,
+    "blocked_reasons": []
+  },
+  "codex_execution_request_ready": true,
+  "dify_review_package_ready": true,
+  "github_gate_collection_ready": true,
+  "conditional_auto_merge_eligible_when_all_gates_pass": true,
+  "expected_outputs": [
+    "n8n intake contract validation",
+    "sanitized n8n workflow template readiness",
+    "Codex runner dry-run summary",
+    "PR gate summary",
+    "post-merge closeout summary if merged"
+  ],
+  "runtime_side_effects": {
+    "n8n_started": false,
+    "dify_runtime_called": false,
+    "chatgpt_openai_api_called": false,
+    "notification_sent": false,
+    "production_db_modified": false,
+    "cron_systemd_timer_modified": false,
+    "runtime_queue_modified": false,
+    "trading_execution_run": false
+  },
+  "next_step": "AI-DEV-050 may request a separately approved runtime n8n intake dry-run."
+}
