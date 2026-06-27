@@ -1,0 +1,56 @@
+{
+  "task_id": "AI-DEV-047",
+  "schema_version": "1.0.0",
+  "dry_run": true,
+  "runtime_execution": true,
+  "n8n_started": true,
+  "n8n_stopped": true,
+  "daily_report_workflow_found": false,
+  "dify_runtime_called": false,
+  "fallback_used": true,
+  "fallback_reason": "daily_report_runtime_workflow_not_found_or_not_listable",
+  "local_only_artifacts": {
+    "input_payload": "/home/kaochuchian/.local/state/stock-ai-orchestrator/runtime_exports/ai-dev-047/input/daily_report_forecast_dry_run_input.json",
+    "runtime_fallback_result": "/home/kaochuchian/.local/state/stock-ai-orchestrator/runtime_exports/ai-dev-047/output/dify_daily_report_draft_runtime_result.json",
+    "chatgpt_review_package": "/home/kaochuchian/.local/state/stock-ai-orchestrator/runtime_exports/ai-dev-047/output/chatgpt_daily_report_review_package.runtime.json",
+    "summary": "/home/kaochuchian/.local/state/stock-ai-orchestrator/runtime_exports/ai-dev-047/output/ai_dev_047_runtime_summary.json"
+  },
+  "secret_scan_summary": {
+    "secret_values_printed": false,
+    "pattern_hit_counts": {
+      "Authorization": 0,
+      "Bearer": 0,
+      "api_key": 0,
+      "token": 0,
+      "password": 0,
+      ".env": 0,
+      "credential": 1,
+      "secret": 1
+    },
+    "hit_context": "credential/secret hits are explanatory text or placeholder concept references only, not values"
+  },
+  "readiness_gaps": [
+    "daily-report n8n workflow needs creation or safe import",
+    "Dify daily-report app/input contract needs runtime mapping",
+    "credential use requires explicit approval",
+    "manual-trigger runtime path needs a daily-report specific node chain"
+  ],
+  "ai_dev_048_required_setup": [
+    "create or safely import daily-report n8n manual-trigger workflow",
+    "map AI-DEV-045 payload into Dify daily-report input contract",
+    "configure credential references in runtime credential storage only after explicit approval",
+    "keep notification nodes disabled",
+    "generate ChatGPT review package before any delivery channel work"
+  ],
+  "safety_flags": {
+    "dry_run": true,
+    "no_notification": true,
+    "no_production_db_write": true,
+    "no_cron_or_timer_change": true,
+    "no_trading": true,
+    "no_main_py": true,
+    "no_secret_values": true,
+    "no_runtime_queue_change": true,
+    "no_auto_merge": true
+  }
+}
