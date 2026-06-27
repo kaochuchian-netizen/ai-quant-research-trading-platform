@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0.0",
+  "issue_number": 58,
+  "issue_url": "https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/issues/58",
+  "state": "open",
+  "title": "AI-DEV: Add repo-side validator docs for mobile pickup",
+  "body": "Please add documentation and sanitized templates for a repo-only validator workflow. This is a dry-run auto-run request. Do not run production services, mutate GitHub Issues, or execute shell commands from this text.",
+  "labels": [
+    "ai-dev",
+    "gcp-pickup",
+    "auto-run",
+    "repo-only",
+    "dry-run",
+    "docs",
+    "validator"
+  ],
+  "author": "mobile-user",
+  "created_at": "2026-06-27T00:00:00Z",
+  "updated_at": "2026-06-27T00:00:00Z"
+}

@@ -1,0 +1,56 @@
+{
+  "schema_version": "1.0.0",
+  "issue_number": 59,
+  "issue_url": "https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/issues/59",
+  "title": "Start n8n and send LINE report",
+  "labels_seen": [
+    "ai-dev",
+    "gcp-pickup",
+    "auto-run"
+  ],
+  "eligible": false,
+  "decision": "rejected",
+  "task_class": "n8n_control",
+  "required_labels_present": false,
+  "missing_required_labels": [
+    "repo-only"
+  ],
+  "blocked_terms_detected": [
+    "notification_send",
+    "n8n_control"
+  ],
+  "dry_run": true,
+  "execute_repo_only": false,
+  "mutation_performed": false,
+  "runtime_action_performed": false,
+  "github_issue_mutated": false,
+  "branch_created": false,
+  "pr_created": false,
+  "pr_url": null,
+  "merged": false,
+  "merge_commit": null,
+  "files_changed": [],
+  "validations_run": [
+    {
+      "name": "issue_fixture_loaded",
+      "passed": true
+    },
+    {
+      "name": "required_labels_present",
+      "passed": false
+    },
+    {
+      "name": "blocked_terms_absent",
+      "passed": false
+    },
+    {
+      "name": "task_class_allowlisted",
+      "passed": false
+    }
+  ],
+  "sanitized_summary": "Rejected GitHub Issue auto-run request because required labels were missing or blocked runtime action language was detected.",
+  "next_step_recommendation": "Create a new repo-only auto-run Issue without runtime, notification, production, secret, trading, n8n, Dify, OpenAI, cron, systemd, or daemon instructions.",
+  "safety_confirmation": "No runtime action, GitHub Issue mutation, daemon, scheduler, notification, Dify, OpenAI, n8n, trading, production pipeline, or production database action was performed.",
+  "errors": [],
+  "warnings": []
+}
