@@ -227,3 +227,7 @@ Dify, ChatGPT/OpenAI APIs, notification services, or production systems. The
 result remains local-only at runtime and is represented in repo by a sanitized
 summary example and validator. AI-DEV-051 remains a future task and was not
 executed.
+
+## AI-DEV-051 Dify Review Runtime Finding
+
+AI-DEV-051 attempted to pass the AI-DEV-050 one-shot intake runtime result into a Dify review package dry-run. n8n was started and stopped safely, and only workflow names/IDs were inspected. No safe Dify review workflow/app mapping was identifiable without inspecting node parameters or credentials, so the task produced a fallback/readiness review package. Future runtime review generation should first create or safely label the Dify review mapping.
