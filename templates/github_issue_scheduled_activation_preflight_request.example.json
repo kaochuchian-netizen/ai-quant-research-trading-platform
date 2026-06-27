@@ -1,0 +1,37 @@
+{
+  "schema_version": "1.0.0",
+  "run_id": "scheduled-activation-preflight-2026-06-27T00-00-00Z",
+  "scheduler_activation_requested": true,
+  "proposed_cadence": "30m",
+  "max_issues_per_run": 1,
+  "lock_policy": {
+    "single_active_task": true,
+    "lock_path": "/home/kaochuchian/.local/state/stock-ai-orchestrator/github_issue_scheduled_pickup.lock",
+    "stale_lock_requires_manual_review": true
+  },
+  "idempotency_policy": {
+    "key_format": "scheduled-pickup-v1|issue_number|issue_url|task_class|normalized_required_labels",
+    "state_path": "/home/kaochuchian/.local/state/stock-ai-orchestrator/github_issue_scheduled_pickup_idempotency.json",
+    "exclude_issue_body_text": true
+  },
+  "state_paths_proposed": [
+    "/home/kaochuchian/.local/state/stock-ai-orchestrator/github_issue_scheduled_pickup_latest.json",
+    "/home/kaochuchian/.local/state/stock-ai-orchestrator/github_issue_scheduled_pickup_idempotency.json",
+    "/home/kaochuchian/.local/state/stock-ai-orchestrator/archive/github_issue_scheduled_pickup/"
+  ],
+  "log_paths_proposed": [
+    "/home/kaochuchian/.local/state/stock-ai-orchestrator/logs/github_issue_scheduled_pickup.log"
+  ],
+  "required_operator_approvals_for_AI_DEV_061": [
+    "approve_30m_initial_cadence",
+    "approve_max_issues_per_run_1",
+    "approve_single_active_task_lock",
+    "approve_idempotency_state_path",
+    "approve_read_only_issue_discovery",
+    "approve_no_issue_mutation",
+    "approve_no_comment_back",
+    "approve_no_runtime_action",
+    "approve_no_production_pipeline",
+    "approve_rollback_disable_procedure"
+  ]
+}
