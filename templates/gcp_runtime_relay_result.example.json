@@ -1,0 +1,77 @@
+{
+  "schema_version": "1.0.0",
+  "relay_request_id": "gcp-runtime-relay-ai-dev-054",
+  "relay_result_id": "gcp-runtime-relay-result-ai-dev-054",
+  "ai_dev_id": "AI-DEV-054",
+  "created_at": "2026-06-27T00:00:00Z",
+  "status": "blocked",
+  "status_reason": "repo_side_contract_only_runtime_boundary_not_crossed",
+  "execution": {
+    "mode": "dry_run",
+    "runtime_execution_attempted": false,
+    "n8n_called": false,
+    "dify_called": false,
+    "openai_chatgpt_api_called": false,
+    "notification_sent": false,
+    "order_or_trade_executed": false,
+    "production_db_modified": false,
+    "production_infra_modified": false
+  },
+  "validation": {
+    "request_validator": "scripts/orchestrator/validate_gcp_runtime_relay_request.py",
+    "request_validation_passed": true,
+    "result_validator": "scripts/orchestrator/validate_gcp_runtime_relay_result.py",
+    "errors": [],
+    "warnings": []
+  },
+  "action_outcome": {
+    "action": "prepare_runtime_plan",
+    "allowed_action": true,
+    "runtime_boundary_crossed": false,
+    "blocked_reason": "AI-DEV-054 is dry-run/spec-level repo-side contract work only."
+  },
+  "artifacts": {
+    "sanitized_result_path": "templates/gcp_runtime_relay_result.example.json",
+    "raw_runtime_output_repo_committed": false,
+    "local_only_artifact_refs": [
+      "~/.local/state/stock-ai-orchestrator/runtime_relay/gcp-runtime-relay-ai-dev-054/"
+    ]
+  },
+  "retry": {
+    "attempts": 0,
+    "max_attempts": 2,
+    "retry_performed": false,
+    "final_retry_decision": "not_applicable_dry_run_boundary_blocked"
+  },
+  "idempotency": {
+    "key": "gcp-runtime-relay-ai-dev-054|AI-DEV-054|cc0279db094e05ccd1ba6d068e1ce8c61a246cc7|prepare_runtime_plan",
+    "duplicate_terminal_result_found": false,
+    "execution_skipped_for_duplicate": false
+  },
+  "safety": {
+    "secret_values_included": false,
+    "raw_runtime_output_included": false,
+    "external_delivery_performed": false,
+    "forbidden_action_performed": false,
+    "safety_gates_passed": true
+  },
+  "audit": {
+    "events": [
+      "picked_up",
+      "validated",
+      "planned",
+      "runtime_boundary_blocked",
+      "result_written",
+      "closed_out"
+    ],
+    "raw_runtime_output_in_audit": false
+  },
+  "closeout": {
+    "request_validation_recorded": true,
+    "result_validation_required": true,
+    "sanitized_artifact_ready_for_repo_pr": true,
+    "runtime_action_performed": false,
+    "safety_confirmation": "No runtime action was performed; no n8n, Dify, OpenAI, notification, trading, production database, or infrastructure action occurred."
+  },
+  "errors": []
+}
