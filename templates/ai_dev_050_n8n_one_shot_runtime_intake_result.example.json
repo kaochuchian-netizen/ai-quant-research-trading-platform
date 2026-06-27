@@ -1,0 +1,69 @@
+{
+  "schema_version": "1.0.0",
+  "task_id": "AI-DEV-050",
+  "dry_run": true,
+  "runtime_dry_run": true,
+  "n8n_started": true,
+  "n8n_stopped": true,
+  "workflow_found_or_created": true,
+  "workflow_state": {
+    "workflow_found_or_created": true,
+    "workflow_created_local_only": true,
+    "workflow_imported_persistently": false,
+    "workflow_active": false,
+    "workflow_dry_run_only": true,
+    "no_notification_nodes": true,
+    "no_production_write_nodes": true,
+    "no_real_credentials": true,
+    "no_dify_node": true,
+    "no_chatgpt_openai_node": true
+  },
+  "runtime_dry_run_executed": true,
+  "dify_runtime_called": false,
+  "chatgpt_openai_api_called": false,
+  "notification_sent": false,
+  "production_db_modified": false,
+  "cron_or_timer_modified": false,
+  "main_py_executed": false,
+  "trading_executed": false,
+  "no_secret_values": true,
+  "local_only_outputs": {
+    "input_payload": "/home/kaochuchian/.local/state/stock-ai-orchestrator/runtime_exports/ai-dev-050/input/n8n_one_shot_intake_payload.runtime.json",
+    "runtime_result": "/home/kaochuchian/.local/state/stock-ai-orchestrator/runtime_exports/ai-dev-050/output/n8n_one_shot_intake_runtime_result.json",
+    "chatgpt_report": "/home/kaochuchian/.local/state/stock-ai-orchestrator/runtime_exports/ai-dev-050/output/chatgpt_ai_dev_050_runtime_report.json",
+    "runtime_summary": "/home/kaochuchian/.local/state/stock-ai-orchestrator/runtime_exports/ai-dev-050/output/ai_dev_050_runtime_summary.json",
+    "workflow_file": "/home/kaochuchian/.local/state/stock-ai-orchestrator/runtime_exports/ai-dev-050/workflow/ai-dev-050-one-shot-intake-runtime.workflow.json"
+  },
+  "secret_scan_summary": {
+    "secret_values_printed": false,
+    "pattern_hit_counts": {
+      "Authorization": 0,
+      "Bearer": 0,
+      "api_key": 0,
+      "token": 0,
+      "password": 0,
+      "secret": 0,
+      "credential": 5,
+      ".env": 0
+    },
+    "placeholder_or_policy_context_only": true,
+    "values_included": false
+  },
+  "n8n_cli_execution": {
+    "attempted": true,
+    "exit_code": 0,
+    "stdout_sanitized_path": "/home/kaochuchian/.local/state/stock-ai-orchestrator/runtime_exports/ai-dev-050/output/n8n_execute_stdout.sanitized.txt",
+    "stderr_log_path": "/home/kaochuchian/.local/state/stock-ai-orchestrator/runtime_exports/ai-dev-050/logs/n8n_execute.stderr.txt",
+    "parseable_runtime_json_from_cli": false
+  },
+  "safety_flags": {
+    "workflow_inactive": true,
+    "dry_run_only": true,
+    "no_notification": true,
+    "no_production_write": true,
+    "no_real_credentials": true,
+    "no_dify_runtime_call": true,
+    "no_chatgpt_openai_api_call": true,
+    "ai_dev_051_not_executed": true
+  }
+}
