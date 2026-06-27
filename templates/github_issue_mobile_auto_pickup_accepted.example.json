@@ -1,0 +1,69 @@
+{
+  "schema_version": "1.0.0",
+  "run_id": "mobile-auto-pickup-example-accepted",
+  "generated_at": "2026-06-28T00:00:00Z",
+  "source": "live_read",
+  "dry_run": true,
+  "scheduler_enabled": false,
+  "total_issues_seen": 1,
+  "eligible_count": 1,
+  "rejected_count": 0,
+  "needs_manual_review_count": 0,
+  "candidate_issue_numbers": [
+    123
+  ],
+  "selected_issue_number": 123,
+  "selected_issue_url": "https://github.com/example/repo/issues/123",
+  "task_class": "runbook_only",
+  "decision": "accepted",
+  "branch_created": false,
+  "pr_created": false,
+  "pr_url": null,
+  "merged": false,
+  "merge_commit": null,
+  "files_changed": [],
+  "validations_run": [],
+  "github_actions_result": "not_run",
+  "issue_comment_created": false,
+  "issue_labels_changed": false,
+  "github_issue_mutated": false,
+  "runtime_action_performed": false,
+  "production_action_performed": false,
+  "daemon_or_background_service_created": false,
+  "candidates": [
+    {
+      "issue_number": 123,
+      "issue_url": "https://github.com/example/repo/issues/123",
+      "title": "AI-DEV mobile runbook update",
+      "labels_seen": [
+        "ai-dev",
+        "gcp-pickup",
+        "auto-run",
+        "repo-only",
+        "dry-run"
+      ],
+      "eligible": true,
+      "decision": "accepted",
+      "task_class": "runbook_only",
+      "required_labels_present": true,
+      "approval_label_present": true,
+      "blocked_terms_detected": [],
+      "idempotency_key": "mobile-auto-pickup-v1|123|https://github.com/example/repo/issues/123|runbook_only|ai-dev,gcp-pickup,auto-run,repo-only|dry-run",
+      "sanitized_summary": "Accepted mobile Issue candidate for runbook_only repo-only automation.",
+      "execute_repo_only_allowed": true
+    }
+  ],
+  "rejected": [],
+  "idempotency_keys": [
+    "mobile-auto-pickup-v1|123|https://github.com/example/repo/issues/123|runbook_only|ai-dev,gcp-pickup,auto-run,repo-only|dry-run"
+  ],
+  "rollback_or_disable_commands": [
+    "systemctl --user disable --now stock-ai-github-issue-scheduled-pickup-dry-run.timer",
+    "systemctl --user reset-failed stock-ai-github-issue-scheduled-pickup-dry-run.service",
+    "systemctl --user daemon-reload"
+  ],
+  "next_step_recommendation": "Eligible candidate selected; repo-only execution was not requested.",
+  "safety_confirmation": "No runtime action, production action, Issue mutation, comment-back, label mutation, n8n, Dify, notification, production DB, trading, or shell execution from Issue text was performed.",
+  "errors": [],
+  "warnings": []
+}
