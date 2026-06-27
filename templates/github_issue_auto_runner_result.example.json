@@ -1,0 +1,55 @@
+{
+  "schema_version": "1.0.0",
+  "issue_number": 58,
+  "issue_url": "https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/issues/58",
+  "title": "AI-DEV: Add repo-side validator docs for mobile pickup",
+  "labels_seen": [
+    "ai-dev",
+    "gcp-pickup",
+    "auto-run",
+    "repo-only",
+    "dry-run",
+    "docs",
+    "validator"
+  ],
+  "eligible": true,
+  "decision": "accepted",
+  "task_class": "validator_only",
+  "required_labels_present": true,
+  "missing_required_labels": [],
+  "blocked_terms_detected": [],
+  "dry_run": true,
+  "execute_repo_only": false,
+  "mutation_performed": false,
+  "runtime_action_performed": false,
+  "github_issue_mutated": false,
+  "branch_created": false,
+  "pr_created": false,
+  "pr_url": null,
+  "merged": false,
+  "merge_commit": null,
+  "files_changed": [],
+  "validations_run": [
+    {
+      "name": "issue_fixture_loaded",
+      "passed": true
+    },
+    {
+      "name": "required_labels_present",
+      "passed": true
+    },
+    {
+      "name": "blocked_terms_absent",
+      "passed": true
+    },
+    {
+      "name": "task_class_allowlisted",
+      "passed": true
+    }
+  ],
+  "sanitized_summary": "Accepted repo-only GitHub Issue auto-run request for validator_only work. Default mode produced a dry-run execution plan only.",
+  "next_step_recommendation": "Review the sanitized plan before enabling scheduled pickup or deterministic repo edits in a later task.",
+  "safety_confirmation": "No runtime action, GitHub Issue mutation, daemon, scheduler, notification, Dify, OpenAI, n8n, trading, production pipeline, or production database action was performed.",
+  "errors": [],
+  "warnings": []
+}
