@@ -1,0 +1,110 @@
+{
+  "schema_version": "2.0.0",
+  "run_id": "mobile-auto-pickup-example-handoff",
+  "generated_at": "2026-06-28T00:00:00Z",
+  "source": "live_read",
+  "dry_run": true,
+  "scheduler_enabled": false,
+  "total_issues_seen": 1,
+  "eligible_count": 1,
+  "rejected_count": 0,
+  "needs_manual_review_count": 0,
+  "candidate_issue_numbers": [
+    126
+  ],
+  "selected_issue_number": 126,
+  "selected_issue_url": "https://github.com/example/repo/issues/126",
+  "task_class": "repo_side_contract",
+  "decision": "handoff_created",
+  "requested_task_summary": "Create a repo-side contract and tests.",
+  "requested_deliverables": [
+    "Create docs/example_contract.md",
+    "Run validator tests"
+  ],
+  "actual_deliverables": [
+    "docs/mobile_issue_handoffs/issue_126_mobile-auto-pickup-example-handoff.md"
+  ],
+  "implementation_status": "handoff_created_pending_codex",
+  "completion_claim_valid": true,
+  "artifact_only": false,
+  "handoff_created": true,
+  "handoff_path": "docs/mobile_issue_handoffs/issue_126_mobile-auto-pickup-example-handoff.md",
+  "needs_codex_execution": true,
+  "idempotency_completion_scope": "handoff_created",
+  "safe_to_mark_processed": false,
+  "branch_created": true,
+  "pr_created": true,
+  "pr_url": "https://github.com/example/repo/pull/127",
+  "merged": true,
+  "merge_commit": "0000000000000000000000000000000000000000",
+  "files_changed": [
+    "docs/mobile_issue_handoffs/issue_126_mobile-auto-pickup-example-handoff.md"
+  ],
+  "validations_run": [
+    {
+      "command": "python3 -m py_compile scripts/orchestrator/github_issue_mobile_auto_pickup.py scripts/orchestrator/validate_github_issue_mobile_auto_pickup_result.py",
+      "passed": true
+    },
+    {
+      "command": "git diff --check main...HEAD",
+      "passed": true
+    }
+  ],
+  "github_actions_result": "success",
+  "issue_comment_created": false,
+  "issue_labels_changed": false,
+  "github_issue_mutated": false,
+  "runtime_action_performed": false,
+  "production_action_performed": false,
+  "daemon_or_background_service_created": false,
+  "candidates": [
+    {
+      "issue_number": 126,
+      "issue_url": "https://github.com/example/repo/issues/126",
+      "title": "AI-DEV contract task",
+      "labels_seen": [
+        "ai-dev",
+        "gcp-pickup",
+        "auto-run",
+        "repo-only",
+        "approved-auto-run"
+      ],
+      "eligible": true,
+      "decision": "accepted",
+      "task_class": "repo_side_contract",
+      "required_labels_present": true,
+      "approval_label_present": true,
+      "blocked_terms_detected": [],
+      "idempotency_key": "mobile-auto-pickup-v2|126|https://github.com/example/repo/issues/126|repo_side_contract|ai-dev,gcp-pickup,auto-run,repo-only|approved-auto-run",
+      "sanitized_summary": "Accepted mobile Issue candidate for repo_side_contract repo-only automation.",
+      "execute_repo_only_allowed": false,
+      "requested_task_summary": "Create a repo-side contract and tests.",
+      "requested_deliverables": [
+        "Create docs/example_contract.md",
+        "Run validator tests"
+      ],
+      "actual_deliverables": [],
+      "implementation_status": "not_started",
+      "completion_claim_valid": false,
+      "artifact_only": false,
+      "handoff_created": false,
+      "handoff_path": null,
+      "needs_codex_execution": true,
+      "idempotency_completion_scope": "none",
+      "safe_to_mark_processed": false
+    }
+  ],
+  "rejected": [],
+  "idempotency_keys": [
+    "mobile-auto-pickup-v2|126|https://github.com/example/repo/issues/126|repo_side_contract|ai-dev,gcp-pickup,auto-run,repo-only|approved-auto-run"
+  ],
+  "rollback_or_disable_commands": [
+    "systemctl --user disable --now stock-ai-github-issue-scheduled-pickup-dry-run.timer",
+    "systemctl --user reset-failed stock-ai-github-issue-scheduled-pickup-dry-run.service",
+    "systemctl --user daemon-reload"
+  ],
+  "next_step_recommendation": "Codex handoff PR was merged; actual requested implementation remains pending.",
+  "safety_confirmation": "No runtime action, production action, Issue mutation, comment-back, label mutation, n8n, Dify, notification, production DB, trading, or shell execution from Issue text was performed.",
+  "errors": [],
+  "warnings": []
+}

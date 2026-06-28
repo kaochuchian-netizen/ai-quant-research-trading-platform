@@ -2,13 +2,22 @@
 
 ## Purpose
 
+> Superseded semantics: see
+> `docs/mobile_github_issue_auto_pickup_v2_repair.md` for the repaired v2
+> decision model. V1 artifact-only PRs must not be interpreted as completed
+> implementation work.
+
 AI-DEV-063 upgrades the mobile GitHub Issue workflow from fixture-only dry-run
 to a live-read, repo-only, scheduled path.
 
-The v1 path is intentionally narrow. It can read eligible open Issues, classify
-them, select at most one candidate per run, and, only when explicitly approved
-with `approved-auto-run`, create a sanitized repo artifact through controlled
-runner code. The Issue body is never executed as a command.
+The v1 path was intentionally narrow. It could read eligible open Issues,
+classify them, select at most one candidate per run, and, only when explicitly
+approved with `approved-auto-run`, create a sanitized repo artifact through
+controlled runner code. The Issue body is never executed as a command.
+
+AI-DEV-064 repaired the semantics so artifact-only output is not called
+`executed_repo_only`. Eligible tasks that require real code generation are now
+reported as `needs_codex_execution` or packaged as `handoff_created`.
 
 ## Mobile Workflow
 
@@ -104,15 +113,15 @@ gh issue list --state open --label ai-dev --label gcp-pickup --label auto-run --
 This is read-only discovery. It does not comment, label, close, reopen, or edit
 Issues.
 
-## Repo-Only Execution
+## Historical Repo-Only Artifact Behavior
 
-When the selected Issue has `approved-auto-run`, the runner may perform a
-controlled repo-only execution:
+In v1, when the selected Issue had `approved-auto-run`, the runner could perform
+a controlled artifact-only repo change:
 
 1. require current branch `main`
 2. require clean git status
 3. create a deterministic branch
-4. write one sanitized execution artifact under `docs/mobile_issue_auto_runs/`
+4. write one sanitized artifact under `docs/mobile_issue_auto_runs/`
 5. run local validation
 6. open a PR
 7. wait for GitHub checks
@@ -122,6 +131,10 @@ controlled repo-only execution:
 
 The Issue body is task description only. It is never shell, never a patch, and
 never free-form execution instructions.
+
+This historical artifact behavior was not actual implementation of arbitrary
+requested deliverables. V2 uses explicit `artifact_recorded`,
+`handoff_created`, and `needs_codex_execution` states instead.
 
 ## Comment-Back And Label Mutation
 
