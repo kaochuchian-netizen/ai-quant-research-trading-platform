@@ -11,6 +11,7 @@ GitHub Issue scheduled pickup
 -> single-active lock
 -> idempotency check
 -> Codex handoff executor helper
+-> verified repo implementation changes
 -> sanitized result artifact
 ```
 
@@ -42,7 +43,10 @@ It supports:
 
 Without `--execute`, it does not call the executor helper. With `--execute`,
 it still requires the readiness gate, lock, idempotency, and safety filters to
-pass before calling the AI-DEV-067 executor helper.
+pass before calling the AI-DEV-067 executor helper. A successful helper process
+is not enough: the runner requires `implementation_completed=true` and at least
+one changed file outside `docs/mobile_issue_handoffs/` before it returns
+`decision=executed_codex_handoff`.
 
 ## Systemd Command
 
@@ -103,8 +107,25 @@ The idempotency key is:
 codex-handoff-scheduled-pickup:{handoff_path}:{sha256_prefix}
 ```
 
-Only successful executor helper handling marks a key processed. Failed,
-blocked, unsafe, or locked runs do not mark processed.
+Only verified implementation completion marks a key processed. Failed, blocked,
+unsafe, locked, handoff-only, plan-only, or manual-only runs do not mark
+processed.
+
+If an older runner marked a handoff processed before implementation completion,
+the integrated runner can safely unmark that key before retrying. The repair is
+written under:
+
+```text
+/home/kaochuchian/.local/state/stock-ai-orchestrator/codex_handoff_scheduled_pickup/repairs/
+```
+
+For the Issue #74 / PR #75 incident, the repair artifact records:
+
+```text
+unmarked_reason=handoff_only_not_implemented
+source_pr=75
+safe_to_retry=true
+```
 
 ## Safety
 
@@ -112,9 +133,20 @@ The runner does not execute shell from handoff text. It does not mutate real
 GitHub Issues, send notifications, modify production DBs, control n8n, trade,
 or place orders.
 
-AI-DEV-067's executor helper currently produces a sanitized executor result
-artifact and remains conservative about direct Codex runtime invocation. This
-keeps scheduled activation observable while preserving safe-stop behavior.
+AI-DEV-067's executor helper now supports the explicit `--execute-headless`
+path. It calls the official non-interactive `codex exec` command with
+workspace-write repo scope, sends a safe implementation prompt derived from the
+sanitized handoff, and does not execute shell copied from handoff text. The
+helper writes a sanitized executor result artifact with:
+
+```text
+implementation_completed
+implementation_changed_files
+headless_run.returncode
+```
+
+The scheduled runner treats `headless_supported_manual_only`, `plan_created`,
+and `executor_no_implementation` as non-terminal implementation failures.
 
 ## Activation Validation
 

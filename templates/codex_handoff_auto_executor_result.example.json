@@ -11,6 +11,13 @@
   "decision": "headless_supported_manual_only",
   "safe_to_schedule": false,
   "safe_to_execute": false,
+  "implementation_completed": false,
+  "implementation_changed_files": [],
+  "headless_run": {
+    "called": false,
+    "implementation_completed": false,
+    "implementation_changed_files": []
+  },
   "blocked_reasons": [],
   "validation_errors": [],
   "feasibility": {
@@ -28,8 +35,10 @@
   "execution_plan": {
     "default_calls_codex": false,
     "requires_execute_headless_flag": true,
-    "prompt_artifact_only": true,
-    "execute_shell_from_handoff": false
+    "prompt_artifact_only": false,
+    "execute_shell_from_handoff": false,
+    "headless_command": "codex exec",
+    "repo_only_scope": true
   },
   "sanitized_prompt": {
     "source": "sanitized_handoff_markdown",

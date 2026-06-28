@@ -26,6 +26,9 @@ REQUIRED_FIELDS = [
     "safe_to_execute",
     "blocked_reasons",
     "validation_errors",
+    "implementation_completed",
+    "implementation_changed_files",
+    "headless_run",
     "feasibility",
     "execution_plan",
     "side_effects",
@@ -39,6 +42,8 @@ DECISIONS = {
     "blocked",
     "invalid_handoff_path",
     "validation_failed",
+    "implementation_completed",
+    "executor_no_implementation",
 }
 
 SIDE_EFFECT_FIELDS = [
@@ -83,16 +88,29 @@ def validate_result(data: dict[str, Any]) -> dict[str, Any]:
         errors.append(f"decision must be one of: {', '.join(sorted(DECISIONS))}")
     if data.get("task_id") != "AI-DEV-067":
         errors.append("task_id must be AI-DEV-067")
-    if data.get("mode") not in {"dry_run", "plan_only"}:
-        errors.append("mode must be dry_run or plan_only")
-    if data.get("safe_to_schedule") is not False:
-        errors.append("safe_to_schedule must be false")
-    if data.get("schedule_ready") is not False:
-        errors.append("schedule_ready must be false")
-    if data.get("safe_to_execute") is not False:
-        errors.append("safe_to_execute must be false in V1 result artifacts")
+    if data.get("mode") not in {"dry_run", "plan_only", "execute_headless"}:
+        errors.append("mode must be dry_run, plan_only, or execute_headless")
+    if data.get("mode") != "execute_headless" and data.get("safe_to_schedule") is not False:
+        errors.append("safe_to_schedule must be false outside execute_headless")
+    if data.get("mode") != "execute_headless" and data.get("schedule_ready") is not False:
+        errors.append("schedule_ready must be false outside execute_headless")
+    if data.get("mode") != "execute_headless" and data.get("safe_to_execute") is not False:
+        errors.append("safe_to_execute must be false outside execute_headless result artifacts")
     if decision == "headless_unsupported" and data.get("safe_to_execute") is not False:
         errors.append("headless_unsupported requires safe_to_execute=false")
+    if decision == "implementation_completed":
+        if data.get("mode") != "execute_headless":
+            errors.append("implementation_completed requires mode=execute_headless")
+        if data.get("implementation_completed") is not True:
+            errors.append("implementation_completed requires implementation_completed=true")
+        changed_files = data.get("implementation_changed_files")
+        if not isinstance(changed_files, list) or not any(
+            isinstance(path, str) and path and not path.startswith("docs/mobile_issue_handoffs/")
+            for path in changed_files
+        ):
+            errors.append("implementation_completed requires non-handoff implementation_changed_files")
+    if decision == "executor_no_implementation" and data.get("implementation_completed") is not False:
+        errors.append("executor_no_implementation requires implementation_completed=false")
     blocked_reasons = data.get("blocked_reasons")
     if not isinstance(blocked_reasons, list):
         errors.append("blocked_reasons must be a list")
@@ -106,6 +124,10 @@ def validate_result(data: dict[str, Any]) -> dict[str, Any]:
         errors.append("side_effects must be an object")
     else:
         for field in SIDE_EFFECT_FIELDS:
+            if field == "called_codex_runtime" and data.get("mode") == "execute_headless":
+                if not isinstance(side_effects.get(field), bool):
+                    errors.append("side_effects.called_codex_runtime must be boolean")
+                continue
             if side_effects.get(field) is not False:
                 errors.append(f"side_effects.{field} must be false")
 

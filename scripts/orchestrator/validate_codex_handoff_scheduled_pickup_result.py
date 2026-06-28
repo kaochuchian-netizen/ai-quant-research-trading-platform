@@ -30,6 +30,9 @@ REQUIRED_FIELDS = [
 
 DECISIONS = {
     "executed_codex_handoff",
+    "implementation_completed",
+    "handoff_only_not_implemented",
+    "executor_no_implementation",
     "dry_run_plan_created",
     "no_pending_handoff",
     "readiness_failed",
@@ -143,7 +146,27 @@ def validate_result(data: dict[str, Any]) -> dict[str, Any]:
             errors.append("already_processed requires idempotency.already_processed=true")
     if decision == "locked" and executor.get("called") is not False:
         errors.append("locked requires executor.called=false")
-    if decision in {"readiness_failed", "unsafe_handoff", "codex_executor_failed", "validation_failed"}:
+    if decision == "executed_codex_handoff":
+        if executor.get("implementation_completed") is not True and data.get("implementation_completed") is not True:
+            errors.append("executed_codex_handoff requires implementation_completed=true")
+        changed_files = executor.get("implementation_changed_files")
+        if not isinstance(changed_files, list) or not any(
+            isinstance(path, str) and path and not path.startswith("docs/mobile_issue_handoffs/")
+            for path in changed_files
+        ):
+            errors.append("executed_codex_handoff requires non-handoff implementation_changed_files")
+        if idempotency.get("marked_processed") is not True:
+            errors.append("executed_codex_handoff requires idempotency.marked_processed=true")
+        if executor.get("decision") not in {"implementation_completed", "executed_codex_handoff"}:
+            errors.append("executed_codex_handoff requires executor.decision=implementation_completed")
+    if decision in {
+        "readiness_failed",
+        "unsafe_handoff",
+        "codex_executor_failed",
+        "validation_failed",
+        "handoff_only_not_implemented",
+        "executor_no_implementation",
+    }:
         reasons = data.get("blocked_reasons", [])
         if not isinstance(reasons, list) or not reasons:
             errors.append(f"{decision} requires blocked_reasons")
