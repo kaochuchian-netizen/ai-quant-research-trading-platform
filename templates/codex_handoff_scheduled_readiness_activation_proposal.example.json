@@ -1,0 +1,23 @@
+{
+  "task_id": "AI-DEV-068",
+  "activation_ready": true,
+  "schedule_ready": false,
+  "requires_user_approval": true,
+  "proposed_next_task": "AI-DEV-069",
+  "proposed_integration": "scheduled pickup calls codex handoff executor after readiness gate passes",
+  "proposed_cadence": "30m",
+  "max_handoffs_per_run": 1,
+  "safe_to_enable_now": false,
+  "source_readiness_decision": "readiness_pass_manual_only",
+  "side_effects": {
+    "called_codex_runtime": false,
+    "called_external_ai_runtime": false,
+    "sent_notification": false,
+    "modified_production_db": false,
+    "modified_cron_systemd_timer": false,
+    "mutated_github_issue": false,
+    "modified_n8n": false,
+    "placed_trade_order": false,
+    "executed_shell_from_handoff": false
+  }
+}
