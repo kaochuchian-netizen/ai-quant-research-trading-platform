@@ -1,0 +1,13 @@
+{
+  "task_id": "AI-DEV-068",
+  "mode": "dry_run",
+  "handoff_path": "docs/mobile_issue_handoffs/issue_68_mobile-auto-pickup-20260628T043527Z.md",
+  "headless_supported": true,
+  "manual_one_shot_viable": true,
+  "max_handoffs_per_run": 1,
+  "schedule_activation_requested": false,
+  "single_active_lock_present": true,
+  "idempotency_required": true,
+  "selected_handoff_count": 1,
+  "processed_idempotency_keys": []
+}
