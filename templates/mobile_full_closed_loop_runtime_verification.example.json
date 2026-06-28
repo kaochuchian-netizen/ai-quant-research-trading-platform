@@ -1,0 +1,161 @@
+{
+  "schema_version": "1.0.0",
+  "task_id": "AI-DEV-070",
+  "source": "mobile_issue_full_closed_loop_test",
+  "run_id": "mobile-full-closed-loop-example-20260628T000000Z",
+  "generated_at": "2026-06-28T00:00:00Z",
+  "mode": "verification_template",
+  "overall_status": "not_run_template",
+  "mobile_issue": {
+    "number": 74,
+    "url": "https://github.com/example/repo/issues/74",
+    "title": "AI-DEV-070 Mobile Issue Full Closed-loop Runtime Verification",
+    "required_labels_seen": [
+      "gcp-pickup",
+      "auto-run",
+      "repo-only",
+      "ai-dev",
+      "approved-auto-run"
+    ],
+    "mutate_real_issue_allowed": false,
+    "mutation_permission_source": null
+  },
+  "scheduled_pickup": {
+    "called": true,
+    "artifact_path": "~/.local/state/stock-ai-orchestrator/github_issue_scheduled_pickup_latest.json",
+    "decision": "handoff_created",
+    "safety_filter_passed": true,
+    "candidate_selected": true,
+    "handoff_created": true,
+    "needs_codex_execution": true,
+    "errors": [],
+    "warnings": []
+  },
+  "handoff": {
+    "path": "docs/mobile_issue_handoffs/issue_74_mobile-auto-pickup-20260628T125252Z.md",
+    "sanitized": true,
+    "requested_deliverables": [
+      "docs/mobile_full_closed_loop_runtime_verification.md",
+      "templates/mobile_full_closed_loop_runtime_verification.example.json"
+    ],
+    "blocked_actions": [
+      "mutate real GitHub Issue by default",
+      "send notifications",
+      "trade or place orders",
+      "modify production databases",
+      "control n8n, cron, systemd, or timers",
+      "execute shell copied from Issue or handoff text"
+    ]
+  },
+  "readiness_gate": {
+    "called": true,
+    "decision": "readiness_pass",
+    "safe_to_call_executor": true,
+    "safe_to_schedule": true,
+    "errors": [],
+    "warnings": []
+  },
+  "codex_executor": {
+    "called": true,
+    "decision": "implementation_completed",
+    "implementation_completed": true,
+    "implementation_changed_files": [
+      "docs/mobile_full_closed_loop_runtime_verification.md",
+      "templates/mobile_full_closed_loop_runtime_verification.example.json"
+    ],
+    "returncode": 0,
+    "errors": [],
+    "warnings": []
+  },
+  "implementation": {
+    "branch": "ai-dev/mobile-issue-74-codex-handoff",
+    "completed": true,
+    "changed_files": [
+      "docs/mobile_full_closed_loop_runtime_verification.md",
+      "templates/mobile_full_closed_loop_runtime_verification.example.json"
+    ],
+    "changed_files_in_scope": true,
+    "notes": "Repo-side documentation and template deliverables only."
+  },
+  "pull_request": {
+    "created": true,
+    "url": "https://github.com/example/repo/pull/75",
+    "number": 75,
+    "is_draft": false,
+    "mergeStateStatus": "CLEAN"
+  },
+  "github_actions": {
+    "required_checks": [
+      "validate-ai-branch"
+    ],
+    "status": "success",
+    "checks_passed": true,
+    "checks": [
+      {
+        "name": "validate-ai-branch",
+        "status": "COMPLETED",
+        "conclusion": "SUCCESS"
+      }
+    ]
+  },
+  "conditional_auto_merge": {
+    "eligible": true,
+    "performed": false,
+    "default_disabled_for_template": true,
+    "required_conditions": {
+      "checks_passed": true,
+      "mergeStateStatus_clean": true,
+      "not_draft": true,
+      "changed_files_in_scope": true,
+      "local_validations_passed": true,
+      "blocked_side_effects_absent": true
+    },
+    "blocked_reasons": [
+      "Template artifact does not perform real merge."
+    ],
+    "merge_commit": null
+  },
+  "cleanup": {
+    "performed": false,
+    "branch_deleted": false,
+    "reason": "Template artifact does not perform branch cleanup."
+  },
+  "post_merge_validation": {
+    "status": "not_run",
+    "required_after_real_merge": true,
+    "command": "python3 scripts/orchestrator/validate_post_merge_status.py --pretty",
+    "passed": false,
+    "reason": "Template artifact was not merged."
+  },
+  "validation_summary": "validation_summary_placeholder",
+  "changed_files": [
+    "docs/mobile_full_closed_loop_runtime_verification.md",
+    "templates/mobile_full_closed_loop_runtime_verification.example.json"
+  ],
+  "validations": [
+    {
+      "command": "python3 -m json.tool templates/mobile_full_closed_loop_runtime_verification.example.json >/tmp/mobile_full_closed_loop_runtime_verification.example.json",
+      "passed": true
+    },
+    {
+      "command": "git diff --check -- docs/mobile_full_closed_loop_runtime_verification.md templates/mobile_full_closed_loop_runtime_verification.example.json",
+      "passed": true
+    }
+  ],
+  "side_effects": {
+    "issue_comment_created": false,
+    "issue_labels_changed": false,
+    "github_issue_mutated": false,
+    "runtime_action_performed": false,
+    "production_action_performed": false,
+    "called_external_ai_runtime": false,
+    "sent_notification": false,
+    "modified_production_db": false,
+    "modified_n8n": false,
+    "modified_cron_systemd_timer": false,
+    "trading_or_order_action": false,
+    "executed_shell_from_issue_text": false
+  },
+  "safety_confirmation": "No real GitHub Issue mutation, notification, trading, production database mutation, n8n control, cron/systemd/timer mutation, or shell execution from Issue text was performed.",
+  "next_step_recommendation": "For a real runtime verification, replace placeholders with sanitized evidence from the scheduled pickup runner, Codex executor result, PR checks, conditional merge gate, and post-merge validator."
+}

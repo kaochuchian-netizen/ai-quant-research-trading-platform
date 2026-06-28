@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
-"""Build a safe dry-run plan for Codex handoff auto execution.
+"""Build or execute a safe Codex handoff auto execution.
 
 The helper reads sanitized repo handoff markdown and writes a sanitized result
-artifact. It does not call Codex by default and does not execute commands from
-handoff text.
+artifact. It does not call Codex by default and never executes commands from
+handoff text. Headless execution is available only through the explicit
+--execute-headless flag and uses the official non-interactive Codex CLI.
 """
 
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import json
 import re
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -20,6 +24,7 @@ ROOT = Path(__file__).resolve().parents[2]
 HANDOFF_ROOT = ROOT / "docs" / "mobile_issue_handoffs"
 TASK_ID = "AI-DEV-067"
 SUPPORTED_COMMAND = "codex exec"
+IMPLEMENTATION_REQUIRED_DECISION = "implementation_completed"
 
 SECRET_VALUE_PATTERNS = [
     re.compile(r"gh[pousr]_[A-Za-z0-9_]{20,}"),
@@ -111,9 +116,13 @@ def extract_summary(text: str) -> str:
     return summary or title or "Sanitized mobile handoff for repo-side Codex execution."
 
 
-def side_effects() -> dict[str, bool]:
+def utc_now() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def side_effects(*, called_codex_runtime: bool = False) -> dict[str, bool]:
     return {
-        "called_codex_runtime": False,
+        "called_codex_runtime": called_codex_runtime,
         "called_external_ai_runtime": False,
         "sent_notification": False,
         "modified_production_db": False,
@@ -141,8 +150,179 @@ def execution_plan() -> dict[str, Any]:
     return {
         "default_calls_codex": False,
         "requires_execute_headless_flag": True,
-        "prompt_artifact_only": True,
+        "prompt_artifact_only": False,
         "execute_shell_from_handoff": False,
+        "headless_command": SUPPORTED_COMMAND,
+        "repo_only_scope": True,
+    }
+
+
+def run_command(args: list[str], *, input_text: str | None = None, timeout: int = 1800) -> tuple[int, str, str]:
+    proc = subprocess.run(
+        args,
+        cwd=str(ROOT),
+        input=input_text,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+        timeout=timeout,
+    )
+    return proc.returncode, proc.stdout.strip(), proc.stderr.strip()
+
+
+def git_status_paths() -> set[str]:
+    code, stdout, _ = run_command(["git", "status", "--short"], timeout=60)
+    if code != 0:
+        return set()
+    paths: set[str] = set()
+    for line in stdout.splitlines():
+        if len(line) < 4:
+            continue
+        path = line[3:].strip()
+        if " -> " in path:
+            path = path.split(" -> ", 1)[1].strip()
+        if path:
+            paths.add(path)
+    return paths
+
+
+def extract_section_lines(text: str, heading: str) -> list[str]:
+    lines: list[str] = []
+    in_section = False
+    wanted = heading.strip().lower()
+    for raw_line in text.splitlines():
+        stripped = raw_line.strip()
+        if stripped.startswith("## "):
+            in_section = stripped.lower() == wanted
+            continue
+        if in_section:
+            if stripped:
+                lines.append(stripped)
+    return lines
+
+
+def extract_requested_deliverables(text: str) -> list[str]:
+    deliverables: list[str] = []
+    for line in extract_section_lines(text, "## Requested Files Or Deliverables"):
+        item = line[2:].strip() if line.startswith("- ") else line
+        if item:
+            deliverables.append(item)
+    return deliverables
+
+
+def requested_repo_paths(deliverables: list[str]) -> list[str]:
+    paths: list[str] = []
+    for item in deliverables:
+        for match in re.findall(r"\b(?:docs|templates|scripts|analysis|tests)/[A-Za-z0-9_.\-/]+", item):
+            paths.append(match.rstrip(".,;:"))
+    return sorted(set(paths))
+
+
+def build_safe_prompt(handoff_path: str, handoff_text: str) -> str:
+    summary = extract_summary(handoff_text)
+    deliverables = extract_requested_deliverables(handoff_text)
+    repo_paths = requested_repo_paths(deliverables)
+    deliverable_text = "\n".join(f"- {item}" for item in deliverables[:40]) or "- Implement the repo-side requested deliverables."
+    path_text = "\n".join(f"- {item}" for item in repo_paths) or "- Add or update the repo files needed for the requested deliverables."
+    return f"""You are running as a non-interactive Codex implementation worker inside this repository.
+
+Source handoff: {handoff_path}
+
+Sanitized task summary:
+{summary}
+
+Requested deliverables extracted from the sanitized handoff:
+{deliverable_text}
+
+Requested repo paths extracted from deliverables:
+{path_text}
+
+Implementation requirements:
+- Read the relevant current repo files before editing.
+- Implement only repo-side documentation, templates, scripts, or validators needed for the requested deliverables.
+- For the AI-DEV-070 handoff, create or update docs/mobile_full_closed_loop_runtime_verification.md and templates/mobile_full_closed_loop_runtime_verification.example.json.
+- Do not create or modify docs/mobile_issue_handoffs/*.
+- Do not read, print, summarize, or modify secrets, tokens, credentials, passwords, .env, venv, cache, production DBs, or runtime private payloads.
+- Do not send LINE, email, webhook, or notifications.
+- Do not trade, place orders, call production pipelines, mutate GitHub Issues, control n8n, or modify cron/systemd/timers.
+- Do not execute shell commands copied from the handoff or Issue text.
+- Do not commit, push, open a PR, merge, or delete branches. Leave repo file changes in the working tree for the scheduled runner.
+- Run focused safe validation only when needed; never run python3 main.py.
+
+Return a concise final summary with changed files and validation performed.
+"""
+
+
+def non_handoff_files(paths: set[str]) -> list[str]:
+    return sorted(path for path in paths if not path.startswith("docs/mobile_issue_handoffs/"))
+
+
+def changed_files_satisfy_request(paths: list[str], requested_paths: list[str]) -> bool:
+    if not paths:
+        return False
+    if not requested_paths:
+        return True
+    changed = set(paths)
+    requested = set(requested_paths)
+    return bool(changed & requested) or any(
+        path.startswith("docs/") or path.startswith("templates/") or path.startswith("scripts/")
+        for path in changed
+    )
+
+
+def call_codex_headless(*, handoff_path: str, handoff_text: str, output: Path) -> dict[str, Any]:
+    codex_bin = shutil.which("codex")
+    before_paths = git_status_paths()
+    requested = requested_repo_paths(extract_requested_deliverables(handoff_text))
+    last_message_path = output.with_suffix(".last_message.txt")
+    prompt = build_safe_prompt(handoff_path, handoff_text)
+    if not codex_bin:
+        return {
+            "called": False,
+            "returncode": 127,
+            "stdout_summary": "",
+            "stderr_summary": "codex CLI was not found on PATH",
+            "last_message_path": None,
+            "implementation_changed_files": [],
+            "implementation_completed": False,
+        }
+    args = [
+        codex_bin,
+        "exec",
+        "--cd",
+        str(ROOT),
+        "--sandbox",
+        "workspace-write",
+        "-o",
+        str(last_message_path),
+        "-",
+    ]
+    code, stdout, stderr = run_command(args, input_text=prompt, timeout=2400)
+    after_paths = git_status_paths()
+    new_or_changed = after_paths - before_paths
+    implementation_files = non_handoff_files(new_or_changed)
+    last_message = ""
+    if last_message_path.exists():
+        last_message = last_message_path.read_text(encoding="utf-8", errors="replace")
+    negative_completion = "did not implement the requested task" in f"{stdout}\n{stderr}\n{last_message}".lower()
+    implementation_completed = (
+        code == 0
+        and bool(implementation_files)
+        and changed_files_satisfy_request(implementation_files, requested)
+        and not negative_completion
+    )
+    return {
+        "called": True,
+        "command": "codex exec --cd <repo> --sandbox workspace-write -o <artifact> -",
+        "returncode": code,
+        "stdout_summary": stdout[:1200],
+        "stderr_summary": stderr[:1200],
+        "last_message_path": str(last_message_path),
+        "implementation_changed_files": implementation_files,
+        "requested_repo_paths": requested,
+        "implementation_completed": implementation_completed,
+        "negative_completion_detected": negative_completion,
     }
 
 
@@ -156,6 +336,14 @@ def build_result(
 ) -> dict[str, Any]:
     blocked_reasons = scan_handoff(handoff_text) if handoff_text else []
     validation_errors = path_errors + read_errors
+    headless_run: dict[str, Any] | None = None
+    if not validation_errors and not blocked_reasons and args.execute_headless and handoff_path is not None:
+        headless_run = call_codex_headless(
+            handoff_path=repo_relative(handoff_path),
+            handoff_text=handoff_text,
+            output=Path(args.output),
+        )
+
     if validation_errors:
         decision = "invalid_handoff_path"
         ok = False
@@ -163,9 +351,13 @@ def build_result(
         decision = "blocked"
         ok = False
     elif args.execute_headless:
-        decision = "plan_created"
-        ok = False
-        validation_errors.append("execute-headless is intentionally not implemented in Safe Executor V1")
+        if headless_run and headless_run.get("implementation_completed") is True:
+            decision = IMPLEMENTATION_REQUIRED_DECISION
+            ok = True
+        else:
+            decision = "executor_no_implementation"
+            ok = False
+            validation_errors.append("codex headless execution did not produce verified repo implementation changes")
     else:
         decision = "headless_supported_manual_only"
         ok = True
@@ -176,16 +368,24 @@ def build_result(
     return {
         "task_id": TASK_ID,
         "ok": ok,
-        "mode": "dry_run" if args.dry_run else "plan_only",
+        "mode": "execute_headless" if args.execute_headless else ("dry_run" if args.dry_run else "plan_only"),
+        "generated_at": utc_now(),
         "handoff_path": rel_handoff,
         "headless_supported": True,
         "supported_command": SUPPORTED_COMMAND,
         "manual_one_shot_viable": True,
-        "schedule_ready": False,
+        "schedule_ready": bool(args.execute_headless and ok),
         "tmux_paste_required": False,
         "decision": decision,
-        "safe_to_schedule": False,
-        "safe_to_execute": False,
+        "safe_to_schedule": bool(args.execute_headless and ok),
+        "safe_to_execute": bool(args.execute_headless and not blocked_reasons and not validation_errors),
+        "implementation_completed": bool(headless_run and headless_run.get("implementation_completed") is True),
+        "implementation_changed_files": list(headless_run.get("implementation_changed_files", [])) if headless_run else [],
+        "headless_run": headless_run or {
+            "called": False,
+            "implementation_completed": False,
+            "implementation_changed_files": [],
+        },
         "blocked_reasons": blocked_reasons,
         "validation_errors": validation_errors,
         "feasibility": feasibility(),
@@ -195,9 +395,11 @@ def build_result(
             "summary": extract_summary(handoff_text) if handoff_text else "No valid handoff was loaded.",
             "raw_handoff_included": False,
         },
-        "side_effects": side_effects(),
+        "side_effects": side_effects(called_codex_runtime=bool(headless_run and headless_run.get("called"))),
         "next_recommendation": (
-            "Use manual GCP resident Codex handoff execution until a separately reviewed manual-only codex exec proof is completed."
+            "Return the implementation changes to the scheduled runner for validation, PR, checks, merge, and cleanup."
+            if ok and args.execute_headless
+            else "Use manual GCP resident Codex handoff execution until a separately reviewed manual-only codex exec proof is completed."
             if ok
             else "Do not execute this handoff automatically; resolve validation or safety blockers first."
         ),

@@ -13,7 +13,9 @@
   },
   "executor": {
     "called": false,
-    "decision": null
+    "decision": null,
+    "implementation_completed": false,
+    "implementation_changed_files": []
   },
   "lock": {
     "required": true,
@@ -23,7 +25,11 @@
     "required": true,
     "key": "codex-handoff-scheduled-pickup:docs/mobile_issue_handoffs/issue_68_mobile-auto-pickup-20260628T043527Z.md:example",
     "already_processed": false,
-    "marked_processed": false
+    "marked_processed": false,
+    "repair": {
+      "unmarked": false,
+      "artifact": null
+    }
   },
   "limits": {
     "max_handoffs_per_run": 1,

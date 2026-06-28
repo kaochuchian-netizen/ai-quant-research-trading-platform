@@ -28,6 +28,9 @@ MAX_HANDOFFS_PER_RUN = 1
 
 DECISIONS = {
     "executed_codex_handoff",
+    "implementation_completed",
+    "handoff_only_not_implemented",
+    "executor_no_implementation",
     "dry_run_plan_created",
     "no_pending_handoff",
     "readiness_failed",
@@ -39,6 +42,8 @@ DECISIONS = {
     "validation_failed",
     "activation_completed",
 }
+
+SUCCESSFUL_EXECUTOR_DECISIONS = {"implementation_completed", "executed_codex_handoff"}
 
 SIDE_EFFECTS_FALSE = {
     "called_codex_runtime": False,
@@ -115,6 +120,56 @@ def load_processed(path: Path) -> dict[str, Any]:
 def save_processed(path: Path, data: dict[str, Any]) -> None:
     data["updated_at"] = utc_now()
     write_json(path, data)
+
+
+def find_processed_record(processed: dict[str, Any], key: str) -> dict[str, Any] | None:
+    for item in processed.get("records", []):
+        if isinstance(item, dict) and item.get("key") == key:
+            return item
+    return None
+
+
+def unmark_non_implementation_processed(
+    *,
+    processed_path: Path,
+    processed: dict[str, Any],
+    processed_keys: set[str],
+    key: str,
+    handoff_path: str,
+    state_dir: Path,
+) -> tuple[dict[str, Any], set[str], dict[str, Any] | None]:
+    if key not in processed_keys:
+        return processed, processed_keys, None
+    record = find_processed_record(processed, key)
+    executor_decision = str(record.get("executor_decision", "")) if record else ""
+    implementation_completed = bool(record.get("implementation_completed")) if record else False
+    if executor_decision in SUCCESSFUL_EXECUTOR_DECISIONS and implementation_completed:
+        return processed, processed_keys, None
+
+    repaired_keys = sorted(item for item in processed_keys if item != key)
+    repaired_records = [
+        item
+        for item in processed.get("records", [])
+        if not (isinstance(item, dict) and item.get("key") == key)
+    ]
+    processed["processed_keys"] = repaired_keys
+    processed["records"] = repaired_records
+    save_processed(processed_path, processed)
+    repair = {
+        "schema_version": "1.0.0",
+        "generated_at": utc_now(),
+        "handoff_path": handoff_path,
+        "key": key,
+        "unmarked": True,
+        "unmarked_reason": "handoff_only_not_implemented",
+        "previous_executor_decision": executor_decision or None,
+        "source_pr": 75 if "issue_74_" in handoff_path else None,
+        "safe_to_retry": True,
+    }
+    repair_path = state_dir / "repairs" / f"{timestamp()}_handoff_only_not_implemented.json"
+    write_json(repair_path, repair)
+    repair["artifact"] = str(repair_path)
+    return processed, set(repaired_keys), repair
 
 
 def idempotency_key(handoff_path: str, handoff_text: str) -> str:
@@ -229,6 +284,8 @@ def base_result(args: argparse.Namespace) -> dict[str, Any]:
             "decision": None,
             "artifact": None,
             "returncode": None,
+            "implementation_completed": False,
+            "implementation_changed_files": [],
         },
         "lock": {
             "required": True,
@@ -241,6 +298,10 @@ def base_result(args: argparse.Namespace) -> dict[str, Any]:
             "already_processed": False,
             "marked_processed": False,
             "path": str(Path(args.state_dir).expanduser() / PROCESSED_FILE),
+            "repair": {
+                "unmarked": False,
+                "artifact": None,
+            },
         },
         "limits": {
             "max_handoffs_per_run": args.max_handoffs_per_run,
@@ -283,7 +344,7 @@ def call_executor(codex_executor: Path, handoff_path: str, output: Path) -> tupl
     args = [
         sys.executable,
         str(codex_executor),
-        "--dry-run",
+        "--execute-headless",
         "--handoff-path",
         handoff_path,
         "--output",
@@ -292,6 +353,26 @@ def call_executor(codex_executor: Path, handoff_path: str, output: Path) -> tupl
     code, stdout, stderr = run_command(args, timeout=180)
     data, _ = load_json(output) if output.exists() else (None, [])
     return code, data, stderr or stdout
+
+
+def non_handoff_files(paths: list[Any]) -> list[str]:
+    result: list[str] = []
+    for item in paths:
+        if isinstance(item, str) and item and not item.startswith("docs/mobile_issue_handoffs/"):
+            result.append(item)
+    return sorted(set(result))
+
+
+def executor_implementation_files(executor: dict[str, Any]) -> list[str]:
+    direct = executor.get("implementation_changed_files")
+    if isinstance(direct, list):
+        files = non_handoff_files(direct)
+        if files:
+            return files
+    headless = executor.get("headless_run")
+    if isinstance(headless, dict) and isinstance(headless.get("implementation_changed_files"), list):
+        return non_handoff_files(headless["implementation_changed_files"])
+    return []
 
 
 def persist_run_artifacts(state_dir: Path, output: Path, result: dict[str, Any]) -> Path:
@@ -356,7 +437,23 @@ def build_result(args: argparse.Namespace) -> dict[str, Any]:
     processed_path = state_dir / PROCESSED_FILE
     processed = load_processed(processed_path)
     processed_keys = set(str(item) for item in processed.get("processed_keys", []) if isinstance(item, str))
+    processed, processed_keys, repair = unmark_non_implementation_processed(
+        processed_path=processed_path,
+        processed=processed,
+        processed_keys=processed_keys,
+        key=key,
+        handoff_path=str(normalized_handoff),
+        state_dir=state_dir,
+    )
     result["idempotency"]["key"] = key
+    if repair:
+        result["idempotency"]["repair"] = {
+            "unmarked": True,
+            "artifact": repair.get("artifact"),
+            "unmarked_reason": repair.get("unmarked_reason"),
+            "source_pr": repair.get("source_pr"),
+            "safe_to_retry": repair.get("safe_to_retry"),
+        }
     result["idempotency"]["already_processed"] = key in processed_keys
     if key in processed_keys:
         result["ok"] = True
@@ -407,10 +504,27 @@ def build_result(args: argparse.Namespace) -> dict[str, Any]:
             "decision": executor.get("decision") if executor else None,
             "artifact": str(executor_output),
             "returncode": executor_code,
+            "implementation_completed": bool(executor.get("implementation_completed")) if executor else False,
+            "implementation_changed_files": executor_implementation_files(executor) if executor else [],
         }
+        implementation_files = executor_implementation_files(executor) if executor else []
         if executor_code != 0 or not executor or executor.get("ok") is not True:
             result["decision"] = "codex_executor_failed"
             result["blocked_reasons"] = list(executor.get("blocked_reasons", [])) if executor else [executor_error]
+            if executor and executor.get("decision") == "executor_no_implementation":
+                result["decision"] = "executor_no_implementation"
+                result["blocked_reasons"] = list(executor.get("validation_errors", [])) or [
+                    "executor did not produce verified implementation changes"
+                ]
+            if executor and not implementation_files:
+                result["decision"] = "handoff_only_not_implemented"
+                result["blocked_reasons"] = list(executor.get("validation_errors", [])) or [
+                    "executor did not produce non-handoff implementation files"
+                ]
+            return result
+        if executor.get("implementation_completed") is not True or not implementation_files:
+            result["decision"] = "handoff_only_not_implemented"
+            result["blocked_reasons"] = ["executor completed without verified non-handoff implementation changes"]
             return result
 
         processed["processed_keys"] = sorted(processed_keys | {key})
@@ -420,6 +534,8 @@ def build_result(args: argparse.Namespace) -> dict[str, Any]:
                 "key": key,
                 "handoff_path": normalized_handoff,
                 "executor_decision": executor.get("decision"),
+                "implementation_completed": True,
+                "implementation_changed_files": implementation_files,
                 "recorded_at": utc_now(),
             }
         )
@@ -428,6 +544,7 @@ def build_result(args: argparse.Namespace) -> dict[str, Any]:
         result["idempotency"]["marked_processed"] = True
         result["ok"] = True
         result["decision"] = "executed_codex_handoff"
+        result["implementation_completed"] = True
         result["safe_to_continue"] = True
         result["next_recommendation"] = "Keep timer enabled and monitor sanitized scheduled pickup result artifacts."
         return result

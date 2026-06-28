@@ -1,0 +1,54 @@
+{
+  "task_id": "AI-DEV-069",
+  "ok": false,
+  "mode": "execute",
+  "decision": "handoff_only_not_implemented",
+  "pickup_artifact": "~/.local/state/stock-ai-orchestrator/github_issue_scheduled_pickup_latest.json",
+  "handoff_path": "docs/mobile_issue_handoffs/issue_74_mobile-auto-pickup-20260628T125252Z.md",
+  "readiness": {
+    "called": true,
+    "decision": "readiness_pass_manual_only",
+    "safe_to_call_executor": true,
+    "safe_to_schedule": false
+  },
+  "executor": {
+    "called": true,
+    "decision": "executor_no_implementation",
+    "implementation_completed": false,
+    "implementation_changed_files": []
+  },
+  "lock": {
+    "required": true,
+    "acquired": true
+  },
+  "idempotency": {
+    "required": true,
+    "key": "codex-handoff-scheduled-pickup:docs/mobile_issue_handoffs/issue_74_mobile-auto-pickup-20260628T125252Z.md:example",
+    "already_processed": false,
+    "marked_processed": false,
+    "repair": {
+      "unmarked": true,
+      "artifact": "~/.local/state/stock-ai-orchestrator/codex_handoff_scheduled_pickup/repairs/example_handoff_only_not_implemented.json",
+      "unmarked_reason": "handoff_only_not_implemented",
+      "source_pr": 75,
+      "safe_to_retry": true
+    }
+  },
+  "limits": {
+    "max_handoffs_per_run": 1,
+    "selected_handoff_count": 1
+  },
+  "side_effects": {
+    "called_codex_runtime": false,
+    "called_external_ai_runtime": false,
+    "sent_notification": false,
+    "modified_production_db": false,
+    "modified_cron_systemd_timer": false,
+    "mutated_github_issue": false
+  },
+  "safe_to_continue": false,
+  "blocked_reasons": [
+    "executor did not produce non-handoff implementation files"
+  ],
+  "next_recommendation": "Retry only after the executor can produce verified repo implementation changes."
+}
