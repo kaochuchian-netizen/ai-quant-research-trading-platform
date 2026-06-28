@@ -26,6 +26,17 @@ REQUIRED_FIELDS = [
     "selected_issue_url",
     "task_class",
     "decision",
+    "requested_task_summary",
+    "requested_deliverables",
+    "actual_deliverables",
+    "implementation_status",
+    "completion_claim_valid",
+    "artifact_only",
+    "handoff_created",
+    "handoff_path",
+    "needs_codex_execution",
+    "idempotency_completion_scope",
+    "safe_to_mark_processed",
     "branch_created",
     "pr_created",
     "pr_url",
@@ -49,8 +60,10 @@ REQUIRED_FIELDS = [
     "errors",
     "warnings",
 ]
-DECISIONS = {"no_candidate", "accepted", "rejected", "needs_manual_review", "already_processed", "executed_repo_only"}
+DECISIONS = {"no_candidate", "artifact_recorded", "handoff_created", "needs_codex_execution", "executed_repo_only", "rejected", "already_processed", "needs_manual_review"}
 SOURCES = {"fixture", "live_read"}
+IMPLEMENTATION_STATUSES = {"not_started", "pending_codex_execution", "artifact_recorded_only", "handoff_created_pending_codex", "implemented_merged", "rejected", "already_processed"}
+COMPLETION_SCOPES = {"none", "artifact_recorded", "handoff_created", "actual_task_implemented"}
 SECRET_VALUE_PATTERNS = [
     re.compile(r"ghp_[A-Za-z0-9_]+"),
     re.compile(r"github_pat_[A-Za-z0-9_]+"),
@@ -94,6 +107,17 @@ def validate_record(record: Any, bucket: str, errors: list[str]) -> None:
         "idempotency_key",
         "sanitized_summary",
         "execute_repo_only_allowed",
+        "requested_task_summary",
+        "requested_deliverables",
+        "actual_deliverables",
+        "implementation_status",
+        "completion_claim_valid",
+        "artifact_only",
+        "handoff_created",
+        "handoff_path",
+        "needs_codex_execution",
+        "idempotency_completion_scope",
+        "safe_to_mark_processed",
     ]:
         if field not in record:
             errors.append(f"{bucket} entry missing required field: {field}")
@@ -104,8 +128,8 @@ def validate_record(record: Any, bucket: str, errors: list[str]) -> None:
         errors.append(f"{bucket}.issue_url must be a GitHub URL")
     if not isinstance(record.get("labels_seen"), list):
         errors.append(f"{bucket}.labels_seen must be a list")
-    if not str(record.get("idempotency_key", "")).startswith("mobile-auto-pickup-v1|"):
-        errors.append(f"{bucket}.idempotency_key must start with mobile-auto-pickup-v1|")
+    if not str(record.get("idempotency_key", "")).startswith("mobile-auto-pickup-v2|"):
+        errors.append(f"{bucket}.idempotency_key must start with mobile-auto-pickup-v2|")
     if bucket == "candidates" and record.get("eligible") is not True:
         errors.append("candidate entries must have eligible=true")
     if bucket == "rejected" and record.get("eligible") is not False:
@@ -123,6 +147,10 @@ def validate_result(data: dict[str, Any]) -> dict[str, Any]:
         errors.append("source must be fixture or live_read")
     if data.get("decision") not in DECISIONS:
         errors.append("decision is not recognized")
+    if data.get("implementation_status") not in IMPLEMENTATION_STATUSES:
+        errors.append("implementation_status is not recognized")
+    if data.get("idempotency_completion_scope") not in COMPLETION_SCOPES:
+        errors.append("idempotency_completion_scope is not recognized")
     if data.get("dry_run") is not True:
         errors.append("dry_run must be true")
     if data.get("scheduler_enabled") is not False:
@@ -141,9 +169,12 @@ def validate_result(data: dict[str, Any]) -> dict[str, Any]:
     for field in ["total_issues_seen", "eligible_count", "rejected_count", "needs_manual_review_count"]:
         if not isinstance(data.get(field), int) or data.get(field) < 0:
             errors.append(f"{field} must be a non-negative integer")
-    for field in ["candidate_issue_numbers", "files_changed", "validations_run", "candidates", "rejected", "idempotency_keys", "errors", "warnings"]:
+    for field in ["candidate_issue_numbers", "requested_deliverables", "actual_deliverables", "files_changed", "validations_run", "candidates", "rejected", "idempotency_keys", "errors", "warnings"]:
         if not isinstance(data.get(field), list):
             errors.append(f"{field} must be a list")
+    for field in ["completion_claim_valid", "artifact_only", "handoff_created", "needs_codex_execution", "safe_to_mark_processed"]:
+        if not isinstance(data.get(field), bool):
+            errors.append(f"{field} must be boolean")
 
     candidates = data.get("candidates", [])
     rejected = data.get("rejected", [])
@@ -163,6 +194,35 @@ def validate_result(data: dict[str, Any]) -> dict[str, Any]:
             errors.append("rejected_count must equal rejected entries")
         if data.get("needs_manual_review_count") != manual_count:
             errors.append("needs_manual_review_count must equal manual review entries")
+
+    if data.get("decision") == "executed_repo_only":
+        if data.get("safe_to_mark_processed") is not True:
+            errors.append("executed_repo_only requires safe_to_mark_processed=true")
+        if data.get("idempotency_completion_scope") != "actual_task_implemented":
+            errors.append("executed_repo_only requires idempotency_completion_scope=actual_task_implemented")
+        if data.get("implementation_status") != "implemented_merged":
+            errors.append("executed_repo_only requires implementation_status=implemented_merged")
+        if data.get("artifact_only") is True or data.get("needs_codex_execution") is True:
+            errors.append("executed_repo_only cannot be artifact-only or pending Codex execution")
+        if not data.get("merged") or not data.get("pr_created"):
+            errors.append("executed_repo_only requires a merged implementation PR")
+    if data.get("decision") == "artifact_recorded":
+        if data.get("artifact_only") is not True:
+            errors.append("artifact_recorded requires artifact_only=true")
+        if data.get("safe_to_mark_processed") is not False:
+            errors.append("artifact_recorded cannot mark the requested task processed")
+    if data.get("decision") == "handoff_created":
+        if data.get("handoff_created") is not True or not data.get("handoff_path"):
+            errors.append("handoff_created requires handoff_created=true and handoff_path")
+        if data.get("safe_to_mark_processed") is not False:
+            errors.append("handoff_created cannot mark the requested task processed")
+        if data.get("needs_codex_execution") is not True:
+            errors.append("handoff_created must keep needs_codex_execution=true")
+    if data.get("decision") == "needs_codex_execution":
+        if data.get("needs_codex_execution") is not True:
+            errors.append("needs_codex_execution decision requires needs_codex_execution=true")
+        if data.get("safe_to_mark_processed") is not False:
+            errors.append("needs_codex_execution cannot mark the requested task processed")
 
     text = flatten_text(data)
     value_hit_patterns = [pattern.pattern for pattern in SECRET_VALUE_PATTERNS if pattern.search(text)]

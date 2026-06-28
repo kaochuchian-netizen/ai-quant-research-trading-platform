@@ -1,8 +1,8 @@
 {
   "schema_version": "2.0.0",
-  "run_id": "mobile-auto-pickup-example-needs-codex",
+  "run_id": "mobile-auto-pickup-example-artifact-only",
   "generated_at": "2026-06-28T00:00:00Z",
-  "source": "live_read",
+  "source": "fixture",
   "dry_run": true,
   "scheduler_enabled": false,
   "total_issues_seen": 1,
@@ -10,34 +10,37 @@
   "rejected_count": 0,
   "needs_manual_review_count": 0,
   "candidate_issue_numbers": [
-    123
+    128
   ],
-  "selected_issue_number": 123,
-  "selected_issue_url": "https://github.com/example/repo/issues/123",
-  "task_class": "runbook_only",
-  "decision": "needs_codex_execution",
-  "requested_task_summary": "AI-DEV mobile runbook update Update docs/runbook.md and validate markdown.",
+  "selected_issue_number": 128,
+  "selected_issue_url": "https://github.com/example/repo/issues/128",
+  "task_class": "docs_only",
+  "decision": "artifact_recorded",
+  "requested_task_summary": "Record a sanitized audit artifact only.",
   "requested_deliverables": [
-    "Update docs/runbook.md",
-    "Run validation"
+    "Add docs/mobile_issue_auto_runs/example.json"
   ],
-  "actual_deliverables": [],
-  "implementation_status": "pending_codex_execution",
+  "actual_deliverables": [
+    "docs/mobile_issue_auto_runs/issue_128_mobile-auto-pickup-example-artifact-only.json"
+  ],
+  "implementation_status": "artifact_recorded_only",
   "completion_claim_valid": true,
-  "artifact_only": false,
+  "artifact_only": true,
   "handoff_created": false,
   "handoff_path": null,
   "needs_codex_execution": true,
-  "idempotency_completion_scope": "none",
+  "idempotency_completion_scope": "artifact_recorded",
   "safe_to_mark_processed": false,
-  "branch_created": false,
-  "pr_created": false,
-  "pr_url": null,
-  "merged": false,
-  "merge_commit": null,
-  "files_changed": [],
+  "branch_created": true,
+  "pr_created": true,
+  "pr_url": "https://github.com/example/repo/pull/129",
+  "merged": true,
+  "merge_commit": "1111111111111111111111111111111111111111",
+  "files_changed": [
+    "docs/mobile_issue_auto_runs/issue_128_mobile-auto-pickup-example-artifact-only.json"
+  ],
   "validations_run": [],
-  "github_actions_result": "not_run",
+  "github_actions_result": "success",
   "issue_comment_created": false,
   "issue_labels_changed": false,
   "github_issue_mutated": false,
@@ -46,29 +49,28 @@
   "daemon_or_background_service_created": false,
   "candidates": [
     {
-      "issue_number": 123,
-      "issue_url": "https://github.com/example/repo/issues/123",
-      "title": "AI-DEV mobile runbook update",
+      "issue_number": 128,
+      "issue_url": "https://github.com/example/repo/issues/128",
+      "title": "AI-DEV artifact audit",
       "labels_seen": [
         "ai-dev",
         "gcp-pickup",
         "auto-run",
         "repo-only",
-        "dry-run"
+        "approved-auto-run"
       ],
       "eligible": true,
       "decision": "accepted",
-      "task_class": "runbook_only",
+      "task_class": "docs_only",
       "required_labels_present": true,
       "approval_label_present": true,
       "blocked_terms_detected": [],
-      "idempotency_key": "mobile-auto-pickup-v2|123|https://github.com/example/repo/issues/123|runbook_only|ai-dev,gcp-pickup,auto-run,repo-only|dry-run",
-      "sanitized_summary": "Accepted mobile Issue candidate for runbook_only repo-only automation.",
+      "idempotency_key": "mobile-auto-pickup-v2|128|https://github.com/example/repo/issues/128|docs_only|ai-dev,gcp-pickup,auto-run,repo-only|approved-auto-run",
+      "sanitized_summary": "Accepted mobile Issue candidate for docs_only repo-only automation.",
       "execute_repo_only_allowed": false,
-      "requested_task_summary": "AI-DEV mobile runbook update Update docs/runbook.md and validate markdown.",
+      "requested_task_summary": "Record a sanitized audit artifact only.",
       "requested_deliverables": [
-        "Update docs/runbook.md",
-        "Run validation"
+        "Add docs/mobile_issue_auto_runs/example.json"
       ],
       "actual_deliverables": [],
       "implementation_status": "not_started",
@@ -83,14 +85,14 @@
   ],
   "rejected": [],
   "idempotency_keys": [
-    "mobile-auto-pickup-v2|123|https://github.com/example/repo/issues/123|runbook_only|ai-dev,gcp-pickup,auto-run,repo-only|dry-run"
+    "mobile-auto-pickup-v2|128|https://github.com/example/repo/issues/128|docs_only|ai-dev,gcp-pickup,auto-run,repo-only|approved-auto-run"
   ],
   "rollback_or_disable_commands": [
     "systemctl --user disable --now stock-ai-github-issue-scheduled-pickup-dry-run.timer",
     "systemctl --user reset-failed stock-ai-github-issue-scheduled-pickup-dry-run.service",
     "systemctl --user daemon-reload"
   ],
-  "next_step_recommendation": "Eligible candidate selected; create a Codex handoff or run resident Codex for the actual implementation.",
+  "next_step_recommendation": "Only an artifact was recorded; actual requested implementation remains pending.",
   "safety_confirmation": "No runtime action, production action, Issue mutation, comment-back, label mutation, n8n, Dify, notification, production DB, trading, or shell execution from Issue text was performed.",
   "errors": [],
   "warnings": []

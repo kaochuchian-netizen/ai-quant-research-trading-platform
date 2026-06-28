@@ -1,28 +1,33 @@
 {
   "schema_version": "2.0.0",
-  "run_id": "mobile-auto-pickup-example-already-processed",
+  "run_id": "mobile-auto-pickup-example-needs-codex-execution",
   "generated_at": "2026-06-28T00:00:00Z",
-  "source": "live_read",
+  "source": "fixture",
   "dry_run": true,
   "scheduler_enabled": false,
   "total_issues_seen": 1,
-  "eligible_count": 0,
+  "eligible_count": 1,
   "rejected_count": 0,
   "needs_manual_review_count": 0,
-  "candidate_issue_numbers": [],
-  "selected_issue_number": null,
-  "selected_issue_url": null,
-  "task_class": null,
-  "decision": "no_candidate",
-  "requested_task_summary": null,
-  "requested_deliverables": [],
+  "candidate_issue_numbers": [
+    130
+  ],
+  "selected_issue_number": 130,
+  "selected_issue_url": "https://github.com/example/repo/issues/130",
+  "task_class": "repo_side_contract",
+  "decision": "needs_codex_execution",
+  "requested_task_summary": "Implement a repo-side contract.",
+  "requested_deliverables": [
+    "Create docs/example_contract.md",
+    "Update validator"
+  ],
   "actual_deliverables": [],
-  "implementation_status": "not_started",
-  "completion_claim_valid": false,
+  "implementation_status": "pending_codex_execution",
+  "completion_claim_valid": true,
   "artifact_only": false,
   "handoff_created": false,
   "handoff_path": null,
-  "needs_codex_execution": false,
+  "needs_codex_execution": true,
   "idempotency_completion_scope": "none",
   "safe_to_mark_processed": false,
   "branch_created": false,
@@ -39,33 +44,31 @@
   "runtime_action_performed": false,
   "production_action_performed": false,
   "daemon_or_background_service_created": false,
-  "candidates": [],
-  "rejected": [
+  "candidates": [
     {
-      "issue_number": 125,
-      "issue_url": "https://github.com/example/repo/issues/125",
-      "title": "AI-DEV docs update",
+      "issue_number": 130,
+      "issue_url": "https://github.com/example/repo/issues/130",
+      "title": "AI-DEV contract",
       "labels_seen": [
         "ai-dev",
         "gcp-pickup",
         "auto-run",
         "repo-only",
-        "approved-auto-run"
+        "dry-run"
       ],
-      "eligible": false,
-      "decision": "already_processed",
-      "task_class": "docs_only",
+      "eligible": true,
+      "decision": "accepted",
+      "task_class": "repo_side_contract",
       "required_labels_present": true,
       "approval_label_present": true,
-      "blocked_terms_detected": [
-        "already_processed"
-      ],
-      "idempotency_key": "mobile-auto-pickup-v2|125|https://github.com/example/repo/issues/125|docs_only|ai-dev,gcp-pickup,auto-run,repo-only|approved-auto-run",
-      "sanitized_summary": "Skipped mobile Issue candidate because its idempotency key already has a terminal result.",
+      "blocked_terms_detected": [],
+      "idempotency_key": "mobile-auto-pickup-v2|130|https://github.com/example/repo/issues/130|repo_side_contract|ai-dev,gcp-pickup,auto-run,repo-only|dry-run",
+      "sanitized_summary": "Accepted mobile Issue candidate for repo_side_contract repo-only automation.",
       "execute_repo_only_allowed": false,
-      "requested_task_summary": "AI-DEV docs update Update docs/example.md.",
+      "requested_task_summary": "Implement a repo-side contract.",
       "requested_deliverables": [
-        "Update docs/example.md"
+        "Create docs/example_contract.md",
+        "Update validator"
       ],
       "actual_deliverables": [],
       "implementation_status": "not_started",
@@ -73,18 +76,21 @@
       "artifact_only": false,
       "handoff_created": false,
       "handoff_path": null,
-      "needs_codex_execution": false,
+      "needs_codex_execution": true,
       "idempotency_completion_scope": "none",
       "safe_to_mark_processed": false
     }
   ],
-  "idempotency_keys": [],
+  "rejected": [],
+  "idempotency_keys": [
+    "mobile-auto-pickup-v2|130|https://github.com/example/repo/issues/130|repo_side_contract|ai-dev,gcp-pickup,auto-run,repo-only|dry-run"
+  ],
   "rollback_or_disable_commands": [
     "systemctl --user disable --now stock-ai-github-issue-scheduled-pickup-dry-run.timer",
     "systemctl --user reset-failed stock-ai-github-issue-scheduled-pickup-dry-run.service",
     "systemctl --user daemon-reload"
   ],
-  "next_step_recommendation": "No eligible mobile Issue candidate was selected.",
+  "next_step_recommendation": "Eligible candidate selected; create a Codex handoff or run resident Codex for the actual implementation.",
   "safety_confirmation": "No runtime action, production action, Issue mutation, comment-back, label mutation, n8n, Dify, notification, production DB, trading, or shell execution from Issue text was performed.",
   "errors": [],
   "warnings": []
