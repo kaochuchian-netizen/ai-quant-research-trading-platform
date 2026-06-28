@@ -1,0 +1,420 @@
+{
+  "schema_version": 1,
+  "ingestion_version": "daily_report_forecast_review_ingestion_v1",
+  "run_id": "daily-report-forecast-review-ingestion-fixture-20260626",
+  "generated_at": "2026-06-26T07:05:00+08:00",
+  "source_forecast_run_id": "daily-report-forecast-v1-fixture-20260626",
+  "source_forecast_version": "daily_report_forecast_v1",
+  "run_date": "2026-06-26",
+  "timezone": "Asia/Taipei",
+  "review_records": [
+    {
+      "record_id": "daily-report-forecast-review-2026-06-26-2330-same_day",
+      "record_type": "daily_report_forecast_prediction_review",
+      "record_status": "pending_actual_outcome",
+      "stock_id": "2330",
+      "stock_name": "Example Semiconductor",
+      "forecast_version": "daily_report_forecast_v1",
+      "source_forecast_run_id": "daily-report-forecast-v1-fixture-20260626",
+      "run_date": "2026-06-26",
+      "timezone": "Asia/Taipei",
+      "forecast_horizon": "same_day",
+      "forecast_target": "same_day_high_low_interval",
+      "target_date": "2026-06-26",
+      "review_window": "same_day_close",
+      "review_due": "2026-06-26T15:00:00+08:00",
+      "forecast_snapshot": {
+        "forecast_type": "high_low_interval",
+        "forecast_target": "same_day_high_low_interval",
+        "confidence_score": 0.62,
+        "confidence_bucket": "medium",
+        "basis": [
+          "technical-momentum-example",
+          "official-guidance-example",
+          "analyst-context-example"
+        ],
+        "review_due": "2026-06-26T15:00:00+08:00",
+        "price_interval": {
+          "low": 932.9,
+          "high": 967.1,
+          "unit": "TWD",
+          "interval_method": "fixture_reference_price_pct_band",
+          "contains_reference_price": true
+        }
+      },
+      "actual_outcome": {
+        "outcome_status": "pending",
+        "source_status": "not_collected",
+        "pending_reason": "fixture_review_window_not_backfilled",
+        "values": {
+          "actual_high": null,
+          "actual_low": null,
+          "actual_close": null,
+          "actual_return": null,
+          "actual_direction": null
+        }
+      },
+      "evaluation_metrics": {
+        "evaluation_status": "pending",
+        "interval_hit": null,
+        "high_inside_interval": null,
+        "low_inside_interval": null,
+        "direction_match": null,
+        "trend_match": null,
+        "absolute_error": null,
+        "high_forecast_error": null,
+        "low_forecast_error": null,
+        "confidence_bucket": "medium",
+        "calibration_bucket": "pending"
+      },
+      "source_metadata": {
+        "report_window": "pre_open",
+        "generated_at": "2026-06-26T07:00:00+08:00",
+        "data_cutoff": "2026-06-26T06:40:00+08:00",
+        "signals_used": [
+          {
+            "signal_id": "technical-momentum-example",
+            "signal_type": "technical",
+            "direction": "positive",
+            "strength": 0.68,
+            "source_tier": "tier_3_market_data",
+            "freshness": "fixture"
+          },
+          {
+            "signal_id": "official-guidance-example",
+            "signal_type": "company_guidance",
+            "direction": "positive",
+            "strength": 0.72,
+            "source_tier": "tier_1_company_official",
+            "freshness": "fixture"
+          },
+          {
+            "signal_id": "analyst-context-example",
+            "signal_type": "analyst_metadata",
+            "direction": "neutral",
+            "strength": 0.45,
+            "source_tier": "tier_4_consensus_and_analyst",
+            "freshness": "fixture",
+            "usage": "low_priority_sentiment_metadata_only"
+          }
+        ],
+        "original_prediction_review": {
+          "review_status": "pending",
+          "same_day_review_due": "2026-06-26T15:00:00+08:00",
+          "next_day_review_due": "2026-06-29T15:00:00+08:00",
+          "one_month_review_due": "2026-07-26",
+          "actual_outcome": {
+            "same_day_high": null,
+            "same_day_low": null,
+            "next_day_high": null,
+            "next_day_low": null,
+            "one_month_trend": null
+          },
+          "evaluation_metrics": {
+            "same_day_interval_hit": null,
+            "next_day_interval_hit": null,
+            "one_month_trend_match": null,
+            "calibration_bucket": "pending"
+          },
+          "review_notes": [
+            "fixture_forecast_pending_actual_outcome",
+            "preserve_original_forecast_snapshot"
+          ]
+        }
+      },
+      "safety": {
+        "fixture_only": true,
+        "advisory_only": true,
+        "research_only": true,
+        "no_trade": true,
+        "no_order": true,
+        "no_trading_instruction": true,
+        "no_order_execution": true,
+        "requires_human_review": true
+      }
+    },
+    {
+      "record_id": "daily-report-forecast-review-2026-06-26-2330-next_day",
+      "record_type": "daily_report_forecast_prediction_review",
+      "record_status": "pending_actual_outcome",
+      "stock_id": "2330",
+      "stock_name": "Example Semiconductor",
+      "forecast_version": "daily_report_forecast_v1",
+      "source_forecast_run_id": "daily-report-forecast-v1-fixture-20260626",
+      "run_date": "2026-06-26",
+      "timezone": "Asia/Taipei",
+      "forecast_horizon": "next_day",
+      "forecast_target": "next_day_high_low_interval",
+      "target_date": "2026-06-29",
+      "review_window": "next_trading_day_close",
+      "review_due": "2026-06-29T15:00:00+08:00",
+      "forecast_snapshot": {
+        "forecast_type": "high_low_interval",
+        "forecast_target": "next_day_high_low_interval",
+        "confidence_score": 0.57,
+        "confidence_bucket": "medium",
+        "basis": [
+          "technical-momentum-example",
+          "official-guidance-example",
+          "analyst-context-example"
+        ],
+        "review_due": "2026-06-29T15:00:00+08:00",
+        "price_interval": {
+          "low": 925.3,
+          "high": 974.7,
+          "unit": "TWD",
+          "interval_method": "fixture_reference_price_pct_band",
+          "contains_reference_price": true
+        }
+      },
+      "actual_outcome": {
+        "outcome_status": "pending",
+        "source_status": "not_collected",
+        "pending_reason": "fixture_review_window_not_backfilled",
+        "values": {
+          "actual_high": null,
+          "actual_low": null,
+          "actual_close": null,
+          "actual_return": null,
+          "actual_direction": null
+        }
+      },
+      "evaluation_metrics": {
+        "evaluation_status": "pending",
+        "interval_hit": null,
+        "high_inside_interval": null,
+        "low_inside_interval": null,
+        "direction_match": null,
+        "trend_match": null,
+        "absolute_error": null,
+        "high_forecast_error": null,
+        "low_forecast_error": null,
+        "confidence_bucket": "medium",
+        "calibration_bucket": "pending"
+      },
+      "source_metadata": {
+        "report_window": "pre_open",
+        "generated_at": "2026-06-26T07:00:00+08:00",
+        "data_cutoff": "2026-06-26T06:40:00+08:00",
+        "signals_used": [
+          {
+            "signal_id": "technical-momentum-example",
+            "signal_type": "technical",
+            "direction": "positive",
+            "strength": 0.68,
+            "source_tier": "tier_3_market_data",
+            "freshness": "fixture"
+          },
+          {
+            "signal_id": "official-guidance-example",
+            "signal_type": "company_guidance",
+            "direction": "positive",
+            "strength": 0.72,
+            "source_tier": "tier_1_company_official",
+            "freshness": "fixture"
+          },
+          {
+            "signal_id": "analyst-context-example",
+            "signal_type": "analyst_metadata",
+            "direction": "neutral",
+            "strength": 0.45,
+            "source_tier": "tier_4_consensus_and_analyst",
+            "freshness": "fixture",
+            "usage": "low_priority_sentiment_metadata_only"
+          }
+        ],
+        "original_prediction_review": {
+          "review_status": "pending",
+          "same_day_review_due": "2026-06-26T15:00:00+08:00",
+          "next_day_review_due": "2026-06-29T15:00:00+08:00",
+          "one_month_review_due": "2026-07-26",
+          "actual_outcome": {
+            "same_day_high": null,
+            "same_day_low": null,
+            "next_day_high": null,
+            "next_day_low": null,
+            "one_month_trend": null
+          },
+          "evaluation_metrics": {
+            "same_day_interval_hit": null,
+            "next_day_interval_hit": null,
+            "one_month_trend_match": null,
+            "calibration_bucket": "pending"
+          },
+          "review_notes": [
+            "fixture_forecast_pending_actual_outcome",
+            "preserve_original_forecast_snapshot"
+          ]
+        }
+      },
+      "safety": {
+        "fixture_only": true,
+        "advisory_only": true,
+        "research_only": true,
+        "no_trade": true,
+        "no_order": true,
+        "no_trading_instruction": true,
+        "no_order_execution": true,
+        "requires_human_review": true
+      }
+    },
+    {
+      "record_id": "daily-report-forecast-review-2026-06-26-2330-one_month",
+      "record_type": "daily_report_forecast_prediction_review",
+      "record_status": "pending_actual_outcome",
+      "stock_id": "2330",
+      "stock_name": "Example Semiconductor",
+      "forecast_version": "daily_report_forecast_v1",
+      "source_forecast_run_id": "daily-report-forecast-v1-fixture-20260626",
+      "run_date": "2026-06-26",
+      "timezone": "Asia/Taipei",
+      "forecast_horizon": "one_month",
+      "forecast_target": "one_month_trend_interval",
+      "target_date": "2026-07-26",
+      "review_window": "one_month_close",
+      "review_due": "2026-07-26",
+      "forecast_snapshot": {
+        "forecast_type": "trend_interval",
+        "forecast_target": "one_month_trend_interval",
+        "confidence_score": 0.55,
+        "confidence_bucket": "medium",
+        "basis": [
+          "technical-momentum-example",
+          "official-guidance-example",
+          "analyst-context-example"
+        ],
+        "review_due": "2026-07-26",
+        "trend": "mildly_positive",
+        "trend_interval": {
+          "lower": -0.04,
+          "upper": 0.08,
+          "unit": "return_pct",
+          "interval_method": "fixture_trend_band"
+        }
+      },
+      "actual_outcome": {
+        "outcome_status": "pending",
+        "source_status": "not_collected",
+        "pending_reason": "fixture_review_window_not_backfilled",
+        "values": {
+          "actual_return": null,
+          "actual_trend": null,
+          "actual_close": null
+        }
+      },
+      "evaluation_metrics": {
+        "evaluation_status": "pending",
+        "interval_hit": null,
+        "high_inside_interval": null,
+        "low_inside_interval": null,
+        "direction_match": null,
+        "trend_match": null,
+        "absolute_error": null,
+        "high_forecast_error": null,
+        "low_forecast_error": null,
+        "confidence_bucket": "medium",
+        "calibration_bucket": "pending"
+      },
+      "source_metadata": {
+        "report_window": "pre_open",
+        "generated_at": "2026-06-26T07:00:00+08:00",
+        "data_cutoff": "2026-06-26T06:40:00+08:00",
+        "signals_used": [
+          {
+            "signal_id": "technical-momentum-example",
+            "signal_type": "technical",
+            "direction": "positive",
+            "strength": 0.68,
+            "source_tier": "tier_3_market_data",
+            "freshness": "fixture"
+          },
+          {
+            "signal_id": "official-guidance-example",
+            "signal_type": "company_guidance",
+            "direction": "positive",
+            "strength": 0.72,
+            "source_tier": "tier_1_company_official",
+            "freshness": "fixture"
+          },
+          {
+            "signal_id": "analyst-context-example",
+            "signal_type": "analyst_metadata",
+            "direction": "neutral",
+            "strength": 0.45,
+            "source_tier": "tier_4_consensus_and_analyst",
+            "freshness": "fixture",
+            "usage": "low_priority_sentiment_metadata_only"
+          }
+        ],
+        "original_prediction_review": {
+          "review_status": "pending",
+          "same_day_review_due": "2026-06-26T15:00:00+08:00",
+          "next_day_review_due": "2026-06-29T15:00:00+08:00",
+          "one_month_review_due": "2026-07-26",
+          "actual_outcome": {
+            "same_day_high": null,
+            "same_day_low": null,
+            "next_day_high": null,
+            "next_day_low": null,
+            "one_month_trend": null
+          },
+          "evaluation_metrics": {
+            "same_day_interval_hit": null,
+            "next_day_interval_hit": null,
+            "one_month_trend_match": null,
+            "calibration_bucket": "pending"
+          },
+          "review_notes": [
+            "fixture_forecast_pending_actual_outcome",
+            "preserve_original_forecast_snapshot"
+          ]
+        }
+      },
+      "safety": {
+        "fixture_only": true,
+        "advisory_only": true,
+        "research_only": true,
+        "no_trade": true,
+        "no_order": true,
+        "no_trading_instruction": true,
+        "no_order_execution": true,
+        "requires_human_review": true
+      }
+    }
+  ],
+  "aggregate_summary": {
+    "stock_count": 1,
+    "review_record_count": 3,
+    "pending_actual_outcome_count": 3,
+    "review_windows": [
+      "same_day_close",
+      "next_trading_day_close",
+      "one_month_close"
+    ],
+    "fixture_only": true
+  },
+  "validation_status": {
+    "status": "valid_fixture_example",
+    "validated_by": "validate_daily_report_forecast_review_ingestion_result.py",
+    "errors": []
+  },
+  "runtime_action_performed": false,
+  "notification_sent": false,
+  "production_pipeline_run": false,
+  "safety": {
+    "fixture_only": true,
+    "advisory_only": true,
+    "research_only": true,
+    "no_trade": true,
+    "no_order": true,
+    "no_trading_instruction": true,
+    "no_order_execution": true,
+    "requires_human_review": true,
+    "external_api_called": false,
+    "notification_sent": false,
+    "production_pipeline_run": false,
+    "production_db_modified": false,
+    "trading_or_order_run": false,
+    "secrets_read_or_modified": false
+  }
+}
