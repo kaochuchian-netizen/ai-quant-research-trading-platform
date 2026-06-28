@@ -1,0 +1,42 @@
+{
+  "task_id": "AI-DEV-069",
+  "ok": true,
+  "mode": "execute",
+  "decision": "locked",
+  "pickup_artifact": "~/.local/state/stock-ai-orchestrator/github_issue_scheduled_pickup_latest.json",
+  "handoff_path": "docs/mobile_issue_handoffs/issue_68_mobile-auto-pickup-20260628T043527Z.md",
+  "readiness": {
+    "called": false,
+    "decision": null,
+    "safe_to_call_executor": false,
+    "safe_to_schedule": false
+  },
+  "executor": {
+    "called": false,
+    "decision": null
+  },
+  "lock": {
+    "required": true,
+    "acquired": false
+  },
+  "idempotency": {
+    "required": true,
+    "key": "codex-handoff-scheduled-pickup:docs/mobile_issue_handoffs/issue_68_mobile-auto-pickup-20260628T043527Z.md:example",
+    "already_processed": false,
+    "marked_processed": false
+  },
+  "limits": {
+    "max_handoffs_per_run": 1,
+    "selected_handoff_count": 1
+  },
+  "side_effects": {
+    "called_codex_runtime": false,
+    "called_external_ai_runtime": false,
+    "sent_notification": false,
+    "modified_production_db": false,
+    "modified_cron_systemd_timer": false,
+    "mutated_github_issue": false
+  },
+  "safe_to_continue": false,
+  "next_recommendation": "Another scheduled Codex handoff runner is active; safe stop without executor call."
+}
