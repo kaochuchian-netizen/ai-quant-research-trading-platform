@@ -1,0 +1,48 @@
+{
+  "task_id": "AI-DEV-067",
+  "ok": true,
+  "mode": "dry_run",
+  "handoff_path": "docs/mobile_issue_handoffs/issue_68_mobile-auto-pickup-20260628T043527Z.md",
+  "headless_supported": true,
+  "supported_command": "codex exec",
+  "manual_one_shot_viable": true,
+  "schedule_ready": false,
+  "tmux_paste_required": false,
+  "decision": "headless_supported_manual_only",
+  "safe_to_schedule": false,
+  "safe_to_execute": false,
+  "blocked_reasons": [],
+  "validation_errors": [],
+  "feasibility": {
+    "which_codex": "/home/kaochuchian/.local/bin/codex",
+    "codex_version": "codex-cli 0.142.3",
+    "codex_help_available": true,
+    "codex_exec_help_available": true,
+    "codex_run_help_available": false,
+    "sanitized_help_notes": [
+      "top-level help lists exec as non-interactive",
+      "exec help says Run Codex non-interactively",
+      "run help returned top-level help; no dedicated run command was identified"
+    ]
+  },
+  "execution_plan": {
+    "default_calls_codex": false,
+    "requires_execute_headless_flag": true,
+    "prompt_artifact_only": true,
+    "execute_shell_from_handoff": false
+  },
+  "sanitized_prompt": {
+    "source": "sanitized_handoff_markdown",
+    "summary": "Use the sanitized mobile handoff as planning input, respect repo-only safety constraints, and execute normal Codex coding workflow only after explicit operator approval.",
+    "raw_handoff_included": false
+  },
+  "side_effects": {
+    "called_codex_runtime": false,
+    "called_external_ai_runtime": false,
+    "sent_notification": false,
+    "modified_production_db": false,
+    "modified_cron_systemd_timer": false,
+    "mutated_github_issue": false
+  },
+  "next_recommendation": "Use manual GCP resident Codex handoff execution until a separately reviewed manual-only codex exec proof is completed."
+}
