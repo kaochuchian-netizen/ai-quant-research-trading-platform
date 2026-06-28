@@ -1,0 +1,29 @@
+{
+  "schema_version": "prediction_quality_review_daily_improvement_policy_v1",
+  "task_id": "AI-DEV-073",
+  "daily_improvement_recommendation_policy": {
+    "allowed_recommendation_ids": [
+      "increase_interval_width_for_same_day",
+      "reduce_confidence_when_pending_rate_high",
+      "separate_one_month_trend_from_short_term_interval",
+      "review_signal_weights_for_direction_miss",
+      "increase_actuals_coverage_before_quality_conclusion",
+      "continue_collecting_evaluated_records"
+    ],
+    "safe_to_apply_automatically": false,
+    "requires_human_review": true,
+    "forecast_runtime_weights_modified": false
+  },
+  "next_forecast_tuning_hint_policy": {
+    "purpose": "review-only hints for future human-approved tuning",
+    "safe_to_apply_automatically": false,
+    "requires_human_review": true,
+    "production_runtime_change": false
+  },
+  "safety": {
+    "fixture_only": true,
+    "repo_only": true,
+    "advisory_only": true,
+    "research_only": true
+  }
+}
