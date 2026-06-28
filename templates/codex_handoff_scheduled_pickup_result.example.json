@@ -1,0 +1,42 @@
+{
+  "task_id": "AI-DEV-069",
+  "ok": true,
+  "mode": "dry_run",
+  "decision": "dry_run_plan_created",
+  "pickup_artifact": "~/.local/state/stock-ai-orchestrator/github_issue_scheduled_pickup_latest.json",
+  "handoff_path": "docs/mobile_issue_handoffs/issue_68_mobile-auto-pickup-20260628T043527Z.md",
+  "readiness": {
+    "called": true,
+    "decision": "readiness_pass_manual_only",
+    "safe_to_call_executor": true,
+    "safe_to_schedule": false
+  },
+  "executor": {
+    "called": false,
+    "decision": null
+  },
+  "lock": {
+    "required": true,
+    "acquired": false
+  },
+  "idempotency": {
+    "required": true,
+    "key": "codex-handoff-scheduled-pickup:docs/mobile_issue_handoffs/issue_68_mobile-auto-pickup-20260628T043527Z.md:example",
+    "already_processed": false,
+    "marked_processed": false
+  },
+  "limits": {
+    "max_handoffs_per_run": 1,
+    "selected_handoff_count": 1
+  },
+  "side_effects": {
+    "called_codex_runtime": false,
+    "called_external_ai_runtime": false,
+    "sent_notification": false,
+    "modified_production_db": false,
+    "modified_cron_systemd_timer": false,
+    "mutated_github_issue": false
+  },
+  "safe_to_continue": true,
+  "next_recommendation": "Run manual activation validation, then update the user-level scheduled pickup service command."
+}
