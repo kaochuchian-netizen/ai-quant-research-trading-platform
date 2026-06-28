@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "run_id": "daily-report-forecast-v1-fixture-20260626",
+  "run_date": "2026-06-26",
+  "timezone": "Asia/Taipei",
+  "report_window": "pre_open",
+  "forecast_version": "daily_report_forecast_v1",
+  "generated_at": "2026-06-26T07:00:00+08:00",
+  "data_cutoff": "2026-06-26T06:40:00+08:00",
+  "stocks": [
+    {
+      "stock_id": "2330",
+      "stock_name": "Example Semiconductor",
+      "reference_price": 950.0,
+      "currency": "TWD",
+      "fixture_assumptions": {
+        "same_day_interval_pct": 0.018,
+        "next_day_interval_pct": 0.026,
+        "one_month_trend": "mildly_positive",
+        "one_month_trend_band": {
+          "lower": -0.04,
+          "upper": 0.08,
+          "unit": "return_pct"
+        }
+      },
+      "signals_used": [
+        {
+          "signal_id": "technical-momentum-example",
+          "signal_type": "technical",
+          "direction": "positive",
+          "strength": 0.68,
+          "source_tier": "tier_3_market_data",
+          "freshness": "fixture"
+        },
+        {
+          "signal_id": "official-guidance-example",
+          "signal_type": "company_guidance",
+          "direction": "positive",
+          "strength": 0.72,
+          "source_tier": "tier_1_company_official",
+          "freshness": "fixture"
+        },
+        {
+          "signal_id": "analyst-context-example",
+          "signal_type": "analyst_metadata",
+          "direction": "neutral",
+          "strength": 0.45,
+          "source_tier": "tier_4_consensus_and_analyst",
+          "freshness": "fixture",
+          "usage": "low_priority_sentiment_metadata_only"
+        }
+      ]
+    }
+  ],
+  "safety": {
+    "fixture_only": true,
+    "advisory_only": true,
+    "research_only": true,
+    "no_trade": true,
+    "no_order": true,
+    "no_trading_instruction": true,
+    "no_order_execution": true,
+    "requires_human_review": true,
+    "external_api_called": false,
+    "notification_sent": false,
+    "production_pipeline_run": false
+  }
+}
