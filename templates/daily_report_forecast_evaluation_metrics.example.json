@@ -1,0 +1,83 @@
+{
+  "schema_version": "daily_report_forecast_evaluation_metrics_v1",
+  "task_id": "AI-DEV-072",
+  "metric_fields": [
+    "interval_hit",
+    "high_interval_hit",
+    "low_interval_hit",
+    "close_in_interval",
+    "direction_hit",
+    "absolute_error",
+    "absolute_error_pct",
+    "range_width_pct",
+    "confidence_bucket",
+    "evaluation_status"
+  ],
+  "aggregate_fields": [
+    "total_records",
+    "evaluated_records",
+    "pending_records",
+    "same_day_count",
+    "next_day_count",
+    "one_month_count",
+    "interval_hit_rate",
+    "high_interval_hit_rate",
+    "low_interval_hit_rate",
+    "direction_hit_rate",
+    "mean_absolute_error_pct",
+    "median_absolute_error_pct",
+    "coverage_by_horizon",
+    "pending_by_reason",
+    "confidence_bucket_metrics"
+  ],
+  "confidence_bucket_metrics": {
+    "0-20": {
+      "total_records": 0,
+      "evaluated_records": 0,
+      "interval_hit_rate": null,
+      "direction_hit_rate": null,
+      "mean_absolute_error_pct": null
+    },
+    "21-40": {
+      "total_records": 0,
+      "evaluated_records": 0,
+      "interval_hit_rate": null,
+      "direction_hit_rate": null,
+      "mean_absolute_error_pct": null
+    },
+    "41-60": {
+      "total_records": 2,
+      "evaluated_records": 1,
+      "interval_hit_rate": 1.0,
+      "direction_hit_rate": 1.0,
+      "mean_absolute_error_pct": 0.0
+    },
+    "61-80": {
+      "total_records": 1,
+      "evaluated_records": 1,
+      "interval_hit_rate": 1.0,
+      "direction_hit_rate": null,
+      "mean_absolute_error_pct": 0.0
+    },
+    "81-100": {
+      "total_records": 0,
+      "evaluated_records": 0,
+      "interval_hit_rate": null,
+      "direction_hit_rate": null,
+      "mean_absolute_error_pct": null
+    },
+    "unknown": {
+      "total_records": 0,
+      "evaluated_records": 0,
+      "interval_hit_rate": null,
+      "direction_hit_rate": null,
+      "mean_absolute_error_pct": null
+    }
+  },
+  "safety": {
+    "fixture_only": true,
+    "repo_only": true,
+    "advisory_only": true,
+    "research_only": true
+  }
+}
