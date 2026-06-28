@@ -1,0 +1,36 @@
+{
+  "schema_version": "prediction_review_report_export_sections_v1",
+  "task_id": "AI-DEV-074",
+  "supported_sections": [
+    "executive_summary",
+    "forecast_quality_summary",
+    "horizon_review_summary",
+    "confidence_calibration_summary",
+    "error_pattern_summary",
+    "daily_improvement_recommendations",
+    "risk_and_limitations",
+    "next_steps"
+  ],
+  "section_contract": {
+    "required_fields": [
+      "section_id",
+      "title",
+      "priority",
+      "markdown",
+      "machine_readable",
+      "source_refs",
+      "advisory_only"
+    ],
+    "risk_and_limitations_required_notes": [
+      "樣本數不足時不得過度解讀",
+      "fixture-only result 不代表 production performance",
+      "review recommendations 不會自動修改 forecast weights",
+      "本輸出不構成投資建議"
+    ]
+  },
+  "safety": {
+    "fixture_only": true,
+    "advisory_only": true,
+    "no_email_or_line_sent": true
+  }
+}

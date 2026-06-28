@@ -1,0 +1,43 @@
+{
+  "schema_version": "dashboard_prediction_review_cards_v1",
+  "task_id": "AI-DEV-074",
+  "supported_cards": [
+    "overall_quality_card",
+    "horizon_quality_cards",
+    "confidence_calibration_card",
+    "top_error_patterns_card",
+    "daily_improvement_card",
+    "pending_actuals_card",
+    "safety_status_card"
+  ],
+  "card_contract": {
+    "overall_quality_card": [
+      "card_id",
+      "card_type",
+      "title",
+      "status",
+      "grade",
+      "summary_text",
+      "metrics",
+      "warnings",
+      "drilldown_refs"
+    ],
+    "horizon_quality_cards": [
+      "horizon",
+      "quality_grade",
+      "quality_status",
+      "evaluated_records",
+      "pending_records",
+      "interval_hit_rate",
+      "direction_hit_rate",
+      "mean_absolute_error_pct",
+      "summary_text",
+      "risk_note"
+    ]
+  },
+  "safety": {
+    "fixture_only": true,
+    "advisory_only": true,
+    "no_dashboard_deploy": true
+  }
+}

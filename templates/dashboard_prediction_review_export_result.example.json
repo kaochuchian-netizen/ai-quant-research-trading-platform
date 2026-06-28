@@ -1,0 +1,597 @@
+{
+  "dashboard_payload": {
+    "badges": {
+      "advisory_only": true,
+      "fixture_only": true,
+      "insufficient_data": true
+    },
+    "cards": [
+      {
+        "card_id": "overall_quality_card",
+        "card_type": "forecast_quality",
+        "drilldown_refs": [
+          "horizon_quality_cards",
+          "confidence_calibration_card",
+          "top_error_patterns_card"
+        ],
+        "grade": "Insufficient Data",
+        "metrics": {
+          "direction_hit_rate": 1.0,
+          "evaluated_records": 3,
+          "interval_hit_rate": 1.0,
+          "mean_absolute_error_pct": 0.0,
+          "pending_records": 1,
+          "total_records": 4
+        },
+        "status": "insufficient_data",
+        "summary_text": "Overall forecast quality is Insufficient Data with 3 evaluated records.",
+        "title": "Forecast Quality",
+        "warnings": [
+          "資料不足，不應過度解讀命中率"
+        ]
+      },
+      {
+        "card_id": "horizon_quality_same_day",
+        "card_type": "horizon_quality",
+        "direction_hit_rate": null,
+        "evaluated_records": 1,
+        "horizon": "same_day",
+        "interval_hit_rate": 1.0,
+        "mean_absolute_error_pct": 0.0,
+        "pending_records": 0,
+        "quality_grade": "Insufficient Data",
+        "quality_status": "insufficient_data",
+        "risk_note": "資料不足，不應過度解讀命中率",
+        "summary_text": "same_day has 1 evaluated and 0 pending records.",
+        "title": "same_day Quality"
+      },
+      {
+        "card_id": "horizon_quality_next_day",
+        "card_type": "horizon_quality",
+        "direction_hit_rate": null,
+        "evaluated_records": 1,
+        "horizon": "next_day",
+        "interval_hit_rate": 1.0,
+        "mean_absolute_error_pct": 0.0,
+        "pending_records": 0,
+        "quality_grade": "Insufficient Data",
+        "quality_status": "insufficient_data",
+        "risk_note": "資料不足，不應過度解讀命中率",
+        "summary_text": "next_day has 1 evaluated and 0 pending records.",
+        "title": "next_day Quality"
+      },
+      {
+        "card_id": "horizon_quality_one_month",
+        "card_type": "horizon_quality",
+        "direction_hit_rate": 1.0,
+        "evaluated_records": 1,
+        "horizon": "one_month",
+        "interval_hit_rate": 1.0,
+        "mean_absolute_error_pct": 0.0,
+        "pending_records": 1,
+        "quality_grade": "Insufficient Data",
+        "quality_status": "insufficient_data",
+        "risk_note": "資料不足，不應過度解讀命中率",
+        "summary_text": "one_month has 1 evaluated and 1 pending records.",
+        "title": "one_month Quality"
+      },
+      {
+        "bucket_count": 2,
+        "calibration_notes": [
+          "Buckets below minimum sample count remain insufficient.",
+          "Calibration is review-only and does not update forecast runtime weights."
+        ],
+        "calibration_summary": [
+          {
+            "bucket": "41-60",
+            "calibration_status": "insufficient_data",
+            "direction_hit_rate": 1.0,
+            "evaluated_count": 2,
+            "interval_hit_rate": 1.0,
+            "mean_absolute_error_pct": 0.0,
+            "record_count": 3
+          },
+          {
+            "bucket": "61-80",
+            "calibration_status": "insufficient_data",
+            "direction_hit_rate": null,
+            "evaluated_count": 1,
+            "interval_hit_rate": 1.0,
+            "mean_absolute_error_pct": 0.0,
+            "record_count": 1
+          }
+        ],
+        "card_id": "confidence_calibration_card",
+        "card_type": "confidence_calibration",
+        "insufficient_data_buckets": [
+          "41-60",
+          "61-80"
+        ],
+        "overconfident_buckets": [],
+        "title": "Confidence Calibration",
+        "underconfident_buckets": []
+      },
+      {
+        "affected_horizons": [
+          "one_month"
+        ],
+        "card_id": "top_error_patterns_card",
+        "card_type": "top_error_patterns",
+        "example_record_ids": [
+          "daily-report-forecast-review-2026-06-26-2330-one_month",
+          "daily-report-forecast-review-2026-06-26-2317-one_month"
+        ],
+        "pattern_count": 2,
+        "recommendations": [
+          "Separate wide exploratory ranges from quality-scored interval forecasts.",
+          "Increase fixture or future actuals coverage before strong quality conclusions."
+        ],
+        "severity": [
+          "low",
+          "low"
+        ],
+        "title": "Top Error Patterns",
+        "top_patterns": [
+          {
+            "affected_horizons": [
+              "one_month"
+            ],
+            "count": 1,
+            "example_record_ids": [
+              "daily-report-forecast-review-2026-06-26-2330-one_month"
+            ],
+            "pattern": "range_too_wide",
+            "recommendation": "Separate wide exploratory ranges from quality-scored interval forecasts.",
+            "severity": "low"
+          },
+          {
+            "affected_horizons": [
+              "one_month"
+            ],
+            "count": 1,
+            "example_record_ids": [
+              "daily-report-forecast-review-2026-06-26-2317-one_month"
+            ],
+            "pattern": "missing_actuals",
+            "recommendation": "Increase fixture or future actuals coverage before strong quality conclusions.",
+            "severity": "low"
+          }
+        ]
+      },
+      {
+        "card_id": "daily_improvement_card",
+        "card_type": "daily_improvement",
+        "human_review_required_count": 2,
+        "next_forecast_tuning_hints": [
+          {
+            "hint": "Collect more evaluated records before changing forecast behavior.",
+            "hint_id": "collect_more_same_day_records",
+            "requires_human_review": true,
+            "safe_to_apply_automatically": false,
+            "target_horizon": "same_day"
+          },
+          {
+            "hint": "Prioritize actual outcome coverage before tuning forecast scoring.",
+            "hint_id": "prioritize_actual_outcome_coverage",
+            "requires_human_review": true,
+            "safe_to_apply_automatically": false,
+            "target_horizon": "all"
+          }
+        ],
+        "priority_summary": {
+          "high": 1,
+          "medium": 1
+        },
+        "recommendations": [
+          {
+            "expected_effect": "Improves evaluated sample size and reduces misleading quality grades.",
+            "priority": "high",
+            "reason": "Some records remain pending, so quality conclusions are coverage-limited.",
+            "recommendation_id": "increase_actuals_coverage_before_quality_conclusion",
+            "requires_human_review": true,
+            "safe_to_apply_automatically": false,
+            "target_horizon": "all"
+          },
+          {
+            "expected_effect": "Keeps trend quality interpretation distinct from daily high-low interval scoring.",
+            "priority": "medium",
+            "reason": "Wide one-month ranges should be reviewed separately from short-term interval quality.",
+            "recommendation_id": "separate_one_month_trend_from_short_term_interval",
+            "requires_human_review": true,
+            "safe_to_apply_automatically": false,
+            "target_horizon": "one_month"
+          }
+        ],
+        "safe_to_apply_automatically_count": 0,
+        "title": "Daily Improvement"
+      },
+      {
+        "card_id": "pending_actuals_card",
+        "card_type": "pending_actuals",
+        "pending_records": 1,
+        "status": "coverage_limited",
+        "summary_text": "1 records are still pending actual outcome coverage.",
+        "title": "Pending Actual Outcomes",
+        "total_records": 4,
+        "warnings": [
+          "Pending records are excluded from hit-rate denominators."
+        ]
+      },
+      {
+        "advisory_only": true,
+        "card_id": "safety_status_card",
+        "card_type": "safety_status",
+        "fixture_only": true,
+        "no_notification": true,
+        "no_production_db_write": true,
+        "no_runtime_weight_change": true,
+        "no_trading": true,
+        "title": "Safety Status"
+      }
+    ],
+    "dashboard_version": "dashboard_prediction_review_export_v1",
+    "generated_for": "prediction_review_dashboard",
+    "sections": {
+      "calibration": [
+        "confidence_calibration_card"
+      ],
+      "errors": [
+        "top_error_patterns_card"
+      ],
+      "forecast_quality": [
+        "overall_quality_card",
+        "horizon_quality_cards"
+      ],
+      "improvement": [
+        "daily_improvement_card"
+      ],
+      "safety": [
+        "pending_actuals_card",
+        "safety_status_card"
+      ]
+    }
+  },
+  "decision": "dashboard_report_export_completed_with_insufficient_data",
+  "export_summary": {
+    "advisory_only": true,
+    "card_count": 9,
+    "insufficient_data_cards": [
+      "overall_quality_card",
+      "horizon_quality_same_day",
+      "horizon_quality_next_day",
+      "horizon_quality_one_month"
+    ],
+    "machine_readable_sections_count": 8,
+    "markdown_sections_count": 8,
+    "section_count": 8,
+    "source_quality_status": "insufficient_data",
+    "supported_cards": [
+      "overall_quality_card",
+      "horizon_quality_same_day",
+      "horizon_quality_next_day",
+      "horizon_quality_one_month",
+      "confidence_calibration_card",
+      "top_error_patterns_card",
+      "daily_improvement_card",
+      "pending_actuals_card",
+      "safety_status_card"
+    ],
+    "supported_sections": [
+      "executive_summary",
+      "forecast_quality_summary",
+      "horizon_review_summary",
+      "confidence_calibration_summary",
+      "error_pattern_summary",
+      "daily_improvement_recommendations",
+      "risk_and_limitations",
+      "next_steps"
+    ]
+  },
+  "generated_at": "2026-06-26T17:30:00+08:00",
+  "input_summary": {
+    "dashboard_version": "dashboard_prediction_review_export_v1",
+    "report_version": "prediction_review_report_export_v1",
+    "source_decision": "quality_review_completed_with_insufficient_data",
+    "source_run_id": "prediction-quality-review-fixture-20260626",
+    "source_schema_version": "prediction_quality_review_daily_improvement_v1",
+    "source_side_effects": {
+      "called_external_ai_runtime": false,
+      "called_market_data_runtime": false,
+      "modified_cron_systemd_timer": false,
+      "modified_forecast_runtime_weights": false,
+      "modified_n8n": false,
+      "modified_production_db": false,
+      "mutated_github_issue": false,
+      "placed_trade_order": false,
+      "read_secrets": false,
+      "sent_notification": false
+    }
+  },
+  "mode": "fixture_dry_run",
+  "next_recommendation": "AI-DEV-075 Daily Report Forecast Review Section V1",
+  "ok": true,
+  "report_payload": {
+    "generated_for": "daily_report_prediction_review",
+    "include_dashboard_links_placeholder": true,
+    "include_machine_readable_sections": true,
+    "include_markdown_summary": true,
+    "report_version": "prediction_review_report_export_v1",
+    "sections": [
+      {
+        "advisory_only": true,
+        "machine_readable": {
+          "quality_review_summary": {
+            "evaluated_records": 3,
+            "horizon_count": 3,
+            "minimum_records_for_strong_conclusion": 5,
+            "overall_direction_hit_rate": 1.0,
+            "overall_interval_hit_rate": 1.0,
+            "overall_mean_absolute_error_pct": 0.0,
+            "overall_quality_grade": "Insufficient Data",
+            "overall_quality_status": "insufficient_data",
+            "pending_records": 1,
+            "total_records": 4
+          }
+        },
+        "markdown": "Current quality status is `insufficient_data` with 3 evaluated records. 資料不足，不應過度解讀命中率。 Human review is required before any forecast tuning.",
+        "priority": "high",
+        "section_id": "executive_summary",
+        "source_refs": [
+          "quality_review_summary"
+        ],
+        "title": "Executive Summary"
+      },
+      {
+        "advisory_only": true,
+        "machine_readable": {
+          "overall_interval_hit_rate": 1.0,
+          "overall_quality_grade": "Insufficient Data"
+        },
+        "markdown": "Overall grade: `Insufficient Data`; interval hit rate: `100.0%`.",
+        "priority": "high",
+        "section_id": "forecast_quality_summary",
+        "source_refs": [
+          "quality_review_summary"
+        ],
+        "title": "Forecast Quality Summary"
+      },
+      {
+        "advisory_only": true,
+        "machine_readable": {
+          "horizon_reviews": [
+            {
+              "direction_hit_rate": null,
+              "evaluated_records": 1,
+              "high_interval_hit_rate": 1.0,
+              "horizon": "same_day",
+              "interval_hit_rate": 1.0,
+              "low_interval_hit_rate": 1.0,
+              "max_absolute_error_pct": 0.0,
+              "mean_absolute_error_pct": 0.0,
+              "median_absolute_error_pct": 0.0,
+              "pending_rate": 0.0,
+              "pending_records": 0,
+              "quality_grade": "Insufficient Data",
+              "quality_status": "insufficient_data",
+              "total_records": 1
+            },
+            {
+              "direction_hit_rate": null,
+              "evaluated_records": 1,
+              "high_interval_hit_rate": 1.0,
+              "horizon": "next_day",
+              "interval_hit_rate": 1.0,
+              "low_interval_hit_rate": 1.0,
+              "max_absolute_error_pct": 0.0,
+              "mean_absolute_error_pct": 0.0,
+              "median_absolute_error_pct": 0.0,
+              "pending_rate": 0.0,
+              "pending_records": 0,
+              "quality_grade": "Insufficient Data",
+              "quality_status": "insufficient_data",
+              "total_records": 1
+            },
+            {
+              "direction_hit_rate": 1.0,
+              "evaluated_records": 1,
+              "high_interval_hit_rate": 1.0,
+              "horizon": "one_month",
+              "interval_hit_rate": 1.0,
+              "low_interval_hit_rate": 1.0,
+              "max_absolute_error_pct": 0.0,
+              "mean_absolute_error_pct": 0.0,
+              "median_absolute_error_pct": 0.0,
+              "pending_rate": 0.5,
+              "pending_records": 1,
+              "quality_grade": "Insufficient Data",
+              "quality_status": "insufficient_data",
+              "total_records": 2
+            }
+          ]
+        },
+        "markdown": "Horizon cards summarize evaluated records, pending records, hit rates, and error rates.",
+        "priority": "medium",
+        "section_id": "horizon_review_summary",
+        "source_refs": [
+          "horizon_reviews"
+        ],
+        "title": "Horizon Review Summary"
+      },
+      {
+        "advisory_only": true,
+        "machine_readable": {
+          "confidence_calibration": [
+            {
+              "bucket": "41-60",
+              "calibration_status": "insufficient_data",
+              "direction_hit_rate": 1.0,
+              "evaluated_count": 2,
+              "interval_hit_rate": 1.0,
+              "mean_absolute_error_pct": 0.0,
+              "record_count": 3
+            },
+            {
+              "bucket": "61-80",
+              "calibration_status": "insufficient_data",
+              "direction_hit_rate": null,
+              "evaluated_count": 1,
+              "interval_hit_rate": 1.0,
+              "mean_absolute_error_pct": 0.0,
+              "record_count": 1
+            }
+          ]
+        },
+        "markdown": "Confidence buckets below sample thresholds remain insufficient for calibration conclusions.",
+        "priority": "medium",
+        "section_id": "confidence_calibration_summary",
+        "source_refs": [
+          "confidence_calibration"
+        ],
+        "title": "Confidence Calibration Summary"
+      },
+      {
+        "advisory_only": true,
+        "machine_readable": {
+          "error_patterns": [
+            {
+              "affected_horizons": [
+                "one_month"
+              ],
+              "count": 1,
+              "example_record_ids": [
+                "daily-report-forecast-review-2026-06-26-2330-one_month"
+              ],
+              "pattern": "range_too_wide",
+              "recommendation": "Separate wide exploratory ranges from quality-scored interval forecasts.",
+              "severity": "low"
+            },
+            {
+              "affected_horizons": [
+                "one_month"
+              ],
+              "count": 1,
+              "example_record_ids": [
+                "daily-report-forecast-review-2026-06-26-2317-one_month"
+              ],
+              "pattern": "missing_actuals",
+              "recommendation": "Increase fixture or future actuals coverage before strong quality conclusions.",
+              "severity": "low"
+            }
+          ]
+        },
+        "markdown": "Detected 2 top error pattern groups.",
+        "priority": "medium",
+        "section_id": "error_pattern_summary",
+        "source_refs": [
+          "error_patterns"
+        ],
+        "title": "Error Pattern Summary"
+      },
+      {
+        "advisory_only": true,
+        "machine_readable": {
+          "next_forecast_tuning_hints": [
+            {
+              "hint": "Collect more evaluated records before changing forecast behavior.",
+              "hint_id": "collect_more_same_day_records",
+              "requires_human_review": true,
+              "safe_to_apply_automatically": false,
+              "target_horizon": "same_day"
+            },
+            {
+              "hint": "Prioritize actual outcome coverage before tuning forecast scoring.",
+              "hint_id": "prioritize_actual_outcome_coverage",
+              "requires_human_review": true,
+              "safe_to_apply_automatically": false,
+              "target_horizon": "all"
+            }
+          ],
+          "recommendations": [
+            {
+              "expected_effect": "Improves evaluated sample size and reduces misleading quality grades.",
+              "priority": "high",
+              "reason": "Some records remain pending, so quality conclusions are coverage-limited.",
+              "recommendation_id": "increase_actuals_coverage_before_quality_conclusion",
+              "requires_human_review": true,
+              "safe_to_apply_automatically": false,
+              "target_horizon": "all"
+            },
+            {
+              "expected_effect": "Keeps trend quality interpretation distinct from daily high-low interval scoring.",
+              "priority": "medium",
+              "reason": "Wide one-month ranges should be reviewed separately from short-term interval quality.",
+              "recommendation_id": "separate_one_month_trend_from_short_term_interval",
+              "requires_human_review": true,
+              "safe_to_apply_automatically": false,
+              "target_horizon": "one_month"
+            }
+          ]
+        },
+        "markdown": "Recommendations are advisory only, require human review, and are not applied automatically.",
+        "priority": "high",
+        "section_id": "daily_improvement_recommendations",
+        "source_refs": [
+          "daily_improvement_recommendations",
+          "next_forecast_tuning_hints"
+        ],
+        "title": "Daily Improvement Recommendations"
+      },
+      {
+        "advisory_only": true,
+        "machine_readable": {
+          "fixture_only_not_production_performance": true,
+          "forecast_weights_not_modified": true,
+          "insufficient_data_warning": "樣本數不足時不得過度解讀",
+          "not_investment_advice": true
+        },
+        "markdown": "樣本數不足時不得過度解讀。 Fixture-only result 不代表 production performance。 Review recommendations 不會自動修改 forecast weights。 本輸出不構成投資建議。",
+        "priority": "high",
+        "section_id": "risk_and_limitations",
+        "source_refs": [
+          "safety",
+          "quality_review_summary"
+        ],
+        "title": "Risk And Limitations"
+      },
+      {
+        "advisory_only": true,
+        "machine_readable": {
+          "next_recommendation": "AI-DEV-075 Daily Report Forecast Review Section V1"
+        },
+        "markdown": "Use this export as input for a future Daily Report Forecast Review Section or Dashboard MVP task.",
+        "priority": "medium",
+        "section_id": "next_steps",
+        "source_refs": [
+          "next_recommendation"
+        ],
+        "title": "Next Steps"
+      }
+    ]
+  },
+  "run_id": "dashboard-prediction-review-export-fixture-20260626",
+  "safety": {
+    "advisory_only": true,
+    "dashboard_deployed": false,
+    "fixture_only": true,
+    "no_notification": true,
+    "no_production_db_write": true,
+    "no_runtime_weight_change": true,
+    "no_trading": true,
+    "repo_only": true
+  },
+  "schema_version": "dashboard_prediction_review_report_export_v1",
+  "side_effects": {
+    "called_external_ai_runtime": false,
+    "called_market_data_runtime": false,
+    "deployed_dashboard": false,
+    "modified_cron_systemd_timer": false,
+    "modified_forecast_runtime_weights": false,
+    "modified_n8n": false,
+    "modified_production_db": false,
+    "mutated_github_issue": false,
+    "placed_trade_order": false,
+    "read_secrets": false,
+    "sent_notification": false
+  },
+  "task_id": "AI-DEV-074"
+}
