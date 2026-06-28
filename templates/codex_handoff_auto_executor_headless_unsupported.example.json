@@ -1,0 +1,41 @@
+{
+  "task_id": "AI-DEV-067",
+  "ok": true,
+  "mode": "dry_run",
+  "handoff_path": "docs/mobile_issue_handoffs/issue_68_mobile-auto-pickup-20260628T043527Z.md",
+  "headless_supported": false,
+  "supported_command": null,
+  "manual_one_shot_viable": false,
+  "schedule_ready": false,
+  "tmux_paste_required": false,
+  "decision": "headless_unsupported",
+  "safe_to_schedule": false,
+  "safe_to_execute": false,
+  "blocked_reasons": [],
+  "validation_errors": [],
+  "feasibility": {
+    "which_codex": null,
+    "codex_version": null,
+    "codex_help_available": false,
+    "codex_exec_help_available": false,
+    "codex_run_help_available": false,
+    "sanitized_help_notes": [
+      "no stable non-interactive Codex command was confirmed"
+    ]
+  },
+  "execution_plan": {
+    "default_calls_codex": false,
+    "requires_execute_headless_flag": true,
+    "prompt_artifact_only": true,
+    "execute_shell_from_handoff": false
+  },
+  "side_effects": {
+    "called_codex_runtime": false,
+    "called_external_ai_runtime": false,
+    "sent_notification": false,
+    "modified_production_db": false,
+    "modified_cron_systemd_timer": false,
+    "mutated_github_issue": false
+  },
+  "next_recommendation": "Use manual GCP resident Codex handoff execution until stable Codex CLI headless mode is confirmed."
+}

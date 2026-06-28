@@ -1,0 +1,44 @@
+{
+  "task_id": "AI-DEV-067",
+  "ok": false,
+  "mode": "dry_run",
+  "handoff_path": "docs/mobile_issue_handoffs/unsafe-example.md",
+  "headless_supported": true,
+  "supported_command": "codex exec",
+  "manual_one_shot_viable": true,
+  "schedule_ready": false,
+  "tmux_paste_required": false,
+  "decision": "blocked",
+  "safe_to_schedule": false,
+  "safe_to_execute": false,
+  "blocked_reasons": [
+    "handoff contains positive intent to send notification",
+    "handoff contains positive intent to mutate production database"
+  ],
+  "validation_errors": [],
+  "feasibility": {
+    "which_codex": "/home/kaochuchian/.local/bin/codex",
+    "codex_version": "codex-cli 0.142.3",
+    "codex_help_available": true,
+    "codex_exec_help_available": true,
+    "codex_run_help_available": false,
+    "sanitized_help_notes": [
+      "blocked examples do not call Codex runtime"
+    ]
+  },
+  "execution_plan": {
+    "default_calls_codex": false,
+    "requires_execute_headless_flag": true,
+    "prompt_artifact_only": true,
+    "execute_shell_from_handoff": false
+  },
+  "side_effects": {
+    "called_codex_runtime": false,
+    "called_external_ai_runtime": false,
+    "sent_notification": false,
+    "modified_production_db": false,
+    "modified_cron_systemd_timer": false,
+    "mutated_github_issue": false
+  },
+  "next_recommendation": "Reject the handoff and require a sanitized repo-only task that removes production side effects."
+}

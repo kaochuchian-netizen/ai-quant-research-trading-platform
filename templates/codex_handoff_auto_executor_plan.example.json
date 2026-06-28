@@ -1,0 +1,37 @@
+{
+  "task_id": "AI-DEV-067",
+  "schema_version": 1,
+  "plan_version": "codex_handoff_auto_executor_v1",
+  "mode": "dry_run",
+  "handoff_path": "docs/mobile_issue_handoffs/issue_68_mobile-auto-pickup-20260628T043527Z.md",
+  "handoff_path_policy": {
+    "required_prefix": "docs/mobile_issue_handoffs/",
+    "allow_path_escape": false
+  },
+  "prompt_plan": {
+    "prompt_source": "sanitized_handoff_markdown",
+    "include_raw_issue_body": false,
+    "execute_shell_from_handoff": false,
+    "instructions": [
+      "Read the sanitized handoff.",
+      "Respect all safety constraints.",
+      "Implement only repo-side changes through branch, PR, CI, merge, and cleanup.",
+      "Do not run production pipelines or send notifications."
+    ]
+  },
+  "execution_plan": {
+    "default_calls_codex": false,
+    "headless_command": "codex exec",
+    "requires_explicit_execute_headless_flag": true,
+    "safe_to_schedule": false,
+    "tmux_paste_required": false
+  },
+  "side_effects": {
+    "called_codex_runtime": false,
+    "called_external_ai_runtime": false,
+    "sent_notification": false,
+    "modified_production_db": false,
+    "modified_cron_systemd_timer": false,
+    "mutated_github_issue": false
+  }
+}
