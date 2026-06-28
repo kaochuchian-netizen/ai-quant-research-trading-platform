@@ -1,0 +1,226 @@
+{
+  "schema_version": "prediction_quality_review_daily_improvement_v1",
+  "task_id": "AI-DEV-073",
+  "run_id": "prediction-quality-review-fixture-20260626",
+  "generated_at": "2026-06-26T17:00:00+08:00",
+  "source_evaluation_result": {
+    "schema_version": "daily_report_forecast_actual_outcome_backfill_evaluation_v1",
+    "task_id": "AI-DEV-072",
+    "run_id": "daily-report-forecast-actual-outcome-backfill-fixture-20260626",
+    "forecast_version": "daily_report_forecast_v1",
+    "decision": "partial_pending_actuals",
+    "backfill_summary": {
+      "total_records": 4,
+      "evaluated_records": 3,
+      "pending_records": 1,
+      "same_day_count": 1,
+      "next_day_count": 1,
+      "one_month_count": 2
+    },
+    "evaluation_summary": {
+      "interval_hit_rate": 1.0,
+      "high_interval_hit_rate": 1.0,
+      "low_interval_hit_rate": 1.0,
+      "direction_hit_rate": 1.0,
+      "mean_absolute_error_pct": 0.0,
+      "median_absolute_error_pct": 0.0
+    },
+    "records": [
+      {
+        "record_id": "daily-report-forecast-review-2026-06-26-2330-same_day",
+        "stock_id": "2330",
+        "stock_name": "Example Semiconductor",
+        "forecast_version": "daily_report_forecast_v1",
+        "run_date": "2026-06-26",
+        "horizon": "same_day",
+        "status": "evaluated",
+        "actual_high": 966.0,
+        "actual_low": 936.0,
+        "actual_close": 960.0,
+        "forecast": {
+          "forecast_type": "high_low_interval",
+          "price_interval": {
+            "low": 932.9,
+            "high": 967.1,
+            "unit": "TWD"
+          }
+        },
+        "evaluation_metrics": {
+          "interval_hit": true,
+          "high_interval_hit": true,
+          "low_interval_hit": true,
+          "close_in_interval": true,
+          "direction_hit": null,
+          "absolute_error": 0.0,
+          "absolute_error_pct": 0.0,
+          "range_width_pct": 0.035625,
+          "confidence_bucket": "61-80",
+          "evaluation_status": "evaluated",
+          "skipped_reason": "no_direction_forecast"
+        }
+      },
+      {
+        "record_id": "daily-report-forecast-review-2026-06-26-2330-next_day",
+        "stock_id": "2330",
+        "stock_name": "Example Semiconductor",
+        "forecast_version": "daily_report_forecast_v1",
+        "run_date": "2026-06-26",
+        "horizon": "next_day",
+        "status": "evaluated",
+        "actual_high": 972.0,
+        "actual_low": 940.0,
+        "actual_close": 968.0,
+        "forecast": {
+          "forecast_type": "high_low_interval",
+          "price_interval": {
+            "low": 925.3,
+            "high": 974.7,
+            "unit": "TWD"
+          }
+        },
+        "evaluation_metrics": {
+          "interval_hit": true,
+          "high_interval_hit": true,
+          "low_interval_hit": true,
+          "close_in_interval": true,
+          "direction_hit": null,
+          "absolute_error": 0.0,
+          "absolute_error_pct": 0.0,
+          "range_width_pct": 0.051033,
+          "confidence_bucket": "41-60",
+          "evaluation_status": "evaluated",
+          "skipped_reason": "no_direction_forecast"
+        }
+      },
+      {
+        "record_id": "daily-report-forecast-review-2026-06-26-2330-one_month",
+        "stock_id": "2330",
+        "stock_name": "Example Semiconductor",
+        "forecast_version": "daily_report_forecast_v1",
+        "run_date": "2026-06-26",
+        "horizon": "one_month",
+        "status": "evaluated",
+        "actual_window_high": 1028.0,
+        "actual_window_low": 936.0,
+        "actual_return_pct": 0.0625,
+        "actual_trend": "up",
+        "forecast": {
+          "forecast_type": "trend_interval",
+          "trend": "mildly_positive",
+          "price_interval": {
+            "low": 930.0,
+            "high": 1030.0,
+            "unit": "TWD"
+          }
+        },
+        "evaluation_metrics": {
+          "interval_hit": true,
+          "high_interval_hit": true,
+          "low_interval_hit": true,
+          "close_in_interval": true,
+          "direction_hit": true,
+          "absolute_error": 0.0,
+          "absolute_error_pct": 0.0,
+          "range_width_pct": 0.098039,
+          "confidence_bucket": "41-60",
+          "evaluation_status": "evaluated",
+          "skipped_reason": null
+        }
+      },
+      {
+        "record_id": "daily-report-forecast-review-2026-06-26-2317-one_month",
+        "stock_id": "2317",
+        "stock_name": "Example Electronics",
+        "forecast_version": "daily_report_forecast_v1",
+        "run_date": "2026-06-26",
+        "horizon": "one_month",
+        "status": "pending_actual_outcome",
+        "pending_reason": "insufficient_window_actuals",
+        "forecast": {
+          "forecast_type": "trend_interval",
+          "trend": "neutral"
+        },
+        "evaluation_metrics": {
+          "confidence_bucket": "41-60",
+          "evaluation_status": "pending",
+          "skipped_reason": "insufficient_window_actuals"
+        }
+      }
+    ],
+    "metrics": {
+      "total_records": 4,
+      "evaluated_records": 3,
+      "pending_records": 1,
+      "confidence_bucket_metrics": {
+        "41-60": {
+          "total_records": 3,
+          "evaluated_records": 2,
+          "interval_hit_rate": 1.0,
+          "direction_hit_rate": 1.0,
+          "mean_absolute_error_pct": 0.0
+        },
+        "61-80": {
+          "total_records": 1,
+          "evaluated_records": 1,
+          "interval_hit_rate": 1.0,
+          "direction_hit_rate": null,
+          "mean_absolute_error_pct": 0.0
+        }
+      }
+    },
+    "side_effects": {
+      "read_secrets": false,
+      "called_external_ai_runtime": false,
+      "called_market_data_runtime": false,
+      "sent_notification": false,
+      "placed_trade_order": false,
+      "modified_production_db": false,
+      "modified_cron_systemd_timer": false,
+      "modified_n8n": false,
+      "mutated_github_issue": false
+    }
+  },
+  "review_config": {
+    "review_window_days": 7,
+    "supported_horizons": [
+      "same_day",
+      "next_day",
+      "one_month"
+    ],
+    "confidence_buckets": [
+      "0-20",
+      "21-40",
+      "41-60",
+      "61-80",
+      "81-100",
+      "unknown"
+    ],
+    "minimum_records_for_strong_conclusion": 5,
+    "pending_policy": "separate_pending_from_evaluated_metrics"
+  },
+  "quality_thresholds": {
+    "grade_a_interval_hit_rate": 0.75,
+    "grade_a_max_mean_absolute_error_pct": 0.03,
+    "grade_b_interval_hit_rate": 0.6,
+    "grade_b_max_mean_absolute_error_pct": 0.05,
+    "grade_c_interval_hit_rate": 0.45
+  },
+  "improvement_policy": {
+    "safe_to_apply_automatically": false,
+    "requires_human_review": true,
+    "do_not_modify_forecast_runtime_weights": true
+  },
+  "safety": {
+    "fixture_only": true,
+    "repo_only": true,
+    "advisory_only": true,
+    "research_only": true,
+    "no_external_market_data": true,
+    "no_external_ai_runtime": true,
+    "no_notification": true,
+    "no_trade": true,
+    "no_order": true,
+    "no_production_db": true,
+    "forecast_runtime_weights_modified": false
+  }
+}
