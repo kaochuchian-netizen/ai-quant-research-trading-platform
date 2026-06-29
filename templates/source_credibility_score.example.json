@@ -1,0 +1,23 @@
+{
+  "contract_name": "company_intelligence_source_credibility",
+  "contract_version": "v1",
+  "source_id": "src-2330-monthly-revenue-2026-05",
+  "source_tier": "tier_1_official_filing",
+  "source_type": "monthly_revenue_filing",
+  "publisher": "Example Exchange Disclosure",
+  "published_at": "2026-06-10",
+  "retrieved_at": "2026-06-29T16:00:00+08:00",
+  "base_score": 0.95,
+  "adjustments": [
+    {
+      "factor": "current_source",
+      "delta": 0.03
+    }
+  ],
+  "credibility_score": 0.98,
+  "core_scoring_allowed": true,
+  "conflicting_source": false,
+  "requires_human_review": false,
+  "usage_policy": "core_company_fact",
+  "notes": "Synthetic fixture metadata for contract validation only."
+}
