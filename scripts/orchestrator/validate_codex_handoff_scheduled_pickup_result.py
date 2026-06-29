@@ -54,6 +54,8 @@ SIDE_EFFECT_FIELDS = [
     "mutated_github_issue",
 ]
 
+MIN_EXECUTOR_TIMEOUT_SECONDS = 3600
+
 SECRET_PATTERNS = [
     re.compile(r"gh[pousr]_[A-Za-z0-9_]{20,}"),
     re.compile(r"github_pat_[A-Za-z0-9_]{20,}"),
@@ -107,6 +109,11 @@ def validate_result(data: dict[str, Any]) -> dict[str, Any]:
 
     if limits.get("max_handoffs_per_run") != 1:
         errors.append("limits.max_handoffs_per_run must be 1")
+    executor_timeout_seconds = limits.get("executor_timeout_seconds")
+    if not isinstance(executor_timeout_seconds, int):
+        errors.append("limits.executor_timeout_seconds must be an integer")
+    elif executor_timeout_seconds < MIN_EXECUTOR_TIMEOUT_SECONDS:
+        errors.append(f"limits.executor_timeout_seconds must be at least {MIN_EXECUTOR_TIMEOUT_SECONDS}")
     selected_count = limits.get("selected_handoff_count")
     if not isinstance(selected_count, int):
         errors.append("limits.selected_handoff_count must be an integer")
@@ -183,6 +190,7 @@ def validate_result(data: dict[str, Any]) -> dict[str, Any]:
         "readiness_safe_to_call_executor": readiness.get("safe_to_call_executor"),
         "executor_called": executor.get("called"),
         "max_handoffs_per_run": limits.get("max_handoffs_per_run"),
+        "executor_timeout_seconds": limits.get("executor_timeout_seconds"),
         "selected_handoff_count": limits.get("selected_handoff_count"),
         "idempotency_key": idempotency.get("key"),
         "already_processed": idempotency.get("already_processed"),

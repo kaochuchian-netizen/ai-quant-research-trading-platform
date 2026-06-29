@@ -33,7 +33,8 @@
   },
   "limits": {
     "max_handoffs_per_run": 1,
-    "selected_handoff_count": 1
+    "selected_handoff_count": 1,
+    "executor_timeout_seconds": 3600
   },
   "side_effects": {
     "called_codex_runtime": false,
