@@ -1,0 +1,133 @@
+{
+  "schema_version": "company_intelligence_source_credibility_v1_input",
+  "task_id": "AI-DEV-076",
+  "run_id": "company-intelligence-source-credibility-fixture-20260629",
+  "generated_at": "2026-06-29T16:00:00+08:00",
+  "mode": "fixture_input",
+  "company": {
+    "stock_id": "2330",
+    "stock_name": "Example Semiconductor",
+    "market": "TWSE",
+    "industry": "semiconductor"
+  },
+  "sources": [
+    {
+      "source_id": "src-2330-monthly-revenue-2026-05",
+      "source_tier": "tier_1_official_filing",
+      "source_type": "monthly_revenue_filing",
+      "publisher": "Example Exchange Disclosure",
+      "title": "Example Semiconductor May 2026 monthly revenue",
+      "published_at": "2026-06-10",
+      "retrieved_at": "2026-06-29T16:00:00+08:00",
+      "document_id": "fixture-2330-2026-05-revenue",
+      "language": "zh-TW",
+      "attribution": "company filing",
+      "excerpt_policy": "paraphrase_only",
+      "recency": "current",
+      "conflicting": false,
+      "usage_policy": "core_company_fact",
+      "notes": "Synthetic fixture metadata for contract validation only."
+    },
+    {
+      "source_id": "src-2330-investor-presentation-2026-q2",
+      "source_tier": "tier_1_company_official",
+      "source_type": "investor_presentation",
+      "publisher": "Example Semiconductor",
+      "title": "Q2 2026 investor presentation",
+      "published_at": "2026-06-15",
+      "retrieved_at": "2026-06-29T16:00:00+08:00",
+      "document_id": "fixture-2330-2026-q2-ir",
+      "language": "en",
+      "attribution": "company investor relations",
+      "excerpt_policy": "paraphrase_only",
+      "recency": "current",
+      "conflicting": false,
+      "usage_policy": "core_company_context",
+      "notes": "Synthetic fixture metadata for contract validation only."
+    },
+    {
+      "source_id": "src-industry-wafer-demand-2026-q2",
+      "source_tier": "tier_2_peer_and_industry_primary",
+      "source_type": "industry_primary_data",
+      "publisher": "Example Industry Association",
+      "title": "Q2 2026 wafer demand monitor",
+      "published_at": "2026-06-20",
+      "retrieved_at": "2026-06-29T16:00:00+08:00",
+      "document_id": "fixture-industry-wafer-demand-2026-q2",
+      "language": "en",
+      "attribution": "industry association dataset",
+      "excerpt_policy": "paraphrase_only",
+      "recency": "current",
+      "conflicting": false,
+      "usage_policy": "industry_context",
+      "notes": "Synthetic fixture metadata for contract validation only."
+    },
+    {
+      "source_id": "src-consensus-context-2026-06",
+      "source_tier": "tier_4_consensus_and_analyst",
+      "source_type": "consensus_metadata",
+      "publisher": "Example Research Aggregator",
+      "title": "June 2026 consensus context",
+      "published_at": "2026-06-24",
+      "retrieved_at": "2026-06-29T16:00:00+08:00",
+      "document_id": "fixture-consensus-2026-06",
+      "language": "en",
+      "attribution": "aggregated public estimates",
+      "excerpt_policy": "paraphrase_only",
+      "recency": "current",
+      "conflicting": false,
+      "usage_policy": "sentiment_context_only",
+      "notes": "Not allowed as a core decision input."
+    }
+  ],
+  "intelligence_topics": [
+    {
+      "topic_id": "revenue_trend",
+      "topic": "Revenue trend",
+      "summary": "Monthly revenue fixture indicates stable demand momentum relative to the prior quarter.",
+      "source_ids": [
+        "src-2330-monthly-revenue-2026-05",
+        "src-2330-investor-presentation-2026-q2"
+      ],
+      "requires_human_review": false
+    },
+    {
+      "topic_id": "industry_demand",
+      "topic": "Industry demand",
+      "summary": "Industry primary data fixture supports continued demand for advanced semiconductor capacity.",
+      "source_ids": [
+        "src-industry-wafer-demand-2026-q2",
+        "src-2330-investor-presentation-2026-q2"
+      ],
+      "requires_human_review": false
+    },
+    {
+      "topic_id": "market_sentiment",
+      "topic": "Market sentiment context",
+      "summary": "Consensus metadata is retained only as labeled sentiment context and is not a core input.",
+      "source_ids": [
+        "src-consensus-context-2026-06"
+      ],
+      "requires_human_review": true
+    }
+  ],
+  "scoring_policy": {
+    "score_range": "0.0_to_1.0",
+    "tier_taxonomy_doc": "docs/source_credibility_taxonomy.md",
+    "analyst_consensus_core_scoring_allowed": false,
+    "requires_human_review_for_low_credibility": true,
+    "fixture_only": true,
+    "advisory_only": true
+  },
+  "safety": {
+    "fixture_only": true,
+    "repo_only": true,
+    "advisory_only": true,
+    "research_only": true,
+    "no_external_ai_runtime": true,
+    "no_external_market_data": true,
+    "no_notification": true,
+    "no_trading": true,
+    "no_production_db_write": true
+  }
+}

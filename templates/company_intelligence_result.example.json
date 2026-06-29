@@ -1,0 +1,214 @@
+{
+  "company": {
+    "industry": "semiconductor",
+    "market": "TWSE",
+    "stock_id": "2330",
+    "stock_name": "Example Semiconductor"
+  },
+  "company_intelligence": {
+    "advisory_only": true,
+    "items": [
+      {
+        "advisory_only": true,
+        "confidence": 0.955,
+        "data_quality": {
+          "conflicting_sources": false,
+          "missing_sources": 0,
+          "source_count": 2
+        },
+        "evidence_source_ids": [
+          "src-2330-monthly-revenue-2026-05",
+          "src-2330-investor-presentation-2026-q2"
+        ],
+        "requires_human_review": false,
+        "source_credibility_score": 0.955,
+        "summary": "Monthly revenue fixture indicates stable demand momentum relative to the prior quarter.",
+        "topic": "Revenue trend",
+        "topic_id": "revenue_trend"
+      },
+      {
+        "advisory_only": true,
+        "confidence": 0.88,
+        "data_quality": {
+          "conflicting_sources": false,
+          "missing_sources": 0,
+          "source_count": 2
+        },
+        "evidence_source_ids": [
+          "src-industry-wafer-demand-2026-q2",
+          "src-2330-investor-presentation-2026-q2"
+        ],
+        "requires_human_review": false,
+        "source_credibility_score": 0.88,
+        "summary": "Industry primary data fixture supports continued demand for advanced semiconductor capacity.",
+        "topic": "Industry demand",
+        "topic_id": "industry_demand"
+      },
+      {
+        "advisory_only": true,
+        "confidence": 0.38,
+        "data_quality": {
+          "conflicting_sources": false,
+          "missing_sources": 0,
+          "source_count": 1
+        },
+        "evidence_source_ids": [
+          "src-consensus-context-2026-06"
+        ],
+        "requires_human_review": true,
+        "source_credibility_score": 0.38,
+        "summary": "Consensus metadata is retained only as labeled sentiment context and is not a core input.",
+        "topic": "Market sentiment context",
+        "topic_id": "market_sentiment"
+      }
+    ],
+    "requires_human_review": true,
+    "summary": {
+      "average_source_credibility_score": 0.78,
+      "low_credibility_source_ids": [
+        "src-consensus-context-2026-06"
+      ],
+      "requires_human_review": true,
+      "topic_count": 3
+    }
+  },
+  "contract_name": "company_intelligence_source_credibility",
+  "contract_version": "v1",
+  "decision": "company_intelligence_completed",
+  "generated_at": "2026-06-29T16:00:00+08:00",
+  "mode": "fixture_dry_run",
+  "next_recommendation": "Review source coverage before connecting company intelligence to any runtime report.",
+  "ok": true,
+  "run_id": "company-intelligence-source-credibility-fixture-20260629",
+  "safety": {
+    "advisory_only": true,
+    "fixture_only": true,
+    "no_external_ai_runtime": true,
+    "no_external_market_data": true,
+    "no_notification": true,
+    "no_production_db_write": true,
+    "no_runtime_weight_change": true,
+    "no_trading": true,
+    "repo_only": true,
+    "requires_human_review": true,
+    "research_only": true
+  },
+  "schema_version": "company_intelligence_source_credibility_v1",
+  "side_effects": {
+    "called_external_ai_runtime": false,
+    "called_market_data_runtime": false,
+    "modified_cron_systemd_timer": false,
+    "modified_forecast_runtime_weights": false,
+    "modified_github_remote": false,
+    "modified_n8n": false,
+    "modified_production_db": false,
+    "mutated_github_issue": false,
+    "placed_trade_order": false,
+    "read_secrets": false,
+    "sent_notification": false
+  },
+  "source_credibility_scores": [
+    {
+      "adjustments": [
+        {
+          "delta": 0.03,
+          "factor": "current_source"
+        }
+      ],
+      "base_score": 0.95,
+      "conflicting_source": false,
+      "contract_name": "company_intelligence_source_credibility",
+      "contract_version": "v1",
+      "core_scoring_allowed": true,
+      "credibility_score": 0.98,
+      "notes": "Synthetic fixture metadata for contract validation only.",
+      "published_at": "2026-06-10",
+      "publisher": "Example Exchange Disclosure",
+      "requires_human_review": false,
+      "retrieved_at": "2026-06-29T16:00:00+08:00",
+      "source_id": "src-2330-monthly-revenue-2026-05",
+      "source_tier": "tier_1_official_filing",
+      "source_type": "monthly_revenue_filing",
+      "usage_policy": "core_company_fact"
+    },
+    {
+      "adjustments": [
+        {
+          "delta": 0.03,
+          "factor": "current_source"
+        }
+      ],
+      "base_score": 0.9,
+      "conflicting_source": false,
+      "contract_name": "company_intelligence_source_credibility",
+      "contract_version": "v1",
+      "core_scoring_allowed": true,
+      "credibility_score": 0.93,
+      "notes": "Synthetic fixture metadata for contract validation only.",
+      "published_at": "2026-06-15",
+      "publisher": "Example Semiconductor",
+      "requires_human_review": false,
+      "retrieved_at": "2026-06-29T16:00:00+08:00",
+      "source_id": "src-2330-investor-presentation-2026-q2",
+      "source_tier": "tier_1_company_official",
+      "source_type": "investor_presentation",
+      "usage_policy": "core_company_context"
+    },
+    {
+      "adjustments": [
+        {
+          "delta": 0.03,
+          "factor": "current_source"
+        }
+      ],
+      "base_score": 0.8,
+      "conflicting_source": false,
+      "contract_name": "company_intelligence_source_credibility",
+      "contract_version": "v1",
+      "core_scoring_allowed": true,
+      "credibility_score": 0.83,
+      "notes": "Synthetic fixture metadata for contract validation only.",
+      "published_at": "2026-06-20",
+      "publisher": "Example Industry Association",
+      "requires_human_review": false,
+      "retrieved_at": "2026-06-29T16:00:00+08:00",
+      "source_id": "src-industry-wafer-demand-2026-q2",
+      "source_tier": "tier_2_peer_and_industry_primary",
+      "source_type": "industry_primary_data",
+      "usage_policy": "industry_context"
+    },
+    {
+      "adjustments": [
+        {
+          "delta": 0.03,
+          "factor": "current_source"
+        }
+      ],
+      "base_score": 0.35,
+      "conflicting_source": false,
+      "contract_name": "company_intelligence_source_credibility",
+      "contract_version": "v1",
+      "core_scoring_allowed": false,
+      "credibility_score": 0.38,
+      "notes": "Not allowed as a core decision input.",
+      "published_at": "2026-06-24",
+      "publisher": "Example Research Aggregator",
+      "requires_human_review": true,
+      "retrieved_at": "2026-06-29T16:00:00+08:00",
+      "source_id": "src-consensus-context-2026-06",
+      "source_tier": "tier_4_consensus_and_analyst",
+      "source_type": "consensus_metadata",
+      "usage_policy": "sentiment_context_only"
+    }
+  ],
+  "task_id": "AI-DEV-076",
+  "validation_summary": {
+    "contract_name": "company_intelligence_source_credibility",
+    "contract_version": "v1",
+    "deterministic_output": true,
+    "fixture_only": true,
+    "intelligence_topic_count": 3,
+    "source_count": 4,
+    "source_credibility_score_range": "0.0_to_1.0"
+  }
+}
