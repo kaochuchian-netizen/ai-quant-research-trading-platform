@@ -25,6 +25,8 @@ DEFAULT_CODEX_EXECUTOR = ROOT / "scripts" / "orchestrator" / "codex_handoff_auto
 DEFAULT_READINESS_GATE = ROOT / "scripts" / "orchestrator" / "codex_handoff_scheduled_readiness_gate.py"
 PROCESSED_FILE = "processed_handoffs.json"
 MAX_HANDOFFS_PER_RUN = 1
+DEFAULT_EXECUTOR_TIMEOUT_SECONDS = 3600
+TIMEOUT_RETURN_CODE = 124
 
 DECISIONS = {
     "executed_codex_handoff",
@@ -93,7 +95,7 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def run_command(args: list[str], *, timeout: int = 180) -> tuple[int, str, str]:
+def run_command(args: list[str], *, timeout: int | None = 180) -> tuple[int, str, str]:
     proc = subprocess.run(
         args,
         cwd=str(ROOT),
@@ -104,6 +106,14 @@ def run_command(args: list[str], *, timeout: int = 180) -> tuple[int, str, str]:
         timeout=timeout,
     )
     return proc.returncode, proc.stdout.strip(), proc.stderr.strip()
+
+
+def timeout_text(value: str | bytes | None) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace").strip()
+    return value.strip()
 
 
 def load_processed(path: Path) -> dict[str, Any]:
@@ -306,6 +316,7 @@ def base_result(args: argparse.Namespace) -> dict[str, Any]:
         "limits": {
             "max_handoffs_per_run": args.max_handoffs_per_run,
             "selected_handoff_count": 0,
+            "executor_timeout_seconds": args.executor_timeout_seconds,
         },
         "pickup": {
             "called": False,
@@ -340,7 +351,91 @@ def call_readiness(readiness_gate: Path, handoff_path: str, output: Path) -> tup
     return code, data, stderr or stdout
 
 
-def call_executor(codex_executor: Path, handoff_path: str, output: Path) -> tuple[int, dict[str, Any] | None, str]:
+def build_executor_failure_result(
+    *,
+    handoff_path: str,
+    output: Path,
+    message: str,
+    stdout: str,
+    stderr: str,
+    returncode: int | None,
+    timeout_seconds: int | None = None,
+    status: str = "failed",
+) -> dict[str, Any]:
+    headless_run: dict[str, Any] = {
+        "called": True,
+        "command": "python3 scripts/orchestrator/codex_handoff_auto_executor.py --execute-headless",
+        "returncode": returncode,
+        "stdout_summary": stdout[:1200],
+        "stderr_summary": (stderr or message)[:1200],
+        "last_message_path": str(output.with_suffix(".last_message.txt")),
+        "implementation_changed_files": [],
+        "implementation_completed": False,
+        "status": status,
+    }
+    if timeout_seconds is not None:
+        headless_run["timed_out"] = True
+        headless_run["timeout_seconds"] = timeout_seconds
+    return {
+        "task_id": "AI-DEV-067",
+        "ok": False,
+        "mode": "execute_headless",
+        "generated_at": utc_now(),
+        "handoff_path": handoff_path,
+        "headless_supported": True,
+        "supported_command": "codex exec",
+        "manual_one_shot_viable": True,
+        "schedule_ready": False,
+        "tmux_paste_required": False,
+        "decision": "validation_failed",
+        "safe_to_schedule": False,
+        "safe_to_execute": False,
+        "implementation_completed": False,
+        "implementation_changed_files": [],
+        "headless_run": headless_run,
+        "blocked_reasons": [message],
+        "validation_errors": [message],
+        "feasibility": {
+            "which_codex": None,
+            "codex_version": None,
+            "codex_help_available": None,
+            "codex_exec_help_available": None,
+            "codex_run_help_available": None,
+            "sanitized_help_notes": [
+                "scheduled runner wrote this artifact to avoid reusing a stale executor result"
+            ],
+        },
+        "execution_plan": {
+            "default_calls_codex": False,
+            "requires_execute_headless_flag": True,
+            "prompt_artifact_only": False,
+            "execute_shell_from_handoff": False,
+            "headless_command": "codex exec",
+            "repo_only_scope": True,
+        },
+        "sanitized_prompt": {
+            "source": "sanitized_handoff_markdown",
+            "summary": "Executor did not return a verified helper result.",
+            "raw_handoff_included": False,
+        },
+        "side_effects": {
+            "called_codex_runtime": True,
+            "called_external_ai_runtime": False,
+            "sent_notification": False,
+            "modified_production_db": False,
+            "modified_cron_systemd_timer": False,
+            "mutated_github_issue": False,
+        },
+        "next_recommendation": "Inspect the executor artifact and rerun only after confirming no prior executor process is still active.",
+    }
+
+
+def call_executor(
+    codex_executor: Path,
+    handoff_path: str,
+    output: Path,
+    timeout_seconds: int,
+) -> tuple[int, dict[str, Any] | None, str]:
     args = [
         sys.executable,
         str(codex_executor),
@@ -350,8 +445,49 @@ def call_executor(codex_executor: Path, handoff_path: str, output: Path) -> tupl
         "--output",
         str(output),
     ]
-    code, stdout, stderr = run_command(args, timeout=180)
+    started = build_executor_failure_result(
+        handoff_path=handoff_path,
+        output=output,
+        message="codex handoff auto executor invocation started; awaiting helper result",
+        stdout="",
+        stderr="",
+        returncode=None,
+        status="started",
+    )
+    write_json(output, started)
+    try:
+        code, stdout, stderr = run_command(args, timeout=timeout_seconds)
+    except subprocess.TimeoutExpired as exc:
+        stdout = timeout_text(exc.stdout)
+        stderr = timeout_text(exc.stderr)
+        message = f"codex handoff auto executor timed out after {timeout_seconds} seconds"
+        data = build_executor_failure_result(
+            handoff_path=handoff_path,
+            output=output,
+            message=message,
+            stdout=stdout,
+            stderr=stderr,
+            returncode=TIMEOUT_RETURN_CODE,
+            timeout_seconds=timeout_seconds,
+            status="timed_out",
+        )
+        write_json(output, data)
+        return TIMEOUT_RETURN_CODE, data, data["blocked_reasons"][0]
     data, _ = load_json(output) if output.exists() else (None, [])
+    headless_run = data.get("headless_run") if isinstance(data, dict) else None
+    if not data or (isinstance(headless_run, dict) and headless_run.get("status") == "started"):
+        message = "codex handoff auto executor returned without writing a fresh result artifact"
+        data = build_executor_failure_result(
+            handoff_path=handoff_path,
+            output=output,
+            message=message,
+            stdout=stdout,
+            stderr=stderr,
+            returncode=code,
+            status="missing_result",
+        )
+        write_json(output, data)
+        return code, data, message
     return code, data, stderr or stdout
 
 
@@ -391,6 +527,12 @@ def build_result(args: argparse.Namespace) -> dict[str, Any]:
     if args.max_handoffs_per_run != MAX_HANDOFFS_PER_RUN:
         result = base_result(args)
         result["blocked_reasons"] = ["max_handoffs_per_run must be 1"]
+        return result
+    if args.executor_timeout_seconds < DEFAULT_EXECUTOR_TIMEOUT_SECONDS:
+        result = base_result(args)
+        result["blocked_reasons"] = [
+            f"executor_timeout_seconds must be at least {DEFAULT_EXECUTOR_TIMEOUT_SECONDS}"
+        ]
         return result
 
     state_dir = Path(args.state_dir).expanduser()
@@ -498,7 +640,12 @@ def build_result(args: argparse.Namespace) -> dict[str, Any]:
             return result
 
         executor_output = state_dir / "executor_latest.json"
-        executor_code, executor, executor_error = call_executor(repo_path(args.codex_executor), str(normalized_handoff), executor_output)
+        executor_code, executor, executor_error = call_executor(
+            repo_path(args.codex_executor),
+            str(normalized_handoff),
+            executor_output,
+            args.executor_timeout_seconds,
+        )
         result["executor"] = {
             "called": True,
             "decision": executor.get("decision") if executor else None,
@@ -563,6 +710,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--state-dir", default=str(DEFAULT_STATE_DIR))
     parser.add_argument("--lock-file", default=str(DEFAULT_LOCK_FILE))
     parser.add_argument("--max-handoffs-per-run", type=int, default=MAX_HANDOFFS_PER_RUN)
+    parser.add_argument("--executor-timeout-seconds", type=int, default=DEFAULT_EXECUTOR_TIMEOUT_SECONDS)
     parser.add_argument("--codex-executor", default=str(DEFAULT_CODEX_EXECUTOR))
     parser.add_argument("--readiness-gate", default=str(DEFAULT_READINESS_GATE))
     return parser.parse_args()

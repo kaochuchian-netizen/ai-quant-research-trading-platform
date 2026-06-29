@@ -37,6 +37,7 @@ It supports:
 --state-dir
 --lock-file
 --max-handoffs-per-run
+--executor-timeout-seconds
 --codex-executor
 --readiness-gate
 ```
@@ -74,6 +75,7 @@ The scheduled command should be equivalent to:
   --state-dir /home/kaochuchian/.local/state/stock-ai-orchestrator/codex_handoff_scheduled_pickup \
   --lock-file /home/kaochuchian/.local/state/stock-ai-orchestrator/codex_handoff_scheduled_pickup/lock \
   --max-handoffs-per-run 1 \
+  --executor-timeout-seconds 3600 \
   --codex-executor scripts/orchestrator/codex_handoff_auto_executor.py \
   --readiness-gate scripts/orchestrator/codex_handoff_scheduled_readiness_gate.py
 ```
@@ -96,6 +98,12 @@ lock
 readiness_latest.json
 executor_latest.json
 ```
+
+The scheduled runner waits up to `--executor-timeout-seconds` for the executor
+helper. The default is 3600 seconds. If the helper times out, the runner writes
+a fresh `executor_latest.json` timeout artifact before returning
+`decision=codex_executor_failed`, so an older executor result cannot be mistaken
+for the latest executor outcome.
 
 The lock is created with exclusive file creation and contains owner, pid,
 created time, and handoff path. If the lock exists, the runner returns
