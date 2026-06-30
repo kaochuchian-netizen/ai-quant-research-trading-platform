@@ -1,0 +1,105 @@
+{
+  "branch": "ai-dev/102-production-scheduler-gate-runtime-smoke-test-v1",
+  "commands": [
+    {
+      "command": "bash -n run_stock_analysis.sh",
+      "expected_exit_code": 0,
+      "purpose": "shell_syntax_check"
+    },
+    {
+      "command": "./run_stock_analysis.sh",
+      "expected_exit_code": 0,
+      "purpose": "scheduler_entrypoint_gated_runtime_smoke"
+    },
+    {
+      "command": "python3 scripts/orchestrator/production_scheduler_gate_runtime.py --input templates/production_scheduler_gate_runtime_input.example.json --output /tmp/production_scheduler_gate_runtime_smoke_pre_open.json --summary-output /tmp/production_scheduler_gate_runtime_smoke_pre_open_summary.json --window pre_open_0700 --pretty",
+      "expected_exit_code": 0,
+      "purpose": "runtime_window_smoke"
+    },
+    {
+      "command": "python3 scripts/orchestrator/production_scheduler_gate_runtime.py --input templates/production_scheduler_gate_runtime_input.example.json --output /tmp/production_scheduler_gate_runtime_smoke_intraday.json --summary-output /tmp/production_scheduler_gate_runtime_smoke_intraday_summary.json --window intraday_1305 --pretty",
+      "expected_exit_code": 0,
+      "purpose": "runtime_window_smoke"
+    },
+    {
+      "command": "python3 scripts/orchestrator/production_scheduler_gate_runtime.py --input templates/production_scheduler_gate_runtime_input.example.json --output /tmp/production_scheduler_gate_runtime_smoke_pre_close.json --summary-output /tmp/production_scheduler_gate_runtime_smoke_pre_close_summary.json --window pre_close_1335 --pretty",
+      "expected_exit_code": 0,
+      "purpose": "runtime_window_smoke"
+    }
+  ],
+  "delivery_allowed": false,
+  "generated_at": "2026-06-30T13:00:00+08:00",
+  "mode": "dry_run_no_delivery",
+  "ok": true,
+  "run_id": "production-scheduler-gate-runtime-smoke-test-v1-fixture-20260630",
+  "run_stock_analysis_sh": {
+    "delivery_allowed": false,
+    "expected_runtime_path": "scripts/orchestrator/production_scheduler_gate_runtime.py",
+    "legacy_production_approved": false,
+    "no_delivery_default": true,
+    "result_path": "/tmp/production_scheduler_gate_runtime_result.json",
+    "summary_path": "/tmp/production_scheduler_gate_runtime_summary.json"
+  },
+  "safety": {
+    "no_cron_mutation": true,
+    "no_dashboard_deploy": true,
+    "no_email_send": true,
+    "no_legacy_production_path": true,
+    "no_line_push": true,
+    "no_persistent_store_writes": true,
+    "no_production_db_writes": true,
+    "no_schedule_service_changes": true,
+    "no_secret_mutation": true,
+    "no_systemd_mutation": true,
+    "no_timer_mutation": true
+  },
+  "schema_version": "production_scheduler_gate_runtime_smoke_test_v1",
+  "side_effects": {
+    "deployed_dashboard": false,
+    "modified_cron": false,
+    "modified_schedule_or_service": false,
+    "modified_secrets": false,
+    "modified_systemd": false,
+    "modified_timer": false,
+    "sent_email": false,
+    "sent_line_push": false,
+    "wrote_persistent_store": false,
+    "wrote_production_db": false
+  },
+  "task_id": "AI-DEV-102",
+  "windows": [
+    {
+      "delivery_allowed": false,
+      "no_dashboard_deploy": true,
+      "no_email_send": true,
+      "no_line_push": true,
+      "no_persistent_store_writes": true,
+      "no_schedule_service_changes": true,
+      "output_path": "/tmp/production_scheduler_gate_runtime_smoke_pre_open.json",
+      "summary_output_path": "/tmp/production_scheduler_gate_runtime_smoke_pre_open_summary.json",
+      "window": "pre_open_0700"
+    },
+    {
+      "delivery_allowed": false,
+      "no_dashboard_deploy": true,
+      "no_email_send": true,
+      "no_line_push": true,
+      "no_persistent_store_writes": true,
+      "no_schedule_service_changes": true,
+      "output_path": "/tmp/production_scheduler_gate_runtime_smoke_intraday.json",
+      "summary_output_path": "/tmp/production_scheduler_gate_runtime_smoke_intraday_summary.json",
+      "window": "intraday_1305"
+    },
+    {
+      "delivery_allowed": false,
+      "no_dashboard_deploy": true,
+      "no_email_send": true,
+      "no_line_push": true,
+      "no_persistent_store_writes": true,
+      "no_schedule_service_changes": true,
+      "output_path": "/tmp/production_scheduler_gate_runtime_smoke_pre_close.json",
+      "summary_output_path": "/tmp/production_scheduler_gate_runtime_smoke_pre_close_summary.json",
+      "window": "pre_close_1335"
+    }
+  ]
+}
