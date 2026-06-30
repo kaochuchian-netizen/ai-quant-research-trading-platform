@@ -1,0 +1,18 @@
+{
+  "generated_at": "2026-06-30T10:20:00+08:00",
+  "input_sources": {
+    "dashboard_static_page_result_path": "templates/daily_report_dashboard_static_page_result.example.json"
+  },
+  "mode": "fixture_dry_run",
+  "review_request": {
+    "review_id": "daily_report_preview_review_20260630",
+    "review_status": "pending_review",
+    "reviewer": "human_reviewer_pending",
+    "reviewer_notes": [
+      "Fixture review is pending explicit human approval."
+    ],
+    "revision_notes": []
+  },
+  "run_id": "daily-report-preview-review-workflow-fixture-20260630",
+  "task_id": "AI-DEV-089"
+}
