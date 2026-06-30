@@ -1,0 +1,28 @@
+{
+  "generated_at": "2026-06-30T09:40:00+08:00",
+  "input_sources": {
+    "renderer_result_path": "templates/daily_report_renderer_result.example.json"
+  },
+  "mode": "fixture_dry_run",
+  "preview_config": {
+    "export_title": "Daily Report Static Preview 2026-06-30",
+    "manifest_id": "daily_report_static_preview_manifest_20260630",
+    "package_id": "daily_report_static_preview_package_20260630",
+    "preview_id": "daily_report_static_preview_20260630"
+  },
+  "run_id": "daily-report-static-preview-export-fixture-20260630",
+  "safety": {
+    "advisory_only": true,
+    "fixture_only": true,
+    "no_delivery_actions": true,
+    "no_external_model_calls": true,
+    "no_market_data_calls": true,
+    "no_persistent_store_writes": true,
+    "no_portfolio_actions": true,
+    "no_schedule_service_changes": true,
+    "preview_only": true,
+    "repo_only": true
+  },
+  "schema_version": "daily_report_static_preview_export_input_v1",
+  "task_id": "AI-DEV-085"
+}
