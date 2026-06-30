@@ -88,6 +88,12 @@ pipelines, secret handling, notification sending, n8n/Dify/OpenAI calls,
 trading/orders, production database mutation, cron/systemd/timer changes,
 daemon/background services, or arbitrary shell execution.
 
+Blocked terms inside clear safety prohibition context are not treated as active
+intent. Examples include `Must NOT`, `Do not`, `no`, `never`, `prohibited`,
+`forbidden`, `禁止`, `不得`, `不要`, `不可`, and `不允許`. This exception is only
+for blocked task-class detection. Secret/token value detection remains strict
+and still rejects sensitive values anywhere in the Issue payload.
+
 ## Allowed Task Classes
 
 V1 accepts only:
@@ -206,6 +212,15 @@ Run:
 ```bash
 python3 scripts/orchestrator/inspect_github_issue_scheduled_pickup_health.py --pretty --output /tmp/github_issue_scheduled_pickup_health.json
 python3 scripts/orchestrator/validate_github_issue_mobile_auto_pickup_result.py --input /home/kaochuchian/.local/state/stock-ai-orchestrator/github_issue_scheduled_pickup_latest.json --pretty
+```
+
+Regression fixture checks:
+
+```bash
+python3 scripts/orchestrator/github_issue_mobile_auto_pickup.py --once --input templates/github_issue_mobile_auto_pickup_negated_safety_fixture.example.json --output /tmp/github_issue_mobile_auto_pickup_negated_safety_result.json --state-dir /tmp/github_issue_mobile_auto_pickup_negated_safety_state --pretty
+python3 scripts/orchestrator/validate_github_issue_mobile_auto_pickup_result.py --input /tmp/github_issue_mobile_auto_pickup_negated_safety_result.json --pretty
+python3 scripts/orchestrator/github_issue_mobile_auto_pickup.py --once --input templates/github_issue_mobile_auto_pickup_active_sensitive_fixture.example.json --output /tmp/github_issue_mobile_auto_pickup_active_sensitive_result.json --state-dir /tmp/github_issue_mobile_auto_pickup_active_sensitive_state --pretty
+python3 scripts/orchestrator/validate_github_issue_mobile_auto_pickup_result.py --input /tmp/github_issue_mobile_auto_pickup_active_sensitive_result.json --pretty
 ```
 
 All side-effect flags must remain false for runtime, production, Issue

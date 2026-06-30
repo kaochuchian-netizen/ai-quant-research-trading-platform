@@ -1,0 +1,28 @@
+{
+  "issues": [
+    {
+      "number": 181,
+      "url": "https://github.com/example/repo/issues/181",
+      "state": "open",
+      "title": "AI-DEV repo-only validator update",
+      "body": "Implement a repo-only validator fixture update.\n\nSafety:\n- Must NOT call external AI / Gemini / OpenAI runtime.\n- Must NOT send LINE / Email / notifications.\n- Must NOT place trades / call broker APIs.\n- Must NOT write production DB.\n- Must NOT run production pipeline.\n- Must NOT modify cron / systemd / timers.\n- Do not run python3 main.py in production mode.\n- 禁止讀取 secrets、tokens、credentials 或 .env。\n- 不得修改 n8n、production DB、cron、systemd、timer。\n\nDeliverables:\n- Update templates/github_issue_mobile_auto_pickup_negated_safety_fixture.example.json.\n- Run validation helper only.",
+      "labels": [
+        {
+          "name": "ai-dev"
+        },
+        {
+          "name": "gcp-pickup"
+        },
+        {
+          "name": "auto-run"
+        },
+        {
+          "name": "repo-only"
+        },
+        {
+          "name": "dry-run"
+        }
+      ]
+    }
+  ]
+}
