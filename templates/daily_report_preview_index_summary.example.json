@@ -1,0 +1,24 @@
+{
+  "entries": [
+    {
+      "advisory_only": true,
+      "discoverable_refs": {
+        "manifest_ref": "templates/daily_report_static_preview_manifest.example.json",
+        "markdown_ref": "templates/daily_report_static_preview_markdown.example.md",
+        "renderer_source_ref": "templates/daily_report_renderer_result.example.json"
+      },
+      "preview_id": "daily_report_static_preview_20260630",
+      "preview_only": true,
+      "report_date": "2026-06-30",
+      "requires_human_review": true,
+      "section_count": 2,
+      "source_decision": "daily_report_static_preview_export_completed_with_warnings",
+      "title": "Daily Report Static Preview 2026-06-30",
+      "warning_count": 5
+    }
+  ],
+  "preview_count": 1,
+  "requires_human_review_count": 1,
+  "summary_title": "Daily Report Preview Index 2026-06-30",
+  "warning_count": 5
+}

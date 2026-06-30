@@ -1,0 +1,150 @@
+{
+  "decision": "daily_report_preview_index_completed_with_warnings",
+  "generated_at": "2026-06-30T09:50:00+08:00",
+  "mode": "fixture_dry_run",
+  "next_recommendation": "Use this deterministic index as the discovery fixture for future dashboard, email, or LINE preview integrations after human review.",
+  "ok": true,
+  "preview_entries": [
+    {
+      "advisory_only": true,
+      "manifest_ref": "templates/daily_report_static_preview_manifest.example.json",
+      "markdown_ref": "templates/daily_report_static_preview_markdown.example.md",
+      "preview_id": "daily_report_static_preview_20260630",
+      "preview_only": true,
+      "renderer_source_ref": "templates/daily_report_renderer_result.example.json",
+      "report_date": "2026-06-30",
+      "requires_human_review": true,
+      "section_count": 2,
+      "title": "Daily Report Static Preview 2026-06-30",
+      "validation_summary": {
+        "manifest_ref_present": true,
+        "markdown_ref_present": true,
+        "renderer_source_ref_present": true,
+        "section_count": 2,
+        "source_export_ref": "templates/daily_report_static_preview_export_result.example.json",
+        "source_mode_fixture_dry_run": true,
+        "source_ok": true,
+        "source_schema_matched": true,
+        "warning_count": 5
+      },
+      "warnings": [
+        "forecast review source reports insufficient data",
+        "human review required for one or more intelligence sources",
+        "one or more source credibility records require human review",
+        "source renderer completed with warnings",
+        "source research pack completed with warnings"
+      ]
+    }
+  ],
+  "preview_index": {
+    "dashboard_summary_ref": "embedded:preview_summary",
+    "entry_count": 1,
+    "index_id": "daily_report_preview_index_20260630",
+    "manifest_refs": [
+      "templates/daily_report_static_preview_manifest.example.json"
+    ],
+    "markdown_refs": [
+      "templates/daily_report_static_preview_markdown.example.md"
+    ],
+    "preview_ids": [
+      "daily_report_static_preview_20260630"
+    ],
+    "renderer_source_refs": [
+      "templates/daily_report_renderer_result.example.json"
+    ],
+    "source_preview_export_ref": "templates/daily_report_static_preview_export_result.example.json"
+  },
+  "preview_summary": {
+    "entries": [
+      {
+        "advisory_only": true,
+        "discoverable_refs": {
+          "manifest_ref": "templates/daily_report_static_preview_manifest.example.json",
+          "markdown_ref": "templates/daily_report_static_preview_markdown.example.md",
+          "renderer_source_ref": "templates/daily_report_renderer_result.example.json"
+        },
+        "preview_id": "daily_report_static_preview_20260630",
+        "preview_only": true,
+        "report_date": "2026-06-30",
+        "requires_human_review": true,
+        "section_count": 2,
+        "source_decision": "daily_report_static_preview_export_completed_with_warnings",
+        "title": "Daily Report Static Preview 2026-06-30",
+        "warning_count": 5
+      }
+    ],
+    "preview_count": 1,
+    "requires_human_review_count": 1,
+    "summary_title": "Daily Report Preview Index 2026-06-30",
+    "warning_count": 5
+  },
+  "run_id": "daily-report-preview-index-fixture-20260630",
+  "safety": {
+    "advisory_only": true,
+    "fixture_only": true,
+    "no_delivery_actions": true,
+    "no_external_model_calls": true,
+    "no_market_data_calls": true,
+    "no_persistent_store_writes": true,
+    "no_portfolio_actions": true,
+    "no_schedule_service_changes": true,
+    "preview_only": true,
+    "repo_only": true,
+    "requires_human_review": true
+  },
+  "schema_version": "daily_report_preview_index_v1",
+  "side_effects": {
+    "called_external_model_runtime": false,
+    "called_market_data_runtime": false,
+    "modified_github_remote": false,
+    "modified_portfolio": false,
+    "modified_schedule_or_service": false,
+    "placed_trade_order": false,
+    "read_secrets": false,
+    "sent_daily_report": false,
+    "sent_notification": false,
+    "wrote_persistent_store": false,
+    "wrote_production_db": false
+  },
+  "source_preview_export_summary": {
+    "source_decision": "daily_report_static_preview_export_completed_with_warnings",
+    "source_generated_at": "2026-06-30T09:40:00+08:00",
+    "source_manifest_included": true,
+    "source_markdown_included": true,
+    "source_mode": "fixture_dry_run",
+    "source_ok": true,
+    "source_package_id": "daily_report_static_preview_package_20260630",
+    "source_path": "templates/daily_report_static_preview_export_result.example.json",
+    "source_preview_id": "daily_report_static_preview_20260630",
+    "source_report_date": "2026-06-30",
+    "source_run_id": "daily-report-static-preview-export-fixture-20260630",
+    "source_schema_version": "daily_report_static_preview_export_v1",
+    "source_section_count": 2,
+    "source_task_id": "AI-DEV-085",
+    "source_title": "Daily Report Static Preview 2026-06-30",
+    "source_warning_count": 5
+  },
+  "task_id": "AI-DEV-086",
+  "validation_summary": {
+    "deterministic_output": true,
+    "fixture_only": true,
+    "manifest_refs_present": true,
+    "markdown_refs_present": true,
+    "preview_entries_included": true,
+    "preview_entry_count": 1,
+    "preview_summary_included": true,
+    "renderer_source_refs_present": true,
+    "section_count": 2,
+    "source_mode_fixture_dry_run": true,
+    "source_ok": true,
+    "source_schema_expected": "daily_report_static_preview_export_v1",
+    "source_schema_matched": true,
+    "warnings": [
+      "forecast review source reports insufficient data",
+      "human review required for one or more intelligence sources",
+      "one or more source credibility records require human review",
+      "source renderer completed with warnings",
+      "source research pack completed with warnings"
+    ]
+  }
+}
