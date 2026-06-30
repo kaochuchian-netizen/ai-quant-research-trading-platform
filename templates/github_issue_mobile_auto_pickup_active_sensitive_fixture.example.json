@@ -1,0 +1,28 @@
+{
+  "issues": [
+    {
+      "number": 182,
+      "url": "https://github.com/example/repo/issues/182",
+      "state": "open",
+      "title": "AI-DEV run production pipeline",
+      "body": "Please run the production pipeline and send LINE notification when complete.",
+      "labels": [
+        {
+          "name": "ai-dev"
+        },
+        {
+          "name": "gcp-pickup"
+        },
+        {
+          "name": "auto-run"
+        },
+        {
+          "name": "repo-only"
+        },
+        {
+          "name": "dry-run"
+        }
+      ]
+    }
+  ]
+}

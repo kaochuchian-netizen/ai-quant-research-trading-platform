@@ -114,23 +114,42 @@ def find_secret_patterns(issue: dict[str, Any]) -> list[str]:
 
 
 NEGATION_RE = re.compile(
-    r"(?i)(\bno\b|\bnot\b|\bwithout\b|\bavoid\b|\bnever\b|\bdo\s+not\b|\bdon't\b|\bmust\s+not\b|\bshould\s+not\b|\bdo\s+not\s+call\b)"
+    r"(?i)(\bmust\s+not\b|\bdo\s+not\b|\bdon't\b|\bshould\s+not\b|\bno\b|\bnot\b|\bwithout\b|\bavoid\b|\bnever\b|\bprohibited\b|\bforbidden\b|禁止|不得|不要|不可|不允許)"
 )
 
 
-def is_negated_match(text: str, start: int) -> bool:
-    context = text[max(0, start - 80) : start]
-    boundary = max(context.rfind("."), context.rfind("\n"), context.rfind(";"), context.rfind(":"))
-    if boundary >= 0:
-        context = context[boundary + 1 :]
-    return bool(NEGATION_RE.search(context))
+def match_context(text: str, start: int, end: int) -> tuple[str, int, int]:
+    line_start = text.rfind("\n", 0, start) + 1
+    line_end = text.find("\n", end)
+    if line_end == -1:
+        line_end = len(text)
+    context = text[line_start:line_end]
+    offset = line_start
+    for marker in (".", ";", "。", "；"):
+        left = context.rfind(marker, 0, start - line_start)
+        if left >= 0:
+            context = context[left + 1 :]
+            offset = line_start + left + 1
+            break
+    return context, start - offset, end - offset
+
+
+def is_negated_match(text: str, start: int, end: int) -> bool:
+    context, local_start, local_end = match_context(text, start, end)
+    prefix = context[:local_start]
+    suffix = context[local_end:]
+    if re.search(r"(?i)\bprohibited\s+term|forbidden\s+term|blocked\s+term\b", prefix):
+        return False
+    before_match = NEGATION_RE.search(prefix)
+    after_match = re.search(r"(?i)\b(is|are|remains?|remain|must\s+be)?\s*(prohibited|forbidden)\b|禁止|不得|不要|不可|不允許", suffix)
+    return bool(before_match or after_match)
 
 
 def find_blocked_classes(title: str, body: str) -> list[str]:
     text = f"{title}\n{body}"
     blocked = []
     for name, pattern in BLOCKED_CLASS_PATTERNS.items():
-        if any(not is_negated_match(text, match.start()) for match in pattern.finditer(text)):
+        if any(not is_negated_match(text, match.start(), match.end()) for match in pattern.finditer(text)):
             blocked.append(name)
     return blocked
 
