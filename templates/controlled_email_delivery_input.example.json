@@ -1,0 +1,39 @@
+{
+  "generated_at": "2026-06-30T10:45:00+08:00",
+  "input_sources": {
+    "delivery_payload_builder_result_path": "templates/delivery_payload_builder_result.example.json"
+  },
+  "mode": "fixture_dry_run",
+  "run_id": "controlled-email-delivery-fixture-20260630",
+  "schema_version": "controlled_email_delivery_input_v1",
+  "task_id": "AI-DEV-094",
+  "email_delivery_policy": {
+    "approval_required": true,
+    "required_review_status": "approved",
+    "preview_only": true,
+    "default_email_channel_enabled": false,
+    "send_status_fixture_value": "not_sent",
+    "recipient_resolution": "redacted_fixture_policy_only",
+    "attachments_preview_only": true
+  },
+  "safety": {
+    "advisory_only": true,
+    "api_server_created": false,
+    "dashboard_deploy": false,
+    "fixture_only": true,
+    "no_dashboard_deploy": true,
+    "no_delivery_actions": true,
+    "no_email_send": true,
+    "no_external_model_calls": true,
+    "no_gmail_api_call": true,
+    "no_line_push": true,
+    "no_market_data_calls": true,
+    "no_persistent_store_writes": true,
+    "no_portfolio_actions": true,
+    "no_schedule_service_changes": true,
+    "no_smtp_call": true,
+    "preview_only": true,
+    "repo_only": true,
+    "trading_instruction": false
+  }
+}
