@@ -1,0 +1,10 @@
+{
+  "generated_at": "2026-06-30T11:15:00+08:00",
+  "input_sources": {
+    "dashboard_delivery_gate_result_path": "templates/dashboard_delivery_gate_result.example.json",
+    "email_delivery_result_path": "templates/controlled_email_delivery_result.example.json",
+    "line_delivery_gate_result_path": "templates/line_delivery_gate_result.example.json"
+  },
+  "run_id": "unified-delivery-gate-summary-fixture-20260630",
+  "task_id": "AI-DEV-097"
+}
