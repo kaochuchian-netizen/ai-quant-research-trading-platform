@@ -1,0 +1,71 @@
+{
+  "schema_version": "forecast_evidence_linking_input_v1",
+  "task_id": "AI-DEV-090",
+  "run_id": "forecast-evidence-linking-fixture-20260630",
+  "generated_at": "2026-06-30T09:00:00+08:00",
+  "mode": "fixture_dry_run",
+  "input_sources": {
+    "company_intelligence_result_path": "templates/company_intelligence_result.example.json",
+    "industry_peer_context_result_path": "templates/industry_intelligence_peer_context_result.example.json"
+  },
+  "forecasts": [
+    {
+      "forecast_id": "forecast-2330-same-day-20260630",
+      "stock_id": "2330",
+      "stock_name": "Example Semiconductor",
+      "horizon": "same_day",
+      "forecast_type": "high_low_interval",
+      "source_ids": [
+        "src-2330-monthly-revenue-2026-05",
+        "src-2330-investor-presentation-2026-q2",
+        "src-industry-wafer-demand-2026-q2",
+        "src-consensus-context-2026-06"
+      ],
+      "sentiment_source_ids": [
+        "src-consensus-context-2026-06"
+      ],
+      "notes": "Synthetic forecast fixture for evidence-linking validation only."
+    },
+    {
+      "forecast_id": "forecast-2330-one-month-20260630",
+      "stock_id": "2330",
+      "stock_name": "Example Semiconductor",
+      "horizon": "one_month",
+      "forecast_type": "trend_interval",
+      "source_ids": [
+        "src-2330-investor-presentation-2026-q2",
+        "src-industry-wafer-demand-2026-q2",
+        "src-peer-advanced-packaging-2026-q2",
+        "src-market-price-context-2026-06"
+      ],
+      "sentiment_source_ids": [
+        "src-market-price-context-2026-06"
+      ],
+      "notes": "Synthetic longer-horizon fixture using company, industry, peer, and quantitative context."
+    }
+  ],
+  "linking_policy": {
+    "primary_evidence_min_credibility": 0.8,
+    "low_credibility_threshold": 0.5,
+    "sentiment_usage_policy_values": [
+      "sentiment_context_only",
+      "quantitative_context_only"
+    ],
+    "human_review_required_when_low_credibility": true,
+    "human_review_required_when_sentiment_metadata_present": true
+  },
+  "safety": {
+    "repo_only": true,
+    "fixture_only": true,
+    "advisory_only": true,
+    "preview_only": true,
+    "no_external_model_calls": true,
+    "no_market_data_calls": true,
+    "no_delivery_actions": true,
+    "no_persistent_store_writes": true,
+    "no_portfolio_actions": true,
+    "no_schedule_service_changes": true,
+    "dashboard_deploy": false,
+    "api_server_created": false
+  }
+}

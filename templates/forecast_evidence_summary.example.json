@@ -1,0 +1,14 @@
+{
+  "advisory_only": true,
+  "company_intelligence_ref_count": 5,
+  "deterministic_output": true,
+  "forecast_count": 2,
+  "human_review_required_count": 2,
+  "industry_intelligence_ref_count": 6,
+  "linked_forecast_count": 2,
+  "low_credibility_source_ids": [
+    "src-consensus-context-2026-06"
+  ],
+  "schema_version": "forecast_evidence_summary_v1",
+  "source_count": 6
+}
