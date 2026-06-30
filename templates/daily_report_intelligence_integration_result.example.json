@@ -1,0 +1,447 @@
+{
+  "company_intelligence_summary": {
+    "advisory_only": true,
+    "average_source_credibility_score": 0.78,
+    "company": {
+      "industry": "semiconductor",
+      "market": "TWSE",
+      "stock_id": "2330",
+      "stock_name": "Example Semiconductor"
+    },
+    "low_credibility_source_ids": [
+      "src-consensus-context-2026-06"
+    ],
+    "requires_human_review": true,
+    "source_decision": "company_intelligence_completed",
+    "source_run_id": "company-intelligence-source-credibility-fixture-20260629",
+    "source_schema_version": "company_intelligence_source_credibility_v1",
+    "source_task_id": "AI-DEV-076",
+    "summary_points": [
+      "Monthly revenue fixture indicates stable demand momentum relative to the prior quarter.",
+      "Industry primary data fixture supports continued demand for advanced semiconductor capacity.",
+      "Consensus metadata is retained only as labeled sentiment context and is not a core input."
+    ],
+    "topic_count": 3
+  },
+  "contract_name": "daily_report_intelligence_integration",
+  "contract_version": "v1",
+  "daily_report_intelligence_section": {
+    "advisory_only": true,
+    "badges": {
+      "advisory_only": true,
+      "fixture_only": true,
+      "repo_only": true,
+      "requires_human_review": true
+    },
+    "machine_readable": {
+      "advisory_only": true,
+      "company_intelligence_summary": {
+        "advisory_only": true,
+        "average_source_credibility_score": 0.78,
+        "company": {
+          "industry": "semiconductor",
+          "market": "TWSE",
+          "stock_id": "2330",
+          "stock_name": "Example Semiconductor"
+        },
+        "low_credibility_source_ids": [
+          "src-consensus-context-2026-06"
+        ],
+        "requires_human_review": true,
+        "source_decision": "company_intelligence_completed",
+        "source_run_id": "company-intelligence-source-credibility-fixture-20260629",
+        "source_schema_version": "company_intelligence_source_credibility_v1",
+        "source_task_id": "AI-DEV-076",
+        "summary_points": [
+          "Monthly revenue fixture indicates stable demand momentum relative to the prior quarter.",
+          "Industry primary data fixture supports continued demand for advanced semiconductor capacity.",
+          "Consensus metadata is retained only as labeled sentiment context and is not a core input."
+        ],
+        "topic_count": 3
+      },
+      "industry_peer_context_summary": {
+        "advisory_only": true,
+        "average_confidence": 0.765,
+        "highest_risk_flags": [
+          "capacity",
+          "demand",
+          "pricing"
+        ],
+        "industry": {
+          "as_of_date": "2026-06-30",
+          "industry_id": "semiconductor_foundry",
+          "industry_name": "Semiconductor Foundry"
+        },
+        "industry_topic_count": 2,
+        "peer_context_count": 2,
+        "requires_human_review": true,
+        "source_decision": "industry_peer_context_completed",
+        "source_run_id": "industry-intelligence-peer-context-fixture-20260630",
+        "source_schema_version": "industry_intelligence_peer_context_v1",
+        "source_task_id": "AI-DEV-077",
+        "summary_points": [
+          "Fixture demand monitor indicates stable advanced-node wafer demand for the current quarter.",
+          "Fixture market and peer context suggests pricing remains differentiated by process node and packaging demand.",
+          "Target company fixture shows stronger exposure to advanced packaging demand than the peer set.",
+          "Market data fixture is retained as quantitative context and does not override primary industry evidence."
+        ],
+        "target_company": {
+          "industry": "semiconductor_foundry",
+          "market": "TWSE",
+          "stock_id": "2330",
+          "stock_name": "Example Semiconductor"
+        }
+      },
+      "requires_human_review": true,
+      "risk_and_limitations": [
+        "Fixture summaries are static examples and are not connected to live report generation.",
+        "This section is advisory only and must not be treated as investment advice.",
+        "Lower-credibility and human-review sources remain labeled and must be reviewed before use.",
+        "No portfolio, delivery, schedule, model, or market data action is authorized by this output."
+      ],
+      "source_credibility_summary": {
+        "advisory_only": true,
+        "average_credibility_score": 0.792,
+        "combined_source_count": 8,
+        "company_source_count": 4,
+        "core_scoring_allowed_source_ids": [
+          "src-2330-investor-presentation-2026-q2",
+          "src-2330-monthly-revenue-2026-05",
+          "src-industry-wafer-demand-2026-q2",
+          "src-market-price-context-2026-06",
+          "src-peer-advanced-packaging-2026-q2"
+        ],
+        "industry_peer_source_count": 4,
+        "low_credibility_source_ids": [
+          "src-consensus-context-2026-06"
+        ],
+        "metadata_preserved": true,
+        "requires_human_review": true,
+        "review_required_source_ids": [
+          "src-consensus-context-2026-06"
+        ]
+      }
+    },
+    "markdown": "## Company And Industry Intelligence\n\n> Fixture-only intelligence section. Advisory only; human review is required before daily report insertion.\n\n### Company Intelligence\n- Monthly revenue fixture indicates stable demand momentum relative to the prior quarter.\n- Industry primary data fixture supports continued demand for advanced semiconductor capacity.\n- Consensus metadata is retained only as labeled sentiment context and is not a core input.\n\n### Industry And Peer Context\n- Fixture demand monitor indicates stable advanced-node wafer demand for the current quarter.\n- Fixture market and peer context suggests pricing remains differentiated by process node and packaging demand.\n- Target company fixture shows stronger exposure to advanced packaging demand than the peer set.\n- Market data fixture is retained as quantitative context and does not override primary industry evidence.\n\n### Source Credibility\n- Combined source count: `8`\n- Average credibility score: `0.792`\n- Human-review source count: `1`\n\n### Risk And Limitations\n- Fixture summaries are static examples and are not connected to live report generation.\n- This section is advisory only and must not be treated as investment advice.\n- Lower-credibility and human-review sources remain labeled and must be reviewed before use.\n- No portfolio, delivery, schedule, model, or market data action is authorized by this output.\n\n_No delivery action, portfolio action, schedule change, or persistent store write was performed._",
+    "placement": "after_strategy_summary",
+    "priority": "medium",
+    "render_mode": "static_markdown_with_machine_readable_payload",
+    "requires_human_review": true,
+    "section_id": "daily_report_intelligence",
+    "section_type": "daily_report_intelligence",
+    "source_refs": [
+      "input_sources.company_intelligence_result_path",
+      "input_sources.industry_peer_context_result_path"
+    ],
+    "title": "Company And Industry Intelligence"
+  },
+  "decision": "daily_report_intelligence_integration_completed_with_warnings",
+  "generated_at": "2026-06-30T09:00:00+08:00",
+  "industry_peer_context_summary": {
+    "advisory_only": true,
+    "average_confidence": 0.765,
+    "highest_risk_flags": [
+      "capacity",
+      "demand",
+      "pricing"
+    ],
+    "industry": {
+      "as_of_date": "2026-06-30",
+      "industry_id": "semiconductor_foundry",
+      "industry_name": "Semiconductor Foundry"
+    },
+    "industry_topic_count": 2,
+    "peer_context_count": 2,
+    "requires_human_review": true,
+    "source_decision": "industry_peer_context_completed",
+    "source_run_id": "industry-intelligence-peer-context-fixture-20260630",
+    "source_schema_version": "industry_intelligence_peer_context_v1",
+    "source_task_id": "AI-DEV-077",
+    "summary_points": [
+      "Fixture demand monitor indicates stable advanced-node wafer demand for the current quarter.",
+      "Fixture market and peer context suggests pricing remains differentiated by process node and packaging demand.",
+      "Target company fixture shows stronger exposure to advanced packaging demand than the peer set.",
+      "Market data fixture is retained as quantitative context and does not override primary industry evidence."
+    ],
+    "target_company": {
+      "industry": "semiconductor_foundry",
+      "market": "TWSE",
+      "stock_id": "2330",
+      "stock_name": "Example Semiconductor"
+    }
+  },
+  "mode": "fixture_dry_run",
+  "next_recommendation": "Review this static section contract before inserting it into any scheduled daily report.",
+  "ok": true,
+  "risk_and_limitations": [
+    "Fixture summaries are static examples and are not connected to live report generation.",
+    "This section is advisory only and must not be treated as investment advice.",
+    "Lower-credibility and human-review sources remain labeled and must be reviewed before use.",
+    "No portfolio, delivery, schedule, model, or market data action is authorized by this output."
+  ],
+  "run_id": "daily-report-intelligence-integration-fixture-20260630",
+  "safety": {
+    "advisory_only": true,
+    "fixture_only": true,
+    "no_delivery_actions": true,
+    "no_external_model_calls": true,
+    "no_market_data_calls": true,
+    "no_persistent_store_writes": true,
+    "no_portfolio_actions": true,
+    "no_schedule_service_changes": true,
+    "repo_only": true,
+    "requires_human_review": true
+  },
+  "schema_version": "daily_report_intelligence_integration_v1",
+  "side_effects": {
+    "called_external_model_runtime": false,
+    "called_market_data_runtime": false,
+    "modified_github_remote": false,
+    "modified_portfolio": false,
+    "modified_schedule_or_service": false,
+    "placed_trade_order": false,
+    "read_secrets": false,
+    "rendered_runtime_report": false,
+    "sent_notification": false,
+    "wrote_persistent_store": false
+  },
+  "source_credibility_summary": {
+    "advisory_only": true,
+    "average_credibility_score": 0.792,
+    "combined_source_count": 8,
+    "company_source_count": 4,
+    "core_scoring_allowed_source_ids": [
+      "src-2330-investor-presentation-2026-q2",
+      "src-2330-monthly-revenue-2026-05",
+      "src-industry-wafer-demand-2026-q2",
+      "src-market-price-context-2026-06",
+      "src-peer-advanced-packaging-2026-q2"
+    ],
+    "industry_peer_source_count": 4,
+    "low_credibility_source_ids": [
+      "src-consensus-context-2026-06"
+    ],
+    "metadata_preserved": true,
+    "requires_human_review": true,
+    "review_required_source_ids": [
+      "src-consensus-context-2026-06"
+    ],
+    "source_credibility_scores": [
+      {
+        "adjustments": [
+          {
+            "delta": 0.03,
+            "factor": "current_source"
+          }
+        ],
+        "base_score": 0.95,
+        "conflicting_source": false,
+        "contract_name": "company_intelligence_source_credibility",
+        "contract_version": "v1",
+        "core_scoring_allowed": true,
+        "credibility_score": 0.98,
+        "notes": "Synthetic fixture metadata for contract validation only.",
+        "published_at": "2026-06-10",
+        "publisher": "Example Exchange Disclosure",
+        "requires_human_review": false,
+        "retrieved_at": "2026-06-29T16:00:00+08:00",
+        "source_id": "src-2330-monthly-revenue-2026-05",
+        "source_tier": "tier_1_official_filing",
+        "source_type": "monthly_revenue_filing",
+        "usage_policy": "core_company_fact"
+      },
+      {
+        "adjustments": [
+          {
+            "delta": 0.03,
+            "factor": "current_source"
+          }
+        ],
+        "base_score": 0.9,
+        "conflicting_source": false,
+        "contract_name": "company_intelligence_source_credibility",
+        "contract_version": "v1",
+        "core_scoring_allowed": true,
+        "credibility_score": 0.93,
+        "notes": "Synthetic fixture metadata for contract validation only.",
+        "published_at": "2026-06-15",
+        "publisher": "Example Semiconductor",
+        "requires_human_review": false,
+        "retrieved_at": "2026-06-29T16:00:00+08:00",
+        "source_id": "src-2330-investor-presentation-2026-q2",
+        "source_tier": "tier_1_company_official",
+        "source_type": "investor_presentation",
+        "usage_policy": "core_company_context"
+      },
+      {
+        "adjustments": [
+          {
+            "delta": 0.03,
+            "factor": "current_source"
+          }
+        ],
+        "base_score": 0.8,
+        "conflicting_source": false,
+        "contract_name": "company_intelligence_source_credibility",
+        "contract_version": "v1",
+        "core_scoring_allowed": true,
+        "credibility_score": 0.83,
+        "notes": "Synthetic fixture metadata for contract validation only.",
+        "published_at": "2026-06-20",
+        "publisher": "Example Industry Association",
+        "requires_human_review": false,
+        "retrieved_at": "2026-06-29T16:00:00+08:00",
+        "source_id": "src-industry-wafer-demand-2026-q2",
+        "source_tier": "tier_2_peer_and_industry_primary",
+        "source_type": "industry_primary_data",
+        "usage_policy": "industry_context"
+      },
+      {
+        "adjustments": [
+          {
+            "delta": 0.03,
+            "factor": "current_source"
+          }
+        ],
+        "base_score": 0.35,
+        "conflicting_source": false,
+        "contract_name": "company_intelligence_source_credibility",
+        "contract_version": "v1",
+        "core_scoring_allowed": false,
+        "credibility_score": 0.38,
+        "notes": "Not allowed as a core decision input.",
+        "published_at": "2026-06-24",
+        "publisher": "Example Research Aggregator",
+        "requires_human_review": true,
+        "retrieved_at": "2026-06-29T16:00:00+08:00",
+        "source_id": "src-consensus-context-2026-06",
+        "source_tier": "tier_4_consensus_and_analyst",
+        "source_type": "consensus_metadata",
+        "usage_policy": "sentiment_context_only"
+      },
+      {
+        "adjustments": [
+          {
+            "delta": 0.03,
+            "factor": "current_source"
+          }
+        ],
+        "base_score": 0.8,
+        "conflicting_source": false,
+        "contract_name": "industry_intelligence_peer_context",
+        "contract_version": "v1",
+        "core_scoring_allowed": true,
+        "credibility_score": 0.83,
+        "notes": "Synthetic fixture metadata for contract validation only.",
+        "published_at": "2026-06-20",
+        "publisher": "Example Industry Association",
+        "requires_human_review": false,
+        "retrieved_at": "2026-06-30T08:30:00+08:00",
+        "source_id": "src-industry-wafer-demand-2026-q2",
+        "source_tier": "tier_2_peer_and_industry_primary",
+        "source_type": "industry_primary_data",
+        "usage_policy": "core_industry_context"
+      },
+      {
+        "adjustments": [
+          {
+            "delta": 0.03,
+            "factor": "current_source"
+          }
+        ],
+        "base_score": 0.8,
+        "conflicting_source": false,
+        "contract_name": "industry_intelligence_peer_context",
+        "contract_version": "v1",
+        "core_scoring_allowed": true,
+        "credibility_score": 0.83,
+        "notes": "Synthetic fixture metadata for contract validation only.",
+        "published_at": "2026-06-18",
+        "publisher": "Example Peer Manufacturer",
+        "requires_human_review": false,
+        "retrieved_at": "2026-06-30T08:30:00+08:00",
+        "source_id": "src-peer-advanced-packaging-2026-q2",
+        "source_tier": "tier_2_peer_and_industry_primary",
+        "source_type": "peer_earnings_summary",
+        "usage_policy": "peer_context"
+      },
+      {
+        "adjustments": [
+          {
+            "delta": 0.03,
+            "factor": "current_source"
+          }
+        ],
+        "base_score": 0.9,
+        "conflicting_source": false,
+        "contract_name": "industry_intelligence_peer_context",
+        "contract_version": "v1",
+        "core_scoring_allowed": true,
+        "credibility_score": 0.93,
+        "notes": "Synthetic fixture metadata for contract validation only.",
+        "published_at": "2026-06-15",
+        "publisher": "Example Semiconductor",
+        "requires_human_review": false,
+        "retrieved_at": "2026-06-30T08:30:00+08:00",
+        "source_id": "src-2330-investor-presentation-2026-q2",
+        "source_tier": "tier_1_company_official",
+        "source_type": "investor_presentation",
+        "usage_policy": "target_company_context"
+      },
+      {
+        "adjustments": [
+          {
+            "delta": 0.03,
+            "factor": "current_source"
+          }
+        ],
+        "base_score": 0.6,
+        "conflicting_source": false,
+        "contract_name": "industry_intelligence_peer_context",
+        "contract_version": "v1",
+        "core_scoring_allowed": true,
+        "credibility_score": 0.63,
+        "notes": "Synthetic fixture metadata for contract validation only.",
+        "published_at": "2026-06-28",
+        "publisher": "Example Market Data Fixture",
+        "requires_human_review": false,
+        "retrieved_at": "2026-06-30T08:30:00+08:00",
+        "source_id": "src-market-price-context-2026-06",
+        "source_tier": "tier_3_market_data",
+        "source_type": "market_data_snapshot",
+        "usage_policy": "quantitative_context_only"
+      }
+    ]
+  },
+  "source_summary": {
+    "company_source_decision": "company_intelligence_completed",
+    "company_source_ok": true,
+    "company_source_run_id": "company-intelligence-source-credibility-fixture-20260629",
+    "company_source_schema_version": "company_intelligence_source_credibility_v1",
+    "industry_peer_source_decision": "industry_peer_context_completed",
+    "industry_peer_source_ok": true,
+    "industry_peer_source_run_id": "industry-intelligence-peer-context-fixture-20260630",
+    "industry_peer_source_schema_version": "industry_intelligence_peer_context_v1",
+    "source_paths": {
+      "company_intelligence_result_path": "templates/company_intelligence_result.example.json",
+      "industry_peer_context_result_path": "templates/industry_intelligence_peer_context_result.example.json"
+    }
+  },
+  "task_id": "AI-DEV-082",
+  "validation_summary": {
+    "company_schema_expected": "company_intelligence_source_credibility_v1",
+    "company_schema_matched": true,
+    "contract_name": "daily_report_intelligence_integration",
+    "contract_version": "v1",
+    "deterministic_output": true,
+    "fixture_only": true,
+    "industry_peer_schema_expected": "industry_intelligence_peer_context_v1",
+    "industry_peer_schema_matched": true,
+    "machine_readable_included": true,
+    "markdown_included": true,
+    "source_credibility_metadata_preserved": true,
+    "warnings": [
+      "human review required for one or more sources"
+    ]
+  }
+}
