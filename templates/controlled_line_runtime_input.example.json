@@ -1,0 +1,13 @@
+{
+  "schema_version": "controlled_line_runtime_input_v1",
+  "task_id": "AI-DEV-106",
+  "run_id": "controlled-line-runtime-fixture-20260701",
+  "generated_at": "2026-07-01T09:00:00+08:00",
+  "mode": "dry_run_no_send",
+  "gate_status": {
+    "delivery_allowed": true,
+    "approval_status": "approved",
+    "line_channel_enabled": true
+  },
+  "test_message": "Controlled one-shot LINE runtime test. This is a test notification only. No trading action is authorized."
+}
