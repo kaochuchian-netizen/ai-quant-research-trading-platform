@@ -1,0 +1,23 @@
+{
+  "approval_status": "pending_approval",
+  "blocked_actions_count": 17,
+  "decision": "production_scheduler_gate_observability_completed",
+  "delivery_allowed": false,
+  "external_side_effects_allowed": false,
+  "generated_at": "2026-06-30T23:44:31+08:00",
+  "latest_gate_result_path": "templates/production_scheduler_gate_runtime_result.example.json",
+  "latest_gate_summary_path": "templates/production_scheduler_gate_runtime_summary.example.json",
+  "latest_timestamp": "2026-06-30T12:30:00+08:00",
+  "mode": "dry_run_no_delivery",
+  "no_cron_installation": true,
+  "no_delivery_actions": true,
+  "no_service_installation": true,
+  "no_systemd_installation": true,
+  "no_timer_installation": true,
+  "observed_scheduler_window": "pre_open_0700",
+  "ok": true,
+  "run_id": "production-scheduler-gate-observability-2026-06-30T23:44:31+08:00",
+  "schema_version": "production_scheduler_gate_observability_summary_v1",
+  "task_id": "AI-DEV-103",
+  "warnings": []
+}
