@@ -1,0 +1,61 @@
+[
+  {
+    "advisory_only_badge": {
+      "enabled": true,
+      "label": "Advisory only"
+    },
+    "card_id": "daily_report_preview_card_20260630",
+    "card_title": "Daily Report Static Preview 2026-06-30",
+    "filter_facets": {
+      "advisory_only": true,
+      "has_warnings": true,
+      "preview_only": true,
+      "report_date": "2026-06-30",
+      "requires_human_review": true,
+      "status": "requires_human_review"
+    },
+    "manifest_ref": "templates/daily_report_static_preview_manifest.example.json",
+    "markdown_ref": "templates/daily_report_static_preview_markdown.example.md",
+    "preview_id": "daily_report_static_preview_20260630",
+    "preview_only_badge": {
+      "enabled": true,
+      "label": "Preview only"
+    },
+    "renderer_source_ref": "templates/daily_report_renderer_result.example.json",
+    "report_date": "2026-06-30",
+    "requires_human_review_badge": {
+      "enabled": true,
+      "label": "Requires human review"
+    },
+    "section_count": 2,
+    "sort_key": "2026-06-30#daily_report_static_preview_20260630",
+    "status": "requires_human_review",
+    "warning_badges": [
+      {
+        "badge_id": "warning_1",
+        "label": "forecast review source reports insufficient data",
+        "severity": "warning"
+      },
+      {
+        "badge_id": "warning_2",
+        "label": "human review required for one or more intelligence sources",
+        "severity": "warning"
+      },
+      {
+        "badge_id": "warning_3",
+        "label": "one or more source credibility records require human review",
+        "severity": "warning"
+      },
+      {
+        "badge_id": "warning_4",
+        "label": "source renderer completed with warnings",
+        "severity": "warning"
+      },
+      {
+        "badge_id": "warning_5",
+        "label": "source research pack completed with warnings",
+        "severity": "warning"
+      }
+    ]
+  }
+]
