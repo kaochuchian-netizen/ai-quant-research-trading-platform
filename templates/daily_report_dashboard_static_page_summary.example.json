@@ -1,0 +1,58 @@
+{
+  "decision": "daily_report_dashboard_static_page_completed_with_warnings",
+  "deterministic_output": true,
+  "drilldown_placeholder_count": 1,
+  "generated_at": "2026-06-30T10:10:00+08:00",
+  "latest_preview_card_id": "daily_report_preview_card_20260630",
+  "mode": "fixture_dry_run",
+  "ok": true,
+  "overview_metrics": {
+    "advisory_only_count": 1,
+    "preview_card_count": 1,
+    "preview_only_count": 1,
+    "ready_count": 0,
+    "requires_human_review_count": 1,
+    "status_counts": {
+      "requires_human_review": 1
+    },
+    "warning_badge_count": 5,
+    "warning_count": 0
+  },
+  "page_id": "daily_report_dashboard_static_page_20260630",
+  "page_title": "Daily Report Dashboard Static Page 2026-06-30",
+  "run_id": "daily-report-dashboard-static-page-fixture-20260630",
+  "safety": {
+    "advisory_only": true,
+    "api_server_created": false,
+    "dashboard_deploy": false,
+    "fixture_only": true,
+    "no_delivery_actions": true,
+    "no_external_model_calls": true,
+    "no_market_data_calls": true,
+    "no_persistent_store_writes": true,
+    "no_portfolio_actions": true,
+    "no_schedule_service_changes": true,
+    "preview_only": true,
+    "repo_only": true,
+    "requires_human_review": true
+  },
+  "schema_version": "daily_report_dashboard_static_page_summary_v1",
+  "side_effects": {
+    "called_external_model_runtime": false,
+    "called_market_data_runtime": false,
+    "created_api_server": false,
+    "deployed_dashboard": false,
+    "modified_github_remote": false,
+    "modified_portfolio": false,
+    "modified_schedule_or_service": false,
+    "placed_trade_order": false,
+    "read_secrets": false,
+    "sent_daily_report": false,
+    "sent_notification": false,
+    "wrote_persistent_store": false,
+    "wrote_production_db": false
+  },
+  "source_run_id": "daily-report-dashboard-preview-feed-fixture-20260630",
+  "task_id": "AI-DEV-088",
+  "warning_badge_count": 5
+}
