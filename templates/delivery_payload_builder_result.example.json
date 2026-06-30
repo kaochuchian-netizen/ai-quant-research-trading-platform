@@ -1,0 +1,274 @@
+{
+  "decision": "delivery_blocked_pending_approval",
+  "delivery_payload": {
+    "advisory_disclaimer": "This delivery payload is repo-only fixture output for preview review. It is advisory-only and does not authorize email, LINE, dashboard deployment, trading, portfolio action, or external system mutation.",
+    "approval_gate": {
+      "current_review_status": "pending_review",
+      "delivery_allowed": false,
+      "gate_id": "delivery_payload_builder_approval_gate_v1",
+      "gate_open": false,
+      "reason": "Delivery remains blocked until review_status is approved.",
+      "required_review_status": "approved",
+      "source_gate_id": "daily_report_preview_delivery_approval_gate_v1"
+    },
+    "channels": [
+      {
+        "channel": "email",
+        "delivery_action_performed": false,
+        "delivery_allowed": false,
+        "disabled_reason": "Preview-only fixture channel. No delivery action is performed.",
+        "enabled": false,
+        "preview_only": true
+      },
+      {
+        "channel": "line",
+        "delivery_action_performed": false,
+        "delivery_allowed": false,
+        "disabled_reason": "Preview-only fixture channel. No delivery action is performed.",
+        "enabled": false,
+        "preview_only": true
+      },
+      {
+        "channel": "dashboard",
+        "delivery_action_performed": false,
+        "delivery_allowed": false,
+        "disabled_reason": "Preview-only fixture channel. No delivery action is performed.",
+        "enabled": false,
+        "preview_only": true
+      }
+    ],
+    "dashboard_payload": {
+      "advisory_disclaimer": "This delivery payload is repo-only fixture output for preview review. It is advisory-only and does not authorize email, LINE, dashboard deployment, trading, portfolio action, or external system mutation.",
+      "body_refs": {
+        "explainability_ref_count": 2,
+        "preview_id": "daily_report_static_preview_20260630",
+        "review_id": "daily_report_preview_review_20260630"
+      },
+      "channel": "dashboard",
+      "delivery_action_performed": false,
+      "delivery_allowed": false,
+      "enabled": false,
+      "preview_only": true,
+      "preview_text": "Delivery preview is blocked until the approval gate is open.",
+      "subject": "Daily Report Preview 2026-06-30"
+    },
+    "delivery_allowed": false,
+    "delivery_blockers": [
+      "review_status_not_approved",
+      "approval_gate_closed",
+      "human_review_required",
+      "warning_badges_present"
+    ],
+    "email_payload": {
+      "advisory_disclaimer": "This delivery payload is repo-only fixture output for preview review. It is advisory-only and does not authorize email, LINE, dashboard deployment, trading, portfolio action, or external system mutation.",
+      "body_refs": {
+        "explainability_ref_count": 2,
+        "preview_id": "daily_report_static_preview_20260630",
+        "review_id": "daily_report_preview_review_20260630"
+      },
+      "channel": "email",
+      "delivery_action_performed": false,
+      "delivery_allowed": false,
+      "enabled": false,
+      "preview_only": true,
+      "preview_text": "Delivery preview is blocked until the approval gate is open.",
+      "subject": "Daily Report Preview 2026-06-30"
+    },
+    "explainability_refs": [
+      {
+        "advisory_only": true,
+        "explanation_id": "explain:forecast-2330-one-month-20260630",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "horizon": "one_month",
+        "requires_human_review": true,
+        "source_trace_ref_count": 17,
+        "stock_id": "2330"
+      },
+      {
+        "advisory_only": true,
+        "explanation_id": "explain:forecast-2330-same-day-20260630",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "horizon": "same_day",
+        "requires_human_review": true,
+        "source_trace_ref_count": 16,
+        "stock_id": "2330"
+      }
+    ],
+    "human_review_required": true,
+    "line_payload": {
+      "advisory_disclaimer": "This delivery payload is repo-only fixture output for preview review. It is advisory-only and does not authorize email, LINE, dashboard deployment, trading, portfolio action, or external system mutation.",
+      "body_refs": {
+        "explainability_ref_count": 2,
+        "preview_id": "daily_report_static_preview_20260630",
+        "review_id": "daily_report_preview_review_20260630"
+      },
+      "channel": "line",
+      "delivery_action_performed": false,
+      "delivery_allowed": false,
+      "enabled": false,
+      "preview_only": true,
+      "preview_text": "Delivery preview is blocked until the approval gate is open.",
+      "subject": "Daily Report Preview 2026-06-30"
+    },
+    "payload_id": "delivery_payload_2026-06-30",
+    "preview_id": "daily_report_static_preview_20260630",
+    "report_date": "2026-06-30",
+    "review_id": "daily_report_preview_review_20260630",
+    "review_status": "pending_review",
+    "warning_badges": [
+      {
+        "badge_id": "daily_report_preview_card_20260630_warning_1",
+        "label": "forecast review source reports insufficient data",
+        "severity": "warning",
+        "source": "preview_review_workflow"
+      },
+      {
+        "badge_id": "daily_report_preview_card_20260630_warning_2",
+        "label": "human review required for one or more intelligence sources",
+        "severity": "warning",
+        "source": "preview_review_workflow"
+      },
+      {
+        "badge_id": "daily_report_preview_card_20260630_warning_3",
+        "label": "one or more source credibility records require human review",
+        "severity": "warning",
+        "source": "preview_review_workflow"
+      },
+      {
+        "badge_id": "daily_report_preview_card_20260630_warning_4",
+        "label": "source renderer completed with warnings",
+        "severity": "warning",
+        "source": "preview_review_workflow"
+      },
+      {
+        "badge_id": "daily_report_preview_card_20260630_warning_5",
+        "label": "source research pack completed with warnings",
+        "severity": "warning",
+        "source": "preview_review_workflow"
+      },
+      {
+        "badge_id": "delivery_payload_explainability_warning_credibility_risk_explanations_present",
+        "label": "credibility_risk_explanations_present",
+        "severity": "warning",
+        "source": "forecast_explainability_layer"
+      },
+      {
+        "badge_id": "delivery_payload_explainability_warning_human_review_required_explanations_present",
+        "label": "human_review_required_explanations_present",
+        "severity": "warning",
+        "source": "forecast_explainability_layer"
+      }
+    ]
+  },
+  "delivery_summary": {
+    "channel_count": 3,
+    "decision": "delivery_blocked_pending_approval",
+    "delivery_allowed": false,
+    "delivery_blockers": [
+      "review_status_not_approved",
+      "approval_gate_closed",
+      "human_review_required",
+      "warning_badges_present"
+    ],
+    "deterministic_output": true,
+    "enabled_channel_count": 0,
+    "explainability_ref_count": 2,
+    "generated_at": "2026-06-30T10:30:00+08:00",
+    "human_review_required": true,
+    "mode": "fixture_dry_run",
+    "ok": true,
+    "payload_id": "delivery_payload_2026-06-30",
+    "preview_id": "daily_report_static_preview_20260630",
+    "report_date": "2026-06-30",
+    "review_id": "daily_report_preview_review_20260630",
+    "review_status": "pending_review",
+    "run_id": "delivery-payload-builder-fixture-20260630",
+    "safety": {
+      "advisory_only": true,
+      "api_server_created": false,
+      "dashboard_deploy": false,
+      "fixture_only": true,
+      "no_dashboard_deploy": true,
+      "no_delivery_actions": true,
+      "no_email_send": true,
+      "no_external_model_calls": true,
+      "no_line_push": true,
+      "no_market_data_calls": true,
+      "no_persistent_store_writes": true,
+      "no_portfolio_actions": true,
+      "no_schedule_service_changes": true,
+      "preview_only": true,
+      "repo_only": true,
+      "trading_instruction": false
+    },
+    "schema_version": "delivery_payload_summary_v1",
+    "task_id": "AI-DEV-093",
+    "warning_badge_count": 7
+  },
+  "generated_at": "2026-06-30T10:30:00+08:00",
+  "mode": "fixture_dry_run",
+  "next_recommendation": "Keep all delivery channels disabled until an approved review fixture exists; do not send, deploy, serve, or persist this payload.",
+  "ok": true,
+  "run_id": "delivery-payload-builder-fixture-20260630",
+  "safety": {
+    "advisory_only": true,
+    "api_server_created": false,
+    "dashboard_deploy": false,
+    "fixture_only": true,
+    "no_dashboard_deploy": true,
+    "no_delivery_actions": true,
+    "no_email_send": true,
+    "no_external_model_calls": true,
+    "no_line_push": true,
+    "no_market_data_calls": true,
+    "no_persistent_store_writes": true,
+    "no_portfolio_actions": true,
+    "no_schedule_service_changes": true,
+    "preview_only": true,
+    "repo_only": true,
+    "trading_instruction": false
+  },
+  "schema_version": "delivery_payload_builder_v1",
+  "side_effects": {
+    "called_external_model_runtime": false,
+    "called_market_data_runtime": false,
+    "created_api_server": false,
+    "deployed_dashboard": false,
+    "modified_github_remote": false,
+    "modified_portfolio": false,
+    "modified_schedule_or_service": false,
+    "placed_trade_order": false,
+    "read_secrets": false,
+    "sent_email": false,
+    "sent_line_push": false,
+    "sent_notification": false,
+    "wrote_persistent_store": false
+  },
+  "task_id": "AI-DEV-093",
+  "validation_summary": {
+    "channel_payloads_disabled": true,
+    "channels_disabled": true,
+    "channels_preview_only": true,
+    "contract_name": "delivery_payload_builder",
+    "contract_version": "v1",
+    "delivery_allowed_policy_enforced": true,
+    "delivery_blocker_count": 4,
+    "deterministic_output": true,
+    "explainability_source_ok": true,
+    "explainability_source_schema_matched": true,
+    "fixture_only": true,
+    "preview_only": true,
+    "review_source_ok": true,
+    "review_source_schema_matched": true,
+    "warning_count": 7,
+    "warnings": [
+      "forecast review source reports insufficient data",
+      "human review required for one or more intelligence sources",
+      "one or more source credibility records require human review",
+      "source renderer completed with warnings",
+      "source research pack completed with warnings",
+      "credibility_risk_explanations_present",
+      "human_review_required_explanations_present"
+    ]
+  }
+}

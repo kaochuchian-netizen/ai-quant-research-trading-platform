@@ -1,0 +1,40 @@
+{
+  "schema_version": "delivery_payload_builder_input_v1",
+  "task_id": "AI-DEV-093",
+  "run_id": "delivery-payload-builder-fixture-20260630",
+  "generated_at": "2026-06-30T10:30:00+08:00",
+  "mode": "fixture_dry_run",
+  "input_sources": {
+    "preview_review_workflow_result_path": "templates/daily_report_preview_review_workflow_result.example.json",
+    "forecast_explainability_layer_result_path": "templates/forecast_explainability_layer_result.example.json"
+  },
+  "delivery_policy": {
+    "required_review_status": "approved",
+    "channels": [
+      "email",
+      "line",
+      "dashboard"
+    ],
+    "default_channel_enabled": false,
+    "preview_only": true,
+    "deterministic_sort": true
+  },
+  "safety": {
+    "repo_only": true,
+    "fixture_only": true,
+    "advisory_only": true,
+    "preview_only": true,
+    "no_external_model_calls": true,
+    "no_market_data_calls": true,
+    "no_delivery_actions": true,
+    "no_email_send": true,
+    "no_line_push": true,
+    "no_dashboard_deploy": true,
+    "no_persistent_store_writes": true,
+    "no_portfolio_actions": true,
+    "no_schedule_service_changes": true,
+    "dashboard_deploy": false,
+    "api_server_created": false,
+    "trading_instruction": false
+  }
+}
