@@ -1,0 +1,227 @@
+{
+  "schema_version": "industry_intelligence_peer_context_v1_input",
+  "task_id": "AI-DEV-077",
+  "run_id": "industry-intelligence-peer-context-fixture-20260630",
+  "generated_at": "2026-06-30T08:30:00+08:00",
+  "mode": "fixture_input",
+  "industry": {
+    "industry_id": "semiconductor_foundry",
+    "industry_name": "Semiconductor Foundry",
+    "as_of_date": "2026-06-30"
+  },
+  "target_company": {
+    "stock_id": "2330",
+    "stock_name": "Example Semiconductor",
+    "market": "TWSE",
+    "industry": "semiconductor_foundry"
+  },
+  "sources": [
+    {
+      "source_id": "src-industry-wafer-demand-2026-q2",
+      "source_tier": "tier_2_peer_and_industry_primary",
+      "source_type": "industry_primary_data",
+      "publisher": "Example Industry Association",
+      "title": "Q2 2026 wafer demand monitor",
+      "published_at": "2026-06-20",
+      "retrieved_at": "2026-06-30T08:30:00+08:00",
+      "document_id": "fixture-industry-wafer-demand-2026-q2",
+      "language": "en",
+      "attribution": "industry association dataset",
+      "excerpt_policy": "paraphrase_only",
+      "recency": "current",
+      "conflicting": false,
+      "usage_policy": "core_industry_context",
+      "notes": "Synthetic fixture metadata for contract validation only."
+    },
+    {
+      "source_id": "src-peer-advanced-packaging-2026-q2",
+      "source_tier": "tier_2_peer_and_industry_primary",
+      "source_type": "peer_earnings_summary",
+      "publisher": "Example Peer Manufacturer",
+      "title": "Q2 2026 peer advanced packaging update",
+      "published_at": "2026-06-18",
+      "retrieved_at": "2026-06-30T08:30:00+08:00",
+      "document_id": "fixture-peer-advanced-packaging-2026-q2",
+      "language": "en",
+      "attribution": "peer company public earnings material",
+      "excerpt_policy": "paraphrase_only",
+      "recency": "current",
+      "conflicting": false,
+      "usage_policy": "peer_context",
+      "notes": "Synthetic fixture metadata for contract validation only."
+    },
+    {
+      "source_id": "src-2330-investor-presentation-2026-q2",
+      "source_tier": "tier_1_company_official",
+      "source_type": "investor_presentation",
+      "publisher": "Example Semiconductor",
+      "title": "Q2 2026 investor presentation",
+      "published_at": "2026-06-15",
+      "retrieved_at": "2026-06-30T08:30:00+08:00",
+      "document_id": "fixture-2330-2026-q2-ir",
+      "language": "en",
+      "attribution": "company investor relations",
+      "excerpt_policy": "paraphrase_only",
+      "recency": "current",
+      "conflicting": false,
+      "usage_policy": "target_company_context",
+      "notes": "Synthetic fixture metadata for contract validation only."
+    },
+    {
+      "source_id": "src-market-price-context-2026-06",
+      "source_tier": "tier_3_market_data",
+      "source_type": "market_data_snapshot",
+      "publisher": "Example Market Data Fixture",
+      "title": "June 2026 sector performance snapshot",
+      "published_at": "2026-06-28",
+      "retrieved_at": "2026-06-30T08:30:00+08:00",
+      "document_id": "fixture-market-price-context-2026-06",
+      "language": "en",
+      "attribution": "synthetic market data fixture",
+      "excerpt_policy": "paraphrase_only",
+      "recency": "current",
+      "conflicting": false,
+      "usage_policy": "quantitative_context_only",
+      "notes": "Synthetic fixture metadata for contract validation only."
+    }
+  ],
+  "industry_topics": [
+    {
+      "industry_intel_id": "industry-intel-foundry-demand-2026-q2",
+      "topic": "demand",
+      "summary": "Fixture demand monitor indicates stable advanced-node wafer demand for the current quarter.",
+      "metrics": {
+        "demand_index": 0.74,
+        "utilization_band": "high"
+      },
+      "affected_company_ids": [
+        "2330",
+        "peer_001",
+        "peer_002"
+      ],
+      "peer_references": [
+        "peer_001"
+      ],
+      "upstream_downstream_context": {
+        "upstream": "equipment and materials capacity remains a watch item",
+        "downstream": "AI accelerator and high-performance computing demand remains the main fixture driver"
+      },
+      "source_ids": [
+        "src-industry-wafer-demand-2026-q2",
+        "src-2330-investor-presentation-2026-q2"
+      ],
+      "confidence_cap": 0.86,
+      "missing_data_policy": "retain_as_context_with_missing_fields_labeled",
+      "risk_flags": [
+        "demand",
+        "capacity"
+      ],
+      "requires_human_review": false
+    },
+    {
+      "industry_intel_id": "industry-intel-foundry-pricing-2026-q2",
+      "topic": "pricing",
+      "summary": "Fixture market and peer context suggests pricing remains differentiated by process node and packaging demand.",
+      "metrics": {
+        "pricing_pressure": "moderate",
+        "sector_relative_strength": 0.62
+      },
+      "affected_company_ids": [
+        "2330",
+        "peer_001"
+      ],
+      "peer_references": [
+        "peer_001"
+      ],
+      "upstream_downstream_context": {
+        "upstream": "input cost normalization is incomplete",
+        "downstream": "premium demand is concentrated in advanced packaging"
+      },
+      "source_ids": [
+        "src-peer-advanced-packaging-2026-q2",
+        "src-market-price-context-2026-06"
+      ],
+      "confidence_cap": 0.78,
+      "missing_data_policy": "retain_as_context_with_missing_fields_labeled",
+      "risk_flags": [
+        "pricing"
+      ],
+      "requires_human_review": true
+    }
+  ],
+  "peer_companies": [
+    {
+      "stock_id": "peer_001",
+      "stock_name": "Example Advanced Packaging Peer",
+      "market": "fixture",
+      "industry": "semiconductor_foundry"
+    },
+    {
+      "stock_id": "peer_002",
+      "stock_name": "Example Mature Node Peer",
+      "market": "fixture",
+      "industry": "semiconductor_foundry"
+    }
+  ],
+  "peer_context_items": [
+    {
+      "peer_context_id": "peer-context-advanced-packaging-2026-q2",
+      "topic": "advanced_packaging",
+      "summary": "Target company fixture shows stronger exposure to advanced packaging demand than the peer set.",
+      "peer_company_ids": [
+        "peer_001",
+        "peer_002"
+      ],
+      "comparison_metrics": {
+        "target_advanced_packaging_exposure": "high",
+        "peer_median_advanced_packaging_exposure": "medium",
+        "relative_capacity_score": 0.72
+      },
+      "relative_position": "above_peer_median",
+      "source_ids": [
+        "src-peer-advanced-packaging-2026-q2",
+        "src-2330-investor-presentation-2026-q2"
+      ],
+      "confidence_cap": 0.84,
+      "requires_human_review": false
+    },
+    {
+      "peer_context_id": "peer-context-sector-performance-2026-06",
+      "topic": "sector_performance",
+      "summary": "Market data fixture is retained as quantitative context and does not override primary industry evidence.",
+      "peer_company_ids": [
+        "peer_001",
+        "peer_002"
+      ],
+      "comparison_metrics": {
+        "target_relative_strength": 0.66,
+        "peer_median_relative_strength": 0.58
+      },
+      "relative_position": "slightly_above_peer_median",
+      "source_ids": [
+        "src-market-price-context-2026-06"
+      ],
+      "confidence_cap": 0.63,
+      "requires_human_review": true
+    }
+  ],
+  "scoring_policy": {
+    "score_range": "0.0_to_1.0",
+    "tier_taxonomy_doc": "docs/source_credibility_taxonomy.md",
+    "analyst_consensus_core_scoring_allowed": false,
+    "requires_human_review_for_low_credibility": true,
+    "fixture_only": true,
+    "advisory_only": true
+  },
+  "safety": {
+    "fixture_only": true,
+    "repo_only": true,
+    "advisory_only": true,
+    "research_only": true,
+    "no_external_ai_runtime": true,
+    "no_external_market_data": true,
+    "no_notification": true,
+    "no_trading": true,
+    "no_production_db_write": true
+  }
+}

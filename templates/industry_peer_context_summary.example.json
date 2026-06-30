@@ -1,0 +1,23 @@
+{
+  "advisory_only": true,
+  "as_of_date": "2026-06-30",
+  "average_confidence": 0.765,
+  "contract_name": "industry_intelligence_peer_context",
+  "contract_version": "v1",
+  "highest_risk_flags": [
+    "capacity",
+    "demand",
+    "pricing"
+  ],
+  "industry_id": "semiconductor_foundry",
+  "industry_topic_count": 2,
+  "peer_context_count": 2,
+  "requires_human_review": true,
+  "summary_points": [
+    "Fixture demand monitor indicates stable advanced-node wafer demand for the current quarter.",
+    "Fixture market and peer context suggests pricing remains differentiated by process node and packaging demand.",
+    "Target company fixture shows stronger exposure to advanced packaging demand than the peer set.",
+    "Market data fixture is retained as quantitative context and does not override primary industry evidence."
+  ],
+  "target_company_id": "2330"
+}
