@@ -1,0 +1,332 @@
+{
+  "advisory_only_badges": [
+    {
+      "badge_id": "advisory_only_badge_daily_report_preview_card_20260630",
+      "card_id": "daily_report_preview_card_20260630",
+      "label": "Advisory only",
+      "severity": "info"
+    }
+  ],
+  "dashboard_page": {
+    "drilldown_placeholders_ref": "embedded:drilldown_placeholders",
+    "filter_facets_ref": "embedded:filter_facets",
+    "generated_at": "2026-06-30T10:10:00+08:00",
+    "latest_preview_card_ref": "daily_report_preview_card_20260630",
+    "manifest_ref": "templates/daily_report_static_preview_manifest.example.json",
+    "markdown_ref": "templates/daily_report_static_preview_markdown.example.md",
+    "overview_metrics_ref": "embedded:overview_metrics",
+    "page_id": "daily_report_dashboard_static_page_20260630",
+    "page_title": "Daily Report Dashboard Static Page 2026-06-30",
+    "preview_cards_ref": "embedded:preview_cards",
+    "renderer_source_ref": "templates/daily_report_renderer_result.example.json",
+    "sort_options_ref": "embedded:sort_options",
+    "warning_badges_ref": "embedded:warning_badges"
+  },
+  "decision": "daily_report_dashboard_static_page_completed_with_warnings",
+  "drilldown_placeholders": [
+    {
+      "card_id": "daily_report_preview_card_20260630",
+      "enabled": false,
+      "manifest_ref": "templates/daily_report_static_preview_manifest.example.json",
+      "markdown_ref": "templates/daily_report_static_preview_markdown.example.md",
+      "placeholder_id": "drilldown_daily_report_preview_card_20260630",
+      "preview_id": "daily_report_static_preview_20260630",
+      "reason": "Static contract fixture only; private dashboard drill-down rendering is not implemented in V1.",
+      "renderer_source_ref": "templates/daily_report_renderer_result.example.json",
+      "status": "placeholder_only",
+      "title": "Drill-down placeholder for Daily Report Static Preview 2026-06-30"
+    }
+  ],
+  "filter_facets": {
+    "advisory_only": [
+      true
+    ],
+    "has_warnings": [
+      true
+    ],
+    "preview_only": [
+      true
+    ],
+    "report_dates": [
+      "2026-06-30"
+    ],
+    "requires_human_review": [
+      true
+    ],
+    "statuses": [
+      "requires_human_review"
+    ]
+  },
+  "generated_at": "2026-06-30T10:10:00+08:00",
+  "latest_preview_card": {
+    "advisory_only_badge": {
+      "enabled": true,
+      "label": "Advisory only"
+    },
+    "card_id": "daily_report_preview_card_20260630",
+    "card_title": "Daily Report Static Preview 2026-06-30",
+    "filter_facets": {
+      "advisory_only": true,
+      "has_warnings": true,
+      "preview_only": true,
+      "report_date": "2026-06-30",
+      "requires_human_review": true,
+      "status": "requires_human_review"
+    },
+    "manifest_ref": "templates/daily_report_static_preview_manifest.example.json",
+    "markdown_ref": "templates/daily_report_static_preview_markdown.example.md",
+    "preview_id": "daily_report_static_preview_20260630",
+    "preview_only_badge": {
+      "enabled": true,
+      "label": "Preview only"
+    },
+    "renderer_source_ref": "templates/daily_report_renderer_result.example.json",
+    "report_date": "2026-06-30",
+    "requires_human_review_badge": {
+      "enabled": true,
+      "label": "Requires human review"
+    },
+    "section_count": 2,
+    "sort_key": "2026-06-30#daily_report_static_preview_20260630",
+    "status": "requires_human_review",
+    "warning_badges": [
+      {
+        "badge_id": "warning_1",
+        "label": "forecast review source reports insufficient data",
+        "severity": "warning"
+      },
+      {
+        "badge_id": "warning_2",
+        "label": "human review required for one or more intelligence sources",
+        "severity": "warning"
+      },
+      {
+        "badge_id": "warning_3",
+        "label": "one or more source credibility records require human review",
+        "severity": "warning"
+      },
+      {
+        "badge_id": "warning_4",
+        "label": "source renderer completed with warnings",
+        "severity": "warning"
+      },
+      {
+        "badge_id": "warning_5",
+        "label": "source research pack completed with warnings",
+        "severity": "warning"
+      }
+    ]
+  },
+  "mode": "fixture_dry_run",
+  "next_recommendation": "Use this deterministic static page fixture for private dashboard rendering after human review; do not deploy, serve, or deliver it directly.",
+  "ok": true,
+  "overview_metrics": {
+    "advisory_only_count": 1,
+    "preview_card_count": 1,
+    "preview_only_count": 1,
+    "ready_count": 0,
+    "requires_human_review_count": 1,
+    "status_counts": {
+      "requires_human_review": 1
+    },
+    "warning_badge_count": 5,
+    "warning_count": 0
+  },
+  "preview_cards": [
+    {
+      "advisory_only_badge": {
+        "enabled": true,
+        "label": "Advisory only"
+      },
+      "card_id": "daily_report_preview_card_20260630",
+      "card_title": "Daily Report Static Preview 2026-06-30",
+      "filter_facets": {
+        "advisory_only": true,
+        "has_warnings": true,
+        "preview_only": true,
+        "report_date": "2026-06-30",
+        "requires_human_review": true,
+        "status": "requires_human_review"
+      },
+      "manifest_ref": "templates/daily_report_static_preview_manifest.example.json",
+      "markdown_ref": "templates/daily_report_static_preview_markdown.example.md",
+      "preview_id": "daily_report_static_preview_20260630",
+      "preview_only_badge": {
+        "enabled": true,
+        "label": "Preview only"
+      },
+      "renderer_source_ref": "templates/daily_report_renderer_result.example.json",
+      "report_date": "2026-06-30",
+      "requires_human_review_badge": {
+        "enabled": true,
+        "label": "Requires human review"
+      },
+      "section_count": 2,
+      "sort_key": "2026-06-30#daily_report_static_preview_20260630",
+      "status": "requires_human_review",
+      "warning_badges": [
+        {
+          "badge_id": "warning_1",
+          "label": "forecast review source reports insufficient data",
+          "severity": "warning"
+        },
+        {
+          "badge_id": "warning_2",
+          "label": "human review required for one or more intelligence sources",
+          "severity": "warning"
+        },
+        {
+          "badge_id": "warning_3",
+          "label": "one or more source credibility records require human review",
+          "severity": "warning"
+        },
+        {
+          "badge_id": "warning_4",
+          "label": "source renderer completed with warnings",
+          "severity": "warning"
+        },
+        {
+          "badge_id": "warning_5",
+          "label": "source research pack completed with warnings",
+          "severity": "warning"
+        }
+      ]
+    }
+  ],
+  "preview_only_badges": [
+    {
+      "badge_id": "preview_only_badge_daily_report_preview_card_20260630",
+      "card_id": "daily_report_preview_card_20260630",
+      "label": "Preview only",
+      "severity": "info"
+    }
+  ],
+  "requires_human_review_badges": [
+    {
+      "badge_id": "requires_human_review_badge_daily_report_preview_card_20260630",
+      "card_id": "daily_report_preview_card_20260630",
+      "label": "Requires human review",
+      "severity": "warning"
+    }
+  ],
+  "run_id": "daily-report-dashboard-static-page-fixture-20260630",
+  "safety": {
+    "advisory_only": true,
+    "api_server_created": false,
+    "dashboard_deploy": false,
+    "fixture_only": true,
+    "no_delivery_actions": true,
+    "no_external_model_calls": true,
+    "no_market_data_calls": true,
+    "no_persistent_store_writes": true,
+    "no_portfolio_actions": true,
+    "no_schedule_service_changes": true,
+    "preview_only": true,
+    "repo_only": true,
+    "requires_human_review": true
+  },
+  "schema_version": "daily_report_dashboard_static_page_v1",
+  "side_effects": {
+    "called_external_model_runtime": false,
+    "called_market_data_runtime": false,
+    "created_api_server": false,
+    "deployed_dashboard": false,
+    "modified_github_remote": false,
+    "modified_portfolio": false,
+    "modified_schedule_or_service": false,
+    "placed_trade_order": false,
+    "read_secrets": false,
+    "sent_daily_report": false,
+    "sent_notification": false,
+    "wrote_persistent_store": false,
+    "wrote_production_db": false
+  },
+  "sort_options": [
+    {
+      "default": "report_date_desc",
+      "direction": "desc",
+      "key": "sort_key",
+      "stable_tiebreaker": "preview_id"
+    },
+    {
+      "default": "status_then_report_date_desc",
+      "direction": "asc",
+      "key": "status_sort_key",
+      "stable_tiebreaker": "preview_id"
+    }
+  ],
+  "source_dashboard_preview_feed_summary": {
+    "source_card_count": 1,
+    "source_decision": "daily_report_dashboard_preview_feed_completed_with_warnings",
+    "source_feed_id": "daily_report_dashboard_preview_feed_20260630",
+    "source_generated_at": "2026-06-30T10:00:00+08:00",
+    "source_mode": "fixture_dry_run",
+    "source_ok": true,
+    "source_path": "templates/daily_report_dashboard_preview_feed_result.example.json",
+    "source_preview_card_count": 1,
+    "source_run_id": "daily-report-dashboard-preview-feed-fixture-20260630",
+    "source_schema_version": "daily_report_dashboard_preview_feed_v1",
+    "source_task_id": "AI-DEV-087",
+    "source_warning_count": 5
+  },
+  "task_id": "AI-DEV-088",
+  "validation_summary": {
+    "dashboard_page_included": true,
+    "deterministic_output": true,
+    "drilldown_placeholders_included": true,
+    "filter_facets_included": true,
+    "fixture_only": true,
+    "latest_preview_card_included": true,
+    "manifest_ref_present": true,
+    "markdown_ref_present": true,
+    "overview_metrics_included": true,
+    "preview_card_count": 1,
+    "preview_cards_included": true,
+    "renderer_source_ref_present": true,
+    "sort_options_included": true,
+    "source_mode_fixture_dry_run": true,
+    "source_ok": true,
+    "source_schema_expected": "daily_report_dashboard_preview_feed_v1",
+    "source_schema_matched": true,
+    "warning_badges_included": true,
+    "warnings": [
+      "forecast review source reports insufficient data",
+      "human review required for one or more intelligence sources",
+      "one or more source credibility records require human review",
+      "source renderer completed with warnings",
+      "source research pack completed with warnings"
+    ]
+  },
+  "warning_badges": [
+    {
+      "badge_id": "daily_report_preview_card_20260630_warning_1",
+      "card_id": "daily_report_preview_card_20260630",
+      "label": "forecast review source reports insufficient data",
+      "severity": "warning"
+    },
+    {
+      "badge_id": "daily_report_preview_card_20260630_warning_2",
+      "card_id": "daily_report_preview_card_20260630",
+      "label": "human review required for one or more intelligence sources",
+      "severity": "warning"
+    },
+    {
+      "badge_id": "daily_report_preview_card_20260630_warning_3",
+      "card_id": "daily_report_preview_card_20260630",
+      "label": "one or more source credibility records require human review",
+      "severity": "warning"
+    },
+    {
+      "badge_id": "daily_report_preview_card_20260630_warning_4",
+      "card_id": "daily_report_preview_card_20260630",
+      "label": "source renderer completed with warnings",
+      "severity": "warning"
+    },
+    {
+      "badge_id": "daily_report_preview_card_20260630_warning_5",
+      "card_id": "daily_report_preview_card_20260630",
+      "label": "source research pack completed with warnings",
+      "severity": "warning"
+    }
+  ]
+}
