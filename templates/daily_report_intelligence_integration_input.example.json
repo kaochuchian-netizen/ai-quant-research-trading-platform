@@ -1,0 +1,28 @@
+{
+  "daily_report_section_config": {
+    "placement": "after_strategy_summary",
+    "priority": "medium",
+    "section_id": "daily_report_intelligence",
+    "title": "Company And Industry Intelligence"
+  },
+  "generated_at": "2026-06-30T09:00:00+08:00",
+  "input_sources": {
+    "company_intelligence_result_path": "templates/company_intelligence_result.example.json",
+    "industry_peer_context_result_path": "templates/industry_intelligence_peer_context_result.example.json"
+  },
+  "mode": "fixture_dry_run",
+  "run_id": "daily-report-intelligence-integration-fixture-20260630",
+  "safety": {
+    "advisory_only": true,
+    "fixture_only": true,
+    "no_delivery_actions": true,
+    "no_external_model_calls": true,
+    "no_market_data_calls": true,
+    "no_persistent_store_writes": true,
+    "no_portfolio_actions": true,
+    "no_schedule_service_changes": true,
+    "repo_only": true,
+    "requires_human_review": true
+  },
+  "task_id": "AI-DEV-082"
+}
