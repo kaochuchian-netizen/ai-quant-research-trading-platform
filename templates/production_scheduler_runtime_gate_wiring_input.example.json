@@ -1,0 +1,52 @@
+{
+  "generated_at": "2026-06-30T12:05:00+08:00",
+  "input_sources": {
+    "production_scheduler_delivery_gate_integration_result_path": "templates/production_scheduler_delivery_gate_integration_result.example.json"
+  },
+  "report_date": "2026-06-30",
+  "run_id": "production-scheduler-runtime-gate-wiring-fixture-20260630",
+  "scheduler_inspection_summary": {
+    "current_scheduler_entrypoints_found": [
+      {
+        "command": "/home/kaochuchian/stock-ai/run_stock_analysis.sh",
+        "day_of_week": "1-5",
+        "hour": "7",
+        "minute": "0",
+        "source": "user_crontab_read_only",
+        "window_id": "pre_open_0700"
+      },
+      {
+        "command": "/home/kaochuchian/stock-ai/run_stock_analysis.sh",
+        "day_of_week": "1-5",
+        "hour": "13",
+        "minute": "5",
+        "source": "user_crontab_read_only",
+        "window_id": "intraday_1305"
+      },
+      {
+        "command": "/home/kaochuchian/stock-ai/run_stock_analysis.sh",
+        "day_of_week": "1-5",
+        "hour": "13",
+        "minute": "35",
+        "source": "user_crontab_read_only",
+        "window_id": "pre_close_1335"
+      }
+    ],
+    "inspected_repo_files": [
+      "run_stock_analysis.sh",
+      "scripts/run_pipeline.py",
+      "app/pipelines/pre_open_pipeline.py",
+      "app/pipelines/intraday_pipeline.py",
+      "app/pipelines/pre_close_pipeline.py"
+    ],
+    "inspection_notes": [
+      "Read-only crontab inspection found three weekday entries at 07:00, 13:05, and 13:35.",
+      "All three entries currently call /home/kaochuchian/stock-ai/run_stock_analysis.sh.",
+      "run_stock_analysis.sh currently invokes scripts/run_pipeline.py pre_open --production-approved and appends to logs/daily.log.",
+      "systemctl list-timers --all and systemctl list-units --type=service --all were attempted read-only but the sandbox could not connect to DBus."
+    ],
+    "systemd_inspection_status": "unavailable_operation_not_permitted",
+    "timer_inspection_status": "unavailable_operation_not_permitted"
+  },
+  "task_id": "AI-DEV-100"
+}
