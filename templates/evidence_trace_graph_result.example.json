@@ -1,0 +1,937 @@
+{
+  "decision": "evidence_trace_graph_completed_with_warnings",
+  "evidence_trace_graph": {
+    "credibility_nodes": [
+      {
+        "advisory_only": true,
+        "core_scoring_allowed": true,
+        "credibility_score": 0.93,
+        "node_id": "credibility:src-2330-investor-presentation-2026-q2",
+        "node_type": "credibility",
+        "requires_human_review": false,
+        "source_id": "src-2330-investor-presentation-2026-q2",
+        "source_tier": "tier_1_company_official",
+        "usage_policy": "target_company_context"
+      },
+      {
+        "advisory_only": true,
+        "core_scoring_allowed": true,
+        "credibility_score": 0.98,
+        "node_id": "credibility:src-2330-monthly-revenue-2026-05",
+        "node_type": "credibility",
+        "requires_human_review": false,
+        "source_id": "src-2330-monthly-revenue-2026-05",
+        "source_tier": "tier_1_official_filing",
+        "usage_policy": "core_company_fact"
+      },
+      {
+        "advisory_only": true,
+        "core_scoring_allowed": false,
+        "credibility_score": 0.38,
+        "node_id": "credibility:src-consensus-context-2026-06",
+        "node_type": "credibility",
+        "requires_human_review": true,
+        "source_id": "src-consensus-context-2026-06",
+        "source_tier": "tier_4_consensus_and_analyst",
+        "usage_policy": "sentiment_context_only"
+      },
+      {
+        "advisory_only": true,
+        "core_scoring_allowed": true,
+        "credibility_score": 0.83,
+        "node_id": "credibility:src-industry-wafer-demand-2026-q2",
+        "node_type": "credibility",
+        "requires_human_review": false,
+        "source_id": "src-industry-wafer-demand-2026-q2",
+        "source_tier": "tier_2_peer_and_industry_primary",
+        "usage_policy": "core_industry_context"
+      },
+      {
+        "advisory_only": true,
+        "core_scoring_allowed": true,
+        "credibility_score": 0.63,
+        "node_id": "credibility:src-market-price-context-2026-06",
+        "node_type": "credibility",
+        "requires_human_review": false,
+        "source_id": "src-market-price-context-2026-06",
+        "source_tier": "tier_3_market_data",
+        "usage_policy": "quantitative_context_only"
+      },
+      {
+        "advisory_only": true,
+        "core_scoring_allowed": true,
+        "credibility_score": 0.83,
+        "node_id": "credibility:src-peer-advanced-packaging-2026-q2",
+        "node_type": "credibility",
+        "requires_human_review": false,
+        "source_id": "src-peer-advanced-packaging-2026-q2",
+        "source_tier": "tier_2_peer_and_industry_primary",
+        "usage_policy": "peer_context"
+      }
+    ],
+    "edges": [
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_is_sentiment_metadata:evidence-forecast-2330-one-month-20260630-sentiment_metadata-src-market-price-context-2026-06:source-src-market-price-context-2026-06",
+        "edge_type": "evidence_is_sentiment_metadata",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "from_node_id": "evidence:forecast-2330-one-month-20260630:sentiment_metadata:src-market-price-context-2026-06",
+        "to_node_id": "source:src-market-price-context-2026-06"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_is_sentiment_metadata:evidence-forecast-2330-same-day-20260630-sentiment_metadata-src-consensus-context-2026-06:source-src-consensus-context-2026-06",
+        "edge_type": "evidence_is_sentiment_metadata",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "from_node_id": "evidence:forecast-2330-same-day-20260630:sentiment_metadata:src-consensus-context-2026-06",
+        "to_node_id": "source:src-consensus-context-2026-06"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_refs_source:evidence-forecast-2330-one-month-20260630-company_intelligence-industry_demand-primary:source-src-2330-investor-presentation-2026-q2",
+        "edge_type": "evidence_refs_source",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "from_node_id": "evidence:forecast-2330-one-month-20260630:company_intelligence:industry_demand:primary",
+        "to_node_id": "source:src-2330-investor-presentation-2026-q2"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_refs_source:evidence-forecast-2330-one-month-20260630-company_intelligence-industry_demand-primary:source-src-industry-wafer-demand-2026-q2",
+        "edge_type": "evidence_refs_source",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "from_node_id": "evidence:forecast-2330-one-month-20260630:company_intelligence:industry_demand:primary",
+        "to_node_id": "source:src-industry-wafer-demand-2026-q2"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_refs_source:evidence-forecast-2330-one-month-20260630-company_intelligence-revenue_trend-primary:source-src-2330-investor-presentation-2026-q2",
+        "edge_type": "evidence_refs_source",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "from_node_id": "evidence:forecast-2330-one-month-20260630:company_intelligence:revenue_trend:primary",
+        "to_node_id": "source:src-2330-investor-presentation-2026-q2"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_refs_source:evidence-forecast-2330-one-month-20260630-industry_intelligence-industry-intel-foundry-demand-2026-q2-primary:source-src-2330-investor-presentation-2026-q2",
+        "edge_type": "evidence_refs_source",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "from_node_id": "evidence:forecast-2330-one-month-20260630:industry_intelligence:industry-intel-foundry-demand-2026-q2:primary",
+        "to_node_id": "source:src-2330-investor-presentation-2026-q2"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_refs_source:evidence-forecast-2330-one-month-20260630-industry_intelligence-industry-intel-foundry-demand-2026-q2-primary:source-src-industry-wafer-demand-2026-q2",
+        "edge_type": "evidence_refs_source",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "from_node_id": "evidence:forecast-2330-one-month-20260630:industry_intelligence:industry-intel-foundry-demand-2026-q2:primary",
+        "to_node_id": "source:src-industry-wafer-demand-2026-q2"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_refs_source:evidence-forecast-2330-one-month-20260630-industry_intelligence-industry-intel-foundry-pricing-2026-q2-supporting:source-src-market-price-context-2026-06",
+        "edge_type": "evidence_refs_source",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "from_node_id": "evidence:forecast-2330-one-month-20260630:industry_intelligence:industry-intel-foundry-pricing-2026-q2:supporting",
+        "to_node_id": "source:src-market-price-context-2026-06"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_refs_source:evidence-forecast-2330-one-month-20260630-industry_intelligence-industry-intel-foundry-pricing-2026-q2-supporting:source-src-peer-advanced-packaging-2026-q2",
+        "edge_type": "evidence_refs_source",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "from_node_id": "evidence:forecast-2330-one-month-20260630:industry_intelligence:industry-intel-foundry-pricing-2026-q2:supporting",
+        "to_node_id": "source:src-peer-advanced-packaging-2026-q2"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_refs_source:evidence-forecast-2330-one-month-20260630-peer_context-peer-context-advanced-packaging-2026-q2-primary:source-src-2330-investor-presentation-2026-q2",
+        "edge_type": "evidence_refs_source",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "from_node_id": "evidence:forecast-2330-one-month-20260630:peer_context:peer-context-advanced-packaging-2026-q2:primary",
+        "to_node_id": "source:src-2330-investor-presentation-2026-q2"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_refs_source:evidence-forecast-2330-one-month-20260630-peer_context-peer-context-advanced-packaging-2026-q2-primary:source-src-peer-advanced-packaging-2026-q2",
+        "edge_type": "evidence_refs_source",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "from_node_id": "evidence:forecast-2330-one-month-20260630:peer_context:peer-context-advanced-packaging-2026-q2:primary",
+        "to_node_id": "source:src-peer-advanced-packaging-2026-q2"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_refs_source:evidence-forecast-2330-one-month-20260630-peer_context-peer-context-sector-performance-2026-06-supporting:source-src-market-price-context-2026-06",
+        "edge_type": "evidence_refs_source",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "from_node_id": "evidence:forecast-2330-one-month-20260630:peer_context:peer-context-sector-performance-2026-06:supporting",
+        "to_node_id": "source:src-market-price-context-2026-06"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_refs_source:evidence-forecast-2330-one-month-20260630-sentiment_metadata-src-market-price-context-2026-06:source-src-market-price-context-2026-06",
+        "edge_type": "evidence_refs_source",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "from_node_id": "evidence:forecast-2330-one-month-20260630:sentiment_metadata:src-market-price-context-2026-06",
+        "to_node_id": "source:src-market-price-context-2026-06"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_refs_source:evidence-forecast-2330-same-day-20260630-company_intelligence-industry_demand-primary:source-src-2330-investor-presentation-2026-q2",
+        "edge_type": "evidence_refs_source",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "from_node_id": "evidence:forecast-2330-same-day-20260630:company_intelligence:industry_demand:primary",
+        "to_node_id": "source:src-2330-investor-presentation-2026-q2"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_refs_source:evidence-forecast-2330-same-day-20260630-company_intelligence-industry_demand-primary:source-src-industry-wafer-demand-2026-q2",
+        "edge_type": "evidence_refs_source",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "from_node_id": "evidence:forecast-2330-same-day-20260630:company_intelligence:industry_demand:primary",
+        "to_node_id": "source:src-industry-wafer-demand-2026-q2"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_refs_source:evidence-forecast-2330-same-day-20260630-company_intelligence-market_sentiment-supporting:source-src-consensus-context-2026-06",
+        "edge_type": "evidence_refs_source",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "from_node_id": "evidence:forecast-2330-same-day-20260630:company_intelligence:market_sentiment:supporting",
+        "to_node_id": "source:src-consensus-context-2026-06"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_refs_source:evidence-forecast-2330-same-day-20260630-company_intelligence-revenue_trend-primary:source-src-2330-investor-presentation-2026-q2",
+        "edge_type": "evidence_refs_source",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "from_node_id": "evidence:forecast-2330-same-day-20260630:company_intelligence:revenue_trend:primary",
+        "to_node_id": "source:src-2330-investor-presentation-2026-q2"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_refs_source:evidence-forecast-2330-same-day-20260630-company_intelligence-revenue_trend-primary:source-src-2330-monthly-revenue-2026-05",
+        "edge_type": "evidence_refs_source",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "from_node_id": "evidence:forecast-2330-same-day-20260630:company_intelligence:revenue_trend:primary",
+        "to_node_id": "source:src-2330-monthly-revenue-2026-05"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_refs_source:evidence-forecast-2330-same-day-20260630-industry_intelligence-industry-intel-foundry-demand-2026-q2-primary:source-src-2330-investor-presentation-2026-q2",
+        "edge_type": "evidence_refs_source",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "from_node_id": "evidence:forecast-2330-same-day-20260630:industry_intelligence:industry-intel-foundry-demand-2026-q2:primary",
+        "to_node_id": "source:src-2330-investor-presentation-2026-q2"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_refs_source:evidence-forecast-2330-same-day-20260630-industry_intelligence-industry-intel-foundry-demand-2026-q2-primary:source-src-industry-wafer-demand-2026-q2",
+        "edge_type": "evidence_refs_source",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "from_node_id": "evidence:forecast-2330-same-day-20260630:industry_intelligence:industry-intel-foundry-demand-2026-q2:primary",
+        "to_node_id": "source:src-industry-wafer-demand-2026-q2"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_refs_source:evidence-forecast-2330-same-day-20260630-peer_context-peer-context-advanced-packaging-2026-q2-primary:source-src-2330-investor-presentation-2026-q2",
+        "edge_type": "evidence_refs_source",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "from_node_id": "evidence:forecast-2330-same-day-20260630:peer_context:peer-context-advanced-packaging-2026-q2:primary",
+        "to_node_id": "source:src-2330-investor-presentation-2026-q2"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_refs_source:evidence-forecast-2330-same-day-20260630-sentiment_metadata-src-consensus-context-2026-06:source-src-consensus-context-2026-06",
+        "edge_type": "evidence_refs_source",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "from_node_id": "evidence:forecast-2330-same-day-20260630:sentiment_metadata:src-consensus-context-2026-06",
+        "to_node_id": "source:src-consensus-context-2026-06"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_requires_review:evidence-forecast-2330-one-month-20260630-sentiment_metadata-src-market-price-context-2026-06:review-forecast-2330-one-month-20260630",
+        "edge_type": "evidence_requires_review",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "from_node_id": "evidence:forecast-2330-one-month-20260630:sentiment_metadata:src-market-price-context-2026-06",
+        "to_node_id": "review:forecast-2330-one-month-20260630"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_requires_review:evidence-forecast-2330-same-day-20260630-company_intelligence-market_sentiment-supporting:review-forecast-2330-same-day-20260630",
+        "edge_type": "evidence_requires_review",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "from_node_id": "evidence:forecast-2330-same-day-20260630:company_intelligence:market_sentiment:supporting",
+        "to_node_id": "review:forecast-2330-same-day-20260630"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_requires_review:evidence-forecast-2330-same-day-20260630-sentiment_metadata-src-consensus-context-2026-06:review-forecast-2330-same-day-20260630",
+        "edge_type": "evidence_requires_review",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "from_node_id": "evidence:forecast-2330-same-day-20260630:sentiment_metadata:src-consensus-context-2026-06",
+        "to_node_id": "review:forecast-2330-same-day-20260630"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_supports_forecast:evidence-forecast-2330-one-month-20260630-company_intelligence-industry_demand-primary:forecast-forecast-2330-one-month-20260630",
+        "edge_type": "evidence_supports_forecast",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "from_node_id": "evidence:forecast-2330-one-month-20260630:company_intelligence:industry_demand:primary",
+        "to_node_id": "forecast:forecast-2330-one-month-20260630"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_supports_forecast:evidence-forecast-2330-one-month-20260630-company_intelligence-revenue_trend-primary:forecast-forecast-2330-one-month-20260630",
+        "edge_type": "evidence_supports_forecast",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "from_node_id": "evidence:forecast-2330-one-month-20260630:company_intelligence:revenue_trend:primary",
+        "to_node_id": "forecast:forecast-2330-one-month-20260630"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_supports_forecast:evidence-forecast-2330-one-month-20260630-industry_intelligence-industry-intel-foundry-demand-2026-q2-primary:forecast-forecast-2330-one-month-20260630",
+        "edge_type": "evidence_supports_forecast",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "from_node_id": "evidence:forecast-2330-one-month-20260630:industry_intelligence:industry-intel-foundry-demand-2026-q2:primary",
+        "to_node_id": "forecast:forecast-2330-one-month-20260630"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_supports_forecast:evidence-forecast-2330-one-month-20260630-industry_intelligence-industry-intel-foundry-pricing-2026-q2-supporting:forecast-forecast-2330-one-month-20260630",
+        "edge_type": "evidence_supports_forecast",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "from_node_id": "evidence:forecast-2330-one-month-20260630:industry_intelligence:industry-intel-foundry-pricing-2026-q2:supporting",
+        "to_node_id": "forecast:forecast-2330-one-month-20260630"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_supports_forecast:evidence-forecast-2330-one-month-20260630-peer_context-peer-context-advanced-packaging-2026-q2-primary:forecast-forecast-2330-one-month-20260630",
+        "edge_type": "evidence_supports_forecast",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "from_node_id": "evidence:forecast-2330-one-month-20260630:peer_context:peer-context-advanced-packaging-2026-q2:primary",
+        "to_node_id": "forecast:forecast-2330-one-month-20260630"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_supports_forecast:evidence-forecast-2330-one-month-20260630-peer_context-peer-context-sector-performance-2026-06-supporting:forecast-forecast-2330-one-month-20260630",
+        "edge_type": "evidence_supports_forecast",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "from_node_id": "evidence:forecast-2330-one-month-20260630:peer_context:peer-context-sector-performance-2026-06:supporting",
+        "to_node_id": "forecast:forecast-2330-one-month-20260630"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_supports_forecast:evidence-forecast-2330-same-day-20260630-company_intelligence-industry_demand-primary:forecast-forecast-2330-same-day-20260630",
+        "edge_type": "evidence_supports_forecast",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "from_node_id": "evidence:forecast-2330-same-day-20260630:company_intelligence:industry_demand:primary",
+        "to_node_id": "forecast:forecast-2330-same-day-20260630"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_supports_forecast:evidence-forecast-2330-same-day-20260630-company_intelligence-market_sentiment-supporting:forecast-forecast-2330-same-day-20260630",
+        "edge_type": "evidence_supports_forecast",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "from_node_id": "evidence:forecast-2330-same-day-20260630:company_intelligence:market_sentiment:supporting",
+        "to_node_id": "forecast:forecast-2330-same-day-20260630"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_supports_forecast:evidence-forecast-2330-same-day-20260630-company_intelligence-revenue_trend-primary:forecast-forecast-2330-same-day-20260630",
+        "edge_type": "evidence_supports_forecast",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "from_node_id": "evidence:forecast-2330-same-day-20260630:company_intelligence:revenue_trend:primary",
+        "to_node_id": "forecast:forecast-2330-same-day-20260630"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_supports_forecast:evidence-forecast-2330-same-day-20260630-industry_intelligence-industry-intel-foundry-demand-2026-q2-primary:forecast-forecast-2330-same-day-20260630",
+        "edge_type": "evidence_supports_forecast",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "from_node_id": "evidence:forecast-2330-same-day-20260630:industry_intelligence:industry-intel-foundry-demand-2026-q2:primary",
+        "to_node_id": "forecast:forecast-2330-same-day-20260630"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:evidence_supports_forecast:evidence-forecast-2330-same-day-20260630-peer_context-peer-context-advanced-packaging-2026-q2-primary:forecast-forecast-2330-same-day-20260630",
+        "edge_type": "evidence_supports_forecast",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "from_node_id": "evidence:forecast-2330-same-day-20260630:peer_context:peer-context-advanced-packaging-2026-q2:primary",
+        "to_node_id": "forecast:forecast-2330-same-day-20260630"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:forecast_uses_evidence:forecast-forecast-2330-one-month-20260630:evidence-forecast-2330-one-month-20260630-company_intelligence-industry_demand-primary",
+        "edge_type": "forecast_uses_evidence",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "from_node_id": "forecast:forecast-2330-one-month-20260630",
+        "to_node_id": "evidence:forecast-2330-one-month-20260630:company_intelligence:industry_demand:primary"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:forecast_uses_evidence:forecast-forecast-2330-one-month-20260630:evidence-forecast-2330-one-month-20260630-company_intelligence-revenue_trend-primary",
+        "edge_type": "forecast_uses_evidence",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "from_node_id": "forecast:forecast-2330-one-month-20260630",
+        "to_node_id": "evidence:forecast-2330-one-month-20260630:company_intelligence:revenue_trend:primary"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:forecast_uses_evidence:forecast-forecast-2330-one-month-20260630:evidence-forecast-2330-one-month-20260630-industry_intelligence-industry-intel-foundry-demand-2026-q2-primary",
+        "edge_type": "forecast_uses_evidence",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "from_node_id": "forecast:forecast-2330-one-month-20260630",
+        "to_node_id": "evidence:forecast-2330-one-month-20260630:industry_intelligence:industry-intel-foundry-demand-2026-q2:primary"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:forecast_uses_evidence:forecast-forecast-2330-one-month-20260630:evidence-forecast-2330-one-month-20260630-industry_intelligence-industry-intel-foundry-pricing-2026-q2-supporting",
+        "edge_type": "forecast_uses_evidence",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "from_node_id": "forecast:forecast-2330-one-month-20260630",
+        "to_node_id": "evidence:forecast-2330-one-month-20260630:industry_intelligence:industry-intel-foundry-pricing-2026-q2:supporting"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:forecast_uses_evidence:forecast-forecast-2330-one-month-20260630:evidence-forecast-2330-one-month-20260630-peer_context-peer-context-advanced-packaging-2026-q2-primary",
+        "edge_type": "forecast_uses_evidence",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "from_node_id": "forecast:forecast-2330-one-month-20260630",
+        "to_node_id": "evidence:forecast-2330-one-month-20260630:peer_context:peer-context-advanced-packaging-2026-q2:primary"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:forecast_uses_evidence:forecast-forecast-2330-one-month-20260630:evidence-forecast-2330-one-month-20260630-peer_context-peer-context-sector-performance-2026-06-supporting",
+        "edge_type": "forecast_uses_evidence",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "from_node_id": "forecast:forecast-2330-one-month-20260630",
+        "to_node_id": "evidence:forecast-2330-one-month-20260630:peer_context:peer-context-sector-performance-2026-06:supporting"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:forecast_uses_evidence:forecast-forecast-2330-one-month-20260630:evidence-forecast-2330-one-month-20260630-sentiment_metadata-src-market-price-context-2026-06",
+        "edge_type": "forecast_uses_evidence",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "from_node_id": "forecast:forecast-2330-one-month-20260630",
+        "to_node_id": "evidence:forecast-2330-one-month-20260630:sentiment_metadata:src-market-price-context-2026-06"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:forecast_uses_evidence:forecast-forecast-2330-same-day-20260630:evidence-forecast-2330-same-day-20260630-company_intelligence-industry_demand-primary",
+        "edge_type": "forecast_uses_evidence",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "from_node_id": "forecast:forecast-2330-same-day-20260630",
+        "to_node_id": "evidence:forecast-2330-same-day-20260630:company_intelligence:industry_demand:primary"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:forecast_uses_evidence:forecast-forecast-2330-same-day-20260630:evidence-forecast-2330-same-day-20260630-company_intelligence-market_sentiment-supporting",
+        "edge_type": "forecast_uses_evidence",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "from_node_id": "forecast:forecast-2330-same-day-20260630",
+        "to_node_id": "evidence:forecast-2330-same-day-20260630:company_intelligence:market_sentiment:supporting"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:forecast_uses_evidence:forecast-forecast-2330-same-day-20260630:evidence-forecast-2330-same-day-20260630-company_intelligence-revenue_trend-primary",
+        "edge_type": "forecast_uses_evidence",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "from_node_id": "forecast:forecast-2330-same-day-20260630",
+        "to_node_id": "evidence:forecast-2330-same-day-20260630:company_intelligence:revenue_trend:primary"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:forecast_uses_evidence:forecast-forecast-2330-same-day-20260630:evidence-forecast-2330-same-day-20260630-industry_intelligence-industry-intel-foundry-demand-2026-q2-primary",
+        "edge_type": "forecast_uses_evidence",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "from_node_id": "forecast:forecast-2330-same-day-20260630",
+        "to_node_id": "evidence:forecast-2330-same-day-20260630:industry_intelligence:industry-intel-foundry-demand-2026-q2:primary"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:forecast_uses_evidence:forecast-forecast-2330-same-day-20260630:evidence-forecast-2330-same-day-20260630-peer_context-peer-context-advanced-packaging-2026-q2-primary",
+        "edge_type": "forecast_uses_evidence",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "from_node_id": "forecast:forecast-2330-same-day-20260630",
+        "to_node_id": "evidence:forecast-2330-same-day-20260630:peer_context:peer-context-advanced-packaging-2026-q2:primary"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:forecast_uses_evidence:forecast-forecast-2330-same-day-20260630:evidence-forecast-2330-same-day-20260630-sentiment_metadata-src-consensus-context-2026-06",
+        "edge_type": "forecast_uses_evidence",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "from_node_id": "forecast:forecast-2330-same-day-20260630",
+        "to_node_id": "evidence:forecast-2330-same-day-20260630:sentiment_metadata:src-consensus-context-2026-06"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:source_has_credibility:source-src-2330-investor-presentation-2026-q2:credibility-src-2330-investor-presentation-2026-q2",
+        "edge_type": "source_has_credibility",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "from_node_id": "source:src-2330-investor-presentation-2026-q2",
+        "to_node_id": "credibility:src-2330-investor-presentation-2026-q2"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:source_has_credibility:source-src-2330-monthly-revenue-2026-05:credibility-src-2330-monthly-revenue-2026-05",
+        "edge_type": "source_has_credibility",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "from_node_id": "source:src-2330-monthly-revenue-2026-05",
+        "to_node_id": "credibility:src-2330-monthly-revenue-2026-05"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:source_has_credibility:source-src-consensus-context-2026-06:credibility-src-consensus-context-2026-06",
+        "edge_type": "source_has_credibility",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "from_node_id": "source:src-consensus-context-2026-06",
+        "to_node_id": "credibility:src-consensus-context-2026-06"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:source_has_credibility:source-src-industry-wafer-demand-2026-q2:credibility-src-industry-wafer-demand-2026-q2",
+        "edge_type": "source_has_credibility",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "from_node_id": "source:src-industry-wafer-demand-2026-q2",
+        "to_node_id": "credibility:src-industry-wafer-demand-2026-q2"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:source_has_credibility:source-src-market-price-context-2026-06:credibility-src-market-price-context-2026-06",
+        "edge_type": "source_has_credibility",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "from_node_id": "source:src-market-price-context-2026-06",
+        "to_node_id": "credibility:src-market-price-context-2026-06"
+      },
+      {
+        "advisory_only": true,
+        "edge_id": "edge:source_has_credibility:source-src-peer-advanced-packaging-2026-q2:credibility-src-peer-advanced-packaging-2026-q2",
+        "edge_type": "source_has_credibility",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "from_node_id": "source:src-peer-advanced-packaging-2026-q2",
+        "to_node_id": "credibility:src-peer-advanced-packaging-2026-q2"
+      }
+    ],
+    "evidence_nodes": [
+      {
+        "advisory_only": true,
+        "evidence_role": "primary",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "matched_source_ids": [
+          "src-2330-investor-presentation-2026-q2",
+          "src-industry-wafer-demand-2026-q2"
+        ],
+        "node_id": "evidence:forecast-2330-one-month-20260630:company_intelligence:industry_demand:primary",
+        "node_type": "evidence",
+        "ref_id": "industry_demand",
+        "ref_type": "company_intelligence",
+        "requires_human_review": false,
+        "score": 0.88,
+        "sentiment_metadata": false,
+        "summary": "Industry primary data fixture supports continued demand for advanced semiconductor capacity.",
+        "topic": "Industry demand"
+      },
+      {
+        "advisory_only": true,
+        "evidence_role": "primary",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "matched_source_ids": [
+          "src-2330-investor-presentation-2026-q2"
+        ],
+        "node_id": "evidence:forecast-2330-one-month-20260630:company_intelligence:revenue_trend:primary",
+        "node_type": "evidence",
+        "ref_id": "revenue_trend",
+        "ref_type": "company_intelligence",
+        "requires_human_review": false,
+        "score": 0.955,
+        "sentiment_metadata": false,
+        "summary": "Monthly revenue fixture indicates stable demand momentum relative to the prior quarter.",
+        "topic": "Revenue trend"
+      },
+      {
+        "advisory_only": true,
+        "evidence_role": "primary",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "matched_source_ids": [
+          "src-2330-investor-presentation-2026-q2",
+          "src-industry-wafer-demand-2026-q2"
+        ],
+        "node_id": "evidence:forecast-2330-one-month-20260630:industry_intelligence:industry-intel-foundry-demand-2026-q2:primary",
+        "node_type": "evidence",
+        "ref_id": "industry-intel-foundry-demand-2026-q2",
+        "ref_type": "industry_intelligence",
+        "requires_human_review": false,
+        "score": 0.86,
+        "sentiment_metadata": false,
+        "summary": "Fixture demand monitor indicates stable advanced-node wafer demand for the current quarter.",
+        "topic": "demand"
+      },
+      {
+        "advisory_only": true,
+        "evidence_role": "supporting",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "matched_source_ids": [
+          "src-market-price-context-2026-06",
+          "src-peer-advanced-packaging-2026-q2"
+        ],
+        "node_id": "evidence:forecast-2330-one-month-20260630:industry_intelligence:industry-intel-foundry-pricing-2026-q2:supporting",
+        "node_type": "evidence",
+        "ref_id": "industry-intel-foundry-pricing-2026-q2",
+        "ref_type": "industry_intelligence",
+        "requires_human_review": false,
+        "score": 0.73,
+        "sentiment_metadata": false,
+        "summary": "Fixture market and peer context suggests pricing remains differentiated by process node and packaging demand.",
+        "topic": "pricing"
+      },
+      {
+        "advisory_only": true,
+        "evidence_role": "primary",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "matched_source_ids": [
+          "src-2330-investor-presentation-2026-q2",
+          "src-peer-advanced-packaging-2026-q2"
+        ],
+        "node_id": "evidence:forecast-2330-one-month-20260630:peer_context:peer-context-advanced-packaging-2026-q2:primary",
+        "node_type": "evidence",
+        "ref_id": "peer-context-advanced-packaging-2026-q2",
+        "ref_type": "peer_context",
+        "requires_human_review": false,
+        "score": 0.84,
+        "sentiment_metadata": false,
+        "summary": "Target company fixture shows stronger exposure to advanced packaging demand than the peer set.",
+        "topic": "advanced_packaging"
+      },
+      {
+        "advisory_only": true,
+        "evidence_role": "supporting",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "matched_source_ids": [
+          "src-market-price-context-2026-06"
+        ],
+        "node_id": "evidence:forecast-2330-one-month-20260630:peer_context:peer-context-sector-performance-2026-06:supporting",
+        "node_type": "evidence",
+        "ref_id": "peer-context-sector-performance-2026-06",
+        "ref_type": "peer_context",
+        "requires_human_review": false,
+        "score": 0.63,
+        "sentiment_metadata": false,
+        "summary": "Market data fixture is retained as quantitative context and does not override primary industry evidence.",
+        "topic": "sector_performance"
+      },
+      {
+        "advisory_only": true,
+        "evidence_role": "sentiment_metadata",
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "matched_source_ids": [
+          "src-market-price-context-2026-06"
+        ],
+        "node_id": "evidence:forecast-2330-one-month-20260630:sentiment_metadata:src-market-price-context-2026-06",
+        "node_type": "evidence",
+        "ref_id": "src-market-price-context-2026-06",
+        "ref_type": "sentiment_metadata",
+        "requires_human_review": true,
+        "score": null,
+        "sentiment_metadata": true,
+        "summary": "Sentiment or quantitative context retained as metadata only.",
+        "topic": "sentiment_metadata"
+      },
+      {
+        "advisory_only": true,
+        "evidence_role": "primary",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "matched_source_ids": [
+          "src-2330-investor-presentation-2026-q2",
+          "src-industry-wafer-demand-2026-q2"
+        ],
+        "node_id": "evidence:forecast-2330-same-day-20260630:company_intelligence:industry_demand:primary",
+        "node_type": "evidence",
+        "ref_id": "industry_demand",
+        "ref_type": "company_intelligence",
+        "requires_human_review": false,
+        "score": 0.88,
+        "sentiment_metadata": false,
+        "summary": "Industry primary data fixture supports continued demand for advanced semiconductor capacity.",
+        "topic": "Industry demand"
+      },
+      {
+        "advisory_only": true,
+        "evidence_role": "supporting",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "matched_source_ids": [
+          "src-consensus-context-2026-06"
+        ],
+        "node_id": "evidence:forecast-2330-same-day-20260630:company_intelligence:market_sentiment:supporting",
+        "node_type": "evidence",
+        "ref_id": "market_sentiment",
+        "ref_type": "company_intelligence",
+        "requires_human_review": true,
+        "score": 0.38,
+        "sentiment_metadata": false,
+        "summary": "Consensus metadata is retained only as labeled sentiment context and is not a core input.",
+        "topic": "Market sentiment context"
+      },
+      {
+        "advisory_only": true,
+        "evidence_role": "primary",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "matched_source_ids": [
+          "src-2330-investor-presentation-2026-q2",
+          "src-2330-monthly-revenue-2026-05"
+        ],
+        "node_id": "evidence:forecast-2330-same-day-20260630:company_intelligence:revenue_trend:primary",
+        "node_type": "evidence",
+        "ref_id": "revenue_trend",
+        "ref_type": "company_intelligence",
+        "requires_human_review": false,
+        "score": 0.955,
+        "sentiment_metadata": false,
+        "summary": "Monthly revenue fixture indicates stable demand momentum relative to the prior quarter.",
+        "topic": "Revenue trend"
+      },
+      {
+        "advisory_only": true,
+        "evidence_role": "primary",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "matched_source_ids": [
+          "src-2330-investor-presentation-2026-q2",
+          "src-industry-wafer-demand-2026-q2"
+        ],
+        "node_id": "evidence:forecast-2330-same-day-20260630:industry_intelligence:industry-intel-foundry-demand-2026-q2:primary",
+        "node_type": "evidence",
+        "ref_id": "industry-intel-foundry-demand-2026-q2",
+        "ref_type": "industry_intelligence",
+        "requires_human_review": false,
+        "score": 0.86,
+        "sentiment_metadata": false,
+        "summary": "Fixture demand monitor indicates stable advanced-node wafer demand for the current quarter.",
+        "topic": "demand"
+      },
+      {
+        "advisory_only": true,
+        "evidence_role": "primary",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "matched_source_ids": [
+          "src-2330-investor-presentation-2026-q2"
+        ],
+        "node_id": "evidence:forecast-2330-same-day-20260630:peer_context:peer-context-advanced-packaging-2026-q2:primary",
+        "node_type": "evidence",
+        "ref_id": "peer-context-advanced-packaging-2026-q2",
+        "ref_type": "peer_context",
+        "requires_human_review": false,
+        "score": 0.84,
+        "sentiment_metadata": false,
+        "summary": "Target company fixture shows stronger exposure to advanced packaging demand than the peer set.",
+        "topic": "advanced_packaging"
+      },
+      {
+        "advisory_only": true,
+        "evidence_role": "sentiment_metadata",
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "matched_source_ids": [
+          "src-consensus-context-2026-06"
+        ],
+        "node_id": "evidence:forecast-2330-same-day-20260630:sentiment_metadata:src-consensus-context-2026-06",
+        "node_type": "evidence",
+        "ref_id": "src-consensus-context-2026-06",
+        "ref_type": "sentiment_metadata",
+        "requires_human_review": true,
+        "score": null,
+        "sentiment_metadata": true,
+        "summary": "Sentiment or quantitative context retained as metadata only.",
+        "topic": "sentiment_metadata"
+      }
+    ],
+    "forecast_nodes": [
+      {
+        "advisory_only": true,
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "horizon": "one_month",
+        "human_review_required": true,
+        "node_id": "forecast:forecast-2330-one-month-20260630",
+        "node_type": "forecast",
+        "stock_id": "2330"
+      },
+      {
+        "advisory_only": true,
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "horizon": "same_day",
+        "human_review_required": true,
+        "node_id": "forecast:forecast-2330-same-day-20260630",
+        "node_type": "forecast",
+        "stock_id": "2330"
+      }
+    ],
+    "graph_id": "graph:evidence-trace-graph-fixture-20260630",
+    "graph_summary": {
+      "advisory_only": true,
+      "credibility_node_count": 6,
+      "deterministic_output": true,
+      "edge_count": 55,
+      "edge_types": [
+        "evidence_is_sentiment_metadata",
+        "evidence_refs_source",
+        "evidence_requires_review",
+        "evidence_supports_forecast",
+        "forecast_uses_evidence",
+        "source_has_credibility"
+      ],
+      "evidence_node_count": 13,
+      "forecast_node_count": 2,
+      "graph_id": "graph:evidence-trace-graph-fixture-20260630",
+      "human_review_required_count": 2,
+      "review_node_count": 2,
+      "schema_version": "evidence_trace_graph_summary_v1",
+      "source_node_count": 6
+    },
+    "review_nodes": [
+      {
+        "advisory_only": true,
+        "forecast_id": "forecast-2330-one-month-20260630",
+        "node_id": "review:forecast-2330-one-month-20260630",
+        "node_type": "human_review",
+        "review_reason": "Forecast evidence includes low credibility, sentiment metadata, or review-required source context.",
+        "review_required": true,
+        "status": "pending_human_review"
+      },
+      {
+        "advisory_only": true,
+        "forecast_id": "forecast-2330-same-day-20260630",
+        "node_id": "review:forecast-2330-same-day-20260630",
+        "node_type": "human_review",
+        "review_reason": "Forecast evidence includes low credibility, sentiment metadata, or review-required source context.",
+        "review_required": true,
+        "status": "pending_human_review"
+      }
+    ],
+    "source_nodes": [
+      {
+        "advisory_only": true,
+        "node_id": "source:src-2330-investor-presentation-2026-q2",
+        "node_type": "source",
+        "publisher": "Example Semiconductor",
+        "source_id": "src-2330-investor-presentation-2026-q2",
+        "source_tier": "tier_1_company_official",
+        "source_type": "investor_presentation",
+        "usage_policy": "target_company_context"
+      },
+      {
+        "advisory_only": true,
+        "node_id": "source:src-2330-monthly-revenue-2026-05",
+        "node_type": "source",
+        "publisher": "Example Exchange Disclosure",
+        "source_id": "src-2330-monthly-revenue-2026-05",
+        "source_tier": "tier_1_official_filing",
+        "source_type": "monthly_revenue_filing",
+        "usage_policy": "core_company_fact"
+      },
+      {
+        "advisory_only": true,
+        "node_id": "source:src-consensus-context-2026-06",
+        "node_type": "source",
+        "publisher": "Example Research Aggregator",
+        "source_id": "src-consensus-context-2026-06",
+        "source_tier": "tier_4_consensus_and_analyst",
+        "source_type": "consensus_metadata",
+        "usage_policy": "sentiment_context_only"
+      },
+      {
+        "advisory_only": true,
+        "node_id": "source:src-industry-wafer-demand-2026-q2",
+        "node_type": "source",
+        "publisher": "Example Industry Association",
+        "source_id": "src-industry-wafer-demand-2026-q2",
+        "source_tier": "tier_2_peer_and_industry_primary",
+        "source_type": "industry_primary_data",
+        "usage_policy": "core_industry_context"
+      },
+      {
+        "advisory_only": true,
+        "node_id": "source:src-market-price-context-2026-06",
+        "node_type": "source",
+        "publisher": "Example Market Data Fixture",
+        "source_id": "src-market-price-context-2026-06",
+        "source_tier": "tier_3_market_data",
+        "source_type": "market_data_snapshot",
+        "usage_policy": "quantitative_context_only"
+      },
+      {
+        "advisory_only": true,
+        "node_id": "source:src-peer-advanced-packaging-2026-q2",
+        "node_type": "source",
+        "publisher": "Example Peer Manufacturer",
+        "source_id": "src-peer-advanced-packaging-2026-q2",
+        "source_tier": "tier_2_peer_and_industry_primary",
+        "source_type": "peer_earnings_summary",
+        "usage_policy": "peer_context"
+      }
+    ]
+  },
+  "generated_at": "2026-06-30T09:10:00+08:00",
+  "graph_summary": {
+    "advisory_only": true,
+    "credibility_node_count": 6,
+    "deterministic_output": true,
+    "edge_count": 55,
+    "edge_types": [
+      "evidence_is_sentiment_metadata",
+      "evidence_refs_source",
+      "evidence_requires_review",
+      "evidence_supports_forecast",
+      "forecast_uses_evidence",
+      "source_has_credibility"
+    ],
+    "evidence_node_count": 13,
+    "forecast_node_count": 2,
+    "graph_id": "graph:evidence-trace-graph-fixture-20260630",
+    "human_review_required_count": 2,
+    "review_node_count": 2,
+    "schema_version": "evidence_trace_graph_summary_v1",
+    "source_node_count": 6
+  },
+  "mode": "fixture_dry_run",
+  "next_recommendation": "Review trace graph warnings before connecting this advisory fixture to any report or dashboard preview.",
+  "ok": true,
+  "run_id": "evidence-trace-graph-fixture-20260630",
+  "safety": {
+    "advisory_only": true,
+    "api_server_created": false,
+    "dashboard_deploy": false,
+    "fixture_only": true,
+    "no_delivery_actions": true,
+    "no_external_model_calls": true,
+    "no_market_data_calls": true,
+    "no_persistent_store_writes": true,
+    "no_portfolio_actions": true,
+    "no_schedule_service_changes": true,
+    "preview_only": true,
+    "repo_only": true
+  },
+  "schema_version": "evidence_trace_graph_v1",
+  "side_effects": {
+    "api_server_created": false,
+    "called_external_model_runtime": false,
+    "called_market_data_runtime": false,
+    "dashboard_deployed": false,
+    "modified_github_remote": false,
+    "modified_portfolio": false,
+    "modified_schedule_or_service": false,
+    "placed_trade_order": false,
+    "read_secrets": false,
+    "sent_notification": false,
+    "wrote_persistent_store": false
+  },
+  "task_id": "AI-DEV-091",
+  "validation_summary": {
+    "contract_name": "evidence_trace_graph",
+    "contract_version": "v1",
+    "deterministic_output": true,
+    "edge_count": 55,
+    "evidence_node_count": 13,
+    "fixture_only": true,
+    "forecast_node_count": 2,
+    "warning_count": 1,
+    "warnings": [
+      "human_review_required_evidence_present"
+    ]
+  }
+}
