@@ -1,0 +1,35 @@
+{
+  "schema_version": "forecast_explainability_layer_input_v1",
+  "task_id": "AI-DEV-092",
+  "run_id": "forecast-explainability-layer-fixture-20260630",
+  "generated_at": "2026-06-30T09:30:00+08:00",
+  "mode": "fixture_dry_run",
+  "input_sources": {
+    "evidence_trace_graph_result_path": "templates/evidence_trace_graph_result.example.json"
+  },
+  "explainability_policy": {
+    "include_primary_reasoning": true,
+    "include_supporting_reasoning": true,
+    "include_official_evidence_summary": true,
+    "include_industry_context_summary": true,
+    "include_sentiment_metadata_summary": true,
+    "include_credibility_risk_summary": true,
+    "include_human_review_summary": true,
+    "deterministic_sort": true
+  },
+  "safety": {
+    "repo_only": true,
+    "fixture_only": true,
+    "advisory_only": true,
+    "preview_only": true,
+    "no_external_model_calls": true,
+    "no_market_data_calls": true,
+    "no_delivery_actions": true,
+    "no_persistent_store_writes": true,
+    "no_portfolio_actions": true,
+    "no_schedule_service_changes": true,
+    "dashboard_deploy": false,
+    "api_server_created": false,
+    "trading_instruction": false
+  }
+}
