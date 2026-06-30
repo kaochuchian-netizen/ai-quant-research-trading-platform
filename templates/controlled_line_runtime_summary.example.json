@@ -1,0 +1,16 @@
+{
+  "approval_status": "approved",
+  "decision": "controlled_line_runtime_reactivation_completed",
+  "delivery_allowed": true,
+  "generated_at": "2026-07-01T09:00:00+08:00",
+  "line_channel_enabled": true,
+  "mode": "dry_run_no_send",
+  "next_recommendation": "Gate is approved for a controlled one-shot test. Run the documented --send-test-line command only after explicit confirmation.",
+  "ok": true,
+  "push_attempted": false,
+  "push_status": "dry_run_not_sent",
+  "run_id": "controlled-line-runtime-fixture-20260701",
+  "schema_version": "controlled_line_runtime_summary_v1",
+  "task_id": "AI-DEV-106",
+  "test_message_sent": false
+}
