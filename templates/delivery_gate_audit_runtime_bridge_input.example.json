@@ -1,0 +1,11 @@
+{
+  "generated_at": "2026-06-30T11:30:00+08:00",
+  "input_sources": {
+    "dashboard_delivery_gate_result_path": "templates/dashboard_delivery_gate_result.example.json",
+    "email_delivery_result_path": "templates/controlled_email_delivery_result.example.json",
+    "line_delivery_gate_result_path": "templates/line_delivery_gate_result.example.json",
+    "unified_delivery_gate_summary_result_path": "templates/unified_delivery_gate_summary_result.example.json"
+  },
+  "run_id": "delivery-gate-audit-runtime-bridge-fixture-20260630",
+  "task_id": "AI-DEV-098"
+}
