@@ -1,0 +1,21 @@
+{
+  "advisory_only": true,
+  "credibility_node_count": 6,
+  "deterministic_output": true,
+  "edge_count": 55,
+  "edge_types": [
+    "evidence_is_sentiment_metadata",
+    "evidence_refs_source",
+    "evidence_requires_review",
+    "evidence_supports_forecast",
+    "forecast_uses_evidence",
+    "source_has_credibility"
+  ],
+  "evidence_node_count": 13,
+  "forecast_node_count": 2,
+  "graph_id": "graph:evidence-trace-graph-fixture-20260630",
+  "human_review_required_count": 2,
+  "review_node_count": 2,
+  "schema_version": "evidence_trace_graph_summary_v1",
+  "source_node_count": 6
+}
