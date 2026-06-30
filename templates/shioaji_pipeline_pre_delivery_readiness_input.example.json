@@ -1,0 +1,59 @@
+{
+  "generated_at": "2026-07-01T09:00:00+08:00",
+  "mode": "fixture_dry_run_no_send",
+  "readiness_input": {
+    "bounded_kbars_window_days": 30,
+    "fallback_to_existing_csv": true,
+    "historical_csv_inventory": [
+      {
+        "latest_date": "2026-06-30",
+        "stock_id": "2330",
+        "usable": true
+      },
+      {
+        "latest_date": "2026-06-30",
+        "stock_id": "2317",
+        "usable": true
+      },
+      {
+        "latest_date": null,
+        "stock_id": "2454",
+        "usable": false
+      }
+    ],
+    "kbars_window_bounded": true
+  },
+  "run_id": "shioaji-readiness-repair-fixture-20260701",
+  "safety": {
+    "diagnostic_and_repair_only": true,
+    "external_side_effects_allowed": false,
+    "no_api_server_created": true,
+    "no_cron_modification": true,
+    "no_dashboard_deploy": true,
+    "no_email_send": true,
+    "no_gmail_api_call": true,
+    "no_line_api_call": true,
+    "no_line_push": true,
+    "no_persistent_store_writes": true,
+    "no_portfolio_actions": true,
+    "no_schedule_service_changes": true,
+    "no_secret_mutation": true,
+    "no_secret_read": true,
+    "no_send": true,
+    "no_service_modification": true,
+    "no_smtp_call": true,
+    "no_systemd_modification": true,
+    "no_timer_modification": true,
+    "repo_only": true,
+    "trading_instruction": false
+  },
+  "schema_version": "shioaji_pipeline_pre_delivery_readiness_input_v1",
+  "simulated_runtime": {
+    "errors": [
+      "shioaji_login_failed",
+      "shioaji_kbars_range_or_history_limit"
+    ],
+    "shioaji_login_ok": false
+  },
+  "task_id": "AI-DEV-105"
+}

@@ -1,0 +1,150 @@
+{
+  "decision": "shioaji_pipeline_pre_delivery_readiness_repair_completed_with_warnings",
+  "fallback_policy": {
+    "do_not_suppress_warnings": true,
+    "enabled": true,
+    "preserve_existing_output_compatibility": true,
+    "source": "existing_historical_csv",
+    "use_when": [
+      "shioaji_login_failed",
+      "shioaji_maintenance",
+      "shioaji_version_or_upgrade_required",
+      "shioaji_kbars_range_or_history_limit"
+    ]
+  },
+  "generated_at": "2026-07-01T09:00:00+08:00",
+  "historical_data_readiness": {
+    "bounded_kbars_window_days": 30,
+    "fallback_to_existing_csv": true,
+    "kbars_window_bounded": true,
+    "persistent_store_writes": false,
+    "report_ready_fallback_available": true,
+    "requested_stock_count": 3,
+    "usable_fallback_csv_count": 2
+  },
+  "mode": "fixture_dry_run_no_send",
+  "next_recommendation": "Run the scheduled pipeline only through the approved production gate; Shioaji historical failures should now warn and fall back to existing CSV instead of crashing before delivery.",
+  "ok": true,
+  "pipeline_pre_delivery_status": {
+    "blockers": [],
+    "crash_pipeline_on_shioaji_failure": false,
+    "delivery_stage_reachable": true,
+    "report_ready_available": true,
+    "schema_version": "pipeline_pre_delivery_status_v1",
+    "shioaji_required_for_delivery_stage": false,
+    "stage": "historical_csv_update",
+    "status": "ready_with_fallback"
+  },
+  "readiness_summary": {
+    "decision": "shioaji_pipeline_pre_delivery_readiness_repair_completed_with_warnings",
+    "delivery_stage_reachable": true,
+    "generated_at": "2026-07-01T09:00:00+08:00",
+    "mode": "fixture_dry_run_no_send",
+    "ok": true,
+    "report_ready_available": true,
+    "run_id": "shioaji-readiness-repair-fixture-20260701",
+    "safety": {
+      "diagnostic_and_repair_only": true,
+      "external_side_effects_allowed": false,
+      "no_api_server_created": true,
+      "no_cron_modification": true,
+      "no_dashboard_deploy": true,
+      "no_email_send": true,
+      "no_gmail_api_call": true,
+      "no_line_api_call": true,
+      "no_line_push": true,
+      "no_persistent_store_writes": true,
+      "no_portfolio_actions": true,
+      "no_schedule_service_changes": true,
+      "no_secret_mutation": true,
+      "no_secret_read": true,
+      "no_send": true,
+      "no_service_modification": true,
+      "no_smtp_call": true,
+      "no_systemd_modification": true,
+      "no_timer_modification": true,
+      "repo_only": true,
+      "trading_instruction": false
+    },
+    "schema_version": "shioaji_pipeline_pre_delivery_readiness_summary_v1",
+    "task_id": "AI-DEV-105",
+    "usable_fallback_csv_count": 2,
+    "warning_count": 3
+  },
+  "run_id": "shioaji-readiness-repair-fixture-20260701",
+  "safety": {
+    "diagnostic_and_repair_only": true,
+    "external_side_effects_allowed": false,
+    "no_api_server_created": true,
+    "no_cron_modification": true,
+    "no_dashboard_deploy": true,
+    "no_email_send": true,
+    "no_gmail_api_call": true,
+    "no_line_api_call": true,
+    "no_line_push": true,
+    "no_persistent_store_writes": true,
+    "no_portfolio_actions": true,
+    "no_schedule_service_changes": true,
+    "no_secret_mutation": true,
+    "no_secret_read": true,
+    "no_send": true,
+    "no_service_modification": true,
+    "no_smtp_call": true,
+    "no_systemd_modification": true,
+    "no_timer_modification": true,
+    "repo_only": true,
+    "trading_instruction": false
+  },
+  "schema_version": "shioaji_pipeline_pre_delivery_readiness_repair_v1",
+  "shioaji_readiness": {
+    "error_classifications": [
+      "shioaji_kbars_range_or_history_limit",
+      "shioaji_login_failed"
+    ],
+    "login_ok": false,
+    "login_required_for_report_path": false,
+    "maintenance_or_version_failure_tolerated": true,
+    "market_data_runtime_called": false
+  },
+  "side_effects": {
+    "called_gmail_api": false,
+    "called_line_api": false,
+    "called_market_data_runtime": false,
+    "called_smtp": false,
+    "created_api_server": false,
+    "deployed_dashboard": false,
+    "modified_cron": false,
+    "modified_portfolio": false,
+    "modified_schedule_or_service": false,
+    "modified_service": false,
+    "modified_systemd": false,
+    "modified_timer": false,
+    "mutated_secrets": false,
+    "placed_trade_order": false,
+    "read_secrets": false,
+    "sent_email": false,
+    "sent_line_push": false,
+    "wrote_persistent_store": false
+  },
+  "task_id": "AI-DEV-105",
+  "warnings": [
+    {
+      "code": "shioaji_login_or_runtime_unavailable",
+      "message": "Readiness repair keeps the pipeline report path available by using existing CSV fallback.",
+      "severity": "error",
+      "source": "shioaji_readiness"
+    },
+    {
+      "code": "simulated_shioaji_runtime_errors_present",
+      "message": "shioaji_kbars_range_or_history_limit, shioaji_login_failed",
+      "severity": "warning",
+      "source": "shioaji_readiness"
+    },
+    {
+      "code": "partial_historical_csv_fallback_inventory",
+      "message": "2/3 configured CSV fallbacks are usable.",
+      "severity": "warning",
+      "source": "historical_data_readiness"
+    }
+  ]
+}

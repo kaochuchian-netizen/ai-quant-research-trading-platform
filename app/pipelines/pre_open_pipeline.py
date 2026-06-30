@@ -1,3 +1,4 @@
+import json
 import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -64,10 +65,24 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
 
     if dry_run:
         print("dry-run 模式：略過 historical CSV 更新")
+        pipeline_pre_delivery_status = {
+            "schema_version": "pipeline_pre_delivery_status_v1",
+            "stage": "historical_csv_update",
+            "status": "skipped_for_dry_run",
+            "report_ready_available": True,
+            "warnings": [],
+        }
     else:
         print("開始更新 historical CSV")
-        update_historical_csv()
-        print("historical CSV 更新完成")
+        pipeline_pre_delivery_status = update_historical_csv()
+        print("pipeline_pre_delivery_status:")
+        print(json.dumps(pipeline_pre_delivery_status, ensure_ascii=False, sort_keys=True))
+        if pipeline_pre_delivery_status.get("historical_update_completed"):
+            print("historical CSV 更新完成")
+        elif pipeline_pre_delivery_status.get("report_ready_available"):
+            print("historical CSV 更新未完全成功，改用 fallback historical CSV 繼續產生報告")
+        else:
+            print("historical CSV 更新失敗且 fallback 不足，pipeline 將繼續嘗試既有逐檔檢查")
 
     stock_ids = load_stock_ids()
     print(f"pre_open stock universe count: {len(stock_ids)}")
