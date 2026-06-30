@@ -1,0 +1,13 @@
+{
+  "advisory_only": true,
+  "credibility_risk_forecast_count": 1,
+  "deterministic_output": true,
+  "explanation_count": 2,
+  "forecast_count": 2,
+  "human_review_required_count": 2,
+  "schema_version": "forecast_explainability_summary_v1",
+  "sentiment_metadata_forecast_count": 2,
+  "source_graph_id": "graph:evidence-trace-graph-fixture-20260630",
+  "source_trace_ref_count": 33,
+  "stock_count": 1
+}
