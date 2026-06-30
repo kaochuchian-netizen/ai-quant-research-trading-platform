@@ -1,0 +1,265 @@
+{
+  "decision": "daily_report_static_preview_export_completed_with_warnings",
+  "generated_at": "2026-06-30T09:40:00+08:00",
+  "markdown_preview": "# Daily Report Static Preview 2026-06-30\n\n- Generated at: `2026-06-30T09:40:00+08:00`\n- Manifest ID: `daily_report_static_preview_manifest_20260630`\n- Mode: `fixture_dry_run`\n- Preview only: `true`\n- Advisory only: `true`\n\n> Static preview package only. No delivery action, external model call, market data call, persistent store write, portfolio action, or schedule/service change was performed.\n\n## Renderer Source\n- Source path: `templates/daily_report_renderer_result.example.json`\n- Source run ID: `daily-report-renderer-fixture-20260630`\n- Source decision: `daily_report_renderer_completed_with_warnings`\n- Source warning count: `4`\n\n## Section Index\n- 1. `forecast_review` Forecast Review (body_01, high)\n- 2. `daily_report_intelligence` Company And Industry Intelligence (body_02, medium)\n\n## Validation Warnings\n- forecast review source reports insufficient data\n- human review required for one or more intelligence sources\n- one or more source credibility records require human review\n- source renderer completed with warnings\n- source research pack completed with warnings\n\n## Renderer Markdown Preview\n\n# Daily Report 2026-06-30\n\n- Report date: `2026-06-30`\n- Mode: `fixture_dry_run`\n- Advisory only: `true`\n- Requires human review: `true`\n\n> Repo-only, fixture-only daily report renderer output. This is not a delivery payload and must be reviewed by a human before any future 07:00 report use.\n\n## Human Review Warnings\n- forecast review source reports insufficient data\n- human review required for one or more intelligence sources\n- one or more source credibility records require human review\n- source research pack completed with warnings\n\n## Forecast Review\n\n> 資料不足，不應過度解讀命中率。\n\n- **Executive Summary**: Current quality status is `insufficient_data` with 3 evaluated records. 資料不足，不應過度解讀命中率。 Human review is required before any forecast tuning.\n- **Forecast Quality Summary**: Overall grade: `Insufficient Data`; interval hit rate: `100.0%`.\n- **Horizon Review Summary**: Horizon cards summarize evaluated records, pending records, hit rates, and error rates.\n- **Confidence Calibration Summary**: Confidence buckets below sample thresholds remain insufficient for calibration conclusions.\n- **Error Pattern Summary**: Detected 2 top error pattern groups.\n- **Daily Improvement Recommendations**: Recommendations are advisory only, require human review, and are not applied automatically.\n- **Risk And Limitations**: 樣本數不足時不得過度解讀。 Fixture-only result 不代表 production performance。 Review recommendations 不會自動修改 forecast weights。 本輸出不構成投資建議。\n- **Next Steps**: Use this export as input for a future Daily Report Forecast Review Section or Dashboard MVP task.\n\n_Fixture-only, advisory-only. Human review is required before any forecast tuning or report delivery._\n\n## Company And Industry Intelligence\n\n> Fixture-only intelligence section. Advisory only; human review is required before daily report insertion.\n\n### Company Intelligence\n- Monthly revenue fixture indicates stable demand momentum relative to the prior quarter.\n- Industry primary data fixture supports continued demand for advanced semiconductor capacity.\n- Consensus metadata is retained only as labeled sentiment context and is not a core input.\n\n### Industry And Peer Context\n- Fixture demand monitor indicates stable advanced-node wafer demand for the current quarter.\n- Fixture market and peer context suggests pricing remains differentiated by process node and packaging demand.\n- Target company fixture shows stronger exposure to advanced packaging demand than the peer set.\n- Market data fixture is retained as quantitative context and does not override primary industry evidence.\n\n### Source Credibility\n- Combined source count: `8`\n- Average credibility score: `0.792`\n- Human-review source count: `1`\n\n### Risk And Limitations\n- Fixture summaries are static examples and are not connected to live report generation.\n- This section is advisory only and must not be treated as investment advice.\n- Lower-credibility and human-review sources remain labeled and must be reviewed before use.\n- No portfolio, delivery, schedule, model, or market data action is authorized by this output.\n\n_No delivery action, portfolio action, schedule change, or persistent store write was performed._\n\n## Risk And Limitations\n- This renderer output is assembled from static repo fixtures only.\n- The source research pack is advisory-only and requires human review.\n- Source refs, credibility metadata, and limitation notes are preserved from the source research pack.\n- Forecast review content may be based on insufficient sample size and must not be over-interpreted.\n- This output is not investment advice and does not authorize trading, portfolio, delivery, schedule, service, model, or data actions.\n\n_No external model call, market data call, delivery action, persistent store write, portfolio action, schedule/service change, or production report send was performed._\n",
+  "mode": "fixture_dry_run",
+  "next_recommendation": "Review the static preview package before designing any future dashboard, email, or LINE delivery integration.",
+  "ok": true,
+  "preview_files": {
+    "manifest_json": "templates/daily_report_static_preview_manifest.example.json",
+    "markdown_preview": "templates/daily_report_static_preview_markdown.example.md",
+    "result_json": "templates/daily_report_static_preview_export_result.example.json",
+    "safety_summary": "embedded:safety",
+    "section_index": "embedded:preview_manifest.section_index",
+    "validation_summary": "embedded:validation_summary"
+  },
+  "preview_manifest": {
+    "artifacts": {
+      "manifest_json": {
+        "content_type": "application/json",
+        "path": "templates/daily_report_static_preview_manifest.example.json",
+        "sha256_scope": "omitted_for_self_referential_artifact"
+      },
+      "markdown_preview": {
+        "content_type": "text/markdown",
+        "path": "templates/daily_report_static_preview_markdown.example.md",
+        "sha256": "0a15b76ac3188cf0ccd45066406b46322ad9d9c3d59259e175204ab63c3837a5"
+      },
+      "result_json": {
+        "content_type": "application/json",
+        "path": "templates/daily_report_static_preview_export_result.example.json",
+        "sha256_scope": "omitted_for_self_referential_artifact"
+      },
+      "safety_summary": {
+        "content_type": "application/json",
+        "path": "embedded:safety",
+        "sha256": "a5f3f700c811c1730eac2f0420d47152d9acf933d8d2b1cda44ca22d94a3a1c4"
+      },
+      "section_index": {
+        "content_type": "application/json",
+        "path": "embedded:preview_manifest.section_index",
+        "sha256": "e58df067d3efd7036d54a43ef9e03a49e74fde6738a2bcd79bb0dee217c08e58"
+      },
+      "validation_summary": {
+        "content_type": "application/json",
+        "path": "embedded:validation_summary",
+        "sha256": "bbbf1216052d974dfe02334ab9cdc16612dc9a039c9c698038b02f89f47b0ca7"
+      }
+    },
+    "delivery_authorized": false,
+    "external_runtime_authorized": false,
+    "generated_at": "2026-06-30T09:40:00+08:00",
+    "manifest_id": "daily_report_static_preview_manifest_20260630",
+    "mode": "fixture_dry_run",
+    "package_id": "daily_report_static_preview_package_20260630",
+    "preview_id": "daily_report_static_preview_20260630",
+    "renderer_source": {
+      "source_decision": "daily_report_renderer_completed_with_warnings",
+      "source_generated_at": "2026-06-30T09:30:00+08:00",
+      "source_markdown_included": true,
+      "source_mode": "fixture_dry_run",
+      "source_ok": true,
+      "source_path": "templates/daily_report_renderer_result.example.json",
+      "source_render_payload_included": true,
+      "source_report_date": "2026-06-30",
+      "source_report_title": "Daily Report 2026-06-30",
+      "source_run_id": "daily-report-renderer-fixture-20260630",
+      "source_schema_version": "daily_report_renderer_contract_v1",
+      "source_section_order": [
+        "forecast_review",
+        "daily_report_intelligence"
+      ],
+      "source_task_id": "AI-DEV-084",
+      "source_warning_count": 4
+    },
+    "safety": {
+      "advisory_only": true,
+      "fixture_only": true,
+      "no_delivery_actions": true,
+      "no_external_model_calls": true,
+      "no_market_data_calls": true,
+      "no_persistent_store_writes": true,
+      "no_portfolio_actions": true,
+      "no_schedule_service_changes": true,
+      "preview_only": true,
+      "repo_only": true,
+      "requires_human_review": true
+    },
+    "schema_version": "daily_report_static_preview_manifest_v1",
+    "section_index": [
+      {
+        "advisory_only": true,
+        "index": 1,
+        "machine_readable_included": true,
+        "markdown_char_count": 1118,
+        "placement": "body_01",
+        "priority": "high",
+        "requires_human_review": true,
+        "section_id": "forecast_review",
+        "source_refs": [
+          "source_report_export.report_payload.sections"
+        ],
+        "title": "Forecast Review"
+      },
+      {
+        "advisory_only": true,
+        "index": 2,
+        "machine_readable_included": true,
+        "markdown_char_count": 1492,
+        "placement": "body_02",
+        "priority": "medium",
+        "requires_human_review": true,
+        "section_id": "daily_report_intelligence",
+        "source_refs": [
+          "input_sources.company_intelligence_result_path",
+          "input_sources.industry_peer_context_result_path"
+        ],
+        "title": "Company And Industry Intelligence"
+      }
+    ],
+    "validation_summary": {
+      "deterministic_output": true,
+      "fixture_only": true,
+      "markdown_preview_included": true,
+      "preview_manifest_included": true,
+      "safety_summary_included": true,
+      "section_count": 2,
+      "section_index_included": true,
+      "source_mode_fixture_dry_run": true,
+      "source_ok": true,
+      "source_schema_expected": "daily_report_renderer_contract_v1",
+      "source_schema_matched": true,
+      "source_section_order_preserved": true,
+      "validation_summary_included": true,
+      "warnings": [
+        "forecast review source reports insufficient data",
+        "human review required for one or more intelligence sources",
+        "one or more source credibility records require human review",
+        "source renderer completed with warnings",
+        "source research pack completed with warnings"
+      ]
+    }
+  },
+  "preview_package": {
+    "artifact_count": 6,
+    "artifact_names": [
+      "manifest_json",
+      "markdown_preview",
+      "result_json",
+      "safety_summary",
+      "section_index",
+      "validation_summary"
+    ],
+    "delivery_authorized": false,
+    "export_title": "Daily Report Static Preview 2026-06-30",
+    "intended_consumers": [
+      "dashboard_preview",
+      "email_template_review",
+      "line_template_review"
+    ],
+    "package_id": "daily_report_static_preview_package_20260630",
+    "preview_id": "daily_report_static_preview_20260630",
+    "renderer_result_path": "templates/daily_report_renderer_result.example.json"
+  },
+  "renderer_source_summary": {
+    "source_decision": "daily_report_renderer_completed_with_warnings",
+    "source_generated_at": "2026-06-30T09:30:00+08:00",
+    "source_markdown_included": true,
+    "source_mode": "fixture_dry_run",
+    "source_ok": true,
+    "source_path": "templates/daily_report_renderer_result.example.json",
+    "source_render_payload_included": true,
+    "source_report_date": "2026-06-30",
+    "source_report_title": "Daily Report 2026-06-30",
+    "source_run_id": "daily-report-renderer-fixture-20260630",
+    "source_schema_version": "daily_report_renderer_contract_v1",
+    "source_section_order": [
+      "forecast_review",
+      "daily_report_intelligence"
+    ],
+    "source_task_id": "AI-DEV-084",
+    "source_warning_count": 4
+  },
+  "report_sections": [
+    {
+      "advisory_only": true,
+      "index": 1,
+      "machine_readable_included": true,
+      "markdown_char_count": 1118,
+      "placement": "body_01",
+      "priority": "high",
+      "requires_human_review": true,
+      "section_id": "forecast_review",
+      "source_refs": [
+        "source_report_export.report_payload.sections"
+      ],
+      "title": "Forecast Review"
+    },
+    {
+      "advisory_only": true,
+      "index": 2,
+      "machine_readable_included": true,
+      "markdown_char_count": 1492,
+      "placement": "body_02",
+      "priority": "medium",
+      "requires_human_review": true,
+      "section_id": "daily_report_intelligence",
+      "source_refs": [
+        "input_sources.company_intelligence_result_path",
+        "input_sources.industry_peer_context_result_path"
+      ],
+      "title": "Company And Industry Intelligence"
+    }
+  ],
+  "run_id": "daily-report-static-preview-export-fixture-20260630",
+  "safety": {
+    "advisory_only": true,
+    "fixture_only": true,
+    "no_delivery_actions": true,
+    "no_external_model_calls": true,
+    "no_market_data_calls": true,
+    "no_persistent_store_writes": true,
+    "no_portfolio_actions": true,
+    "no_schedule_service_changes": true,
+    "preview_only": true,
+    "repo_only": true,
+    "requires_human_review": true
+  },
+  "schema_version": "daily_report_static_preview_export_v1",
+  "side_effects": {
+    "called_external_model_runtime": false,
+    "called_market_data_runtime": false,
+    "modified_github_remote": false,
+    "modified_portfolio": false,
+    "modified_schedule_or_service": false,
+    "placed_trade_order": false,
+    "read_secrets": false,
+    "sent_daily_report": false,
+    "sent_notification": false,
+    "wrote_persistent_store": false,
+    "wrote_production_db": false
+  },
+  "task_id": "AI-DEV-085",
+  "validation_summary": {
+    "deterministic_output": true,
+    "fixture_only": true,
+    "markdown_preview_included": true,
+    "preview_manifest_included": true,
+    "safety_summary_included": true,
+    "section_count": 2,
+    "section_index_included": true,
+    "source_mode_fixture_dry_run": true,
+    "source_ok": true,
+    "source_schema_expected": "daily_report_renderer_contract_v1",
+    "source_schema_matched": true,
+    "source_section_order_preserved": true,
+    "validation_summary_included": true,
+    "warnings": [
+      "forecast review source reports insufficient data",
+      "human review required for one or more intelligence sources",
+      "one or more source credibility records require human review",
+      "source renderer completed with warnings",
+      "source research pack completed with warnings"
+    ]
+  }
+}

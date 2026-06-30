@@ -1,0 +1,127 @@
+{
+  "artifacts": {
+    "manifest_json": {
+      "content_type": "application/json",
+      "path": "templates/daily_report_static_preview_manifest.example.json",
+      "sha256_scope": "omitted_for_self_referential_artifact"
+    },
+    "markdown_preview": {
+      "content_type": "text/markdown",
+      "path": "templates/daily_report_static_preview_markdown.example.md",
+      "sha256": "0a15b76ac3188cf0ccd45066406b46322ad9d9c3d59259e175204ab63c3837a5"
+    },
+    "result_json": {
+      "content_type": "application/json",
+      "path": "templates/daily_report_static_preview_export_result.example.json",
+      "sha256_scope": "omitted_for_self_referential_artifact"
+    },
+    "safety_summary": {
+      "content_type": "application/json",
+      "path": "embedded:safety",
+      "sha256": "a5f3f700c811c1730eac2f0420d47152d9acf933d8d2b1cda44ca22d94a3a1c4"
+    },
+    "section_index": {
+      "content_type": "application/json",
+      "path": "embedded:preview_manifest.section_index",
+      "sha256": "e58df067d3efd7036d54a43ef9e03a49e74fde6738a2bcd79bb0dee217c08e58"
+    },
+    "validation_summary": {
+      "content_type": "application/json",
+      "path": "embedded:validation_summary",
+      "sha256": "bbbf1216052d974dfe02334ab9cdc16612dc9a039c9c698038b02f89f47b0ca7"
+    }
+  },
+  "delivery_authorized": false,
+  "external_runtime_authorized": false,
+  "generated_at": "2026-06-30T09:40:00+08:00",
+  "manifest_id": "daily_report_static_preview_manifest_20260630",
+  "mode": "fixture_dry_run",
+  "package_id": "daily_report_static_preview_package_20260630",
+  "preview_id": "daily_report_static_preview_20260630",
+  "renderer_source": {
+    "source_decision": "daily_report_renderer_completed_with_warnings",
+    "source_generated_at": "2026-06-30T09:30:00+08:00",
+    "source_markdown_included": true,
+    "source_mode": "fixture_dry_run",
+    "source_ok": true,
+    "source_path": "templates/daily_report_renderer_result.example.json",
+    "source_render_payload_included": true,
+    "source_report_date": "2026-06-30",
+    "source_report_title": "Daily Report 2026-06-30",
+    "source_run_id": "daily-report-renderer-fixture-20260630",
+    "source_schema_version": "daily_report_renderer_contract_v1",
+    "source_section_order": [
+      "forecast_review",
+      "daily_report_intelligence"
+    ],
+    "source_task_id": "AI-DEV-084",
+    "source_warning_count": 4
+  },
+  "safety": {
+    "advisory_only": true,
+    "fixture_only": true,
+    "no_delivery_actions": true,
+    "no_external_model_calls": true,
+    "no_market_data_calls": true,
+    "no_persistent_store_writes": true,
+    "no_portfolio_actions": true,
+    "no_schedule_service_changes": true,
+    "preview_only": true,
+    "repo_only": true,
+    "requires_human_review": true
+  },
+  "schema_version": "daily_report_static_preview_manifest_v1",
+  "section_index": [
+    {
+      "advisory_only": true,
+      "index": 1,
+      "machine_readable_included": true,
+      "markdown_char_count": 1118,
+      "placement": "body_01",
+      "priority": "high",
+      "requires_human_review": true,
+      "section_id": "forecast_review",
+      "source_refs": [
+        "source_report_export.report_payload.sections"
+      ],
+      "title": "Forecast Review"
+    },
+    {
+      "advisory_only": true,
+      "index": 2,
+      "machine_readable_included": true,
+      "markdown_char_count": 1492,
+      "placement": "body_02",
+      "priority": "medium",
+      "requires_human_review": true,
+      "section_id": "daily_report_intelligence",
+      "source_refs": [
+        "input_sources.company_intelligence_result_path",
+        "input_sources.industry_peer_context_result_path"
+      ],
+      "title": "Company And Industry Intelligence"
+    }
+  ],
+  "validation_summary": {
+    "deterministic_output": true,
+    "fixture_only": true,
+    "markdown_preview_included": true,
+    "preview_manifest_included": true,
+    "safety_summary_included": true,
+    "section_count": 2,
+    "section_index_included": true,
+    "source_mode_fixture_dry_run": true,
+    "source_ok": true,
+    "source_schema_expected": "daily_report_renderer_contract_v1",
+    "source_schema_matched": true,
+    "source_section_order_preserved": true,
+    "validation_summary_included": true,
+    "warnings": [
+      "forecast review source reports insufficient data",
+      "human review required for one or more intelligence sources",
+      "one or more source credibility records require human review",
+      "source renderer completed with warnings",
+      "source research pack completed with warnings"
+    ]
+  }
+}
