@@ -1,0 +1,9 @@
+{
+  "generated_at": "2026-06-30T11:45:00+08:00",
+  "input_sources": {
+    "delivery_gate_audit_runtime_bridge_result_path": "templates/delivery_gate_audit_runtime_bridge_result.example.json"
+  },
+  "report_date": "2026-06-30",
+  "run_id": "production-scheduler-delivery-gate-integration-fixture-20260630",
+  "task_id": "AI-DEV-099"
+}
