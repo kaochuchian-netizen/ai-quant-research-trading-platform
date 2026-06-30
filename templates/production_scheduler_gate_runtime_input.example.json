@@ -1,0 +1,15 @@
+{
+  "generated_at": "2026-06-30T12:30:00+08:00",
+  "input_sources": {
+    "production_scheduler_delivery_gate_integration_result_path": "templates/production_scheduler_delivery_gate_integration_result.example.json",
+    "production_scheduler_runtime_gate_wiring_result_path": "templates/production_scheduler_runtime_gate_wiring_result.example.json"
+  },
+  "mode": "dry_run_no_delivery",
+  "run_id": "production-scheduler-gate-runtime-fixture-20260630",
+  "runtime_gate": {
+    "approval_status": "pending_approval",
+    "delivery_allowed": false,
+    "service_install_requested": false
+  },
+  "task_id": "AI-DEV-101"
+}

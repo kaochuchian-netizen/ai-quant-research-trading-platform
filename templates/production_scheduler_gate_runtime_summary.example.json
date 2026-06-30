@@ -1,0 +1,49 @@
+{
+  "allowed_actions": [
+    "read_repo_fixture",
+    "read_gate_runtime_bridge_fixture",
+    "evaluate_scheduler_window_gate",
+    "write_requested_json_outputs",
+    "print_clear_decision_output"
+  ],
+  "approval_status": "pending_approval",
+  "blocked_actions": [
+    "email_send",
+    "line_push",
+    "dashboard_deploy",
+    "api_server_creation",
+    "smtp_call",
+    "gmail_api_call",
+    "production_db_write",
+    "persistent_store_write",
+    "market_data_mutation",
+    "external_model_call",
+    "portfolio_action",
+    "trading_instruction",
+    "cron_installation",
+    "systemd_installation",
+    "timer_installation",
+    "service_installation",
+    "live_schedule_mutation"
+  ],
+  "channels": [
+    "email",
+    "line",
+    "dashboard"
+  ],
+  "cron_installed": false,
+  "decision": "production_scheduler_gate_runtime_blocked_pending_approval",
+  "delivery_allowed": false,
+  "deterministic_output": true,
+  "generated_at": "2026-06-30T12:30:00+08:00",
+  "live_schedule_mutated": false,
+  "mode": "dry_run_no_delivery",
+  "ok": true,
+  "run_id": "production-scheduler-gate-runtime-fixture-20260630",
+  "scheduler_window": "pre_open_0700",
+  "schema_version": "production_scheduler_gate_runtime_summary_v1",
+  "service_installed": false,
+  "systemd_installed": false,
+  "task_id": "AI-DEV-101",
+  "timer_installed": false
+}
