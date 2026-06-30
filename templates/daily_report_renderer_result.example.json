@@ -1,0 +1,716 @@
+{
+  "decision": "daily_report_renderer_completed_with_warnings",
+  "generated_at": "2026-06-30T09:30:00+08:00",
+  "markdown": "# Daily Report 2026-06-30\n\n- Report date: `2026-06-30`\n- Mode: `fixture_dry_run`\n- Advisory only: `true`\n- Requires human review: `true`\n\n> Repo-only, fixture-only daily report renderer output. This is not a delivery payload and must be reviewed by a human before any future 07:00 report use.\n\n## Human Review Warnings\n- forecast review source reports insufficient data\n- human review required for one or more intelligence sources\n- one or more source credibility records require human review\n- source research pack completed with warnings\n\n## Forecast Review\n\n> 資料不足，不應過度解讀命中率。\n\n- **Executive Summary**: Current quality status is `insufficient_data` with 3 evaluated records. 資料不足，不應過度解讀命中率。 Human review is required before any forecast tuning.\n- **Forecast Quality Summary**: Overall grade: `Insufficient Data`; interval hit rate: `100.0%`.\n- **Horizon Review Summary**: Horizon cards summarize evaluated records, pending records, hit rates, and error rates.\n- **Confidence Calibration Summary**: Confidence buckets below sample thresholds remain insufficient for calibration conclusions.\n- **Error Pattern Summary**: Detected 2 top error pattern groups.\n- **Daily Improvement Recommendations**: Recommendations are advisory only, require human review, and are not applied automatically.\n- **Risk And Limitations**: 樣本數不足時不得過度解讀。 Fixture-only result 不代表 production performance。 Review recommendations 不會自動修改 forecast weights。 本輸出不構成投資建議。\n- **Next Steps**: Use this export as input for a future Daily Report Forecast Review Section or Dashboard MVP task.\n\n_Fixture-only, advisory-only. Human review is required before any forecast tuning or report delivery._\n\n## Company And Industry Intelligence\n\n> Fixture-only intelligence section. Advisory only; human review is required before daily report insertion.\n\n### Company Intelligence\n- Monthly revenue fixture indicates stable demand momentum relative to the prior quarter.\n- Industry primary data fixture supports continued demand for advanced semiconductor capacity.\n- Consensus metadata is retained only as labeled sentiment context and is not a core input.\n\n### Industry And Peer Context\n- Fixture demand monitor indicates stable advanced-node wafer demand for the current quarter.\n- Fixture market and peer context suggests pricing remains differentiated by process node and packaging demand.\n- Target company fixture shows stronger exposure to advanced packaging demand than the peer set.\n- Market data fixture is retained as quantitative context and does not override primary industry evidence.\n\n### Source Credibility\n- Combined source count: `8`\n- Average credibility score: `0.792`\n- Human-review source count: `1`\n\n### Risk And Limitations\n- Fixture summaries are static examples and are not connected to live report generation.\n- This section is advisory only and must not be treated as investment advice.\n- Lower-credibility and human-review sources remain labeled and must be reviewed before use.\n- No portfolio, delivery, schedule, model, or market data action is authorized by this output.\n\n_No delivery action, portfolio action, schedule change, or persistent store write was performed._\n\n## Risk And Limitations\n- This renderer output is assembled from static repo fixtures only.\n- The source research pack is advisory-only and requires human review.\n- Source refs, credibility metadata, and limitation notes are preserved from the source research pack.\n- Forecast review content may be based on insufficient sample size and must not be over-interpreted.\n- This output is not investment advice and does not authorize trading, portfolio, delivery, schedule, service, model, or data actions.\n\n_No external model call, market data call, delivery action, persistent store write, portfolio action, schedule/service change, or production report send was performed._",
+  "mode": "fixture_dry_run",
+  "next_recommendation": "Review this static renderer payload before connecting any future 07:00 delivery workflow.",
+  "ok": true,
+  "render_payload": {
+    "advisory_only": true,
+    "intended_report_slot": "future_0700_daily_report_delivery",
+    "payload_id": "daily_report_renderer_payload",
+    "render_mode": "static_markdown_with_machine_readable_payload",
+    "report_date": "2026-06-30",
+    "report_title": "Daily Report 2026-06-30",
+    "requires_human_review": true,
+    "section_order": [
+      "forecast_review",
+      "daily_report_intelligence"
+    ],
+    "sections": [
+      {
+        "advisory_only": true,
+        "placement": "body_01",
+        "priority": "high",
+        "requires_human_review": true,
+        "section_id": "forecast_review",
+        "source_refs": [
+          "source_report_export.report_payload.sections"
+        ],
+        "title": "Forecast Review"
+      },
+      {
+        "advisory_only": true,
+        "placement": "body_02",
+        "priority": "medium",
+        "requires_human_review": true,
+        "section_id": "daily_report_intelligence",
+        "source_refs": [
+          "input_sources.company_intelligence_result_path",
+          "input_sources.industry_peer_context_result_path"
+        ],
+        "title": "Company And Industry Intelligence"
+      }
+    ],
+    "source_credibility_summary": {
+      "advisory_only": true,
+      "average_credibility_score": 0.792,
+      "combined_source_count": 8,
+      "core_scoring_allowed_source_ids": [
+        "src-2330-investor-presentation-2026-q2",
+        "src-2330-monthly-revenue-2026-05",
+        "src-industry-wafer-demand-2026-q2",
+        "src-market-price-context-2026-06",
+        "src-peer-advanced-packaging-2026-q2"
+      ],
+      "low_credibility_source_ids": [
+        "src-consensus-context-2026-06"
+      ],
+      "metadata_preserved": true,
+      "requires_human_review": true,
+      "review_required_source_ids": [
+        "src-consensus-context-2026-06"
+      ],
+      "source": "daily_report_research_pack_result.source_credibility_summary",
+      "source_credibility_scores": [
+        {
+          "adjustments": [
+            {
+              "delta": 0.03,
+              "factor": "current_source"
+            }
+          ],
+          "base_score": 0.95,
+          "conflicting_source": false,
+          "contract_name": "company_intelligence_source_credibility",
+          "contract_version": "v1",
+          "core_scoring_allowed": true,
+          "credibility_score": 0.98,
+          "notes": "Synthetic fixture metadata for contract validation only.",
+          "published_at": "2026-06-10",
+          "publisher": "Example Exchange Disclosure",
+          "requires_human_review": false,
+          "retrieved_at": "2026-06-29T16:00:00+08:00",
+          "source_id": "src-2330-monthly-revenue-2026-05",
+          "source_tier": "tier_1_official_filing",
+          "source_type": "monthly_revenue_filing",
+          "usage_policy": "core_company_fact"
+        },
+        {
+          "adjustments": [
+            {
+              "delta": 0.03,
+              "factor": "current_source"
+            }
+          ],
+          "base_score": 0.9,
+          "conflicting_source": false,
+          "contract_name": "company_intelligence_source_credibility",
+          "contract_version": "v1",
+          "core_scoring_allowed": true,
+          "credibility_score": 0.93,
+          "notes": "Synthetic fixture metadata for contract validation only.",
+          "published_at": "2026-06-15",
+          "publisher": "Example Semiconductor",
+          "requires_human_review": false,
+          "retrieved_at": "2026-06-29T16:00:00+08:00",
+          "source_id": "src-2330-investor-presentation-2026-q2",
+          "source_tier": "tier_1_company_official",
+          "source_type": "investor_presentation",
+          "usage_policy": "core_company_context"
+        },
+        {
+          "adjustments": [
+            {
+              "delta": 0.03,
+              "factor": "current_source"
+            }
+          ],
+          "base_score": 0.8,
+          "conflicting_source": false,
+          "contract_name": "company_intelligence_source_credibility",
+          "contract_version": "v1",
+          "core_scoring_allowed": true,
+          "credibility_score": 0.83,
+          "notes": "Synthetic fixture metadata for contract validation only.",
+          "published_at": "2026-06-20",
+          "publisher": "Example Industry Association",
+          "requires_human_review": false,
+          "retrieved_at": "2026-06-29T16:00:00+08:00",
+          "source_id": "src-industry-wafer-demand-2026-q2",
+          "source_tier": "tier_2_peer_and_industry_primary",
+          "source_type": "industry_primary_data",
+          "usage_policy": "industry_context"
+        },
+        {
+          "adjustments": [
+            {
+              "delta": 0.03,
+              "factor": "current_source"
+            }
+          ],
+          "base_score": 0.35,
+          "conflicting_source": false,
+          "contract_name": "company_intelligence_source_credibility",
+          "contract_version": "v1",
+          "core_scoring_allowed": false,
+          "credibility_score": 0.38,
+          "notes": "Not allowed as a core decision input.",
+          "published_at": "2026-06-24",
+          "publisher": "Example Research Aggregator",
+          "requires_human_review": true,
+          "retrieved_at": "2026-06-29T16:00:00+08:00",
+          "source_id": "src-consensus-context-2026-06",
+          "source_tier": "tier_4_consensus_and_analyst",
+          "source_type": "consensus_metadata",
+          "usage_policy": "sentiment_context_only"
+        },
+        {
+          "adjustments": [
+            {
+              "delta": 0.03,
+              "factor": "current_source"
+            }
+          ],
+          "base_score": 0.8,
+          "conflicting_source": false,
+          "contract_name": "industry_intelligence_peer_context",
+          "contract_version": "v1",
+          "core_scoring_allowed": true,
+          "credibility_score": 0.83,
+          "notes": "Synthetic fixture metadata for contract validation only.",
+          "published_at": "2026-06-20",
+          "publisher": "Example Industry Association",
+          "requires_human_review": false,
+          "retrieved_at": "2026-06-30T08:30:00+08:00",
+          "source_id": "src-industry-wafer-demand-2026-q2",
+          "source_tier": "tier_2_peer_and_industry_primary",
+          "source_type": "industry_primary_data",
+          "usage_policy": "core_industry_context"
+        },
+        {
+          "adjustments": [
+            {
+              "delta": 0.03,
+              "factor": "current_source"
+            }
+          ],
+          "base_score": 0.8,
+          "conflicting_source": false,
+          "contract_name": "industry_intelligence_peer_context",
+          "contract_version": "v1",
+          "core_scoring_allowed": true,
+          "credibility_score": 0.83,
+          "notes": "Synthetic fixture metadata for contract validation only.",
+          "published_at": "2026-06-18",
+          "publisher": "Example Peer Manufacturer",
+          "requires_human_review": false,
+          "retrieved_at": "2026-06-30T08:30:00+08:00",
+          "source_id": "src-peer-advanced-packaging-2026-q2",
+          "source_tier": "tier_2_peer_and_industry_primary",
+          "source_type": "peer_earnings_summary",
+          "usage_policy": "peer_context"
+        },
+        {
+          "adjustments": [
+            {
+              "delta": 0.03,
+              "factor": "current_source"
+            }
+          ],
+          "base_score": 0.9,
+          "conflicting_source": false,
+          "contract_name": "industry_intelligence_peer_context",
+          "contract_version": "v1",
+          "core_scoring_allowed": true,
+          "credibility_score": 0.93,
+          "notes": "Synthetic fixture metadata for contract validation only.",
+          "published_at": "2026-06-15",
+          "publisher": "Example Semiconductor",
+          "requires_human_review": false,
+          "retrieved_at": "2026-06-30T08:30:00+08:00",
+          "source_id": "src-2330-investor-presentation-2026-q2",
+          "source_tier": "tier_1_company_official",
+          "source_type": "investor_presentation",
+          "usage_policy": "target_company_context"
+        },
+        {
+          "adjustments": [
+            {
+              "delta": 0.03,
+              "factor": "current_source"
+            }
+          ],
+          "base_score": 0.6,
+          "conflicting_source": false,
+          "contract_name": "industry_intelligence_peer_context",
+          "contract_version": "v1",
+          "core_scoring_allowed": true,
+          "credibility_score": 0.63,
+          "notes": "Synthetic fixture metadata for contract validation only.",
+          "published_at": "2026-06-28",
+          "publisher": "Example Market Data Fixture",
+          "requires_human_review": false,
+          "retrieved_at": "2026-06-30T08:30:00+08:00",
+          "source_id": "src-market-price-context-2026-06",
+          "source_tier": "tier_3_market_data",
+          "source_type": "market_data_snapshot",
+          "usage_policy": "quantitative_context_only"
+        }
+      ]
+    },
+    "source_refs": [
+      "input_sources.research_pack_result_path"
+    ]
+  },
+  "report_date": "2026-06-30",
+  "report_sections": [
+    {
+      "advisory_only": true,
+      "badges": {
+        "advisory_only": true,
+        "fixture_only": true,
+        "insufficient_data": true,
+        "requires_human_review": true
+      },
+      "machine_readable": {
+        "advisory_only": true,
+        "insufficient_data": true,
+        "quality_status": "insufficient_data",
+        "requires_human_review": true,
+        "source_report_version": "prediction_review_report_export_v1",
+        "source_schema_version": "dashboard_prediction_review_report_export_v1",
+        "source_sections": [
+          {
+            "advisory_only": true,
+            "machine_readable": {
+              "quality_review_summary": {
+                "evaluated_records": 3,
+                "horizon_count": 3,
+                "minimum_records_for_strong_conclusion": 5,
+                "overall_direction_hit_rate": 1,
+                "overall_interval_hit_rate": 1,
+                "overall_mean_absolute_error_pct": 0,
+                "overall_quality_grade": "Insufficient Data",
+                "overall_quality_status": "insufficient_data",
+                "pending_records": 1,
+                "total_records": 4
+              }
+            },
+            "priority": "high",
+            "source_refs": [
+              "quality_review_summary"
+            ],
+            "source_section_id": "executive_summary",
+            "title": "Executive Summary"
+          },
+          {
+            "advisory_only": true,
+            "machine_readable": {
+              "overall_interval_hit_rate": 1,
+              "overall_quality_grade": "Insufficient Data"
+            },
+            "priority": "high",
+            "source_refs": [
+              "quality_review_summary"
+            ],
+            "source_section_id": "forecast_quality_summary",
+            "title": "Forecast Quality Summary"
+          },
+          {
+            "advisory_only": true,
+            "machine_readable": {
+              "horizon_reviews": [
+                {
+                  "direction_hit_rate": null,
+                  "evaluated_records": 1,
+                  "high_interval_hit_rate": 1,
+                  "horizon": "same_day",
+                  "interval_hit_rate": 1,
+                  "low_interval_hit_rate": 1,
+                  "max_absolute_error_pct": 0,
+                  "mean_absolute_error_pct": 0,
+                  "median_absolute_error_pct": 0,
+                  "pending_rate": 0,
+                  "pending_records": 0,
+                  "quality_grade": "Insufficient Data",
+                  "quality_status": "insufficient_data",
+                  "total_records": 1
+                },
+                {
+                  "direction_hit_rate": null,
+                  "evaluated_records": 1,
+                  "high_interval_hit_rate": 1,
+                  "horizon": "next_day",
+                  "interval_hit_rate": 1,
+                  "low_interval_hit_rate": 1,
+                  "max_absolute_error_pct": 0,
+                  "mean_absolute_error_pct": 0,
+                  "median_absolute_error_pct": 0,
+                  "pending_rate": 0,
+                  "pending_records": 0,
+                  "quality_grade": "Insufficient Data",
+                  "quality_status": "insufficient_data",
+                  "total_records": 1
+                },
+                {
+                  "direction_hit_rate": 1,
+                  "evaluated_records": 1,
+                  "high_interval_hit_rate": 1,
+                  "horizon": "one_month",
+                  "interval_hit_rate": 1,
+                  "low_interval_hit_rate": 1,
+                  "max_absolute_error_pct": 0,
+                  "mean_absolute_error_pct": 0,
+                  "median_absolute_error_pct": 0,
+                  "pending_rate": 0.5,
+                  "pending_records": 1,
+                  "quality_grade": "Insufficient Data",
+                  "quality_status": "insufficient_data",
+                  "total_records": 2
+                }
+              ]
+            },
+            "priority": "medium",
+            "source_refs": [
+              "horizon_reviews"
+            ],
+            "source_section_id": "horizon_review_summary",
+            "title": "Horizon Review Summary"
+          },
+          {
+            "advisory_only": true,
+            "machine_readable": {
+              "confidence_calibration": [
+                {
+                  "bucket": "41-60",
+                  "calibration_status": "insufficient_data",
+                  "direction_hit_rate": 1,
+                  "evaluated_count": 2,
+                  "interval_hit_rate": 1,
+                  "mean_absolute_error_pct": 0,
+                  "record_count": 3
+                },
+                {
+                  "bucket": "61-80",
+                  "calibration_status": "insufficient_data",
+                  "direction_hit_rate": null,
+                  "evaluated_count": 1,
+                  "interval_hit_rate": 1,
+                  "mean_absolute_error_pct": 0,
+                  "record_count": 1
+                }
+              ]
+            },
+            "priority": "medium",
+            "source_refs": [
+              "confidence_calibration"
+            ],
+            "source_section_id": "confidence_calibration_summary",
+            "title": "Confidence Calibration Summary"
+          },
+          {
+            "advisory_only": true,
+            "machine_readable": {
+              "error_patterns": [
+                {
+                  "affected_horizons": [
+                    "one_month"
+                  ],
+                  "count": 1,
+                  "example_record_ids": [
+                    "daily-report-forecast-review-2026-06-26-2330-one_month"
+                  ],
+                  "pattern": "range_too_wide",
+                  "recommendation": "Separate wide exploratory ranges from quality-scored interval forecasts.",
+                  "severity": "low"
+                },
+                {
+                  "affected_horizons": [
+                    "one_month"
+                  ],
+                  "count": 1,
+                  "example_record_ids": [
+                    "daily-report-forecast-review-2026-06-26-2317-one_month"
+                  ],
+                  "pattern": "missing_actuals",
+                  "recommendation": "Increase fixture or future actuals coverage before strong quality conclusions.",
+                  "severity": "low"
+                }
+              ]
+            },
+            "priority": "medium",
+            "source_refs": [
+              "error_patterns"
+            ],
+            "source_section_id": "error_pattern_summary",
+            "title": "Error Pattern Summary"
+          },
+          {
+            "advisory_only": true,
+            "machine_readable": {
+              "next_forecast_tuning_hints": [
+                {
+                  "hint": "Collect more evaluated records before changing forecast behavior.",
+                  "hint_id": "collect_more_same_day_records",
+                  "requires_human_review": true,
+                  "safe_to_apply_automatically": false,
+                  "target_horizon": "same_day"
+                },
+                {
+                  "hint": "Prioritize actual outcome coverage before tuning forecast scoring.",
+                  "hint_id": "prioritize_actual_outcome_coverage",
+                  "requires_human_review": true,
+                  "safe_to_apply_automatically": false,
+                  "target_horizon": "all"
+                }
+              ],
+              "recommendations": [
+                {
+                  "expected_effect": "Improves evaluated sample size and reduces misleading quality grades.",
+                  "priority": "high",
+                  "reason": "Some records remain pending, so quality conclusions are coverage-limited.",
+                  "recommendation_id": "increase_actuals_coverage_before_quality_conclusion",
+                  "requires_human_review": true,
+                  "safe_to_apply_automatically": false,
+                  "target_horizon": "all"
+                },
+                {
+                  "expected_effect": "Keeps trend quality interpretation distinct from daily high-low interval scoring.",
+                  "priority": "medium",
+                  "reason": "Wide one-month ranges should be reviewed separately from short-term interval quality.",
+                  "recommendation_id": "separate_one_month_trend_from_short_term_interval",
+                  "requires_human_review": true,
+                  "safe_to_apply_automatically": false,
+                  "target_horizon": "one_month"
+                }
+              ]
+            },
+            "priority": "high",
+            "source_refs": [
+              "daily_improvement_recommendations",
+              "next_forecast_tuning_hints"
+            ],
+            "source_section_id": "daily_improvement_recommendations",
+            "title": "Daily Improvement Recommendations"
+          },
+          {
+            "advisory_only": true,
+            "machine_readable": {
+              "fixture_only_not_production_performance": true,
+              "forecast_weights_not_modified": true,
+              "insufficient_data_warning": "樣本數不足時不得過度解讀",
+              "not_investment_advice": true
+            },
+            "priority": "high",
+            "source_refs": [
+              "safety",
+              "quality_review_summary"
+            ],
+            "source_section_id": "risk_and_limitations",
+            "title": "Risk And Limitations"
+          },
+          {
+            "advisory_only": true,
+            "machine_readable": {
+              "next_recommendation": "AI-DEV-075 Daily Report Forecast Review Section V1"
+            },
+            "priority": "medium",
+            "source_refs": [
+              "next_recommendation"
+            ],
+            "source_section_id": "next_steps",
+            "title": "Next Steps"
+          }
+        ]
+      },
+      "markdown": "## Forecast Review\n\n> 資料不足，不應過度解讀命中率。\n\n- **Executive Summary**: Current quality status is `insufficient_data` with 3 evaluated records. 資料不足，不應過度解讀命中率。 Human review is required before any forecast tuning.\n- **Forecast Quality Summary**: Overall grade: `Insufficient Data`; interval hit rate: `100.0%`.\n- **Horizon Review Summary**: Horizon cards summarize evaluated records, pending records, hit rates, and error rates.\n- **Confidence Calibration Summary**: Confidence buckets below sample thresholds remain insufficient for calibration conclusions.\n- **Error Pattern Summary**: Detected 2 top error pattern groups.\n- **Daily Improvement Recommendations**: Recommendations are advisory only, require human review, and are not applied automatically.\n- **Risk And Limitations**: 樣本數不足時不得過度解讀。 Fixture-only result 不代表 production performance。 Review recommendations 不會自動修改 forecast weights。 本輸出不構成投資建議。\n- **Next Steps**: Use this export as input for a future Daily Report Forecast Review Section or Dashboard MVP task.\n\n_Fixture-only, advisory-only. Human review is required before any forecast tuning or report delivery._",
+      "placement": "body_01",
+      "priority": "high",
+      "render_mode": "static_markdown_with_machine_readable_payload",
+      "requires_human_review": true,
+      "section_id": "forecast_review",
+      "source_placement": "after_forecast_summary",
+      "source_refs": [
+        "source_report_export.report_payload.sections"
+      ],
+      "source_section_id": "forecast_review",
+      "title": "Forecast Review"
+    },
+    {
+      "advisory_only": true,
+      "badges": {
+        "advisory_only": true,
+        "fixture_only": true,
+        "repo_only": true,
+        "requires_human_review": true
+      },
+      "machine_readable": {
+        "advisory_only": true,
+        "company_intelligence_summary": {
+          "advisory_only": true,
+          "average_source_credibility_score": 0.78,
+          "company": {
+            "industry": "semiconductor",
+            "market": "TWSE",
+            "stock_id": "2330",
+            "stock_name": "Example Semiconductor"
+          },
+          "low_credibility_source_ids": [
+            "src-consensus-context-2026-06"
+          ],
+          "requires_human_review": true,
+          "source_decision": "company_intelligence_completed",
+          "source_run_id": "company-intelligence-source-credibility-fixture-20260629",
+          "source_schema_version": "company_intelligence_source_credibility_v1",
+          "source_task_id": "AI-DEV-076",
+          "summary_points": [
+            "Monthly revenue fixture indicates stable demand momentum relative to the prior quarter.",
+            "Industry primary data fixture supports continued demand for advanced semiconductor capacity.",
+            "Consensus metadata is retained only as labeled sentiment context and is not a core input."
+          ],
+          "topic_count": 3
+        },
+        "industry_peer_context_summary": {
+          "advisory_only": true,
+          "average_confidence": 0.765,
+          "highest_risk_flags": [
+            "capacity",
+            "demand",
+            "pricing"
+          ],
+          "industry": {
+            "as_of_date": "2026-06-30",
+            "industry_id": "semiconductor_foundry",
+            "industry_name": "Semiconductor Foundry"
+          },
+          "industry_topic_count": 2,
+          "peer_context_count": 2,
+          "requires_human_review": true,
+          "source_decision": "industry_peer_context_completed",
+          "source_run_id": "industry-intelligence-peer-context-fixture-20260630",
+          "source_schema_version": "industry_intelligence_peer_context_v1",
+          "source_task_id": "AI-DEV-077",
+          "summary_points": [
+            "Fixture demand monitor indicates stable advanced-node wafer demand for the current quarter.",
+            "Fixture market and peer context suggests pricing remains differentiated by process node and packaging demand.",
+            "Target company fixture shows stronger exposure to advanced packaging demand than the peer set.",
+            "Market data fixture is retained as quantitative context and does not override primary industry evidence."
+          ],
+          "target_company": {
+            "industry": "semiconductor_foundry",
+            "market": "TWSE",
+            "stock_id": "2330",
+            "stock_name": "Example Semiconductor"
+          }
+        },
+        "requires_human_review": true,
+        "risk_and_limitations": [
+          "Fixture summaries are static examples and are not connected to live report generation.",
+          "This section is advisory only and must not be treated as investment advice.",
+          "Lower-credibility and human-review sources remain labeled and must be reviewed before use.",
+          "No portfolio, delivery, schedule, model, or market data action is authorized by this output."
+        ],
+        "source_credibility_summary": {
+          "advisory_only": true,
+          "average_credibility_score": 0.792,
+          "combined_source_count": 8,
+          "company_source_count": 4,
+          "core_scoring_allowed_source_ids": [
+            "src-2330-investor-presentation-2026-q2",
+            "src-2330-monthly-revenue-2026-05",
+            "src-industry-wafer-demand-2026-q2",
+            "src-market-price-context-2026-06",
+            "src-peer-advanced-packaging-2026-q2"
+          ],
+          "industry_peer_source_count": 4,
+          "low_credibility_source_ids": [
+            "src-consensus-context-2026-06"
+          ],
+          "metadata_preserved": true,
+          "requires_human_review": true,
+          "review_required_source_ids": [
+            "src-consensus-context-2026-06"
+          ]
+        }
+      },
+      "markdown": "## Company And Industry Intelligence\n\n> Fixture-only intelligence section. Advisory only; human review is required before daily report insertion.\n\n### Company Intelligence\n- Monthly revenue fixture indicates stable demand momentum relative to the prior quarter.\n- Industry primary data fixture supports continued demand for advanced semiconductor capacity.\n- Consensus metadata is retained only as labeled sentiment context and is not a core input.\n\n### Industry And Peer Context\n- Fixture demand monitor indicates stable advanced-node wafer demand for the current quarter.\n- Fixture market and peer context suggests pricing remains differentiated by process node and packaging demand.\n- Target company fixture shows stronger exposure to advanced packaging demand than the peer set.\n- Market data fixture is retained as quantitative context and does not override primary industry evidence.\n\n### Source Credibility\n- Combined source count: `8`\n- Average credibility score: `0.792`\n- Human-review source count: `1`\n\n### Risk And Limitations\n- Fixture summaries are static examples and are not connected to live report generation.\n- This section is advisory only and must not be treated as investment advice.\n- Lower-credibility and human-review sources remain labeled and must be reviewed before use.\n- No portfolio, delivery, schedule, model, or market data action is authorized by this output.\n\n_No delivery action, portfolio action, schedule change, or persistent store write was performed._",
+      "placement": "body_02",
+      "priority": "medium",
+      "render_mode": "static_markdown_with_machine_readable_payload",
+      "requires_human_review": true,
+      "section_id": "daily_report_intelligence",
+      "source_placement": "after_strategy_summary",
+      "source_refs": [
+        "input_sources.company_intelligence_result_path",
+        "input_sources.industry_peer_context_result_path"
+      ],
+      "source_section_id": "daily_report_intelligence",
+      "title": "Company And Industry Intelligence"
+    }
+  ],
+  "report_title": "Daily Report 2026-06-30",
+  "risk_and_limitations": [
+    "This renderer output is assembled from static repo fixtures only.",
+    "The source research pack is advisory-only and requires human review.",
+    "Source refs, credibility metadata, and limitation notes are preserved from the source research pack.",
+    "Forecast review content may be based on insufficient sample size and must not be over-interpreted.",
+    "This output is not investment advice and does not authorize trading, portfolio, delivery, schedule, service, model, or data actions."
+  ],
+  "run_id": "daily-report-renderer-fixture-20260630",
+  "safety": {
+    "advisory_only": true,
+    "fixture_only": true,
+    "no_delivery_actions": true,
+    "no_external_model_calls": true,
+    "no_market_data_calls": true,
+    "no_persistent_store_writes": true,
+    "no_portfolio_actions": true,
+    "no_schedule_service_changes": true,
+    "repo_only": true,
+    "requires_human_review": true
+  },
+  "schema_version": "daily_report_renderer_contract_v1",
+  "section_order": [
+    "forecast_review",
+    "daily_report_intelligence"
+  ],
+  "side_effects": {
+    "called_external_model_runtime": false,
+    "called_market_data_runtime": false,
+    "modified_github_remote": false,
+    "modified_portfolio": false,
+    "modified_schedule_or_service": false,
+    "placed_trade_order": false,
+    "read_secrets": false,
+    "sent_daily_report": false,
+    "sent_notification": false,
+    "wrote_persistent_store": false
+  },
+  "source_summary": {
+    "source_credibility_metadata_preserved": true,
+    "source_decision": "daily_report_research_pack_completed_with_warnings",
+    "source_ok": true,
+    "source_path": "templates/daily_report_research_pack_result.example.json",
+    "source_run_id": "daily-report-research-pack-fixture-20260630",
+    "source_schema_version": "daily_report_research_pack_v1",
+    "source_section_order": [
+      "forecast_review",
+      "daily_report_intelligence"
+    ],
+    "source_task_id": "AI-DEV-083",
+    "source_warning_count": 2
+  },
+  "task_id": "AI-DEV-084",
+  "validation_summary": {
+    "deterministic_output": true,
+    "fixture_only": true,
+    "machine_readable_render_payload_included": true,
+    "markdown_included": true,
+    "risk_and_limitations_preserved": true,
+    "section_count": 2,
+    "section_metadata_included": true,
+    "section_order_preserved": true,
+    "source_credibility_metadata_preserved": true,
+    "source_ok": true,
+    "source_refs_preserved": true,
+    "source_schema_expected": "daily_report_research_pack_v1",
+    "source_schema_matched": true,
+    "warnings": [
+      "forecast review source reports insufficient data",
+      "human review required for one or more intelligence sources",
+      "one or more source credibility records require human review",
+      "source research pack completed with warnings"
+    ]
+  }
+}
