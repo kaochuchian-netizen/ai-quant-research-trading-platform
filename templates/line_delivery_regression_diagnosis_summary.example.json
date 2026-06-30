@@ -1,0 +1,43 @@
+{
+  "confidence": {
+    "level": "high",
+    "score": 0.86
+  },
+  "decision": "line_delivery_regression_diagnosis_completed_with_warnings",
+  "generated_at": "2026-06-30T23:50:00+08:00",
+  "key_findings": [
+    "Cron entries are still installed and logs show scheduled runs after 2026-06-23.",
+    "The 2026-06-23 13:35 run completed three LINE batch attempts.",
+    "Runs from 2026-06-24 onward failed before LINE delivery during historical data update or Shioaji login.",
+    "The current runner default is a dry-run/no-delivery production scheduler gate unless explicit legacy production approval is enabled."
+  ],
+  "likely_root_cause": "Post-2026-06-23 runs do not reach LINE delivery because pre-delivery historical/Shioaji failures stop the pipeline; current scheduler gate defaults also block delivery unless explicitly approved.",
+  "mode": "repo_only_read_only_diagnosis",
+  "next_recommendation": "AI-DEV-105 should add no-send Shioaji readiness and scheduler delivery-state observability before any live delivery restoration.",
+  "ok": true,
+  "run_id": "line-delivery-regression-diagnosis-fixture-20260630",
+  "safety": {
+    "diagnostic_only": true,
+    "external_side_effects_allowed": false,
+    "no_cron_modification": true,
+    "no_dashboard_deploy": true,
+    "no_email_send": true,
+    "no_gmail_api_call": true,
+    "no_line_api_call": true,
+    "no_line_push": true,
+    "no_persistent_store_writes": true,
+    "no_portfolio_actions": true,
+    "no_schedule_service_changes": true,
+    "no_secret_mutation": true,
+    "no_secrets_read": true,
+    "no_service_modification": true,
+    "no_smtp_call": true,
+    "no_systemd_modification": true,
+    "no_timer_modification": true,
+    "read_only_runtime_inspection": true,
+    "repo_only": true,
+    "trading_instruction": false
+  },
+  "schema_version": "line_delivery_regression_diagnosis_summary_v1",
+  "task_id": "AI-DEV-104"
+}

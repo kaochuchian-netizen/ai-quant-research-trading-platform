@@ -1,0 +1,185 @@
+{
+  "confidence": {
+    "level": "high",
+    "score": 0.86,
+    "rationale": "Cron entries and log timestamps show the scheduler still fires. Rotated logs show 2026-06-23 13:35 completed LINE batch attempts, while later runs fail before delivery or are blocked by the production scheduler gate."
+  },
+  "decision": "line_delivery_regression_diagnosis_completed_with_warnings",
+  "diagnostic_window": {
+    "current_date": "2026-06-30",
+    "end": "2026-06-30T23:59:59+08:00",
+    "reported_last_received_after": "2026-06-23T13:35:00+08:00",
+    "start": "2026-06-23T13:35:00+08:00",
+    "timezone": "Asia/Taipei"
+  },
+  "generated_at": "2026-06-30T23:50:00+08:00",
+  "git_timeline_findings": [
+    {
+      "finding": "Recent commits after 2026-06-23 include delivery gate and production scheduler gate changes.",
+      "impact": "The timeline aligns with a behavior change where scheduler execution can be routed through a no-delivery gate.",
+      "related_commits": [
+        "AI-DEV-099 production scheduler delivery gate integration",
+        "AI-DEV-100 production scheduler runtime gate wiring",
+        "AI-DEV-101 production scheduler gate runtime activation",
+        "AI-DEV-102 production scheduler gate runtime smoke test",
+        "AI-DEV-103 production scheduler gate observability"
+      ],
+      "status": "observed"
+    }
+  ],
+  "line_sender_findings": [
+    {
+      "finding": "reports.line_report_sender sends to the LINE push endpoint only after reports are batched.",
+      "impact": "Post-2026-06-23 failures observed in logs occur before this call path.",
+      "status": "no_sender_exception_observed_after_regression_window"
+    },
+    {
+      "finding": "LINE recipient and token values are loaded from environment, but secret values were not inspected.",
+      "impact": "Credential presence or validity was not proven by this read-only diagnosis.",
+      "status": "not_verified_by_design"
+    }
+  ],
+  "likely_root_causes": [
+    {
+      "cause": "Pipeline fails before LINE delivery during historical data update.",
+      "confidence": "high",
+      "evidence": [
+        "2026-06-24 07:00 log shows Shioaji Kbars date range error before report batching.",
+        "2026-06-24 through 2026-06-30 logs repeatedly show Shioaji login maintenance/version errors before report batching."
+      ],
+      "rank": 1
+    },
+    {
+      "cause": "Current scheduler runner default routes through production scheduler gate runtime with delivery_allowed=false unless legacy production approval is explicitly enabled.",
+      "confidence": "medium_high",
+      "evidence": [
+        "run_stock_analysis.sh only calls the approved production pipeline when the legacy production approval environment flag is enabled.",
+        "Default gate fixture uses mode=dry_run_no_delivery, approval_status=pending_approval, and delivery_allowed=false.",
+        "logs/daily.log contains gate output with line_push in blocked_actions and no_line_push=true."
+      ],
+      "rank": 2
+    },
+    {
+      "cause": "LINE token or recipient configuration failure.",
+      "confidence": "low",
+      "evidence": [
+        "No post-window LINE sender exception was observed in logs.",
+        "Secrets were intentionally not read, so credential validity remains unconfirmed."
+      ],
+      "rank": 3
+    }
+  ],
+  "log_findings": {
+    "current_log": {
+      "path": "logs/daily.log",
+      "summary": "2026-06-30 scheduled runs reached pre_open startup but failed at Shioaji login before report generation; the same log also contains production scheduler gate runtime output blocking delivery."
+    },
+    "rotated_logs": [
+      {
+        "path": "logs/daily.log.5.gz",
+        "summary": "2026-06-23 13:35 run completed report generation, three LINE batches, and backtest auto update."
+      },
+      {
+        "path": "logs/daily.log.4.gz",
+        "summary": "2026-06-24 runs began failing before LINE delivery."
+      },
+      {
+        "path": "logs/daily.log.3.gz through logs/daily.log.1.gz",
+        "summary": "2026-06-25 through 2026-06-29 runs repeatedly failed at Shioaji login before LINE delivery."
+      }
+    ]
+  },
+  "mode": "repo_only_read_only_diagnosis",
+  "next_recommendation": "Use AI-DEV-105 to add a no-send readiness check for Shioaji version/date-window health and to separate pipeline_failed_before_delivery from delivery_gate_blocked in scheduler logs before restoring live delivery.",
+  "ok": true,
+  "pipeline_findings": [
+    {
+      "finding": "scripts/run_pipeline.py requires --production-approved for non-dry-run pre_open execution.",
+      "impact": "Direct production execution is guarded."
+    },
+    {
+      "finding": "main.py only allows --dry-run execution.",
+      "impact": "main.py is not the live delivery path."
+    },
+    {
+      "finding": "pre_open pipeline updates historical CSV before building reports and before LINE delivery.",
+      "impact": "Historical update failures prevent LINE delivery from being attempted."
+    }
+  ],
+  "recommended_next_actions": [
+    "Do not attempt LINE push while diagnosing.",
+    "Add a no-send Shioaji dependency/version and request-window preflight.",
+    "Constrain historical Kbars requests to the provider limit before production delivery is re-enabled.",
+    "Add scheduler log markers for cron_fired, pipeline_started, pipeline_failed_before_delivery, delivery_gate_blocked, and delivery_attempted.",
+    "Require explicit human approval before setting any production delivery approval flag or legacy production approval environment."
+  ],
+  "run_id": "line-delivery-regression-diagnosis-fixture-20260630",
+  "runner_findings": [
+    {
+      "finding": "run_stock_analysis.sh detects scheduler windows using Asia/Taipei time.",
+      "status": "observed"
+    },
+    {
+      "finding": "Default runner path calls production_scheduler_gate_runtime.py, not the production pipeline.",
+      "status": "observed"
+    },
+    {
+      "finding": "Legacy production pipeline path requires an explicit production approval environment flag.",
+      "status": "observed_not_enabled_by_this_task"
+    }
+  ],
+  "safety": {
+    "diagnostic_only": true,
+    "external_side_effects_allowed": false,
+    "no_cron_modification": true,
+    "no_dashboard_deploy": true,
+    "no_email_send": true,
+    "no_gmail_api_call": true,
+    "no_line_api_call": true,
+    "no_line_push": true,
+    "no_persistent_store_writes": true,
+    "no_portfolio_actions": true,
+    "no_schedule_service_changes": true,
+    "no_secret_mutation": true,
+    "no_secrets_read": true,
+    "no_service_modification": true,
+    "no_smtp_call": true,
+    "no_systemd_modification": true,
+    "no_timer_modification": true,
+    "read_only_runtime_inspection": true,
+    "repo_only": true,
+    "trading_instruction": false
+  },
+  "scheduler_findings": {
+    "cron_entries_observed": [
+      "0 7 * * 1-5 /home/kaochuchian/stock-ai/run_stock_analysis.sh",
+      "5 13 * * 1-5 /home/kaochuchian/stock-ai/run_stock_analysis.sh",
+      "35 13 * * 1-5 /home/kaochuchian/stock-ai/run_stock_analysis.sh"
+    ],
+    "cron_firing_evidence": "logs show runs at 2026-06-30 07:00, 13:05, and 13:35 and rotated logs show earlier scheduled runs.",
+    "likely_cron_not_firing": false
+  },
+  "schema_version": "line_delivery_regression_diagnosis_v1",
+  "side_effects": {
+    "called_gmail_api": false,
+    "called_line_api": false,
+    "called_smtp": false,
+    "deployed_dashboard": false,
+    "external_side_effects_allowed": false,
+    "modified_cron": false,
+    "modified_persistent_store": false,
+    "modified_service": false,
+    "modified_systemd": false,
+    "modified_timer": false,
+    "read_secrets": false,
+    "sent_email": false,
+    "sent_line_push": false,
+    "sent_notification": false,
+    "triggered_production_delivery": false
+  },
+  "task_id": "AI-DEV-104",
+  "user_report": {
+    "reported_issue": "Daily LINE push notifications have not been received since after 2026-06-23 13:35.",
+    "reported_last_received_after": "2026-06-23T13:35:00+08:00"
+  }
+}
