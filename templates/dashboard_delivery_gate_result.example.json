@@ -1,0 +1,300 @@
+{
+  "dashboard_delivery_gate": {
+    "advisory_disclaimer": "This dashboard delivery gate is repo-only fixture output for preview review. It is advisory-only and does not authorize dashboard deployment, API server creation, email, LINE, SMTP, Gmail API, trading, portfolio action, or external system mutation.",
+    "approval_gate": {
+      "current_review_status": "pending_review",
+      "delivery_allowed": false,
+      "gate_id": "dashboard_delivery_gate_approval_gate_v1",
+      "gate_open": false,
+      "reason": "Dashboard delivery remains blocked until review_status is approved and delivery_allowed is true.",
+      "required_review_status": "approved",
+      "source_gate_id": "delivery_payload_builder_approval_gate_v1",
+      "source_gate_open": false
+    },
+    "dashboard_channel_enabled": false,
+    "dashboard_delivery_id": "dashboard_delivery_gate_2026-06-30",
+    "dashboard_page_ref": "daily_report_dashboard_static_page_20260630",
+    "delivery_allowed": false,
+    "delivery_blockers": [
+      "approval_gate_closed",
+      "dashboard_channel_disabled",
+      "dashboard_delivery_gate_closed",
+      "dashboard_static_page_requires_human_review",
+      "human_review_required",
+      "review_status_not_approved",
+      "warning_badges_present"
+    ],
+    "human_review_required": true,
+    "payload_id": "delivery_payload_2026-06-30",
+    "preview_id": "daily_report_static_preview_20260630",
+    "preview_only": true,
+    "publish_intent": "preview_contract_only",
+    "publish_preview": {
+      "dashboard_page_ref": "daily_report_dashboard_static_page_20260630",
+      "delivery_allowed": false,
+      "manifest_ref": "templates/daily_report_static_preview_manifest.example.json",
+      "markdown_ref": "templates/daily_report_static_preview_markdown.example.md",
+      "page_id": "daily_report_dashboard_static_page_20260630",
+      "page_title": "Daily Report Dashboard Static Page 2026-06-30",
+      "preview_id": "daily_report_static_preview_20260630",
+      "preview_only": true,
+      "publish_action_performed": false,
+      "publish_status": "not_published",
+      "renderer_source_ref": "templates/daily_report_renderer_result.example.json"
+    },
+    "publish_status": "not_published",
+    "publish_target_policy": {
+      "allowed_targets": [
+        "private_dashboard_preview"
+      ],
+      "blocked_targets": [
+        "public_dashboard",
+        "production_dashboard",
+        "api_server",
+        "email",
+        "line",
+        "smtp",
+        "gmail_api"
+      ],
+      "delivery_allowed": false,
+      "deployment_permitted": false,
+      "fixture_mode_publish_status": "not_published",
+      "policy_id": "dashboard_delivery_publish_target_policy_v1",
+      "requires_approval_gate": true,
+      "requires_delivery_allowed": true,
+      "requires_review_status": "approved"
+    },
+    "report_date": "2026-06-30",
+    "review_id": "daily_report_preview_review_20260630",
+    "review_status": "pending_review",
+    "static_page_summary": {
+      "latest_preview_card_ref": "daily_report_preview_card_20260630",
+      "manifest_ref": "templates/daily_report_static_preview_manifest.example.json",
+      "markdown_ref": "templates/daily_report_static_preview_markdown.example.md",
+      "page_id": "daily_report_dashboard_static_page_20260630",
+      "page_title": "Daily Report Dashboard Static Page 2026-06-30",
+      "preview_card_count": 1,
+      "renderer_source_ref": "templates/daily_report_renderer_result.example.json",
+      "requires_human_review_count": 1,
+      "warning_badge_count": 5
+    },
+    "warning_badges": [
+      {
+        "badge_id": "daily_report_preview_card_20260630_warning_1",
+        "label": "forecast review source reports insufficient data",
+        "severity": "warning",
+        "source": "dashboard_static_page"
+      },
+      {
+        "badge_id": "daily_report_preview_card_20260630_warning_2",
+        "label": "human review required for one or more intelligence sources",
+        "severity": "warning",
+        "source": "dashboard_static_page"
+      },
+      {
+        "badge_id": "daily_report_preview_card_20260630_warning_3",
+        "label": "one or more source credibility records require human review",
+        "severity": "warning",
+        "source": "dashboard_static_page"
+      },
+      {
+        "badge_id": "daily_report_preview_card_20260630_warning_4",
+        "label": "source renderer completed with warnings",
+        "severity": "warning",
+        "source": "dashboard_static_page"
+      },
+      {
+        "badge_id": "daily_report_preview_card_20260630_warning_5",
+        "label": "source research pack completed with warnings",
+        "severity": "warning",
+        "source": "dashboard_static_page"
+      },
+      {
+        "badge_id": "daily_report_preview_card_20260630_warning_1",
+        "label": "forecast review source reports insufficient data",
+        "severity": "warning",
+        "source": "delivery_payload"
+      },
+      {
+        "badge_id": "daily_report_preview_card_20260630_warning_2",
+        "label": "human review required for one or more intelligence sources",
+        "severity": "warning",
+        "source": "delivery_payload"
+      },
+      {
+        "badge_id": "daily_report_preview_card_20260630_warning_3",
+        "label": "one or more source credibility records require human review",
+        "severity": "warning",
+        "source": "delivery_payload"
+      },
+      {
+        "badge_id": "daily_report_preview_card_20260630_warning_4",
+        "label": "source renderer completed with warnings",
+        "severity": "warning",
+        "source": "delivery_payload"
+      },
+      {
+        "badge_id": "daily_report_preview_card_20260630_warning_5",
+        "label": "source research pack completed with warnings",
+        "severity": "warning",
+        "source": "delivery_payload"
+      },
+      {
+        "badge_id": "delivery_payload_explainability_warning_credibility_risk_explanations_present",
+        "label": "credibility_risk_explanations_present",
+        "severity": "warning",
+        "source": "delivery_payload"
+      },
+      {
+        "badge_id": "delivery_payload_explainability_warning_human_review_required_explanations_present",
+        "label": "human_review_required_explanations_present",
+        "severity": "warning",
+        "source": "delivery_payload"
+      }
+    ]
+  },
+  "dashboard_delivery_summary": {
+    "dashboard_channel_enabled": false,
+    "dashboard_delivery_id": "dashboard_delivery_gate_2026-06-30",
+    "decision": "dashboard_delivery_blocked_pending_approval",
+    "delivery_allowed": false,
+    "delivery_blocker_count": 7,
+    "deterministic_output": true,
+    "generated_at": "2026-06-30T10:40:00+08:00",
+    "human_review_required": true,
+    "mode": "fixture_dry_run",
+    "ok": true,
+    "payload_id": "delivery_payload_2026-06-30",
+    "preview_id": "daily_report_static_preview_20260630",
+    "publish_intent": "preview_contract_only",
+    "publish_status": "not_published",
+    "report_date": "2026-06-30",
+    "review_id": "daily_report_preview_review_20260630",
+    "review_status": "pending_review",
+    "run_id": "dashboard-delivery-gate-fixture-20260630",
+    "safety": {
+      "advisory_only": true,
+      "api_server_created": false,
+      "dashboard_deploy": false,
+      "fixture_only": true,
+      "no_api_server_created": true,
+      "no_dashboard_deploy": true,
+      "no_delivery_actions": true,
+      "no_email_send": true,
+      "no_external_model_calls": true,
+      "no_gmail_api_call": true,
+      "no_line_push": true,
+      "no_market_data_calls": true,
+      "no_persistent_store_writes": true,
+      "no_portfolio_actions": true,
+      "no_schedule_service_changes": true,
+      "no_smtp_call": true,
+      "preview_only": true,
+      "repo_only": true,
+      "trading_instruction": false
+    },
+    "schema_version": "dashboard_delivery_gate_summary_v1",
+    "task_id": "AI-DEV-096",
+    "warning_badge_count": 12
+  },
+  "decision": "dashboard_delivery_blocked_pending_approval",
+  "generated_at": "2026-06-30T10:40:00+08:00",
+  "mode": "fixture_dry_run",
+  "next_recommendation": "Keep dashboard publication blocked until review_status is approved and delivery_allowed is true; do not deploy, serve, send, or persist this fixture.",
+  "ok": true,
+  "run_id": "dashboard-delivery-gate-fixture-20260630",
+  "safety": {
+    "advisory_only": true,
+    "api_server_created": false,
+    "dashboard_deploy": false,
+    "fixture_only": true,
+    "no_api_server_created": true,
+    "no_dashboard_deploy": true,
+    "no_delivery_actions": true,
+    "no_email_send": true,
+    "no_external_model_calls": true,
+    "no_gmail_api_call": true,
+    "no_line_push": true,
+    "no_market_data_calls": true,
+    "no_persistent_store_writes": true,
+    "no_portfolio_actions": true,
+    "no_schedule_service_changes": true,
+    "no_smtp_call": true,
+    "preview_only": true,
+    "repo_only": true,
+    "trading_instruction": false
+  },
+  "schema_version": "dashboard_delivery_gate_v1",
+  "side_effects": {
+    "called_external_model_runtime": false,
+    "called_gmail_api": false,
+    "called_market_data_runtime": false,
+    "called_smtp": false,
+    "created_api_server": false,
+    "deployed_dashboard": false,
+    "modified_github_remote": false,
+    "modified_portfolio": false,
+    "modified_schedule_or_service": false,
+    "placed_trade_order": false,
+    "read_secrets": false,
+    "sent_email": false,
+    "sent_line_push": false,
+    "sent_notification": false,
+    "wrote_persistent_store": false
+  },
+  "task_id": "AI-DEV-096",
+  "validation_summary": {
+    "advisory_only": true,
+    "approval_gate_open": false,
+    "approval_gate_required": true,
+    "contract_name": "dashboard_delivery_gate",
+    "contract_version": "v1",
+    "dashboard_channel_policy_enforced": true,
+    "dashboard_static_page_source": {
+      "source_decision": "daily_report_dashboard_static_page_completed_with_warnings",
+      "source_generated_at": "2026-06-30T10:10:00+08:00",
+      "source_mode": "fixture_dry_run",
+      "source_ok": true,
+      "source_path": "templates/daily_report_dashboard_static_page_result.example.json",
+      "source_run_id": "daily-report-dashboard-static-page-fixture-20260630",
+      "source_schema_expected": "daily_report_dashboard_static_page_v1",
+      "source_schema_matched": true,
+      "source_schema_version": "daily_report_dashboard_static_page_v1",
+      "source_task_id": "AI-DEV-088"
+    },
+    "delivery_allowed_policy_enforced": true,
+    "delivery_blocker_count": 7,
+    "delivery_payload_source": {
+      "source_decision": "delivery_blocked_pending_approval",
+      "source_generated_at": "2026-06-30T10:30:00+08:00",
+      "source_mode": "fixture_dry_run",
+      "source_ok": true,
+      "source_path": "templates/delivery_payload_builder_result.example.json",
+      "source_run_id": "delivery-payload-builder-fixture-20260630",
+      "source_schema_expected": "delivery_payload_builder_v1",
+      "source_schema_matched": true,
+      "source_schema_version": "delivery_payload_builder_v1",
+      "source_task_id": "AI-DEV-093"
+    },
+    "deterministic_output": true,
+    "fixture_only": true,
+    "no_publish_action_performed": true,
+    "preview_only": true,
+    "publish_status_not_published": true,
+    "warning_count": 12,
+    "warnings": [
+      "forecast review source reports insufficient data",
+      "human review required for one or more intelligence sources",
+      "one or more source credibility records require human review",
+      "source renderer completed with warnings",
+      "source research pack completed with warnings",
+      "forecast review source reports insufficient data",
+      "human review required for one or more intelligence sources",
+      "one or more source credibility records require human review",
+      "source renderer completed with warnings",
+      "source research pack completed with warnings",
+      "credibility_risk_explanations_present",
+      "human_review_required_explanations_present"
+    ]
+  }
+}
