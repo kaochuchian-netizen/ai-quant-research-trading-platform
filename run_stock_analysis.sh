@@ -19,6 +19,7 @@ detect_scheduler_window() {
     070*) printf '%s\n' "pre_open_0700" ;;
     130*) printf '%s\n' "intraday_1305" ;;
     133*) printf '%s\n' "pre_close_1335" ;;
+    150*) printf '%s\n' "post_close_1500" ;;
     *) printf '%s\n' "pre_open_0700" ;;
   esac
 }
@@ -31,16 +32,13 @@ if [ "${STOCK_AI_LEGACY_PRODUCTION_APPROVED:-0}" = "1" ]; then
 fi
 
 if [ "${STOCK_AI_APPROVED_DELIVERY:-0}" = "1" ]; then
-  if [ "$WINDOW" != "pre_open_0700" ]; then
-    echo "STOCK_AI_APPROVED_DELIVERY is only supported for pre_open_0700; observed $WINDOW" >> "$LOG_PATH" 2>&1
-    exit 1
-  fi
+  APPROVED_OUTPUT="${STOCK_AI_APPROVED_DELIVERY_OUTPUT:-/tmp/approved_${WINDOW}_delivery_result.json}"
 
   "$PYTHON_BIN" scripts/orchestrator/approved_pre_open_delivery.py \
     --window "$WINDOW" \
     --dashboard-publish-dir "${STOCK_AI_DASHBOARD_PUBLISH_DIR:-/var/www/stock-ai-dashboard}" \
     --dashboard-url "${STOCK_AI_DASHBOARD_URL:-http://35.201.242.167/stock-ai-dashboard/index.html}" \
-    --output "${STOCK_AI_APPROVED_DELIVERY_OUTPUT:-/tmp/approved_pre_open_delivery_result.json}" \
+    --output "$APPROVED_OUTPUT" \
     >> "$LOG_PATH" 2>&1
   exit $?
 fi
