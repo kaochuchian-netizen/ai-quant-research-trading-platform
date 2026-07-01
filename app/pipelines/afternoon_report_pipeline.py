@@ -51,7 +51,14 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
 
     for stock_id in stock_ids:
         stock_id = str(stock_id).zfill(4)
-        stock_name = get_stock_name(stock_id)
+        try:
+            stock_name = get_stock_name(stock_id)
+        except Exception as exc:
+            stock_name = stock_id
+            print(
+                f"{pipeline_type} stock name fallback for {stock_id}: "
+                f"{getattr(exc, 'classification', exc.__class__.__name__)}"
+            )
         print(f"開始分析股票：{stock_name}({stock_id})")
 
         csv_path = f"data/historical/{stock_id}_daily.csv"
