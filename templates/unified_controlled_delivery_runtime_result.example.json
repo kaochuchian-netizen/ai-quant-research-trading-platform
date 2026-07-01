@@ -1,0 +1,254 @@
+{
+  "approval_status": "pending_approval",
+  "channels": {
+    "dashboard": {
+      "approval_status": "pending_approval",
+      "approved": false,
+      "blocked_reason": "dashboard_gate_not_approved_or_disabled",
+      "delivery_allowed": false,
+      "enabled": false,
+      "runtime_action_allowed": false
+    },
+    "email": {
+      "approval_status": "pending_approval",
+      "approved": false,
+      "blocked_reason": "email_gate_not_approved_or_disabled",
+      "delivery_allowed": false,
+      "enabled": false,
+      "runtime_action_allowed": false
+    },
+    "line": {
+      "approval_status": "pending_approval",
+      "approved": false,
+      "blocked_reason": "line_gate_not_approved_or_disabled",
+      "delivery_allowed": false,
+      "enabled": false,
+      "runtime_action_allowed": false
+    }
+  },
+  "dashboard_private_url_hint": "file:///tmp/stock_ai_private_static_dashboard/index.html",
+  "dashboard_publish_command": "python3 scripts/orchestrator/private_static_dashboard_publish.py --input templates/dashboard_delivery_gate_result.example.json --publish-dir /tmp/stock_ai_private_static_dashboard --output /tmp/private_static_dashboard_publish_result.json --pretty --publish",
+  "dashboard_publish_path": "/tmp/stock_ai_private_static_dashboard",
+  "dashboard_runtime_status": {
+    "dry_run": true,
+    "gate_approved_for_manual_publish": false,
+    "private_static_publish_path": "/tmp/stock_ai_private_static_dashboard",
+    "private_url_hint": "file:///tmp/stock_ai_private_static_dashboard/index.html",
+    "publish_attempted": false,
+    "publish_status": "dry_run_not_published",
+    "requested": false,
+    "requires_separate_user_confirmation": true,
+    "runtime": "scripts/orchestrator/private_static_dashboard_publish.py"
+  },
+  "decision": "unified_delivery_blocked_pending_approval",
+  "delivery_allowed": false,
+  "email_runtime_status": {
+    "dry_run": true,
+    "gate_approved_for_manual_test": false,
+    "note": "Unified runtime inspects env var presence only and does not print secret values.",
+    "requested": false,
+    "requires_separate_user_confirmation": true,
+    "runtime": "scripts/orchestrator/notify_stage_report.py",
+    "runtime_settings_presence": {
+      "all_required_present": false,
+      "inspected": true,
+      "missing_env_names": [
+        "ORCH_MAIL_HOST",
+        "ORCH_MAIL_PORT",
+        "ORCH_MAIL_USER",
+        "ORCH_MAIL_PASS",
+        "ORCH_MAIL_FROM",
+        "ORCH_MAIL_TO"
+      ],
+      "present_env_names": [],
+      "required_env_names": [
+        "ORCH_MAIL_HOST",
+        "ORCH_MAIL_PORT",
+        "ORCH_MAIL_USER",
+        "ORCH_MAIL_PASS",
+        "ORCH_MAIL_FROM",
+        "ORCH_MAIL_TO"
+      ],
+      "value_printed": false
+    },
+    "runtime_settings_present": false,
+    "send_attempted": false,
+    "send_status": "dry_run_not_sent"
+  },
+  "email_test_command": "python3 scripts/orchestrator/unified_controlled_delivery_runtime.py --input templates/unified_controlled_delivery_runtime_input.example.json --output /tmp/unified_controlled_email_test_result.json --summary-output /tmp/unified_controlled_delivery_runtime_summary.json --pretty --send-test-email",
+  "gate_status": {
+    "approval_status": "pending_approval",
+    "approved": false,
+    "blocked_reasons": [
+      "delivery_allowed",
+      "approval_status_approved",
+      "line_channel_enabled",
+      "email_channel_enabled",
+      "dashboard_channel_enabled"
+    ],
+    "delivery_allowed": false,
+    "gate_open": false,
+    "preconditions": {
+      "approval_status_approved": false,
+      "dashboard_channel_enabled": false,
+      "delivery_allowed": false,
+      "email_channel_enabled": false,
+      "line_channel_enabled": false
+    }
+  },
+  "generated_at": "2026-07-01T09:30:00+08:00",
+  "line_runtime_status": {
+    "dry_run": true,
+    "gate_approved_for_manual_test": false,
+    "note": "Unified runtime does not perform LINE push automatically.",
+    "requested": false,
+    "requires_separate_user_confirmation": true,
+    "runtime": "scripts/orchestrator/controlled_line_runtime.py",
+    "send_attempted": false,
+    "send_status": "dry_run_not_sent"
+  },
+  "line_test_command": "python3 scripts/orchestrator/unified_controlled_delivery_runtime.py --input templates/unified_controlled_delivery_runtime_input.example.json --output /tmp/unified_controlled_line_test_result.json --summary-output /tmp/unified_controlled_delivery_runtime_summary.json --pretty --send-test-line",
+  "mode": "dry_run_no_send_no_publish",
+  "next_recommendation": "Keep unified delivery in dry-run/no-send/no-publish mode until all channel gates are approved.",
+  "ok": true,
+  "run_id": "unified-controlled-delivery-runtime-fixture-20260701",
+  "safety": {
+    "controlled_delivery_runtime": true,
+    "delivery_gate_required": true,
+    "dry_run_default": true,
+    "no_api_server_created": true,
+    "no_cron_modification": true,
+    "no_dashboard_publish_by_default": true,
+    "no_email_send_by_default": true,
+    "no_gmail_api_call_by_default": true,
+    "no_line_push_by_default": true,
+    "no_persistent_store_writes": true,
+    "no_portfolio_actions": true,
+    "no_schedule_service_changes": true,
+    "no_secret_logging": true,
+    "no_secret_read": true,
+    "no_service_modification": true,
+    "no_smtp_call_by_default": true,
+    "no_systemd_modification": true,
+    "no_timer_modification": true,
+    "no_token_printing": true,
+    "trading_instruction": false
+  },
+  "scheduler_activation_command": "python3 scripts/orchestrator/production_scheduler_gate_runtime.py --input templates/production_scheduler_gate_runtime_input.example.json --output /tmp/production_scheduler_gate_runtime_result.json --summary-output /tmp/production_scheduler_gate_runtime_summary.json --window pre_open_0700 --pretty",
+  "schema_version": "unified_controlled_delivery_runtime_v1",
+  "side_effects": {
+    "called_gmail_api": false,
+    "called_line_api": false,
+    "called_smtp": false,
+    "created_api_server": false,
+    "deployed_dashboard": false,
+    "modified_cron": false,
+    "modified_portfolio": false,
+    "modified_schedule_or_service": false,
+    "modified_service": false,
+    "modified_systemd": false,
+    "modified_timer": false,
+    "placed_trade_order": false,
+    "read_secrets": false,
+    "sent_email": false,
+    "sent_line_push": false,
+    "sent_notification": false,
+    "wrote_persistent_store": false
+  },
+  "task_id": "AI-DEV-107",
+  "unified_controlled_delivery_runtime_summary": {
+    "approval_status": "pending_approval",
+    "channels": {
+      "dashboard": {
+        "approval_status": "pending_approval",
+        "approved": false,
+        "blocked_reason": "dashboard_gate_not_approved_or_disabled",
+        "delivery_allowed": false,
+        "enabled": false,
+        "runtime_action_allowed": false
+      },
+      "email": {
+        "approval_status": "pending_approval",
+        "approved": false,
+        "blocked_reason": "email_gate_not_approved_or_disabled",
+        "delivery_allowed": false,
+        "enabled": false,
+        "runtime_action_allowed": false
+      },
+      "line": {
+        "approval_status": "pending_approval",
+        "approved": false,
+        "blocked_reason": "line_gate_not_approved_or_disabled",
+        "delivery_allowed": false,
+        "enabled": false,
+        "runtime_action_allowed": false
+      }
+    },
+    "dashboard_runtime_status": {
+      "dry_run": true,
+      "gate_approved_for_manual_publish": false,
+      "private_static_publish_path": "/tmp/stock_ai_private_static_dashboard",
+      "private_url_hint": "file:///tmp/stock_ai_private_static_dashboard/index.html",
+      "publish_attempted": false,
+      "publish_status": "dry_run_not_published",
+      "requested": false,
+      "requires_separate_user_confirmation": true,
+      "runtime": "scripts/orchestrator/private_static_dashboard_publish.py"
+    },
+    "decision": "unified_delivery_blocked_pending_approval",
+    "delivery_allowed": false,
+    "email_runtime_status": {
+      "dry_run": true,
+      "gate_approved_for_manual_test": false,
+      "note": "Unified runtime inspects env var presence only and does not print secret values.",
+      "requested": false,
+      "requires_separate_user_confirmation": true,
+      "runtime": "scripts/orchestrator/notify_stage_report.py",
+      "runtime_settings_presence": {
+        "all_required_present": false,
+        "inspected": true,
+        "missing_env_names": [
+          "ORCH_MAIL_HOST",
+          "ORCH_MAIL_PORT",
+          "ORCH_MAIL_USER",
+          "ORCH_MAIL_PASS",
+          "ORCH_MAIL_FROM",
+          "ORCH_MAIL_TO"
+        ],
+        "present_env_names": [],
+        "required_env_names": [
+          "ORCH_MAIL_HOST",
+          "ORCH_MAIL_PORT",
+          "ORCH_MAIL_USER",
+          "ORCH_MAIL_PASS",
+          "ORCH_MAIL_FROM",
+          "ORCH_MAIL_TO"
+        ],
+        "value_printed": false
+      },
+      "runtime_settings_present": false,
+      "send_attempted": false,
+      "send_status": "dry_run_not_sent"
+    },
+    "generated_at": "2026-07-01T09:30:00+08:00",
+    "line_runtime_status": {
+      "dry_run": true,
+      "gate_approved_for_manual_test": false,
+      "note": "Unified runtime does not perform LINE push automatically.",
+      "requested": false,
+      "requires_separate_user_confirmation": true,
+      "runtime": "scripts/orchestrator/controlled_line_runtime.py",
+      "send_attempted": false,
+      "send_status": "dry_run_not_sent"
+    },
+    "mode": "dry_run_no_send_no_publish",
+    "next_recommendation": "Keep unified delivery in dry-run/no-send/no-publish mode until all channel gates are approved.",
+    "ok": true,
+    "run_id": "unified-controlled-delivery-runtime-fixture-20260701",
+    "schema_version": "unified_controlled_delivery_runtime_summary_v1",
+    "task_id": "AI-DEV-107"
+  },
+  "warnings": [
+    "email_runtime_settings_missing_or_incomplete"
+  ]
+}
