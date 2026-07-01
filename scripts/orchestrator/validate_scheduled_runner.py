@@ -18,6 +18,12 @@ EXPECTED_SHELL_COMMAND = (
     "/home/kaochuchian/stock-ai/venv/bin/python "
     "scripts/run_pipeline.py pre_open --production-approved"
 )
+EXPECTED_WINDOWS = [
+    "pre_open_0700",
+    "intraday_1305",
+    "pre_close_1335",
+    "post_close_1500",
+]
 MAIN_PY_GUARD = (
     "main.py only allows --dry-run execution. "
     "Use scripts/run_pipeline.py for formal runs."
@@ -67,16 +73,35 @@ def main() -> int:
     ]
 
     shell_invocation = next(
-        (line for line in shell_command_lines if "venv/bin/python" in line),
+        (line for line in shell_command_lines if "scripts/orchestrator/approved_pre_open_delivery.py" in line),
+        "",
+    ) or next(
+        (line for line in shell_command_lines if "scripts/run_pipeline.py" in line),
         "",
     )
     shell_command = shell_invocation.split(">>", 1)[0].strip()
 
+    supported_windows_present = all(window in shell_text and window in approved_delivery_text for window in EXPECTED_WINDOWS)
+    afternoon_pipelines_present = all(
+        text in approved_delivery_text
+        for text in [
+            '"pipeline_type": "pre_open"',
+            '"pipeline_type": "intraday"',
+            '"pipeline_type": "pre_close"',
+            '"pipeline_type": "post_close"',
+            "concise_reminder",
+            "prediction review pending / insufficient data",
+        ]
+    )
+    approved_runner_command_present = (
+        '"scripts/run_pipeline.py", cfg["pipeline_type"], "--production-approved"' in approved_delivery_text
+    )
     approved_wrapper_enabled = (
         "STOCK_AI_APPROVED_DELIVERY" in shell_text
         and "scripts/orchestrator/approved_pre_open_delivery.py" in shell_text
-        and "pre_open_0700" in shell_text
-        and "scripts/run_pipeline.py\", \"pre_open\", \"--production-approved\"" in approved_delivery_text
+        and supported_windows_present
+        and afternoon_pipelines_present
+        and approved_runner_command_present
     )
     legacy_escape_hatch_present = EXPECTED_SHELL_COMMAND in shell_text
     production_runner_present = EXPECTED_SHELL_COMMAND in shell_text or approved_wrapper_enabled
@@ -89,6 +114,12 @@ def main() -> int:
         reasons.append("run_stock_analysis.sh does not call scripts/run_pipeline.py")
     if not production_runner_present:
         reasons.append("scheduled runner command does not require --production-approved")
+    if not supported_windows_present:
+        reasons.append("approved delivery wrapper does not support all required scheduler windows")
+    if not afternoon_pipelines_present:
+        reasons.append("approved delivery wrapper does not define afternoon concise delivery policy")
+    if not approved_runner_command_present:
+        reasons.append("approved delivery wrapper does not call scripts/run_pipeline.py with --production-approved")
     if "--dry-run" in shell_command:
         reasons.append("scheduled runner command should not include --dry-run")
     if "--production-approved" not in cli_text:
@@ -105,6 +136,9 @@ def main() -> int:
         "scheduled_command": shell_command,
         "expected_command": EXPECTED_SHELL_COMMAND,
         "approved_wrapper_enabled": approved_wrapper_enabled,
+        "supported_windows": EXPECTED_WINDOWS,
+        "supported_windows_present": supported_windows_present,
+        "afternoon_concise_policy_present": afternoon_pipelines_present,
         "legacy_escape_hatch_present": legacy_escape_hatch_present,
         "main_py_guard_present": MAIN_PY_GUARD in main_text,
         "reasons": reasons,

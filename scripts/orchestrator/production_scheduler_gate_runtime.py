@@ -19,6 +19,7 @@ WINDOWS = {
     "pre_open_0700": {"local_time": "07:00", "pipeline_type": "pre_open"},
     "intraday_1305": {"local_time": "13:05", "pipeline_type": "intraday"},
     "pre_close_1335": {"local_time": "13:35", "pipeline_type": "pre_close"},
+    "post_close_1500": {"local_time": "15:00", "pipeline_type": "post_close"},
 }
 CHANNELS = ["email", "line", "dashboard"]
 APPROVED_STATUSES = {"approved", "APPROVED"}

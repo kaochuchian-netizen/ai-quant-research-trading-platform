@@ -15,8 +15,6 @@ SUPPORTED_PIPELINES = {
 def run_pipeline(pipeline_type, dry_run=False, limit=None, production_approved=False):
     if dry_run and production_approved:
         raise ValueError("--production-approved cannot be combined with --dry-run")
-    if production_approved and pipeline_type != "pre_open":
-        raise ValueError("--production-approved is only supported for pre_open pipeline")
     if pipeline_type == "pre_open" and not dry_run and not production_approved:
         raise ValueError("pre_open production run requires --production-approved")
     if limit is not None and pipeline_type != "pre_open":

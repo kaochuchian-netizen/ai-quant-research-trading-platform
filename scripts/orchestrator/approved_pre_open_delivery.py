@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""Approved 07:00 pre-open delivery runner.
+"""Approved all-day scheduler delivery runner.
 
-This runner is intentionally narrow: it only supports the pre_open_0700 window
-after an operator has set STOCK_AI_APPROVED_DELIVERY=1 in the scheduler entry.
+This runner supports explicitly approved scheduler delivery windows after an
+operator has set STOCK_AI_APPROVED_DELIVERY=1 in the scheduler entry.
 """
 
 from __future__ import annotations
 
 import argparse
 import html
+import importlib
 import json
 import os
 import subprocess
@@ -31,12 +32,54 @@ from scripts.orchestrator.notify_stage_report import (  # noqa: E402
 )
 
 
-SCHEMA_VERSION = "approved_pre_open_delivery_v1"
-TASK_ID = "AI-DEV-111"
-WINDOW = "pre_open_0700"
+SCHEMA_VERSION = "approved_scheduler_delivery_v1"
+TASK_ID = "AI-DEV-112"
 DEFAULT_DASHBOARD_DIR = Path("/var/www/stock-ai-dashboard")
 DEFAULT_MAIL_ENV_FILE = Path("~/.config/stock-ai-orchestrator/mail.env")
 EMAIL_BODY_LIMIT = 14000
+LINE_BODY_LIMIT = 520
+WINDOWS = {
+    "pre_open_0700": {
+        "label": "07:00 pre-open",
+        "local_time": "07:00",
+        "pipeline_type": "pre_open",
+        "line_policy": "full report handled by production pre_open pipeline",
+        "line_mode": "handled_by_pipeline",
+        "email_policy": "full scheduled delivery summary",
+        "dashboard_policy": "publish latest full scheduler snapshot",
+        "fallback_state": "pipeline output tail is included if report content is partial",
+    },
+    "intraday_1305": {
+        "label": "13:05 intraday",
+        "local_time": "13:05",
+        "pipeline_type": "intraday",
+        "line_policy": "concise reminder only with key status and dashboard URL",
+        "line_mode": "concise_reminder",
+        "email_policy": "full report from validated pipeline output when available",
+        "dashboard_policy": "publish latest intraday scheduler snapshot",
+        "fallback_state": "report content pending / insufficient data if pipeline only returns context summary",
+    },
+    "pre_close_1335": {
+        "label": "13:35 pre-close",
+        "local_time": "13:35",
+        "pipeline_type": "pre_close",
+        "line_policy": "concise risk / market status reminder only; no trading instruction",
+        "line_mode": "concise_reminder",
+        "email_policy": "full report from validated pipeline output when available",
+        "dashboard_policy": "publish latest pre-close scheduler snapshot",
+        "fallback_state": "report content pending / insufficient data if pipeline only returns context summary",
+    },
+    "post_close_1500": {
+        "label": "15:00 post-close / prediction review",
+        "local_time": "15:00",
+        "pipeline_type": "post_close",
+        "line_policy": "one concise summary reminder with dashboard URL",
+        "line_mode": "concise_reminder",
+        "email_policy": "full post-close / prediction review report, including pending state",
+        "dashboard_policy": "publish latest post-close / prediction review snapshot",
+        "fallback_state": "prediction review pending / insufficient data when review records are unavailable",
+    },
+}
 
 
 def now_taipei() -> datetime:
@@ -57,16 +100,36 @@ def tail_text(text: str, limit: int) -> str:
     return text[-limit:]
 
 
-def render_dashboard(run_id: str, generated_at: str, pipeline_status: str, output_tail: str) -> str:
+def window_config(window_id: str) -> dict[str, str]:
+    try:
+        return WINDOWS[window_id]
+    except KeyError as exc:
+        raise SystemExit(f"unsupported approved delivery window: {window_id}") from exc
+
+
+def content_state(window_id: str, output_tail: str) -> str:
+    cfg = window_config(window_id)
+    if window_id == "post_close_1500" and "prediction" not in output_tail.lower():
+        return cfg["fallback_state"]
+    if output_tail.strip():
+        return "pipeline output available"
+    return cfg["fallback_state"]
+
+
+def render_dashboard(window_id: str, run_id: str, generated_at: str, pipeline_status: str, output_tail: str) -> str:
+    cfg = window_config(window_id)
     escaped_tail = html.escape(output_tail)
     rows = [
         ("Generated At", generated_at),
         ("Run ID", run_id),
-        ("Scheduler Window", WINDOW),
-        ("Pipeline", "pre_open"),
+        ("Scheduler Window", window_id),
+        ("Local Time", cfg["local_time"]),
+        ("Pipeline", cfg["pipeline_type"]),
         ("Pipeline Status", pipeline_status),
-        ("LINE", "sent by production pre_open pipeline"),
-        ("Email", "scheduled delivery summary"),
+        ("Content State", content_state(window_id, output_tail)),
+        ("LINE", cfg["line_policy"]),
+        ("Email", cfg["email_policy"]),
+        ("Dashboard", cfg["dashboard_policy"]),
         ("Trading", "disabled"),
     ]
     body = "\n".join(
@@ -78,7 +141,7 @@ def render_dashboard(run_id: str, generated_at: str, pipeline_status: str, outpu
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Stock AI 07:00 Pre-open Dashboard</title>
+  <title>Stock AI Scheduler Dashboard</title>
   <style>
     body {{ font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 28px; color: #17202a; }}
     main {{ max-width: 1040px; margin: 0 auto; }}
@@ -92,7 +155,7 @@ def render_dashboard(run_id: str, generated_at: str, pipeline_status: str, outpu
 </head>
 <body>
 <main>
-  <h1>Stock AI 07:00 Pre-open Dashboard</h1>
+  <h1>Stock AI {html.escape(cfg["label"])} Dashboard</h1>
   <p class="status">Approved scheduler delivery snapshot. Advisory only; no trading action is authorized.</p>
   <table>{body}</table>
   <h2>Run Output Tail</h2>
@@ -103,21 +166,22 @@ def render_dashboard(run_id: str, generated_at: str, pipeline_status: str, outpu
 """
 
 
-def publish_dashboard(publish_dir: Path, run_id: str, generated_at: str, pipeline_status: str, output_tail: str) -> dict[str, Any]:
+def publish_dashboard(publish_dir: Path, window_id: str, run_id: str, generated_at: str, pipeline_status: str, output_tail: str) -> dict[str, Any]:
     publish_dir.mkdir(parents=True, exist_ok=True)
     index_path = publish_dir / "index.html"
     manifest_path = publish_dir / "publish_manifest.json"
     index_path.write_text(
-        render_dashboard(run_id, generated_at, pipeline_status, output_tail),
+        render_dashboard(window_id, run_id, generated_at, pipeline_status, output_tail),
         encoding="utf-8",
     )
     manifest = {
-        "schema_version": "approved_pre_open_dashboard_manifest_v1",
+        "schema_version": "approved_scheduler_dashboard_manifest_v1",
         "task_id": TASK_ID,
         "run_id": run_id,
         "generated_at": generated_at,
-        "scheduler_window": WINDOW,
+        "scheduler_window": window_id,
         "pipeline_status": pipeline_status,
+        "content_state": content_state(window_id, output_tail),
         "index_path": str(index_path),
     }
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -129,30 +193,37 @@ def publish_dashboard(publish_dir: Path, run_id: str, generated_at: str, pipelin
     }
 
 
-def build_email_body(run_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str) -> str:
+def build_email_body(window_id: str, run_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str) -> str:
+    cfg = window_config(window_id)
     return (
-        "Stock AI approved 07:00 pre-open delivery completed.\n\n"
+        f"Stock AI approved {cfg['label']} delivery completed.\n\n"
         f"run_id: {run_id}\n"
         f"generated_at: {generated_at}\n"
-        f"scheduler_window: {WINDOW}\n"
+        f"scheduler_window: {window_id}\n"
+        f"pipeline_type: {cfg['pipeline_type']}\n"
         f"pipeline_status: {pipeline_status}\n"
+        f"content_state: {content_state(window_id, output_tail)}\n"
         f"dashboard_url: {dashboard_url}\n"
+        f"line_policy: {cfg['line_policy']}\n"
+        f"email_policy: {cfg['email_policy']}\n"
+        f"dashboard_policy: {cfg['dashboard_policy']}\n"
         "trading/order/portfolio action: no\n\n"
         "Run output tail:\n"
         f"{tail_text(output_tail, EMAIL_BODY_LIMIT)}"
     )
 
 
-def send_delivery_email(env_file: Path, run_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str) -> dict[str, Any]:
+def send_delivery_email(env_file: Path, window_id: str, run_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str) -> dict[str, Any]:
+    cfg = window_config(window_id)
     expanded = env_file.expanduser()
     if expanded.exists():
         load_env_file(expanded)
     config = load_mail_config()
-    subject = f"[Stock AI] 07:00 pre-open approved delivery {generated_at}"
+    subject = f"[Stock AI] {cfg['label']} approved delivery {generated_at}"
     message = build_message(
         config,
         subject,
-        build_email_body(run_id, generated_at, pipeline_status, dashboard_url, output_tail),
+        build_email_body(window_id, run_id, generated_at, pipeline_status, dashboard_url, output_tail),
     )
     send_message(config, message)
     return {
@@ -164,9 +235,46 @@ def send_delivery_email(env_file: Path, run_id: str, generated_at: str, pipeline
     }
 
 
-def run_pipeline(python_bin: str) -> subprocess.CompletedProcess[str]:
+def build_line_message(window_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str) -> str:
+    cfg = window_config(window_id)
+    message = (
+        f"[Stock AI] {cfg['label']} update\n"
+        f"status: {pipeline_status}\n"
+        f"state: {content_state(window_id, output_tail)}\n"
+        f"dashboard: {dashboard_url}\n"
+        "advisory only; no trading instruction."
+    )
+    return tail_text(message, LINE_BODY_LIMIT)
+
+
+def send_concise_line(window_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str) -> dict[str, Any]:
+    cfg = window_config(window_id)
+    if cfg["line_mode"] == "handled_by_pipeline":
+        return {
+            "send_attempted": False,
+            "send_status": "handled_by_pipeline",
+            "policy": cfg["line_policy"],
+            "concise_reminder": False,
+            "secret_values_printed": False,
+        }
+    message = build_line_message(window_id, generated_at, pipeline_status, dashboard_url, output_tail)
+    line_module = importlib.import_module("reports.line_report_sender")
+    line_sender = getattr(line_module, "send_line_report")
+    line_sender(message)
+    return {
+        "send_attempted": True,
+        "send_status": "sent",
+        "policy": cfg["line_policy"],
+        "concise_reminder": True,
+        "message_chars": len(message),
+        "secret_values_printed": False,
+    }
+
+
+def run_pipeline(python_bin: str, window_id: str) -> subprocess.CompletedProcess[str]:
+    cfg = window_config(window_id)
     return subprocess.run(
-        [python_bin, "scripts/run_pipeline.py", "pre_open", "--production-approved"],
+        [python_bin, "scripts/run_pipeline.py", cfg["pipeline_type"], "--production-approved"],
         cwd=REPO_ROOT,
         text=True,
         stdout=subprocess.PIPE,
@@ -176,6 +284,7 @@ def run_pipeline(python_bin: str) -> subprocess.CompletedProcess[str]:
 
 
 def dry_run_result(args: argparse.Namespace, generated_at: str, run_id: str) -> dict[str, Any]:
+    cfg = window_config(args.window)
     dashboard_dir = Path(args.dashboard_publish_dir)
     mail_env = Path(args.mail_env_file).expanduser()
     return {
@@ -185,25 +294,31 @@ def dry_run_result(args: argparse.Namespace, generated_at: str, run_id: str) -> 
         "generated_at": generated_at,
         "mode": "dry_run_no_delivery",
         "scheduler_window": args.window,
+        "schedule_time_taiwan": cfg["local_time"],
+        "pipeline_type": cfg["pipeline_type"],
         "approved_delivery_env": env_enabled("STOCK_AI_APPROVED_DELIVERY"),
-        "pipeline_would_run": args.window == WINDOW,
-        "line_would_send": args.window == WINDOW,
-        "email_would_send": args.window == WINDOW,
-        "dashboard_would_publish": args.window == WINDOW,
+        "pipeline_would_run": True,
+        "line_policy": cfg["line_policy"],
+        "line_would_send": cfg["line_mode"] != "handled_by_pipeline",
+        "email_policy": cfg["email_policy"],
+        "email_would_send": True,
+        "dashboard_policy": cfg["dashboard_policy"],
+        "dashboard_would_publish": True,
+        "fallback_state": cfg["fallback_state"],
         "dashboard_publish_dir": str(dashboard_dir),
         "dashboard_publish_dir_exists": dashboard_dir.exists(),
         "dashboard_publish_dir_writable": dashboard_dir.exists() and os.access(dashboard_dir, os.W_OK),
         "mail_env_file_exists": mail_env.exists(),
         "secret_values_printed": False,
         "trading_order_portfolio_action": False,
-        "ok": args.window == WINDOW,
-        "decision": "approved_pre_open_delivery_dry_run_completed" if args.window == WINDOW else "unsupported_window",
+        "ok": True,
+        "decision": "approved_scheduler_delivery_dry_run_completed",
     }
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run approved 07:00 pre-open delivery.")
-    parser.add_argument("--window", required=True)
+    parser = argparse.ArgumentParser(description="Run approved scheduler delivery.")
+    parser.add_argument("--window", required=True, choices=sorted(WINDOWS))
     parser.add_argument("--dashboard-publish-dir", default=str(DEFAULT_DASHBOARD_DIR))
     parser.add_argument("--dashboard-url", default="http://35.201.242.167/stock-ai-dashboard/index.html")
     parser.add_argument("--mail-env-file", default=str(DEFAULT_MAIL_ENV_FILE))
@@ -214,12 +329,10 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    cfg = window_config(args.window)
     generated = now_taipei()
     generated_at = generated.isoformat()
-    run_id = f"approved-pre-open-delivery-{generated.strftime('%Y%m%d-%H%M%S')}"
-
-    if args.window != WINDOW:
-        raise SystemExit(f"unsupported approved delivery window: {args.window}")
+    run_id = f"approved-{args.window}-delivery-{generated.strftime('%Y%m%d-%H%M%S')}"
 
     if args.dry_run:
         result = dry_run_result(args, generated_at, run_id)
@@ -231,16 +344,16 @@ def main() -> int:
         raise SystemExit("STOCK_AI_APPROVED_DELIVERY=1 is required for approved delivery")
 
     python_bin = os.environ.get("PYTHON_BIN", sys.executable)
-    completed = run_pipeline(python_bin)
+    completed = run_pipeline(python_bin, args.window)
     output = completed.stdout or ""
     if output:
         print(output, end="" if output.endswith("\n") else "\n")
 
     pipeline_status = "completed" if completed.returncode == 0 else "failed"
     output_tail = tail_text(output, EMAIL_BODY_LIMIT)
-    dashboard = publish_dashboard(Path(args.dashboard_publish_dir), run_id, generated_at, pipeline_status, output_tail)
+    dashboard = publish_dashboard(Path(args.dashboard_publish_dir), args.window, run_id, generated_at, pipeline_status, output_tail)
     try:
-        email = send_delivery_email(Path(args.mail_env_file), run_id, generated_at, pipeline_status, args.dashboard_url, output_tail)
+        email = send_delivery_email(Path(args.mail_env_file), args.window, run_id, generated_at, pipeline_status, args.dashboard_url, output_tail)
         email_ok = True
     except Exception as exc:  # pragma: no cover - runtime SMTP/config failure path
         email = {
@@ -250,6 +363,18 @@ def main() -> int:
             "secret_values_printed": False,
         }
         email_ok = False
+    try:
+        line = send_concise_line(args.window, generated_at, pipeline_status, args.dashboard_url, output_tail)
+        line_ok = True
+    except Exception as exc:  # pragma: no cover - runtime LINE/config failure path
+        line = {
+            "send_attempted": True,
+            "send_status": "failed",
+            "policy": cfg["line_policy"],
+            "error_type": exc.__class__.__name__,
+            "secret_values_printed": False,
+        }
+        line_ok = False
     result = {
         "schema_version": SCHEMA_VERSION,
         "task_id": TASK_ID,
@@ -257,22 +382,31 @@ def main() -> int:
         "generated_at": generated_at,
         "mode": "approved_delivery",
         "scheduler_window": args.window,
+        "schedule_time_taiwan": cfg["local_time"],
+        "pipeline_type": cfg["pipeline_type"],
         "pipeline_returncode": completed.returncode,
         "pipeline_status": pipeline_status,
-        "line_delivery": "handled_by_pre_open_pipeline",
+        "content_state": content_state(args.window, output_tail),
+        "delivery_policy": {
+            "line": cfg["line_policy"],
+            "email": cfg["email_policy"],
+            "dashboard": cfg["dashboard_policy"],
+        },
+        "fallback_state": cfg["fallback_state"],
+        "line_delivery": line,
         "email_delivery": email,
         "dashboard_delivery": dashboard,
         "dashboard_url": args.dashboard_url,
         "secret_values_printed": False,
         "trading_order_portfolio_action": False,
-        "ok": completed.returncode == 0 and email_ok,
-        "decision": "approved_pre_open_delivery_completed"
-        if completed.returncode == 0 and email_ok
-        else "approved_pre_open_delivery_completed_with_delivery_failure",
+        "ok": completed.returncode == 0 and email_ok and line_ok,
+        "decision": "approved_scheduler_delivery_completed"
+        if completed.returncode == 0 and email_ok and line_ok
+        else "approved_scheduler_delivery_completed_with_delivery_failure",
     }
     Path(args.output).write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(stable_json({key: result[key] for key in ["schema_version", "task_id", "run_id", "scheduler_window", "pipeline_status", "dashboard_url", "secret_values_printed", "trading_order_portfolio_action", "ok", "decision"]}))
-    return completed.returncode if completed.returncode != 0 else 0 if email_ok else 1
+    return completed.returncode if completed.returncode != 0 else 0 if email_ok and line_ok else 1
 
 
 if __name__ == "__main__":

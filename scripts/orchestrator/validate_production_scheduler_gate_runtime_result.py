@@ -14,7 +14,7 @@ from typing import Any
 SCHEMA_VERSION = "production_scheduler_gate_runtime_activation_v1"
 SUMMARY_SCHEMA_VERSION = "production_scheduler_gate_runtime_summary_v1"
 TASK_ID = "AI-DEV-101"
-WINDOWS = ["pre_open_0700", "intraday_1305", "pre_close_1335"]
+WINDOWS = ["pre_open_0700", "intraday_1305", "pre_close_1335", "post_close_1500"]
 CHANNELS = ["email", "line", "dashboard"]
 DECISIONS = {
     "production_scheduler_gate_runtime_activation_completed",
