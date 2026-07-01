@@ -1,27 +1,12 @@
-from app.pipelines.context import create_pipeline_context
-
-
-def build_pre_close_context_summary(context, dry_run=False):
-    return {
-        "pipeline_type": context["pipeline_type"],
-        "pipeline_run_id": context["pipeline_run_id"],
-        "run_date": context["run_date"],
-        "run_time": context["run_time"],
-        "dry_run": dry_run,
-    }
-
-
-def print_pre_close_context_summary(summary):
-    print("pipeline_type:", summary["pipeline_type"])
-    print("pipeline_run_id:", summary["pipeline_run_id"])
-    print("run_date:", summary["run_date"])
-    print("run_time:", summary["run_time"])
-    print("dry_run:", summary["dry_run"])
+from app.pipelines.stock_analysis_report_pipeline import run_stock_analysis_report_pipeline
 
 
 def run_pre_close_pipeline(dry_run=False):
-    context = create_pipeline_context("pre_close")
-    summary = build_pre_close_context_summary(context, dry_run=dry_run)
-    print_pre_close_context_summary(summary)
-
-    return summary
+    return run_stock_analysis_report_pipeline(
+        "pre_close",
+        dry_run=dry_run,
+        update_historical=False,
+        write_results=True,
+        send_full_line_report=False,
+        run_backtest_update_after=False,
+    )
