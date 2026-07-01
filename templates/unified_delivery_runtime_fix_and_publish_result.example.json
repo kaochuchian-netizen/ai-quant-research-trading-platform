@@ -1,0 +1,33 @@
+{
+  "schema_version": "unified_delivery_runtime_fix_and_publish_result_v1",
+  "task_id": "AI-DEV-109",
+  "dashboard": {
+    "visible": true,
+    "url_or_path": "file:///home/example/stock-ai/static_exports/stock_ai_private_static_dashboard/index.html",
+    "served_static_web_root": false,
+    "blocker": "no_existing_served_static_directory_writable_without_service_or_permission_changes"
+  },
+  "line_test": {
+    "attempted": true,
+    "success": false,
+    "error_category": "ConnectionError"
+  },
+  "email_test": {
+    "attempted": true,
+    "success": false,
+    "error_category": "gaierror",
+    "runtime_settings_present": true
+  },
+  "tomorrow_readiness": {
+    "line": false,
+    "email": false,
+    "dashboard": true
+  },
+  "scheduler_activation_command_candidate": "python3 scripts/orchestrator/production_scheduler_gate_runtime.py --input templates/production_scheduler_gate_runtime_input.example.json --output /tmp/production_scheduler_gate_runtime_result.json --summary-output /tmp/production_scheduler_gate_runtime_summary.json --window pre_open_0700 --pretty",
+  "safety_confirmations": {
+    "secret_values_printed": false,
+    "cron_systemd_timer_service_mutated": false,
+    "trading_order_portfolio_actions_enabled": false,
+    "scheduler_activated": false
+  }
+}

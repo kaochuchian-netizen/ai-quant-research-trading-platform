@@ -1,0 +1,7 @@
+{
+  "generated_at": "2026-07-01T09:59:25+08:00",
+  "index_path": "static_exports/stock_ai_private_static_dashboard/index.html",
+  "schema_version": "private_static_dashboard_publish_manifest_v1",
+  "source_decision": "dashboard_delivery_gate_approved_for_private_static_publish",
+  "source_run_id": "ai-dev-109-dashboard-gate-approved-20260701"
+}

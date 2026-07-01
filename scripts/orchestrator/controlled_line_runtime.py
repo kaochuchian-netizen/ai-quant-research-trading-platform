@@ -13,6 +13,10 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 DEFAULT_INPUT = Path("templates/controlled_line_runtime_input.example.json")
 SCHEMA_VERSION = "controlled_line_runtime_reactivation_v1"
 SUMMARY_SCHEMA_VERSION = "controlled_line_runtime_summary_v1"
@@ -205,11 +209,11 @@ def build_result(data: dict[str, Any], send_test_line: bool) -> dict[str, Any]:
         runtime_attempt["attempted"] = True
         side_effects["read_secrets"] = True
         side_effects["sent_notification"] = True
-        side_effects["sent_line_push"] = True
         side_effects["called_line_api"] = True
         test_message = build_test_message(data, run_id, generated_at)
         runtime_attempt.update(execute_test_push(test_message))
         if runtime_attempt["ok"]:
+            side_effects["sent_line_push"] = True
             push_status = "sent"
             test_message_sent = True
             decision = DECISION_COMPLETED_WITH_TEST

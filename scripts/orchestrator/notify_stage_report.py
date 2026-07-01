@@ -106,8 +106,9 @@ def preview_payload(subject: str, body: str, env_file: str | None) -> dict[str, 
         "subject": subject,
         "notice_chars": len(body),
         "env_file_loaded": bool(env_file),
-        "configured_to": env_value(ENV_TO),
-        "configured_from": env_value(ENV_FROM),
+        "configured_to_present": env_value(ENV_TO) is not None,
+        "configured_from_present": env_value(ENV_FROM) is not None,
+        "value_printed": False,
         "required_env": [ENV_HOST, ENV_PORT, ENV_USER, ENV_PASS, ENV_FROM, ENV_TO],
     }
 

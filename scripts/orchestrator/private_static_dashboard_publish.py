@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import os
 import sys
 from copy import deepcopy
 from datetime import datetime
@@ -15,8 +16,15 @@ from zoneinfo import ZoneInfo
 
 
 DEFAULT_INPUT = Path("templates/dashboard_delivery_gate_result.example.json")
+DEFAULT_LOCAL_BROWSER_DIR = Path("static_exports/stock_ai_private_static_dashboard")
 SCHEMA_VERSION = "private_static_dashboard_publish_v1"
 TASK_ID = "AI-DEV-107"
+STATIC_WEB_CANDIDATES = [
+    Path("/var/www/html"),
+    Path("/usr/share/nginx/html"),
+    Path("/srv/www"),
+    Path("/srv/http"),
+]
 SIDE_EFFECTS_BASE = {
     "read_secrets": False,
     "sent_notification": False,
@@ -129,6 +137,56 @@ def render_html(gate_result: dict[str, Any], generated_at: str) -> str:
 """
 
 
+def inspect_static_targets() -> list[dict[str, Any]]:
+    targets: list[dict[str, Any]] = []
+    for path in STATIC_WEB_CANDIDATES:
+        targets.append(
+            {
+                "path": str(path),
+                "exists": path.exists(),
+                "is_dir": path.is_dir(),
+                "writable": path.exists() and path.is_dir() and os.access(path, os.W_OK),
+            }
+        )
+    return targets
+
+
+def choose_publish_target(requested_dir: Path, auto_browser_target: bool) -> dict[str, Any]:
+    inspected = inspect_static_targets()
+    if not auto_browser_target:
+        resolved = requested_dir
+        return {
+            "publish_dir": resolved,
+            "target_type": "explicit_path",
+            "browser_visible": True,
+            "url": f"file://{resolved.resolve()}/index.html",
+            "inspected_static_targets": inspected,
+            "blocker": None,
+        }
+
+    for target in inspected:
+        if target["exists"] and target["is_dir"] and target["writable"]:
+            publish_dir = Path(str(target["path"])) / "stock-ai-private-dashboard"
+            return {
+                "publish_dir": publish_dir,
+                "target_type": "served_static_web_root",
+                "browser_visible": True,
+                "url": "/stock-ai-private-dashboard/index.html",
+                "inspected_static_targets": inspected,
+                "blocker": None,
+            }
+
+    publish_dir = DEFAULT_LOCAL_BROWSER_DIR
+    return {
+        "publish_dir": publish_dir,
+        "target_type": "local_file_static_export",
+        "browser_visible": True,
+        "url": f"file://{publish_dir.resolve()}/index.html",
+        "inspected_static_targets": inspected,
+        "blocker": "no_existing_served_static_directory_writable_without_service_or_permission_changes",
+    }
+
+
 def publish_files(gate_result: dict[str, Any], publish_dir: Path, generated_at: str) -> list[str]:
     publish_dir.mkdir(parents=True, exist_ok=True)
     index_path = publish_dir / "index.html"
@@ -145,8 +203,10 @@ def publish_files(gate_result: dict[str, Any], publish_dir: Path, generated_at: 
     return [str(index_path), str(manifest_path)]
 
 
-def build_result(gate_result: dict[str, Any], publish_dir: Path, publish: bool) -> dict[str, Any]:
+def build_result(gate_result: dict[str, Any], publish_dir: Path, publish: bool, auto_browser_target: bool) -> dict[str, Any]:
     generated_at = now_taipei()
+    target = choose_publish_target(publish_dir, auto_browser_target)
+    selected_publish_dir = Path(target["publish_dir"])
     gate = as_dict(gate_result.get("dashboard_delivery_gate"))
     delivery_allowed = gate.get("delivery_allowed") is True
     channel_enabled = gate.get("dashboard_channel_enabled") is True
@@ -155,7 +215,7 @@ def build_result(gate_result: dict[str, Any], publish_dir: Path, publish: bool) 
     side_effects = deepcopy(SIDE_EFFECTS_BASE)
     written_files: list[str] = []
     if publish and publish_allowed:
-        written_files = publish_files(gate_result, publish_dir, generated_at)
+        written_files = publish_files(gate_result, selected_publish_dir, generated_at)
         side_effects["deployed_dashboard"] = True
     publish_status = (
         "published_private_static_dashboard"
@@ -183,8 +243,12 @@ def build_result(gate_result: dict[str, Any], publish_dir: Path, publish: bool) 
                 if value is not True
             ],
         },
-        "dashboard_publish_path": str(publish_dir),
-        "dashboard_private_url_hint": f"file://{publish_dir.resolve()}/index.html",
+        "dashboard_publish_path": str(selected_publish_dir),
+        "dashboard_private_url_hint": target["url"],
+        "dashboard_browser_visible": bool(target["browser_visible"] and written_files),
+        "dashboard_target_type": target["target_type"],
+        "dashboard_target_blocker": target["blocker"],
+        "inspected_static_targets": target["inspected_static_targets"],
         "publish_requested": publish,
         "dry_run": dry_run,
         "publish_status": publish_status,
@@ -216,6 +280,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--pretty", action="store_true")
     parser.add_argument("--dry-run", action="store_true", help="Do not publish. This is the default.")
     parser.add_argument("--publish", action="store_true", help="Write private static files only if the dashboard gate is open.")
+    parser.add_argument("--auto-browser-target", action="store_true", help="Prefer an existing writable static web root, otherwise use a local browser-viewable file export.")
     return parser.parse_args()
 
 
@@ -223,7 +288,7 @@ def main() -> int:
     args = parse_args()
     if args.dry_run and args.publish:
         raise SystemExit("--dry-run and --publish cannot be used together")
-    result = build_result(load_json(Path(args.input)), Path(args.publish_dir), args.publish)
+    result = build_result(load_json(Path(args.input)), Path(args.publish_dir), args.publish, args.auto_browser_target)
     rendered = write_json(result, Path(args.output), args.pretty)
     sys.stdout.write(rendered)
     if not rendered.endswith("\n"):
