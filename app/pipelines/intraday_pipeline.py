@@ -1,12 +1,5 @@
-from app.pipelines.stock_analysis_report_pipeline import run_stock_analysis_report_pipeline
+from app.pipelines.afternoon_report_pipeline import run_afternoon_report_pipeline
 
 
 def run_intraday_pipeline(dry_run=False):
-    return run_stock_analysis_report_pipeline(
-        "intraday",
-        dry_run=dry_run,
-        update_historical=False,
-        write_results=True,
-        send_full_line_report=False,
-        run_backtest_update_after=False,
-    )
+    return run_afternoon_report_pipeline("intraday", dry_run=dry_run)
