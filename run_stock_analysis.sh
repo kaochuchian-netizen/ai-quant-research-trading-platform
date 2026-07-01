@@ -30,6 +30,21 @@ if [ "${STOCK_AI_LEGACY_PRODUCTION_APPROVED:-0}" = "1" ]; then
   exit $?
 fi
 
+if [ "${STOCK_AI_APPROVED_DELIVERY:-0}" = "1" ]; then
+  if [ "$WINDOW" != "pre_open_0700" ]; then
+    echo "STOCK_AI_APPROVED_DELIVERY is only supported for pre_open_0700; observed $WINDOW" >> "$LOG_PATH" 2>&1
+    exit 1
+  fi
+
+  "$PYTHON_BIN" scripts/orchestrator/approved_pre_open_delivery.py \
+    --window "$WINDOW" \
+    --dashboard-publish-dir "${STOCK_AI_DASHBOARD_PUBLISH_DIR:-/var/www/stock-ai-dashboard}" \
+    --dashboard-url "${STOCK_AI_DASHBOARD_URL:-http://35.201.242.167/stock-ai-dashboard/index.html}" \
+    --output "${STOCK_AI_APPROVED_DELIVERY_OUTPUT:-/tmp/approved_pre_open_delivery_result.json}" \
+    >> "$LOG_PATH" 2>&1
+  exit $?
+fi
+
 "$PYTHON_BIN" scripts/orchestrator/production_scheduler_gate_runtime.py \
   --input "$GATE_INPUT" \
   --output "$GATE_OUTPUT" \

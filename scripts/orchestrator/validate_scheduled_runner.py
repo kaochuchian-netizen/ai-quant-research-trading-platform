@@ -37,6 +37,7 @@ def main() -> int:
     repo_root = Path(args.repo_root).resolve()
     shell_path = repo_root / "run_stock_analysis.sh"
     cli_path = repo_root / "scripts" / "run_pipeline.py"
+    approved_delivery_path = repo_root / "scripts" / "orchestrator" / "approved_pre_open_delivery.py"
     runner_path = repo_root / "app" / "pipelines" / "runner.py"
     main_path = repo_root / "main.py"
 
@@ -44,6 +45,7 @@ def main() -> int:
     files = {
         "run_stock_analysis.sh": shell_path,
         "scripts/run_pipeline.py": cli_path,
+        "scripts/orchestrator/approved_pre_open_delivery.py": approved_delivery_path,
         "app/pipelines/runner.py": runner_path,
         "main.py": main_path,
     }
@@ -54,6 +56,7 @@ def main() -> int:
 
     shell_text = read_text(shell_path) if shell_path.exists() else ""
     cli_text = read_text(cli_path) if cli_path.exists() else ""
+    approved_delivery_text = read_text(approved_delivery_path) if approved_delivery_path.exists() else ""
     runner_text = read_text(runner_path) if runner_path.exists() else ""
     main_text = read_text(main_path) if main_path.exists() else ""
 
@@ -69,13 +72,22 @@ def main() -> int:
     )
     shell_command = shell_invocation.split(">>", 1)[0].strip()
 
-    if shell_command != EXPECTED_SHELL_COMMAND:
+    approved_wrapper_enabled = (
+        "STOCK_AI_APPROVED_DELIVERY" in shell_text
+        and "scripts/orchestrator/approved_pre_open_delivery.py" in shell_text
+        and "pre_open_0700" in shell_text
+        and "scripts/run_pipeline.py\", \"pre_open\", \"--production-approved\"" in approved_delivery_text
+    )
+    legacy_escape_hatch_present = EXPECTED_SHELL_COMMAND in shell_text
+    production_runner_present = EXPECTED_SHELL_COMMAND in shell_text or approved_wrapper_enabled
+
+    if not production_runner_present:
         reasons.append("run_stock_analysis.sh does not call the expected scheduled runner command")
-    if " main.py" in shell_command or shell_command.endswith("main.py"):
+    if " main.py" in shell_text or shell_text.strip().endswith("main.py"):
         reasons.append("run_stock_analysis.sh still calls main.py")
-    if "scripts/run_pipeline.py" not in shell_command:
+    if not production_runner_present:
         reasons.append("run_stock_analysis.sh does not call scripts/run_pipeline.py")
-    if "--production-approved" not in shell_command:
+    if not production_runner_present:
         reasons.append("scheduled runner command does not require --production-approved")
     if "--dry-run" in shell_command:
         reasons.append("scheduled runner command should not include --dry-run")
@@ -92,6 +104,8 @@ def main() -> int:
         "checked_files": sorted(files),
         "scheduled_command": shell_command,
         "expected_command": EXPECTED_SHELL_COMMAND,
+        "approved_wrapper_enabled": approved_wrapper_enabled,
+        "legacy_escape_hatch_present": legacy_escape_hatch_present,
         "main_py_guard_present": MAIN_PY_GUARD in main_text,
         "reasons": reasons,
         "side_effects": {
