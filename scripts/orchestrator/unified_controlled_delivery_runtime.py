@@ -34,6 +34,7 @@ EMAIL_ENV_NAMES = [
     "ORCH_MAIL_FROM",
     "ORCH_MAIL_TO",
 ]
+DEFAULT_MAIL_ENV_FILE = Path("~/.config/stock-ai-orchestrator/mail.env")
 SIDE_EFFECTS_BASE = {
     "read_secrets": False,
     "sent_notification": False,
@@ -106,9 +107,51 @@ def as_list(value: Any) -> list[Any]:
     return value if isinstance(value, list) else []
 
 
+def parse_env_assignment(line: str) -> tuple[str, str] | None:
+    line = line.strip()
+    if not line or line.startswith("#"):
+        return None
+    if line.startswith("export "):
+        line = line[len("export "):].strip()
+    if "=" not in line:
+        return None
+    key, value = line.split("=", 1)
+    key = key.strip()
+    value = value.strip().strip('"').strip("'")
+    if key not in EMAIL_ENV_NAMES:
+        return None
+    return key, value
+
+
+def load_mail_env_file(path: Path) -> dict[str, Any]:
+    expanded = path.expanduser()
+    exists = expanded.exists()
+    loaded = False
+    error_type = None
+    if exists:
+        try:
+            for line in expanded.read_text(encoding="utf-8").splitlines():
+                parsed = parse_env_assignment(line)
+                if parsed is None:
+                    continue
+                key, value = parsed
+                os.environ.setdefault(key, value)
+            loaded = True
+        except Exception as exc:  # pragma: no cover - local runtime failure path
+            error_type = exc.__class__.__name__
+    return {
+        "attempted": True,
+        "path": str(expanded),
+        "exists": exists,
+        "loaded": loaded,
+        "error_type": error_type,
+        "value_printed": False,
+    }
+
+
 def env_presence(names: list[str]) -> dict[str, Any]:
-    present = [name for name in names if name in os.environ]
-    missing = [name for name in names if name not in os.environ]
+    present = [name for name in names if os.environ.get(name)]
+    missing = [name for name in names if not os.environ.get(name)]
     return {
         "inspected": True,
         "value_printed": False,
@@ -171,13 +214,22 @@ def command_for_runtime(flag: str, output_name: str) -> str:
     )
 
 
+def email_test_command() -> str:
+    return (
+        "python3 scripts/orchestrator/controlled_email_runtime.py "
+        "--input templates/unified_controlled_delivery_runtime_input.example.json "
+        "--output /tmp/controlled_email_runtime_result.json "
+        "--summary-output /tmp/controlled_email_runtime_summary.json "
+        "--pretty --send-test-email"
+    )
+
+
 def dashboard_publish_command() -> str:
     return (
         "python3 scripts/orchestrator/private_static_dashboard_publish.py "
         "--input templates/dashboard_delivery_gate_result.example.json "
-        "--publish-dir /tmp/stock_ai_private_static_dashboard "
         "--output /tmp/private_static_dashboard_publish_result.json "
-        "--pretty --publish"
+        "--pretty --publish --auto-browser-target"
     )
 
 
@@ -208,13 +260,15 @@ def build_line_status(decisions: dict[str, dict[str, Any]], send_test_line: bool
 
 
 def build_email_status(decisions: dict[str, dict[str, Any]], send_test_email: bool) -> dict[str, Any]:
+    env_file = load_mail_env_file(DEFAULT_MAIL_ENV_FILE)
     presence = env_presence(EMAIL_ENV_NAMES)
     allowed = decisions["email"]["delivery_allowed"] is True
     return {
-        "runtime": "scripts/orchestrator/notify_stage_report.py",
+        "runtime": "scripts/orchestrator/controlled_email_runtime.py",
         "requested": send_test_email,
         "dry_run": not send_test_email,
         "gate_approved_for_manual_test": allowed,
+        "mail_env_file": env_file,
         "runtime_settings_present": presence["all_required_present"],
         "runtime_settings_presence": presence,
         "send_attempted": False,
@@ -307,7 +361,7 @@ def build_result(data: dict[str, Any], send_test_line: bool, send_test_email: bo
         "dashboard_private_url_hint": dashboard_status["private_url_hint"],
         "dashboard_publish_path": dashboard_status["private_static_publish_path"],
         "line_test_command": command_for_runtime("--send-test-line", "unified_controlled_line_test_result.json"),
-        "email_test_command": command_for_runtime("--send-test-email", "unified_controlled_email_test_result.json"),
+        "email_test_command": email_test_command(),
         "dashboard_publish_command": dashboard_publish_command(),
         "scheduler_activation_command": scheduler_activation_command(),
         "side_effects": side_effects,
