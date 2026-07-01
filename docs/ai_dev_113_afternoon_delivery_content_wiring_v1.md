@@ -7,23 +7,23 @@ stock-analysis report content.
 
 ## Change
 
-The 07:00 pre-open stock-analysis/report generation flow is extracted into a
-shared pipeline helper:
+The afternoon stock-analysis/report generation flow is implemented in:
 
 ```text
-app/pipelines/stock_analysis_report_pipeline.py
+app/pipelines/afternoon_report_pipeline.py
 ```
 
-The existing pipeline entrypoints now use that helper:
+The pipeline entrypoints now behave as follows:
 
-- `pre_open`: keeps existing behavior, including historical update, SQLite writes,
-  full production LINE report batches, and backtest auto-update.
+- `pre_open`: keeps existing 07:00 behavior unchanged, including historical
+  update, SQLite writes, full production LINE report batches, and backtest
+  auto-update.
 - `intraday`: generates stock-analysis report text, writes analysis results, and
   suppresses full LINE batches.
 - `pre_close`: generates stock-analysis report text, writes analysis results, and
   suppresses full LINE batches.
-- `post_close`: generates stock-analysis report text, writes analysis results, and
-  suppresses full LINE batches.
+- `post_close`: generates stock-analysis report text, writes analysis results,
+  and suppresses full LINE batches.
 
 The approved scheduler wrapper remains responsible for concise afternoon LINE
 reminders. Email and Dashboard receive the captured report output from the
@@ -45,14 +45,13 @@ pipeline run.
 - No trading, order placement, or portfolio action is introduced.
 - No cron, systemd, timer, service, Docker, or Dify runtime configuration is
   changed by this repo patch.
-- The existing 07:00 behavior is preserved through the shared helper with full
-  LINE report batches enabled only for `pre_open`.
+- The existing 07:00 behavior is preserved in `pre_open_pipeline.py`.
 
 ## Validation
 
 ```bash
 python3 -m py_compile \
-  app/pipelines/stock_analysis_report_pipeline.py \
+  app/pipelines/afternoon_report_pipeline.py \
   app/pipelines/pre_open_pipeline.py \
   app/pipelines/intraday_pipeline.py \
   app/pipelines/pre_close_pipeline.py \
@@ -61,14 +60,12 @@ python3 -m py_compile \
   scripts/run_pipeline.py \
   scripts/orchestrator/approved_pre_open_delivery.py
 
-python3 scripts/run_pipeline.py intraday --dry-run --limit 1
-python3 scripts/run_pipeline.py pre_close --dry-run --limit 1
-python3 scripts/run_pipeline.py post_close --dry-run --limit 1
+python3 scripts/run_pipeline.py intraday --dry-run
+python3 scripts/run_pipeline.py pre_close --dry-run
+python3 scripts/run_pipeline.py post_close --dry-run
 ```
 
-The `--limit` flag remains restricted to pre-open in the runtime contract, so the
-last three commands should be executed without `--limit` if the validator has not
-been extended. For a low-cost check, use `--dry-run` and inspect for:
+Expected afternoon output markers:
 
 ```text
 pipeline_report_summary
