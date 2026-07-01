@@ -32,7 +32,7 @@ DEFAULT_ALLOWED_PATHS = [
     "app/pipelines/intraday_pipeline.py",
     "app/pipelines/pre_close_pipeline.py",
     "app/pipelines/post_close_pipeline.py",
-    "app/pipelines/stock_analysis_report_pipeline.py",
+    "app/pipelines/afternoon_report_pipeline.py",
     "scripts/run_pipeline.py",
     "scripts/update_historical_csv.py",
     "app/pipelines/runner.py",
