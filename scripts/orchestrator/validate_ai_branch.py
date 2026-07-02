@@ -41,6 +41,7 @@ DEFAULT_ALLOWED_PATHS = [
     "orchestrator/queue/",
     "orchestrator/templates/",
     "templates/",
+    "test_shioaji.py",
 ]
 
 DEFAULT_MAX_CHANGED_FILES = 12
