@@ -1,0 +1,875 @@
+{
+  "adaptive_recommendations": [
+    {
+      "confidence": 0.5375,
+      "direction": "hold",
+      "evidence_count": 8,
+      "guardrails": [
+        "read-only dry-run recommendation",
+        "no production forecast weight mutation",
+        "no confidence/rating/action rule mutation",
+        "requires human review before any future production change"
+      ],
+      "human_review_required": true,
+      "production_mutation_allowed": false,
+      "reason": "effect is not strong enough for promotion",
+      "recommendation_id": "rec-001",
+      "target_area": "factor_weight",
+      "target_key": "adr"
+    },
+    {
+      "confidence": 0.5925,
+      "direction": "hold",
+      "evidence_count": 20,
+      "guardrails": [
+        "read-only dry-run recommendation",
+        "no production forecast weight mutation",
+        "no confidence/rating/action rule mutation",
+        "requires human review before any future production change"
+      ],
+      "human_review_required": true,
+      "production_mutation_allowed": false,
+      "reason": "effect is not strong enough for promotion",
+      "recommendation_id": "rec-002",
+      "target_area": "factor_weight",
+      "target_key": "chip"
+    },
+    {
+      "confidence": 0.79808,
+      "direction": "increase",
+      "evidence_count": 24,
+      "guardrails": [
+        "read-only dry-run recommendation",
+        "no production forecast weight mutation",
+        "no confidence/rating/action rule mutation",
+        "requires human review before any future production change"
+      ],
+      "human_review_required": true,
+      "production_mutation_allowed": false,
+      "reason": "offline sample shows stable effectiveness",
+      "recommendation_id": "rec-003",
+      "target_area": "factor_weight",
+      "target_key": "fundamental"
+    },
+    {
+      "confidence": 0.6,
+      "direction": "decrease",
+      "evidence_count": 20,
+      "guardrails": [
+        "read-only dry-run recommendation",
+        "no production forecast weight mutation",
+        "no confidence/rating/action rule mutation",
+        "requires human review before any future production change"
+      ],
+      "human_review_required": true,
+      "production_mutation_allowed": false,
+      "reason": "sample suggests inverted or adverse contribution",
+      "recommendation_id": "rec-004",
+      "target_area": "factor_weight",
+      "target_key": "macro"
+    },
+    {
+      "confidence": 0.2,
+      "direction": "monitor",
+      "evidence_count": 0,
+      "guardrails": [
+        "read-only dry-run recommendation",
+        "no production forecast weight mutation",
+        "no confidence/rating/action rule mutation",
+        "requires human review before any future production change"
+      ],
+      "human_review_required": true,
+      "production_mutation_allowed": false,
+      "reason": "insufficient sample; do not increase or decrease",
+      "recommendation_id": "rec-005",
+      "target_area": "feature_group",
+      "target_key": "missing_data"
+    },
+    {
+      "confidence": 0.516,
+      "direction": "hold",
+      "evidence_count": 14,
+      "guardrails": [
+        "read-only dry-run recommendation",
+        "no production forecast weight mutation",
+        "no confidence/rating/action rule mutation",
+        "requires human review before any future production change"
+      ],
+      "human_review_required": true,
+      "production_mutation_allowed": false,
+      "reason": "effect is not strong enough for promotion",
+      "recommendation_id": "rec-006",
+      "target_area": "factor_weight",
+      "target_key": "news"
+    },
+    {
+      "confidence": 0.7605,
+      "direction": "increase",
+      "evidence_count": 24,
+      "guardrails": [
+        "read-only dry-run recommendation",
+        "no production forecast weight mutation",
+        "no confidence/rating/action rule mutation",
+        "requires human review before any future production change"
+      ],
+      "human_review_required": true,
+      "production_mutation_allowed": false,
+      "reason": "offline sample shows stable effectiveness",
+      "recommendation_id": "rec-007",
+      "target_area": "factor_weight",
+      "target_key": "technical"
+    },
+    {
+      "confidence": 0.55,
+      "direction": "monitor",
+      "evidence_count": 8,
+      "guardrails": [
+        "read-only dry-run recommendation",
+        "no production forecast weight mutation",
+        "no confidence/rating/action rule mutation",
+        "requires human review before any future production change"
+      ],
+      "human_review_required": true,
+      "production_mutation_allowed": false,
+      "reason": "aggregated market source remains context, not primary evidence",
+      "recommendation_id": "rec-008",
+      "target_area": "source_priority",
+      "target_key": "C_market_aggregated:yfinance_adr"
+    },
+    {
+      "confidence": 0.55,
+      "direction": "monitor",
+      "evidence_count": 20,
+      "guardrails": [
+        "read-only dry-run recommendation",
+        "no production forecast weight mutation",
+        "no confidence/rating/action rule mutation",
+        "requires human review before any future production change"
+      ],
+      "human_review_required": true,
+      "production_mutation_allowed": false,
+      "reason": "aggregated market source remains context, not primary evidence",
+      "recommendation_id": "rec-009",
+      "target_area": "source_priority",
+      "target_key": "C_market_aggregated:finmind_market"
+    },
+    {
+      "confidence": 0.75,
+      "direction": "exclude_from_increase",
+      "evidence_count": 0,
+      "guardrails": [
+        "read-only dry-run recommendation",
+        "no production forecast weight mutation",
+        "no confidence/rating/action rule mutation",
+        "requires human review before any future production change"
+      ],
+      "human_review_required": true,
+      "production_mutation_allowed": false,
+      "reason": "sentiment/noise source can only support metadata",
+      "recommendation_id": "rec-010",
+      "target_area": "source_priority",
+      "target_key": "D_sentiment_or_noise:unknown_source"
+    },
+    {
+      "confidence": 0.75,
+      "direction": "exclude_from_increase",
+      "evidence_count": 14,
+      "guardrails": [
+        "read-only dry-run recommendation",
+        "no production forecast weight mutation",
+        "no confidence/rating/action rule mutation",
+        "requires human review before any future production change"
+      ],
+      "human_review_required": true,
+      "production_mutation_allowed": false,
+      "reason": "sentiment/noise source can only support metadata",
+      "recommendation_id": "rec-011",
+      "target_area": "source_priority",
+      "target_key": "D_sentiment_or_noise:google_news_rss"
+    },
+    {
+      "confidence": 0.428571,
+      "direction": "hold",
+      "evidence_count": 29,
+      "guardrails": [
+        "read-only dry-run recommendation",
+        "no production forecast weight mutation",
+        "no confidence/rating/action rule mutation",
+        "requires human review before any future production change"
+      ],
+      "human_review_required": true,
+      "production_mutation_allowed": false,
+      "reason": "target needs further review before production tuning",
+      "recommendation_id": "rec-012",
+      "target_area": "prediction_target",
+      "target_key": "next_day_high_low"
+    }
+  ],
+  "artifact_type": "factor_effectiveness_adaptive_recommendation_v1",
+  "contribution_analysis": [
+    {
+      "attribution_missing_count": 0,
+      "avg_contribution_score": 0.25,
+      "contribution_hit_rate": 0.5,
+      "factor_group": "adr",
+      "missing_attribution_policy": "usable for dry-run comparison only",
+      "production_mutation_allowed": false,
+      "sample_size": 8
+    },
+    {
+      "attribution_missing_count": 0,
+      "avg_contribution_score": 0.36,
+      "contribution_hit_rate": 0.55,
+      "factor_group": "chip",
+      "missing_attribution_policy": "usable for dry-run comparison only",
+      "production_mutation_allowed": false,
+      "sample_size": 20
+    },
+    {
+      "attribution_missing_count": 0,
+      "avg_contribution_score": 0.74,
+      "contribution_hit_rate": 0.791667,
+      "factor_group": "fundamental",
+      "missing_attribution_policy": "usable for dry-run comparison only",
+      "production_mutation_allowed": false,
+      "sample_size": 24
+    },
+    {
+      "attribution_missing_count": 0,
+      "avg_contribution_score": 0.22,
+      "contribution_hit_rate": 0.0,
+      "factor_group": "macro",
+      "missing_attribution_policy": "usable for dry-run comparison only",
+      "production_mutation_allowed": false,
+      "sample_size": 20
+    },
+    {
+      "attribution_missing_count": 3,
+      "avg_contribution_score": 0.0,
+      "contribution_hit_rate": 0.0,
+      "factor_group": "missing_data",
+      "missing_attribution_policy": "exclude from weight increase and keep for monitoring",
+      "production_mutation_allowed": false,
+      "sample_size": 3
+    },
+    {
+      "attribution_missing_count": 0,
+      "avg_contribution_score": 0.18,
+      "contribution_hit_rate": 0.0,
+      "factor_group": "news",
+      "missing_attribution_policy": "usable for dry-run comparison only",
+      "production_mutation_allowed": false,
+      "sample_size": 14
+    },
+    {
+      "attribution_missing_count": 0,
+      "avg_contribution_score": 0.68,
+      "contribution_hit_rate": 0.75,
+      "factor_group": "technical",
+      "missing_attribution_policy": "usable for dry-run comparison only",
+      "production_mutation_allowed": false,
+      "sample_size": 24
+    }
+  ],
+  "factor_effectiveness": [
+    {
+      "avg_actual_return_pct": 0.0,
+      "avg_contribution_score": 0.25,
+      "avg_evidence_score": 0.42,
+      "confidence_calibration_gap": 0.0,
+      "effectiveness_score": 53.75,
+      "factor_group": "adr",
+      "finding": "noisy",
+      "hit_rate": 0.5,
+      "interval_coverage": 1.0,
+      "limitations": [
+        "yfinance is market-context metadata"
+      ],
+      "median_actual_return_pct": 0.0,
+      "positive_return_rate": 0.5,
+      "production_mutation_allowed": false,
+      "sample_size": 8,
+      "usable_sample_size": 8
+    },
+    {
+      "avg_actual_return_pct": 0.09,
+      "avg_contribution_score": 0.36,
+      "avg_evidence_score": 0.58,
+      "confidence_calibration_gap": 0.0,
+      "effectiveness_score": 59.25,
+      "factor_group": "chip",
+      "finding": "weakly_effective",
+      "hit_rate": 0.55,
+      "interval_coverage": 1.0,
+      "limitations": [
+        "marginal dry-run signal"
+      ],
+      "median_actual_return_pct": 0.45,
+      "positive_return_rate": 0.55,
+      "production_mutation_allowed": false,
+      "sample_size": 20,
+      "usable_sample_size": 20
+    },
+    {
+      "avg_actual_return_pct": 1.383333,
+      "avg_contribution_score": 0.74,
+      "avg_evidence_score": 0.84,
+      "confidence_calibration_gap": 0.111667,
+      "effectiveness_score": 79.808,
+      "factor_group": "fundamental",
+      "finding": "effective",
+      "hit_rate": 0.791667,
+      "interval_coverage": 0.791667,
+      "limitations": [
+        "offline dry-run only"
+      ],
+      "median_actual_return_pct": 1.8,
+      "positive_return_rate": 0.791667,
+      "production_mutation_allowed": false,
+      "sample_size": 24,
+      "usable_sample_size": 24
+    },
+    {
+      "avg_actual_return_pct": -0.645,
+      "avg_contribution_score": 0.22,
+      "avg_evidence_score": 0.46,
+      "confidence_calibration_gap": 0.23,
+      "effectiveness_score": 40.15,
+      "factor_group": "macro",
+      "finding": "inverted",
+      "hit_rate": 0.35,
+      "interval_coverage": 0.35,
+      "limitations": [
+        "FinMind remains market-context only"
+      ],
+      "median_actual_return_pct": -1.1,
+      "positive_return_rate": 0.35,
+      "production_mutation_allowed": false,
+      "sample_size": 20,
+      "usable_sample_size": 20
+    },
+    {
+      "avg_actual_return_pct": 0.0,
+      "avg_contribution_score": 0.0,
+      "avg_evidence_score": 0.1,
+      "confidence_calibration_gap": 0.2,
+      "effectiveness_score": 16.0,
+      "factor_group": "missing_data",
+      "finding": "insufficient_sample",
+      "hit_rate": 0.0,
+      "interval_coverage": 1.0,
+      "limitations": [
+        "missing attribution sample"
+      ],
+      "median_actual_return_pct": 0.0,
+      "positive_return_rate": 0.0,
+      "production_mutation_allowed": false,
+      "sample_size": 3,
+      "usable_sample_size": 0
+    },
+    {
+      "avg_actual_return_pct": 0.0,
+      "avg_contribution_score": 0.18,
+      "avg_evidence_score": 0.35,
+      "confidence_calibration_gap": 0.02,
+      "effectiveness_score": 51.6,
+      "factor_group": "news",
+      "finding": "noisy",
+      "hit_rate": 0.5,
+      "interval_coverage": 1.0,
+      "limitations": [
+        "headline sentiment can be noisy"
+      ],
+      "median_actual_return_pct": 0.0,
+      "positive_return_rate": 0.5,
+      "production_mutation_allowed": false,
+      "sample_size": 14,
+      "usable_sample_size": 14
+    },
+    {
+      "avg_actual_return_pct": 0.925,
+      "avg_contribution_score": 0.68,
+      "avg_evidence_score": 0.72,
+      "confidence_calibration_gap": 0.11,
+      "effectiveness_score": 76.05,
+      "factor_group": "technical",
+      "finding": "effective",
+      "hit_rate": 0.75,
+      "interval_coverage": 0.75,
+      "limitations": [
+        "offline dry-run only"
+      ],
+      "median_actual_return_pct": 1.4,
+      "positive_return_rate": 0.75,
+      "production_mutation_allowed": false,
+      "sample_size": 24,
+      "usable_sample_size": 24
+    }
+  ],
+  "future_integration": {
+    "ai_dev_126_ready": true,
+    "notes": [
+      "Use this artifact as advisory input only.",
+      "Future production tuning must pass a separate human-gated task.",
+      "FinMind/yfinance/ADR/news sentiment remain secondary or metadata sources unless separately validated."
+    ]
+  },
+  "generated_at": "2026-07-02T15:14:38.066086+00:00",
+  "horizon_effectiveness": [
+    {
+      "avg_contribution_score": 0.25,
+      "avg_error_pct": 0.2,
+      "factor_group": "adr",
+      "hit_rate": 0.666667,
+      "horizon": "1D",
+      "interval_coverage": 1.0,
+      "production_mutation_allowed": false,
+      "sample_size": 3
+    },
+    {
+      "avg_contribution_score": 0.36,
+      "avg_error_pct": 0.392857,
+      "factor_group": "chip",
+      "hit_rate": 0.571429,
+      "horizon": "1D",
+      "interval_coverage": 1.0,
+      "production_mutation_allowed": false,
+      "sample_size": 7
+    },
+    {
+      "avg_contribution_score": 0.74,
+      "avg_error_pct": 0.8,
+      "factor_group": "fundamental",
+      "hit_rate": 0.75,
+      "horizon": "1D",
+      "interval_coverage": 0.75,
+      "production_mutation_allowed": false,
+      "sample_size": 8
+    },
+    {
+      "avg_contribution_score": 0.22,
+      "avg_error_pct": 0.7,
+      "factor_group": "macro",
+      "hit_rate": 1.0,
+      "horizon": "1D",
+      "interval_coverage": 1.0,
+      "production_mutation_allowed": false,
+      "sample_size": 7
+    },
+    {
+      "avg_contribution_score": 0.0,
+      "avg_error_pct": 0.0,
+      "factor_group": "missing_data",
+      "hit_rate": 0.0,
+      "horizon": "1D",
+      "interval_coverage": 1.0,
+      "production_mutation_allowed": false,
+      "sample_size": 1
+    },
+    {
+      "avg_contribution_score": 0.18,
+      "avg_error_pct": 0.38,
+      "factor_group": "news",
+      "hit_rate": 0.6,
+      "horizon": "1D",
+      "interval_coverage": 1.0,
+      "production_mutation_allowed": false,
+      "sample_size": 5
+    },
+    {
+      "avg_contribution_score": 0.68,
+      "avg_error_pct": 0.675,
+      "factor_group": "technical",
+      "hit_rate": 0.75,
+      "horizon": "1D",
+      "interval_coverage": 0.75,
+      "production_mutation_allowed": false,
+      "sample_size": 8
+    },
+    {
+      "avg_contribution_score": 0.25,
+      "avg_error_pct": 0.3,
+      "factor_group": "adr",
+      "hit_rate": 0.5,
+      "horizon": "20D",
+      "interval_coverage": 1.0,
+      "production_mutation_allowed": false,
+      "sample_size": 2
+    },
+    {
+      "avg_contribution_score": 0.36,
+      "avg_error_pct": 0.45,
+      "factor_group": "chip",
+      "hit_rate": 0.5,
+      "horizon": "20D",
+      "interval_coverage": 1.0,
+      "production_mutation_allowed": false,
+      "sample_size": 6
+    },
+    {
+      "avg_contribution_score": 0.74,
+      "avg_error_pct": 0.8,
+      "factor_group": "fundamental",
+      "hit_rate": 0.75,
+      "horizon": "20D",
+      "interval_coverage": 0.75,
+      "production_mutation_allowed": false,
+      "sample_size": 8
+    },
+    {
+      "avg_contribution_score": 0.22,
+      "avg_error_pct": 2.0,
+      "factor_group": "macro",
+      "hit_rate": 0.0,
+      "horizon": "20D",
+      "interval_coverage": 0.0,
+      "production_mutation_allowed": false,
+      "sample_size": 6
+    },
+    {
+      "avg_contribution_score": 0.0,
+      "avg_error_pct": 0.0,
+      "factor_group": "missing_data",
+      "hit_rate": 0.0,
+      "horizon": "20D",
+      "interval_coverage": 1.0,
+      "production_mutation_allowed": false,
+      "sample_size": 1
+    },
+    {
+      "avg_contribution_score": 0.18,
+      "avg_error_pct": 0.4,
+      "factor_group": "news",
+      "hit_rate": 0.5,
+      "horizon": "20D",
+      "interval_coverage": 1.0,
+      "production_mutation_allowed": false,
+      "sample_size": 4
+    },
+    {
+      "avg_contribution_score": 0.68,
+      "avg_error_pct": 0.675,
+      "factor_group": "technical",
+      "hit_rate": 0.75,
+      "horizon": "20D",
+      "interval_coverage": 0.75,
+      "production_mutation_allowed": false,
+      "sample_size": 8
+    },
+    {
+      "avg_contribution_score": 0.25,
+      "avg_error_pct": 0.4,
+      "factor_group": "adr",
+      "hit_rate": 0.333333,
+      "horizon": "5D",
+      "interval_coverage": 1.0,
+      "production_mutation_allowed": false,
+      "sample_size": 3
+    },
+    {
+      "avg_contribution_score": 0.36,
+      "avg_error_pct": 0.392857,
+      "factor_group": "chip",
+      "hit_rate": 0.571429,
+      "horizon": "5D",
+      "interval_coverage": 1.0,
+      "production_mutation_allowed": false,
+      "sample_size": 7
+    },
+    {
+      "avg_contribution_score": 0.74,
+      "avg_error_pct": 0.7,
+      "factor_group": "fundamental",
+      "hit_rate": 0.875,
+      "horizon": "5D",
+      "interval_coverage": 0.875,
+      "production_mutation_allowed": false,
+      "sample_size": 8
+    },
+    {
+      "avg_contribution_score": 0.22,
+      "avg_error_pct": 2.0,
+      "factor_group": "macro",
+      "hit_rate": 0.0,
+      "horizon": "5D",
+      "interval_coverage": 0.0,
+      "production_mutation_allowed": false,
+      "sample_size": 7
+    },
+    {
+      "avg_contribution_score": 0.0,
+      "avg_error_pct": 0.0,
+      "factor_group": "missing_data",
+      "hit_rate": 0.0,
+      "horizon": "5D",
+      "interval_coverage": 1.0,
+      "production_mutation_allowed": false,
+      "sample_size": 1
+    },
+    {
+      "avg_contribution_score": 0.18,
+      "avg_error_pct": 0.42,
+      "factor_group": "news",
+      "hit_rate": 0.4,
+      "horizon": "5D",
+      "interval_coverage": 1.0,
+      "production_mutation_allowed": false,
+      "sample_size": 5
+    },
+    {
+      "avg_contribution_score": 0.68,
+      "avg_error_pct": 0.675,
+      "factor_group": "technical",
+      "hit_rate": 0.75,
+      "horizon": "5D",
+      "interval_coverage": 0.75,
+      "production_mutation_allowed": false,
+      "sample_size": 8
+    }
+  ],
+  "input_summary": {
+    "production_data_used": false,
+    "sample_size": 113,
+    "source": "offline_sample"
+  },
+  "safety_summary": {
+    "dry_run": true,
+    "human_review_required_for_all_changes": true,
+    "no_confidence_rule_change": true,
+    "no_external_service_call": true,
+    "no_notification": true,
+    "no_order_execution": true,
+    "no_production_weight_change": true,
+    "no_rating_or_action_change": true,
+    "production_mutation_allowed": false,
+    "read_only": true
+  },
+  "schema_version": "1.0",
+  "source_effectiveness": [
+    {
+      "avg_contribution_score": 0.74,
+      "avg_evidence_score": 0.84,
+      "hit_rate": 0.791667,
+      "limitations": [
+        "read-only dry-run sample"
+      ],
+      "priority_change_allowed": false,
+      "recommended_use": "candidate_primary_or_secondary_evidence",
+      "sample_size": 24,
+      "source_available_rate": 1.0,
+      "source_category": "company_disclosure",
+      "source_id": "company_filing",
+      "source_priority": "A_primary",
+      "source_ready_rate": 1.0,
+      "usable_sample_size": 24
+    },
+    {
+      "avg_contribution_score": 0.36,
+      "avg_evidence_score": 0.58,
+      "hit_rate": 0.55,
+      "limitations": [
+        "marginal dry-run signal"
+      ],
+      "priority_change_allowed": false,
+      "recommended_use": "candidate_primary_or_secondary_evidence",
+      "sample_size": 20,
+      "source_available_rate": 1.0,
+      "source_category": "chip_flow",
+      "source_id": "twse_chip",
+      "source_priority": "B_verified_secondary",
+      "source_ready_rate": 1.0,
+      "usable_sample_size": 20
+    },
+    {
+      "avg_contribution_score": 0.68,
+      "avg_evidence_score": 0.72,
+      "hit_rate": 0.75,
+      "limitations": [
+        "read-only dry-run sample"
+      ],
+      "priority_change_allowed": false,
+      "recommended_use": "candidate_primary_or_secondary_evidence",
+      "sample_size": 24,
+      "source_available_rate": 1.0,
+      "source_category": "price_history",
+      "source_id": "sqlite_historical_csv",
+      "source_priority": "B_verified_secondary",
+      "source_ready_rate": 1.0,
+      "usable_sample_size": 24
+    },
+    {
+      "avg_contribution_score": 0.25,
+      "avg_evidence_score": 0.42,
+      "hit_rate": 0.5,
+      "limitations": [
+        "yfinance is market-context metadata"
+      ],
+      "priority_change_allowed": false,
+      "recommended_use": "market_context_only",
+      "sample_size": 8,
+      "source_available_rate": 1.0,
+      "source_category": "adr_context",
+      "source_id": "yfinance_adr",
+      "source_priority": "C_market_aggregated",
+      "source_ready_rate": 1.0,
+      "usable_sample_size": 8
+    },
+    {
+      "avg_contribution_score": 0.22,
+      "avg_evidence_score": 0.46,
+      "hit_rate": 0.35,
+      "limitations": [
+        "FinMind remains market-context only"
+      ],
+      "priority_change_allowed": false,
+      "recommended_use": "market_context_only",
+      "sample_size": 20,
+      "source_available_rate": 1.0,
+      "source_category": "market_context",
+      "source_id": "finmind_market",
+      "source_priority": "C_market_aggregated",
+      "source_ready_rate": 1.0,
+      "usable_sample_size": 20
+    },
+    {
+      "avg_contribution_score": 0.0,
+      "avg_evidence_score": 0.1,
+      "hit_rate": 0.0,
+      "limitations": [
+        "missing attribution sample"
+      ],
+      "priority_change_allowed": false,
+      "recommended_use": "supporting_sentiment_only",
+      "sample_size": 3,
+      "source_available_rate": 0.0,
+      "source_category": "missing",
+      "source_id": "unknown_source",
+      "source_priority": "D_sentiment_or_noise",
+      "source_ready_rate": 0.0,
+      "usable_sample_size": 0
+    },
+    {
+      "avg_contribution_score": 0.18,
+      "avg_evidence_score": 0.35,
+      "hit_rate": 0.5,
+      "limitations": [
+        "headline sentiment can be noisy"
+      ],
+      "priority_change_allowed": false,
+      "recommended_use": "supporting_sentiment_only",
+      "sample_size": 14,
+      "source_available_rate": 1.0,
+      "source_category": "sentiment",
+      "source_id": "google_news_rss",
+      "source_priority": "D_sentiment_or_noise",
+      "source_ready_rate": 1.0,
+      "usable_sample_size": 14
+    }
+  ],
+  "target_effectiveness": [
+    {
+      "avg_evidence_score": 0.6,
+      "hit_rate": 0.428571,
+      "interval_coverage": 0.821429,
+      "prediction_target": "next_day_high_low",
+      "production_mutation_allowed": false,
+      "sample_size": 29,
+      "source_coverage_dependency": [
+        "A_primary",
+        "B_verified_secondary",
+        "C_market_aggregated",
+        "D_sentiment_or_noise"
+      ],
+      "top_factor_groups": [
+        "fundamental",
+        "technical",
+        "chip"
+      ],
+      "weak_or_inverted_factor_groups": [
+        "chip",
+        "adr",
+        "news",
+        "macro",
+        "missing_data"
+      ]
+    },
+    {
+      "avg_evidence_score": 0.609259,
+      "hit_rate": 0.851852,
+      "interval_coverage": 0.851852,
+      "prediction_target": "one_month_trend",
+      "production_mutation_allowed": false,
+      "sample_size": 28,
+      "source_coverage_dependency": [
+        "A_primary",
+        "B_verified_secondary",
+        "C_market_aggregated",
+        "D_sentiment_or_noise"
+      ],
+      "top_factor_groups": [
+        "fundamental",
+        "technical",
+        "chip"
+      ],
+      "weak_or_inverted_factor_groups": [
+        "chip",
+        "adr",
+        "news",
+        "macro",
+        "missing_data"
+      ]
+    },
+    {
+      "avg_evidence_score": 0.6,
+      "hit_rate": 0.607143,
+      "interval_coverage": 0.607143,
+      "prediction_target": "same_day_high_low",
+      "production_mutation_allowed": false,
+      "sample_size": 29,
+      "source_coverage_dependency": [
+        "A_primary",
+        "B_verified_secondary",
+        "C_market_aggregated",
+        "D_sentiment_or_noise"
+      ],
+      "top_factor_groups": [
+        "fundamental",
+        "technical",
+        "chip"
+      ],
+      "weak_or_inverted_factor_groups": [
+        "chip",
+        "adr",
+        "news",
+        "macro",
+        "missing_data"
+      ]
+    },
+    {
+      "avg_evidence_score": 0.609259,
+      "hit_rate": 0.518519,
+      "interval_coverage": 0.851852,
+      "prediction_target": "three_month_trend",
+      "production_mutation_allowed": false,
+      "sample_size": 27,
+      "source_coverage_dependency": [
+        "A_primary",
+        "B_verified_secondary",
+        "C_market_aggregated",
+        "D_sentiment_or_noise"
+      ],
+      "top_factor_groups": [
+        "fundamental",
+        "technical",
+        "chip"
+      ],
+      "weak_or_inverted_factor_groups": [
+        "chip",
+        "adr",
+        "news",
+        "macro"
+      ]
+    }
+  ],
+  "task_id": "AI-DEV-125"
+}
