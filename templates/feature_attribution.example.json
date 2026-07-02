@@ -1,0 +1,188 @@
+{
+  "feature_attribution": {
+    "contributions": [
+      {
+        "confidence_impact": 0.04,
+        "direction": "positive",
+        "evidence_ids": [
+          "finmind_taiwan_stock_price:2330:offline"
+        ],
+        "explanation_text": "Price/market data sample supports a positive technical contribution, but remains a cross-check input.",
+        "feature_group": "technical",
+        "feature_id": "technical_price_strength",
+        "feature_name": "Technical price strength",
+        "magnitude": 0.72,
+        "risk_note": null,
+        "score_impact": 8.0,
+        "source_ids": [
+          "finmind_taiwan_stock_price"
+        ]
+      },
+      {
+        "confidence_impact": 0.0,
+        "direction": "positive",
+        "evidence_ids": [
+          "yfinance_context:2330:2026-07-02"
+        ],
+        "explanation_text": "External market context supports confirmation only and cannot independently raise rating.",
+        "feature_group": "macro",
+        "feature_id": "external_market_context",
+        "feature_name": "ADR / yfinance market context",
+        "magnitude": 0.48,
+        "risk_note": "yfinance external context cannot raise rating independently",
+        "score_impact": 2.0,
+        "source_ids": [
+          "yfinance_external_market_context"
+        ]
+      },
+      {
+        "confidence_impact": 0.08,
+        "direction": "positive",
+        "evidence_ids": [
+          "twse_monthly_revenue:2330:2026-05"
+        ],
+        "explanation_text": "Official monthly revenue primary evidence is available.",
+        "feature_group": "fundamental",
+        "feature_id": "official_monthly_revenue",
+        "feature_name": "Official monthly revenue",
+        "magnitude": 0.7,
+        "risk_note": null,
+        "score_impact": 6.0,
+        "source_ids": [
+          "twse_monthly_revenue"
+        ]
+      },
+      {
+        "confidence_impact": 0.02,
+        "direction": "neutral",
+        "evidence_ids": [
+          "finmind_monthly_revenue:2330:offline"
+        ],
+        "explanation_text": "Aggregated monthly revenue evidence is available, but primary source confirmation controls readiness.",
+        "feature_group": "fundamental",
+        "feature_id": "finmind_monthly_revenue_cross_check",
+        "feature_name": "FinMind monthly revenue cross-check",
+        "magnitude": 0.45,
+        "risk_note": "FinMind aggregated data cannot raise rating independently or replace official primary sources; source_conflict marked and official source is authoritative",
+        "score_impact": 0.0,
+        "source_ids": [
+          "finmind_monthly_revenue"
+        ]
+      },
+      {
+        "confidence_impact": 0.02,
+        "direction": "neutral",
+        "evidence_ids": [
+          "finmind_financial_statement:2330:offline"
+        ],
+        "explanation_text": "FinMind statement evidence can move readiness to partial when official statement source is missing, not ready.",
+        "feature_group": "fundamental",
+        "feature_id": "finmind_statement_partial_readiness",
+        "feature_name": "FinMind financial statement partial readiness",
+        "magnitude": 0.4,
+        "risk_note": "FinMind aggregated data cannot raise rating independently or replace official primary sources",
+        "score_impact": 0.0,
+        "source_ids": [
+          "finmind_financial_statement"
+        ]
+      },
+      {
+        "confidence_impact": 0.02,
+        "direction": "positive",
+        "evidence_ids": [
+          "finmind_institutional_investors_buy_sell:2330:offline"
+        ],
+        "explanation_text": "Institutional flow contributes chip explanation but cannot override official source.",
+        "feature_group": "chip",
+        "feature_id": "finmind_institutional_flow",
+        "feature_name": "FinMind institutional flow",
+        "magnitude": 0.42,
+        "risk_note": null,
+        "score_impact": 2.5,
+        "source_ids": [
+          "finmind_institutional_investors_buy_sell"
+        ]
+      },
+      {
+        "confidence_impact": -0.08,
+        "direction": "not_available",
+        "evidence_ids": [
+          "twse_material_information:2330:missing"
+        ],
+        "explanation_text": "Material information primary source missing; disclosure gap is non-fatal.",
+        "feature_group": "missing_data",
+        "feature_id": "twse_material_information_missing",
+        "feature_name": "twse_material_information missing",
+        "magnitude": 0.0,
+        "risk_note": "missing source can cap confidence",
+        "score_impact": 0.0,
+        "source_ids": [
+          "twse_material_information"
+        ]
+      },
+      {
+        "confidence_impact": -0.08,
+        "direction": "not_available",
+        "evidence_ids": [
+          "tdcc_shareholding_distribution:2330:missing"
+        ],
+        "explanation_text": "TDCC unavailable; chip structure evidence unavailable without hard failure.",
+        "feature_group": "missing_data",
+        "feature_id": "tdcc_shareholding_distribution_missing",
+        "feature_name": "tdcc_shareholding_distribution missing",
+        "magnitude": 0.0,
+        "risk_note": "missing source can cap confidence",
+        "score_impact": 0.0,
+        "source_ids": [
+          "tdcc_shareholding_distribution"
+        ]
+      },
+      {
+        "confidence_impact": -0.08,
+        "direction": "not_available",
+        "evidence_ids": [
+          "etf_holdings_nav_distribution:00878:missing"
+        ],
+        "explanation_text": "ETF-specific holdings/NAV/distribution source gap must cap ETF explanation readiness.",
+        "feature_group": "etf",
+        "feature_id": "etf_holdings_nav_distribution_missing",
+        "feature_name": "etf_holdings_nav_distribution missing",
+        "magnitude": 0.0,
+        "risk_note": "missing source can cap confidence",
+        "score_impact": 0.0,
+        "source_ids": [
+          "etf_holdings_nav_distribution"
+        ]
+      },
+      {
+        "confidence_impact": 0.0,
+        "direction": "neutral",
+        "evidence_ids": [
+          "management_interview:2330:missing"
+        ],
+        "explanation_text": "News-only evidence is metadata only and cannot raise rating alone.",
+        "feature_group": "news",
+        "feature_id": "news_metadata_only",
+        "feature_name": "News-only event metadata",
+        "magnitude": 0.2,
+        "risk_note": "news-only evidence cannot independently raise rating",
+        "score_impact": 0.0,
+        "source_ids": [
+          "management_interview"
+        ]
+      }
+    ],
+    "policy_notes": [
+      "news-only evidence cannot independently raise rating",
+      "yfinance external context cannot raise rating independently",
+      "FinMind aggregated data cannot raise rating independently or replace official primary sources",
+      "official source wins when FinMind conflicts with official source",
+      "connector unavailable is non-fatal"
+    ],
+    "run_id": "ai-dev-123-example-001",
+    "schema_version": "feature_attribution_v1",
+    "stock_id": "2330",
+    "stock_name": "TSMC"
+  },
+  "schema_version": "feature_attribution_examples_v1"
+}
