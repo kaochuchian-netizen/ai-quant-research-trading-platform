@@ -1,0 +1,109 @@
+{
+  "approval": {
+    "richard_same_run_approval_present": false,
+    "simulation_login_flag_present": false,
+    "simulation_order_flag_present": false
+  },
+  "credential_redaction": {
+    "api_key": "***MASKED***",
+    "futures_account": "***MASKED***",
+    "secret_key": "***MASKED***",
+    "stock_account": "***MASKED***"
+  },
+  "decision": "sinopac_official_api_test_dry_run_ready",
+  "environment": {
+    "platform": "Linux-6.8.0-1054-gcp-x86_64-with-glibc2.35",
+    "python_version": "3.10.12",
+    "timezone": "Asia/Taipei"
+  },
+  "generated_at": "2026-07-02T13:00:00+08:00",
+  "mode": "dry-run",
+  "official_requirements": {
+    "api_key_must_have_trading_permission": true,
+    "execution_window": "Monday-Friday 08:00-20:00 Asia/Taipei",
+    "minimum_order_interval_seconds": 1,
+    "shioaji_minimum_version": "1.2",
+    "simulation_login_required": true,
+    "simulation_place_order_required": true,
+    "stock_and_futures_tested_separately": true,
+    "taiwan_ip_required_between": "18:00-20:00 Asia/Taipei"
+  },
+  "ok": true,
+  "run_id": "sinopac-official-api-test-fixture-20260702",
+  "safety": {
+    "formal_order_forbidden": true,
+    "futures_test_default_enabled": false,
+    "no_line_email_notification": true,
+    "no_production_db_write": true,
+    "no_scheduler_cron_systemd_integration": true,
+    "no_secret_or_account_printing": true,
+    "no_strategy_signal_integration": true,
+    "production_blocked": true,
+    "production_order_forbidden": true,
+    "requires_explicit_login_flag": true,
+    "requires_explicit_order_flag": true,
+    "requires_richard_same_run_approval": true,
+    "simulation_only": true,
+    "stock_test_default_enabled": true
+  },
+  "schema_version": "sinopac_official_api_test_result_v1",
+  "service_window": {
+    "in_service_window": true,
+    "taiwan_ip_attestation_required": false,
+    "taiwan_ip_only_window": false
+  },
+  "shioaji": {
+    "error_class": null,
+    "import_ok": true,
+    "installed_version": "1.5.1",
+    "minimum_required_version": "1.2",
+    "version_ok": true
+  },
+  "side_effects": {
+    "account_number_printed": false,
+    "cron_modified": false,
+    "email_sent": false,
+    "formal_order_called": false,
+    "line_sent": false,
+    "production_client_created": false,
+    "production_db_modified": false,
+    "production_order_called": false,
+    "scheduler_modified": false,
+    "secret_printed": false,
+    "secrets_read": false,
+    "simulation_login_called": false,
+    "simulation_order_called": false,
+    "strategy_signal_connected": false,
+    "systemd_modified": false
+  },
+  "task_id": "AI-DEV-119",
+  "test_plan": {
+    "futures": {
+      "enabled": false,
+      "requires_enable_futures": true,
+      "simulation": true
+    },
+    "stock": {
+      "default_symbol": "2330",
+      "enabled": true,
+      "simulation": true
+    }
+  },
+  "test_results": {
+    "futures_place_order": {
+      "reason": "disabled_by_default",
+      "simulation": true,
+      "status": "disabled"
+    },
+    "login": {
+      "reason": "dry_run",
+      "simulation": true,
+      "status": "not_run"
+    },
+    "stock_place_order": {
+      "reason": "dry_run",
+      "simulation": true,
+      "status": "not_run"
+    }
+  }
+}
