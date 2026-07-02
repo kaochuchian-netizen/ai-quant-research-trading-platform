@@ -34,9 +34,13 @@ DEFAULT_BLOCKED_KEYWORDS = [
 CONTROLLED_SINOPAC_TEST_PATHS = [
     "scripts/orchestrator/sinopac_api_test_application.py",
     "scripts/orchestrator/validate_sinopac_api_test_application_result.py",
+    "scripts/orchestrator/sinopac_official_api_test.py",
+    "scripts/orchestrator/validate_sinopac_official_api_test_v1.py",
     "docs/ai_dev_116_sinopac_api_test_application_v1.md",
+    "docs/ai_dev_119_sinopac_official_api_online_test_certification_v1.md",
     "templates/sinopac_api_test_application_request.example.json",
     "templates/sinopac_api_test_application_result.example.json",
+    "templates/sinopac_official_api_test_result.example.json",
 ]
 
 DEFAULT_KEYWORD_PATH_ALLOWLIST = {
