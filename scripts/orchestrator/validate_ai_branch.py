@@ -26,6 +26,8 @@ DEFAULT_ALLOWED_PATHS = [
     "scripts/orchestrator/",
     ".github/workflows/ai_dev_validation.yml",
     "app/trading/",
+    "app/prediction/",
+    "app/evaluation/",
     "app/market/historical_price_loader.py",
     "app/market/historical_storage.py",
     "app/market/shioaji_client.py",
