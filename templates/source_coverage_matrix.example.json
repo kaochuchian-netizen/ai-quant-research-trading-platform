@@ -1,0 +1,215 @@
+{
+  "schema_version": "source_coverage_matrix_v1",
+  "source_coverage_matrix": [
+    {
+      "available_sources": [
+        "historical_csv_fallback",
+        "shioaji_ohlcv",
+        "twse_openapi",
+        "adr_yfinance",
+        "yfinance_external_market"
+      ],
+      "confidence_cap": 0.9,
+      "coverage_score": 1.0,
+      "missing_data_policy": [
+        "missing_historical_ohlcv",
+        "adr_not_applicable",
+        "yfinance_unavailable"
+      ],
+      "missing_sources": [],
+      "notes": "Requires OHLCV / technical / recent price context. ADR and external market are optional confirmation signals.",
+      "optional_missing_sources": [],
+      "optional_sources": [
+        "twse_openapi",
+        "adr_yfinance",
+        "yfinance_external_market"
+      ],
+      "prediction_target": "intraday_high_low",
+      "readiness": "ready",
+      "required_sources": [
+        "historical_csv_fallback",
+        "shioaji_ohlcv"
+      ],
+      "schema_version": "source_coverage_matrix_v1"
+    },
+    {
+      "available_sources": [
+        "historical_csv_fallback",
+        "shioaji_ohlcv",
+        "twse_openapi",
+        "adr_yfinance",
+        "yfinance_external_market",
+        "chip_analysis_existing"
+      ],
+      "confidence_cap": 0.9,
+      "coverage_score": 0.96,
+      "missing_data_policy": [
+        "missing_historical_ohlcv",
+        "adr_not_applicable",
+        "yfinance_unavailable"
+      ],
+      "missing_sources": [],
+      "notes": "Requires OHLCV / technical / recent price. ADR, US market, semiconductor proxy, and chip data are optional/important.",
+      "optional_missing_sources": [
+        "macro_vix_us_yield_usd_sox_nasdaq"
+      ],
+      "optional_sources": [
+        "twse_openapi",
+        "adr_yfinance",
+        "yfinance_external_market",
+        "chip_analysis_existing",
+        "macro_vix_us_yield_usd_sox_nasdaq"
+      ],
+      "prediction_target": "next_day_high_low",
+      "readiness": "ready",
+      "required_sources": [
+        "historical_csv_fallback",
+        "shioaji_ohlcv"
+      ],
+      "schema_version": "source_coverage_matrix_v1"
+    },
+    {
+      "available_sources": [
+        "historical_csv_fallback",
+        "chip_analysis_existing",
+        "google_news_rss",
+        "gemini_news_summary",
+        "yfinance_external_market"
+      ],
+      "confidence_cap": 0.4,
+      "coverage_score": 0.3333,
+      "missing_data_policy": [
+        "missing_fundamental",
+        "news_only_without_primary_source",
+        "yfinance_unavailable",
+        "etf_specific_source_gap"
+      ],
+      "missing_sources": [
+        "mops_monthly_revenue",
+        "mops_financial_statement",
+        "mops_material_information"
+      ],
+      "notes": "Requires stronger fundamental/disclosure coverage; missing monthly revenue, statements, or material information lowers readiness.",
+      "optional_missing_sources": [
+        "tdcc_shareholding_distribution",
+        "industry_chain_sources"
+      ],
+      "optional_sources": [
+        "chip_analysis_existing",
+        "tdcc_shareholding_distribution",
+        "industry_chain_sources",
+        "google_news_rss",
+        "gemini_news_summary",
+        "yfinance_external_market"
+      ],
+      "prediction_target": "one_month_trend",
+      "readiness": "insufficient",
+      "required_sources": [
+        "historical_csv_fallback",
+        "mops_monthly_revenue",
+        "mops_financial_statement",
+        "mops_material_information"
+      ],
+      "schema_version": "source_coverage_matrix_v1"
+    },
+    {
+      "available_sources": [
+        "historical_csv_fallback",
+        "google_sheet_stock_universe",
+        "chip_analysis_existing",
+        "adr_yfinance",
+        "yfinance_external_market",
+        "google_news_rss",
+        "gemini_news_summary"
+      ],
+      "confidence_cap": 0.9,
+      "coverage_score": 0.9111,
+      "missing_data_policy": [
+        "news_only_without_primary_source",
+        "adr_not_applicable",
+        "yfinance_unavailable",
+        "etf_specific_source_gap"
+      ],
+      "missing_sources": [],
+      "notes": "Can run with existing technical/news/chip/ADR scoring, but rating confidence must reflect source quality and coverage gaps.",
+      "optional_missing_sources": [
+        "mops_monthly_revenue",
+        "mops_financial_statement",
+        "mops_material_information",
+        "etf_holdings_nav_distribution"
+      ],
+      "optional_sources": [
+        "chip_analysis_existing",
+        "adr_yfinance",
+        "yfinance_external_market",
+        "google_news_rss",
+        "gemini_news_summary",
+        "mops_monthly_revenue",
+        "mops_financial_statement",
+        "mops_material_information",
+        "etf_holdings_nav_distribution"
+      ],
+      "prediction_target": "rating_action",
+      "readiness": "ready",
+      "required_sources": [
+        "historical_csv_fallback",
+        "google_sheet_stock_universe"
+      ],
+      "schema_version": "source_coverage_matrix_v1"
+    },
+    {
+      "available_sources": [
+        "historical_csv_fallback",
+        "google_news_rss",
+        "gemini_news_summary",
+        "yfinance_external_market"
+      ],
+      "confidence_cap": 0.4,
+      "coverage_score": 0.1893,
+      "missing_data_policy": [
+        "missing_fundamental",
+        "news_only_without_primary_source",
+        "yfinance_unavailable",
+        "etf_specific_source_gap"
+      ],
+      "missing_sources": [
+        "mops_monthly_revenue",
+        "mops_financial_statement",
+        "mops_material_information",
+        "company_official_guidance",
+        "industry_chain_sources",
+        "macro_vix_us_yield_usd_sox_nasdaq"
+      ],
+      "notes": "Requires fundamental, industry, company guidance, macro, and disclosure coverage; missing core sources makes readiness insufficient.",
+      "optional_missing_sources": [
+        "mops_investor_conference",
+        "earnings_call_transcript_or_investor_deck",
+        "management_interviews",
+        "tdcc_shareholding_distribution",
+        "securities_lending"
+      ],
+      "optional_sources": [
+        "mops_investor_conference",
+        "earnings_call_transcript_or_investor_deck",
+        "management_interviews",
+        "tdcc_shareholding_distribution",
+        "securities_lending",
+        "google_news_rss",
+        "gemini_news_summary",
+        "yfinance_external_market"
+      ],
+      "prediction_target": "three_month_trend",
+      "readiness": "insufficient",
+      "required_sources": [
+        "historical_csv_fallback",
+        "mops_monthly_revenue",
+        "mops_financial_statement",
+        "mops_material_information",
+        "company_official_guidance",
+        "industry_chain_sources",
+        "macro_vix_us_yield_usd_sox_nasdaq"
+      ],
+      "schema_version": "source_coverage_matrix_v1"
+    }
+  ]
+}

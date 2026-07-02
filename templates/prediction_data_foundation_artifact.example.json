@@ -1,0 +1,984 @@
+{
+  "actual_outcomes": [
+    {
+      "actual_close": 2490.0,
+      "actual_high": 2535.0,
+      "actual_low": 2490.0,
+      "actual_open": 2510.0,
+      "actual_return_1d": -0.007968,
+      "actual_return_20d": 0.077922,
+      "actual_return_5d": 0.048421,
+      "actual_volume": 34051.0,
+      "outcome_status": "completed",
+      "schema_version": "actual_outcome_v1",
+      "stock_id": "2330",
+      "target_date": "2026-06-23"
+    },
+    {
+      "actual_close": null,
+      "actual_high": null,
+      "actual_low": null,
+      "actual_open": null,
+      "actual_return_1d": null,
+      "actual_return_20d": null,
+      "actual_return_5d": null,
+      "actual_volume": null,
+      "outcome_status": "pending",
+      "schema_version": "actual_outcome_v1",
+      "stock_id": "2330",
+      "target_date": "2099-01-03"
+    },
+    {
+      "actual_close": null,
+      "actual_high": null,
+      "actual_low": null,
+      "actual_open": null,
+      "actual_return_1d": null,
+      "actual_return_20d": null,
+      "actual_return_5d": null,
+      "actual_volume": null,
+      "outcome_status": "pending",
+      "schema_version": "actual_outcome_v1",
+      "stock_id": "00878",
+      "target_date": "2099-04-03"
+    }
+  ],
+  "backtest_integration_readiness": {
+    "future_consumable_artifacts": [
+      "prediction snapshot",
+      "actual outcome",
+      "evaluation artifact",
+      "rating",
+      "score",
+      "action",
+      "confidence",
+      "source coverage",
+      "source quality"
+    ],
+    "future_strategy_use_cases": [
+      "rating threshold strategy",
+      "score threshold strategy",
+      "action-based strategy",
+      "holding period strategy",
+      "stop-loss / take-profit",
+      "transaction cost",
+      "position sizing",
+      "parameter comparison"
+    ],
+    "runtime_integration": "not_in_scope",
+    "status": "data_foundation_ready_runtime_not_integrated"
+  },
+  "data_source_inventory": [
+    {
+      "category": "market_price",
+      "credential_required": true,
+      "current_integration": "existing stock universe loader",
+      "noise_risk": "low",
+      "notes": "Current universe source; credentials are not read by V1.",
+      "prediction_targets": [
+        "intraday_high_low",
+        "next_day_high_low",
+        "one_month_trend",
+        "three_month_trend",
+        "rating_action"
+      ],
+      "priority": "A_primary",
+      "provider": "Google Sheets",
+      "quality_score": 0.75,
+      "recommended_usage": "stock universe and metadata anchor",
+      "refresh_frequency": "manual_or_runtime_refresh",
+      "source_id": "google_sheet_stock_universe",
+      "status": "current"
+    },
+    {
+      "category": "market_price",
+      "credential_required": true,
+      "current_integration": "existing read path only; not invoked by this artifact builder",
+      "noise_risk": "low",
+      "notes": "Trading runtime is out of scope for AI-DEV-122.",
+      "prediction_targets": [
+        "intraday_high_low",
+        "next_day_high_low",
+        "rating_action"
+      ],
+      "priority": "A_primary",
+      "provider": "Sinopac Shioaji",
+      "quality_score": 0.9,
+      "recommended_usage": "primary OHLCV / recent price when approved runtime is active",
+      "refresh_frequency": "market_session",
+      "source_id": "shioaji_ohlcv",
+      "status": "current"
+    },
+    {
+      "category": "market_price",
+      "credential_required": false,
+      "current_integration": "data/historical/*_daily.csv",
+      "noise_risk": "low",
+      "notes": "Used by V1 outcome loader without external calls.",
+      "prediction_targets": [
+        "intraday_high_low",
+        "next_day_high_low",
+        "rating_action"
+      ],
+      "priority": "A_primary",
+      "provider": "repo-local CSV",
+      "quality_score": 0.82,
+      "recommended_usage": "local deterministic OHLCV fallback and actual outcome lookup",
+      "refresh_frequency": "repo_local",
+      "source_id": "historical_csv_fallback",
+      "status": "current"
+    },
+    {
+      "category": "market_price",
+      "credential_required": false,
+      "current_integration": "existing source registry reference",
+      "noise_risk": "low",
+      "notes": "Not called by AI-DEV-122 scripts.",
+      "prediction_targets": [
+        "intraday_high_low",
+        "next_day_high_low",
+        "rating_action"
+      ],
+      "priority": "B_official_or_company_linked",
+      "provider": "TWSE OpenAPI",
+      "quality_score": 0.86,
+      "recommended_usage": "official market reference and confirmation",
+      "refresh_frequency": "daily",
+      "source_id": "twse_openapi",
+      "status": "current"
+    },
+    {
+      "category": "news",
+      "credential_required": false,
+      "current_integration": "existing news fetcher",
+      "noise_risk": "high",
+      "notes": "Useful for alerting context, not standalone evidence.",
+      "prediction_targets": [
+        "one_month_trend",
+        "three_month_trend",
+        "rating_action"
+      ],
+      "priority": "D_sentiment_or_noise",
+      "provider": "Google News RSS",
+      "quality_score": 0.45,
+      "recommended_usage": "event/risk metadata only; must not raise rating without primary source",
+      "refresh_frequency": "event_driven",
+      "source_id": "google_news_rss",
+      "status": "current"
+    },
+    {
+      "category": "news",
+      "credential_required": true,
+      "current_integration": "existing summarization path; not invoked here",
+      "noise_risk": "high",
+      "notes": "AI-DEV-122 performs no AI/Gemini batch call.",
+      "prediction_targets": [
+        "one_month_trend",
+        "three_month_trend",
+        "rating_action"
+      ],
+      "priority": "D_sentiment_or_noise",
+      "provider": "Gemini news summary",
+      "quality_score": 0.42,
+      "recommended_usage": "summarization of already collected news metadata only",
+      "refresh_frequency": "on_demand",
+      "source_id": "gemini_news_summary",
+      "status": "current"
+    },
+    {
+      "category": "chip",
+      "credential_required": false,
+      "current_integration": "analysis/chip",
+      "noise_risk": "medium",
+      "notes": "Not a replacement for official filings.",
+      "prediction_targets": [
+        "next_day_high_low",
+        "one_month_trend",
+        "rating_action"
+      ],
+      "priority": "C_market_or_industry",
+      "provider": "existing chip analysis",
+      "quality_score": 0.65,
+      "recommended_usage": "chip flow context and confirmation signal",
+      "refresh_frequency": "daily_or_manual",
+      "source_id": "chip_analysis_existing",
+      "status": "current"
+    },
+    {
+      "category": "adr",
+      "credential_required": false,
+      "current_integration": "existing ADR analyzer/mapper",
+      "must_not_independently_raise_rating": true,
+      "must_not_replace_primary_source": true,
+      "noise_risk": "medium",
+      "notes": "Non-ADR stocks must be marked not_applicable.",
+      "prediction_targets": [
+        "next_day_high_low",
+        "rating_action"
+      ],
+      "priority": "C_market_or_industry",
+      "provider": "yfinance / Yahoo Finance",
+      "quality_score": 0.58,
+      "recommended_usage": "ADR confirmation signal only where ADR mapping exists",
+      "refresh_frequency": "market_day",
+      "source_id": "adr_yfinance",
+      "status": "current"
+    },
+    {
+      "category": "macro",
+      "credential_required": false,
+      "current_integration": "external market context helper",
+      "external_market_context": "confirmation_only",
+      "must_not_independently_raise_rating": true,
+      "must_not_replace_primary_source": true,
+      "noise_risk": "medium",
+      "notes": "Must not replace primary source and must not independently raise rating.",
+      "prediction_targets": [
+        "next_day_high_low",
+        "one_month_trend",
+        "three_month_trend",
+        "rating_action"
+      ],
+      "priority": "C_market_or_industry",
+      "provider": "yfinance / Yahoo Finance",
+      "quality_score": 0.56,
+      "recommended_usage": "external market context / confirmation signal",
+      "refresh_frequency": "market_day",
+      "source_id": "yfinance_external_market",
+      "status": "current"
+    },
+    {
+      "category": "market_price",
+      "credential_required": false,
+      "current_integration": "existing analysis storage reference; not written by this release",
+      "noise_risk": "low",
+      "notes": "AI-DEV-122 does not write production DB.",
+      "prediction_targets": [
+        "rating_action"
+      ],
+      "priority": "A_primary",
+      "provider": "repo-local SQLite",
+      "quality_score": 0.72,
+      "recommended_usage": "local historical/analysis reference when already available",
+      "refresh_frequency": "repo_local",
+      "source_id": "sqlite_historical_or_analysis",
+      "status": "current"
+    },
+    {
+      "category": "fundamental",
+      "credential_required": false,
+      "current_integration": "not_integrated",
+      "noise_risk": "low",
+      "notes": "Candidate source recorded for coverage policy; no integration is added in AI-DEV-122.",
+      "prediction_targets": [
+        "one_month_trend",
+        "three_month_trend",
+        "rating_action"
+      ],
+      "priority": "B_official_or_company_linked",
+      "provider": "MOPS",
+      "quality_score": 0.7,
+      "recommended_usage": "monthly revenue official coverage",
+      "refresh_frequency": "to_be_defined",
+      "source_id": "mops_monthly_revenue",
+      "status": "candidate_missing_or_not_integrated"
+    },
+    {
+      "category": "fundamental",
+      "credential_required": false,
+      "current_integration": "not_integrated",
+      "noise_risk": "low",
+      "notes": "Candidate source recorded for coverage policy; no integration is added in AI-DEV-122.",
+      "prediction_targets": [
+        "one_month_trend",
+        "three_month_trend",
+        "rating_action"
+      ],
+      "priority": "B_official_or_company_linked",
+      "provider": "MOPS",
+      "quality_score": 0.7,
+      "recommended_usage": "financial statements official coverage",
+      "refresh_frequency": "to_be_defined",
+      "source_id": "mops_financial_statement",
+      "status": "candidate_missing_or_not_integrated"
+    },
+    {
+      "category": "disclosure",
+      "credential_required": false,
+      "current_integration": "not_integrated",
+      "noise_risk": "low",
+      "notes": "Candidate source recorded for coverage policy; no integration is added in AI-DEV-122.",
+      "prediction_targets": [
+        "one_month_trend",
+        "three_month_trend",
+        "rating_action"
+      ],
+      "priority": "B_official_or_company_linked",
+      "provider": "MOPS",
+      "quality_score": 0.7,
+      "recommended_usage": "material information official coverage",
+      "refresh_frequency": "to_be_defined",
+      "source_id": "mops_material_information",
+      "status": "candidate_missing_or_not_integrated"
+    },
+    {
+      "category": "disclosure",
+      "credential_required": false,
+      "current_integration": "not_integrated",
+      "noise_risk": "low",
+      "notes": "Candidate source recorded for coverage policy; no integration is added in AI-DEV-122.",
+      "prediction_targets": [
+        "three_month_trend",
+        "rating_action"
+      ],
+      "priority": "B_official_or_company_linked",
+      "provider": "MOPS",
+      "quality_score": 0.7,
+      "recommended_usage": "investor conference material",
+      "refresh_frequency": "to_be_defined",
+      "source_id": "mops_investor_conference",
+      "status": "candidate_missing_or_not_integrated"
+    },
+    {
+      "category": "chip",
+      "credential_required": false,
+      "current_integration": "not_integrated",
+      "noise_risk": "low",
+      "notes": "Candidate source recorded for coverage policy; no integration is added in AI-DEV-122.",
+      "prediction_targets": [
+        "one_month_trend",
+        "three_month_trend",
+        "rating_action"
+      ],
+      "priority": "B_official_or_company_linked",
+      "provider": "TDCC",
+      "quality_score": 0.7,
+      "recommended_usage": "shareholding distribution",
+      "refresh_frequency": "to_be_defined",
+      "source_id": "tdcc_shareholding_distribution",
+      "status": "candidate_missing_or_not_integrated"
+    },
+    {
+      "category": "etf",
+      "credential_required": false,
+      "current_integration": "not_integrated",
+      "noise_risk": "low",
+      "notes": "Candidate source recorded for coverage policy; no integration is added in AI-DEV-122.",
+      "prediction_targets": [
+        "one_month_trend",
+        "three_month_trend",
+        "rating_action"
+      ],
+      "priority": "B_official_or_company_linked",
+      "provider": "ETF issuer / TWSE",
+      "quality_score": 0.7,
+      "recommended_usage": "ETF NAV, holdings, and distribution coverage",
+      "refresh_frequency": "to_be_defined",
+      "source_id": "etf_holdings_nav_distribution",
+      "status": "candidate_missing_or_not_integrated"
+    },
+    {
+      "category": "industry",
+      "credential_required": false,
+      "current_integration": "not_integrated",
+      "noise_risk": "medium",
+      "notes": "Candidate source recorded for coverage policy; no integration is added in AI-DEV-122.",
+      "prediction_targets": [
+        "one_month_trend",
+        "three_month_trend",
+        "rating_action"
+      ],
+      "priority": "C_market_or_industry",
+      "provider": "industry research",
+      "quality_score": 0.55,
+      "recommended_usage": "industry chain context",
+      "refresh_frequency": "to_be_defined",
+      "source_id": "industry_chain_sources",
+      "status": "candidate_missing_or_not_integrated"
+    },
+    {
+      "category": "macro",
+      "credential_required": false,
+      "current_integration": "not_integrated",
+      "noise_risk": "medium",
+      "notes": "Candidate source recorded for coverage policy; no integration is added in AI-DEV-122.",
+      "prediction_targets": [
+        "next_day_high_low",
+        "one_month_trend",
+        "three_month_trend",
+        "rating_action"
+      ],
+      "priority": "C_market_or_industry",
+      "provider": "external macro market data",
+      "quality_score": 0.55,
+      "recommended_usage": "VIX, US yield, USD, SOX, NASDAQ context",
+      "refresh_frequency": "to_be_defined",
+      "source_id": "macro_vix_us_yield_usd_sox_nasdaq",
+      "status": "candidate_missing_or_not_integrated"
+    },
+    {
+      "category": "chip",
+      "credential_required": false,
+      "current_integration": "not_integrated",
+      "noise_risk": "medium",
+      "notes": "Candidate source recorded for coverage policy; no integration is added in AI-DEV-122.",
+      "prediction_targets": [
+        "next_day_high_low",
+        "one_month_trend",
+        "rating_action"
+      ],
+      "priority": "C_market_or_industry",
+      "provider": "broker / exchange data",
+      "quality_score": 0.55,
+      "recommended_usage": "branch flow context",
+      "refresh_frequency": "to_be_defined",
+      "source_id": "securities_branch_flow",
+      "status": "candidate_missing_or_not_integrated"
+    },
+    {
+      "category": "chip",
+      "credential_required": false,
+      "current_integration": "not_integrated",
+      "noise_risk": "medium",
+      "notes": "Candidate source recorded for coverage policy; no integration is added in AI-DEV-122.",
+      "prediction_targets": [
+        "one_month_trend",
+        "three_month_trend",
+        "rating_action"
+      ],
+      "priority": "C_market_or_industry",
+      "provider": "exchange / broker data",
+      "quality_score": 0.55,
+      "recommended_usage": "securities lending pressure",
+      "refresh_frequency": "to_be_defined",
+      "source_id": "securities_lending",
+      "status": "candidate_missing_or_not_integrated"
+    },
+    {
+      "category": "disclosure",
+      "credential_required": false,
+      "current_integration": "not_integrated",
+      "noise_risk": "low",
+      "notes": "Candidate source recorded for coverage policy; no integration is added in AI-DEV-122.",
+      "prediction_targets": [
+        "three_month_trend",
+        "rating_action"
+      ],
+      "priority": "B_official_or_company_linked",
+      "provider": "company official",
+      "quality_score": 0.7,
+      "recommended_usage": "official guidance",
+      "refresh_frequency": "to_be_defined",
+      "source_id": "company_official_guidance",
+      "status": "candidate_missing_or_not_integrated"
+    },
+    {
+      "category": "news",
+      "credential_required": false,
+      "current_integration": "not_integrated",
+      "noise_risk": "medium",
+      "notes": "Candidate source recorded for coverage policy; no integration is added in AI-DEV-122.",
+      "prediction_targets": [
+        "three_month_trend",
+        "rating_action"
+      ],
+      "priority": "D_sentiment_or_noise",
+      "provider": "company / media",
+      "quality_score": 0.55,
+      "recommended_usage": "management interview context",
+      "refresh_frequency": "to_be_defined",
+      "source_id": "management_interviews",
+      "status": "candidate_missing_or_not_integrated"
+    },
+    {
+      "category": "disclosure",
+      "credential_required": false,
+      "current_integration": "not_integrated",
+      "noise_risk": "low",
+      "notes": "Candidate source recorded for coverage policy; no integration is added in AI-DEV-122.",
+      "prediction_targets": [
+        "three_month_trend",
+        "rating_action"
+      ],
+      "priority": "B_official_or_company_linked",
+      "provider": "company official",
+      "quality_score": 0.7,
+      "recommended_usage": "earnings call or investor deck",
+      "refresh_frequency": "to_be_defined",
+      "source_id": "earnings_call_transcript_or_investor_deck",
+      "status": "candidate_missing_or_not_integrated"
+    }
+  ],
+  "evaluations": [
+    {
+      "action_return_1d": -0.007968,
+      "close_direction_hit": false,
+      "direction_hit": false,
+      "evaluation_status": "evaluated",
+      "high_error_pct": -0.585799,
+      "low_error_pct": -0.592369,
+      "pending_reason": null,
+      "prediction_target": "next_day_high_low",
+      "rating_return_1d": -0.007968,
+      "run_id": "ai-dev-122-example-001",
+      "schema_version": "prediction_evaluation_v1",
+      "stock_id": "2330",
+      "target_date": "2026-06-23"
+    },
+    {
+      "action_return_1d": "not_available",
+      "close_direction_hit": null,
+      "direction_hit": null,
+      "evaluation_status": "pending_actual_outcome",
+      "high_error_pct": "not_available",
+      "low_error_pct": "not_available",
+      "pending_reason": "actual_outcome_pending",
+      "prediction_target": "next_day_high_low",
+      "rating_return_1d": "not_available",
+      "run_id": "ai-dev-122-example-001",
+      "schema_version": "prediction_evaluation_v1",
+      "stock_id": "2330",
+      "target_date": "2099-01-03"
+    },
+    {
+      "action_return_1d": -0.007968,
+      "close_direction_hit": "not_available",
+      "direction_hit": "not_available",
+      "evaluation_status": "insufficient_prediction_data",
+      "high_error_pct": "not_available",
+      "low_error_pct": "not_available",
+      "pending_reason": "prediction_high_low_direction_not_available",
+      "prediction_target": "three_month_trend",
+      "rating_return_1d": -0.007968,
+      "run_id": "ai-dev-122-example-002",
+      "schema_version": "prediction_evaluation_v1",
+      "stock_id": "00878",
+      "target_date": "2026-06-23"
+    }
+  ],
+  "generated_at": "2026-07-02T00:00:00Z",
+  "missing_data_policy_summary": {
+    "global_rules": [
+      "Missing values must be explicit pending, insufficient_data, unavailable, or not_applicable states.",
+      "Prediction snapshots remain advisory-only.",
+      "Source coverage gaps cap or downgrade confidence instead of silently passing.",
+      "News-only evidence cannot independently raise rating.",
+      "yfinance is external market context only and must not replace primary sources."
+    ],
+    "policies": [
+      {
+        "applies_to": [
+          "next_day_high_low",
+          "rating_action"
+        ],
+        "confidence_cap": null,
+        "effect": "ADR source marked not_applicable for stocks without ADR mapping",
+        "notes": "Missing ADR is not an error when the stock has no ADR mapping.",
+        "policy_id": "adr_not_applicable",
+        "status": "not_applicable"
+      },
+      {
+        "applies_to": [
+          "one_month_trend",
+          "three_month_trend",
+          "rating_action"
+        ],
+        "confidence_cap": 0.6,
+        "effect": "ETF prediction must mark NAV, holdings, and distribution gaps",
+        "notes": "ETF coverage requires ETF-specific NAV, holdings, and distribution sources.",
+        "policy_id": "etf_specific_source_gap",
+        "status": "partial"
+      },
+      {
+        "applies_to": [
+          "evaluation_v1"
+        ],
+        "confidence_cap": null,
+        "effect": "evaluation_status=pending_actual_outcome",
+        "notes": "Future or unavailable actuals must not fail evaluation.",
+        "policy_id": "missing_actual_outcome",
+        "status": "pending"
+      },
+      {
+        "applies_to": [
+          "one_month_trend",
+          "three_month_trend"
+        ],
+        "confidence_cap": 0.6,
+        "effect": "confidence cap lowered and readiness reduced",
+        "notes": "MOPS revenue, statements, and material information are important for longer horizons.",
+        "policy_id": "missing_fundamental",
+        "status": "partial_or_insufficient"
+      },
+      {
+        "applies_to": [
+          "intraday_high_low",
+          "next_day_high_low",
+          "rating_action"
+        ],
+        "confidence_cap": 0.4,
+        "effect": "technical prediction cannot be completed",
+        "notes": "OHLCV is required for high/low and technical evaluation.",
+        "policy_id": "missing_historical_ohlcv",
+        "status": "insufficient_data"
+      },
+      {
+        "applies_to": [
+          "one_month_trend",
+          "three_month_trend",
+          "rating_action"
+        ],
+        "confidence_cap": 0.45,
+        "effect": "must_not_raise_rating",
+        "notes": "Google News RSS and AI summaries can only be event/risk metadata without primary sources.",
+        "policy_id": "news_only_without_primary_source",
+        "status": "insufficient_data"
+      },
+      {
+        "applies_to": [
+          "next_day_high_low",
+          "one_month_trend",
+          "three_month_trend",
+          "rating_action"
+        ],
+        "confidence_cap": null,
+        "effect": "external_market_context=unavailable; lower external market coverage only",
+        "notes": "yfinance must not fail the pipeline and cannot replace primary sources.",
+        "policy_id": "yfinance_unavailable",
+        "status": "unavailable"
+      }
+    ],
+    "schema_version": "missing_data_policy_v1"
+  },
+  "prediction_snapshots": [
+    {
+      "action": "watch",
+      "advisory_only": true,
+      "confidence": 0.82,
+      "confidence_status": "ready",
+      "data_coverage_score": 0.96,
+      "evidence_summary": [
+        "Local OHLCV available",
+        "ADR/yfinance used only as confirmation",
+        "Chip context available"
+      ],
+      "pipeline_type": "prediction_data_foundation_v1",
+      "predicted_high": 1050.0,
+      "predicted_low": 1015.0,
+      "predicted_trend": "up",
+      "prediction_target": "next_day_high_low",
+      "rating": "positive",
+      "review_status": "ready_for_evaluation",
+      "run_date": "2026-07-02",
+      "run_id": "ai-dev-122-example-001",
+      "run_time": "07:00:00Z",
+      "scheduler_window": "manual_fixture",
+      "schema_version": "prediction_snapshot_v1",
+      "score": 78.5,
+      "source_ids": [
+        "historical_csv_fallback",
+        "chip_analysis_existing",
+        "adr_yfinance",
+        "yfinance_external_market"
+      ],
+      "source_quality_summary": {
+        "confidence_cap": 0.9,
+        "market_context_source_count": 3,
+        "missing_sources": [],
+        "noisy_metadata_source_count": 0,
+        "notes": [
+          "yfinance is external market context only and cannot replace primary sources"
+        ],
+        "official_source_count": 0,
+        "primary_source_count": 1,
+        "readiness": "ready"
+      },
+      "stock_id": "2330",
+      "stock_name": "TSMC"
+    },
+    {
+      "action": "hold_review",
+      "advisory_only": true,
+      "confidence": 0.4,
+      "confidence_status": "insufficient_data",
+      "data_coverage_score": 0.1893,
+      "evidence_summary": [
+        "ETF-specific NAV/holdings/distribution source gap",
+        "Fundamental/disclosure sources missing",
+        "News is metadata only"
+      ],
+      "pipeline_type": "prediction_data_foundation_v1",
+      "predicted_high": {
+        "status": "not_applicable"
+      },
+      "predicted_low": {
+        "status": "not_applicable"
+      },
+      "predicted_trend": "insufficient_data",
+      "prediction_target": "three_month_trend",
+      "rating": "neutral",
+      "review_status": "insufficient_data",
+      "run_date": "2026-07-02",
+      "run_id": "ai-dev-122-example-002",
+      "run_time": "07:00:00Z",
+      "scheduler_window": "manual_fixture",
+      "schema_version": "prediction_snapshot_v1",
+      "score": 52.0,
+      "source_ids": [
+        "historical_csv_fallback",
+        "google_news_rss",
+        "yfinance_external_market"
+      ],
+      "source_quality_summary": {
+        "confidence_cap": 0.4,
+        "market_context_source_count": 1,
+        "missing_sources": [
+          "mops_monthly_revenue",
+          "mops_financial_statement",
+          "mops_material_information",
+          "company_official_guidance",
+          "industry_chain_sources",
+          "macro_vix_us_yield_usd_sox_nasdaq"
+        ],
+        "noisy_metadata_source_count": 1,
+        "notes": [
+          "news-only evidence cannot independently raise rating",
+          "yfinance is external market context only and cannot replace primary sources",
+          "missing required sources: mops_monthly_revenue, mops_financial_statement, mops_material_information, company_official_guidance, industry_chain_sources, macro_vix_us_yield_usd_sox_nasdaq"
+        ],
+        "official_source_count": 0,
+        "primary_source_count": 1,
+        "readiness": "insufficient"
+      },
+      "stock_id": "00878",
+      "stock_name": "ETF Example"
+    }
+  ],
+  "safety_summary": {
+    "broker_login": false,
+    "dashboard_production_publish": false,
+    "email_send": false,
+    "large_ai_or_gemini_batch_call": false,
+    "line_send": false,
+    "nginx_systemd_cron_mutation": false,
+    "production_db_write": false,
+    "production_forecast_weight_change": false,
+    "production_order": false,
+    "scheduler_change": false,
+    "secrets_read": false,
+    "simulation_order": false
+  },
+  "schema_version": "prediction_data_foundation_artifact_v1",
+  "source_coverage_matrix": [
+    {
+      "available_sources": [
+        "historical_csv_fallback",
+        "shioaji_ohlcv",
+        "twse_openapi",
+        "adr_yfinance",
+        "yfinance_external_market"
+      ],
+      "confidence_cap": 0.9,
+      "coverage_score": 1.0,
+      "missing_data_policy": [
+        "missing_historical_ohlcv",
+        "adr_not_applicable",
+        "yfinance_unavailable"
+      ],
+      "missing_sources": [],
+      "notes": "Requires OHLCV / technical / recent price context. ADR and external market are optional confirmation signals.",
+      "optional_missing_sources": [],
+      "optional_sources": [
+        "twse_openapi",
+        "adr_yfinance",
+        "yfinance_external_market"
+      ],
+      "prediction_target": "intraday_high_low",
+      "readiness": "ready",
+      "required_sources": [
+        "historical_csv_fallback",
+        "shioaji_ohlcv"
+      ],
+      "schema_version": "source_coverage_matrix_v1"
+    },
+    {
+      "available_sources": [
+        "historical_csv_fallback",
+        "shioaji_ohlcv",
+        "twse_openapi",
+        "adr_yfinance",
+        "yfinance_external_market",
+        "chip_analysis_existing"
+      ],
+      "confidence_cap": 0.9,
+      "coverage_score": 0.96,
+      "missing_data_policy": [
+        "missing_historical_ohlcv",
+        "adr_not_applicable",
+        "yfinance_unavailable"
+      ],
+      "missing_sources": [],
+      "notes": "Requires OHLCV / technical / recent price. ADR, US market, semiconductor proxy, and chip data are optional/important.",
+      "optional_missing_sources": [
+        "macro_vix_us_yield_usd_sox_nasdaq"
+      ],
+      "optional_sources": [
+        "twse_openapi",
+        "adr_yfinance",
+        "yfinance_external_market",
+        "chip_analysis_existing",
+        "macro_vix_us_yield_usd_sox_nasdaq"
+      ],
+      "prediction_target": "next_day_high_low",
+      "readiness": "ready",
+      "required_sources": [
+        "historical_csv_fallback",
+        "shioaji_ohlcv"
+      ],
+      "schema_version": "source_coverage_matrix_v1"
+    },
+    {
+      "available_sources": [
+        "historical_csv_fallback",
+        "chip_analysis_existing",
+        "google_news_rss",
+        "gemini_news_summary",
+        "yfinance_external_market"
+      ],
+      "confidence_cap": 0.4,
+      "coverage_score": 0.3333,
+      "missing_data_policy": [
+        "missing_fundamental",
+        "news_only_without_primary_source",
+        "yfinance_unavailable",
+        "etf_specific_source_gap"
+      ],
+      "missing_sources": [
+        "mops_monthly_revenue",
+        "mops_financial_statement",
+        "mops_material_information"
+      ],
+      "notes": "Requires stronger fundamental/disclosure coverage; missing monthly revenue, statements, or material information lowers readiness.",
+      "optional_missing_sources": [
+        "tdcc_shareholding_distribution",
+        "industry_chain_sources"
+      ],
+      "optional_sources": [
+        "chip_analysis_existing",
+        "tdcc_shareholding_distribution",
+        "industry_chain_sources",
+        "google_news_rss",
+        "gemini_news_summary",
+        "yfinance_external_market"
+      ],
+      "prediction_target": "one_month_trend",
+      "readiness": "insufficient",
+      "required_sources": [
+        "historical_csv_fallback",
+        "mops_monthly_revenue",
+        "mops_financial_statement",
+        "mops_material_information"
+      ],
+      "schema_version": "source_coverage_matrix_v1"
+    },
+    {
+      "available_sources": [
+        "historical_csv_fallback",
+        "google_sheet_stock_universe",
+        "chip_analysis_existing",
+        "adr_yfinance",
+        "yfinance_external_market",
+        "google_news_rss",
+        "gemini_news_summary"
+      ],
+      "confidence_cap": 0.9,
+      "coverage_score": 0.9111,
+      "missing_data_policy": [
+        "news_only_without_primary_source",
+        "adr_not_applicable",
+        "yfinance_unavailable",
+        "etf_specific_source_gap"
+      ],
+      "missing_sources": [],
+      "notes": "Can run with existing technical/news/chip/ADR scoring, but rating confidence must reflect source quality and coverage gaps.",
+      "optional_missing_sources": [
+        "mops_monthly_revenue",
+        "mops_financial_statement",
+        "mops_material_information",
+        "etf_holdings_nav_distribution"
+      ],
+      "optional_sources": [
+        "chip_analysis_existing",
+        "adr_yfinance",
+        "yfinance_external_market",
+        "google_news_rss",
+        "gemini_news_summary",
+        "mops_monthly_revenue",
+        "mops_financial_statement",
+        "mops_material_information",
+        "etf_holdings_nav_distribution"
+      ],
+      "prediction_target": "rating_action",
+      "readiness": "ready",
+      "required_sources": [
+        "historical_csv_fallback",
+        "google_sheet_stock_universe"
+      ],
+      "schema_version": "source_coverage_matrix_v1"
+    },
+    {
+      "available_sources": [
+        "historical_csv_fallback",
+        "google_news_rss",
+        "gemini_news_summary",
+        "yfinance_external_market"
+      ],
+      "confidence_cap": 0.4,
+      "coverage_score": 0.1893,
+      "missing_data_policy": [
+        "missing_fundamental",
+        "news_only_without_primary_source",
+        "yfinance_unavailable",
+        "etf_specific_source_gap"
+      ],
+      "missing_sources": [
+        "mops_monthly_revenue",
+        "mops_financial_statement",
+        "mops_material_information",
+        "company_official_guidance",
+        "industry_chain_sources",
+        "macro_vix_us_yield_usd_sox_nasdaq"
+      ],
+      "notes": "Requires fundamental, industry, company guidance, macro, and disclosure coverage; missing core sources makes readiness insufficient.",
+      "optional_missing_sources": [
+        "mops_investor_conference",
+        "earnings_call_transcript_or_investor_deck",
+        "management_interviews",
+        "tdcc_shareholding_distribution",
+        "securities_lending"
+      ],
+      "optional_sources": [
+        "mops_investor_conference",
+        "earnings_call_transcript_or_investor_deck",
+        "management_interviews",
+        "tdcc_shareholding_distribution",
+        "securities_lending",
+        "google_news_rss",
+        "gemini_news_summary",
+        "yfinance_external_market"
+      ],
+      "prediction_target": "three_month_trend",
+      "readiness": "insufficient",
+      "required_sources": [
+        "historical_csv_fallback",
+        "mops_monthly_revenue",
+        "mops_financial_statement",
+        "mops_material_information",
+        "company_official_guidance",
+        "industry_chain_sources",
+        "macro_vix_us_yield_usd_sox_nasdaq"
+      ],
+      "schema_version": "source_coverage_matrix_v1"
+    }
+  ]
+}
