@@ -1,0 +1,548 @@
+{
+  "advisory_only": true,
+  "artifact_type": "dashboard_intelligence_v1",
+  "confidence_calibration_summary": {
+    "calibration_gap": 0.18,
+    "confidence_bucket": "0.80-1.00",
+    "finding": "over_confident_sample_warning",
+    "limitations": [
+      "offline sample/demo only",
+      "not a production model conclusion"
+    ],
+    "recommendation_summary": "Show warning and require review before trust increase.",
+    "sample_size": 12,
+    "weighted_ece": 0.118
+  },
+  "dashboard_status": "ready_for_repo_preview",
+  "diagnostics": {
+    "artifact_status": "partial",
+    "errors": [
+      "Pipeline wrapper error summarized; raw traceback is intentionally suppressed"
+    ],
+    "missing_artifacts": [
+      "real AI-DEV-122 rolling evaluation artifact"
+    ],
+    "operator_action_required": true,
+    "pipeline_status": "offline_sample",
+    "raw_log_available": true,
+    "raw_traceback_suppressed": true,
+    "validation_status": "sample_valid",
+    "warnings": [
+      "real artifacts unavailable; deterministic offline sample used"
+    ]
+  },
+  "explainability_summary": {
+    "evidence_ids": [
+      "ev-sample-2330-001",
+      "ev-sample-2317-001"
+    ],
+    "evidence_summary": "Deterministic sample evidence only; no invented evidence.",
+    "explainability_status": "available_sample",
+    "missing_data_factors": [
+      "management interview",
+      "supplier channel check"
+    ],
+    "neutral_factors": [
+      "ADR market context"
+    ],
+    "source_ids": [
+      "company_filing",
+      "sqlite_historical_csv",
+      "finmind_market",
+      "yfinance_adr",
+      "google_news_rss"
+    ],
+    "top_negative_factors": [
+      "macro: aggregate pressure"
+    ],
+    "top_positive_factors": [
+      "fundamental: revenue guidance",
+      "technical: momentum breakout"
+    ]
+  },
+  "factor_recommendation_summary": {
+    "recommendations": [
+      {
+        "confidence": 0.74,
+        "factor_group": "fundamental",
+        "finding": "effective",
+        "limitations": [
+          "human review required"
+        ],
+        "production_mutation_allowed": false,
+        "recommendation_id": "rec-001",
+        "recommended_delta_range": "0 to +5% advisory",
+        "recommended_direction": "increase",
+        "requires_human_review": true,
+        "sample_size": 24,
+        "target_area": "factor_weight"
+      },
+      {
+        "confidence": 0.52,
+        "factor_group": "chip",
+        "finding": "weakly_effective",
+        "limitations": [
+          "marginal dry-run signal"
+        ],
+        "production_mutation_allowed": false,
+        "recommendation_id": "rec-003",
+        "recommended_delta_range": "0%",
+        "recommended_direction": "monitor",
+        "requires_human_review": true,
+        "sample_size": 20,
+        "target_area": "factor_weight"
+      },
+      {
+        "confidence": 0.6,
+        "factor_group": "macro",
+        "finding": "inverted",
+        "limitations": [
+          "market context only"
+        ],
+        "production_mutation_allowed": false,
+        "recommendation_id": "rec-004",
+        "recommended_delta_range": "0 to -5% advisory",
+        "recommended_direction": "decrease",
+        "requires_human_review": true,
+        "sample_size": 20,
+        "target_area": "factor_weight"
+      }
+    ],
+    "summary": "Monitor chip factor, decrease macro pressure influence in future review, never auto-apply."
+  },
+  "future_integration": {
+    "ai_dev_127_ready": true,
+    "production_publish_requires_separate_human_gated_task": true,
+    "real_artifact_ingestion_next": true
+  },
+  "generated_at": "2026-07-02T15:47:25.246278+00:00",
+  "input_summary": {
+    "missing_real_artifacts_allowed": true,
+    "source": "deterministic_offline_sample",
+    "stock_count": 2
+  },
+  "prediction_performance_summary": {
+    "action_effectiveness_summary": "Actions are research labels only, not trading instructions.",
+    "bucket_findings": [
+      {
+        "bucket": "0.80-1.00",
+        "finding": "over_confident_sample_warning",
+        "sample_size": 12
+      },
+      {
+        "bucket": "0.40-0.60",
+        "finding": "insufficient_sample",
+        "sample_size": 4
+      }
+    ],
+    "confidence_summary": {
+      "high_confidence_bucket": "over_confident_sample_warning",
+      "insufficient_sample_visible": true,
+      "status": "sample_demo"
+    },
+    "rating_effectiveness_summary": "Bullish sample cards require source coverage review before trust is raised.",
+    "sample_size_warning": "offline sample/demo only; not production conclusion",
+    "weighted_ece": 0.118
+  },
+  "preview_metadata": {
+    "css_policy": "inline_css_no_external_cdn",
+    "forbidden_output_locations": [
+      "/var/www/stock-ai-dashboard"
+    ],
+    "javascript_required": false,
+    "preview_type": "repo_side_static_mobile_first",
+    "production_publish_allowed": false,
+    "safe_output_locations": [
+      "templates/dashboard_intelligence_preview.example.html"
+    ],
+    "target_width": "iPhone/mobile first"
+  },
+  "production_mutation_allowed": false,
+  "production_publish_allowed": false,
+  "safety_summary": {
+    "advisory_only": true,
+    "delivery_mutation_allowed": false,
+    "human_review_required": true,
+    "no_broker_login": true,
+    "no_confidence_mutation": true,
+    "no_forecast_weight_change": true,
+    "no_line_email_delivery": true,
+    "no_nginx_systemd_cron_change": true,
+    "no_production_dashboard_publish": true,
+    "no_production_db_write": true,
+    "no_production_order": true,
+    "no_rating_action_mutation": true,
+    "no_secrets_read": true,
+    "no_simulation_order": true,
+    "no_var_www_write": true,
+    "production_mutation_allowed": false,
+    "production_publish_allowed": false,
+    "safety_notes": [
+      "Repo-side dashboard intelligence artifact and preview only.",
+      "All recommendations are advisory-only and require human review.",
+      "Preview output is not published to the production dashboard directory."
+    ],
+    "scheduler_mutation_allowed": false,
+    "trading_disabled": true
+  },
+  "schema_version": "1.0",
+  "sections": [
+    {
+      "advisory_only": true,
+      "cards": [
+        {
+          "advisory_only": true,
+          "card_id": "overview-priority",
+          "card_type": "summary",
+          "status": "review_required",
+          "summary": "2 cards need review.",
+          "title": "Stocks needing attention"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "overview-safety",
+          "card_type": "safety",
+          "status": "safe",
+          "summary": "No trading, delivery, scheduler, production DB, confidence, rating/action, or weight mutation occurred.",
+          "title": "Advisory only"
+        }
+      ],
+      "last_updated": "2026-07-02T15:47:25.246278+00:00",
+      "section_id": "today_overview",
+      "status": "review_required",
+      "summary": "Mobile-first advisory summary for prediction, confidence, source coverage, recommendations, and diagnostics.",
+      "title": "Today Overview"
+    },
+    {
+      "advisory_only": true,
+      "cards": [
+        {
+          "advisory_only": true,
+          "card_id": "prediction-calibration",
+          "card_type": "prediction_performance",
+          "status": "sample_warning",
+          "summary": "Weighted ECE 0.118 with offline sample/demo only; not production conclusion",
+          "title": "Calibration"
+        }
+      ],
+      "last_updated": "2026-07-02T15:47:25.246278+00:00",
+      "section_id": "prediction_performance",
+      "status": "sample_demo",
+      "summary": "Evaluation and confidence reliability summary.",
+      "title": "Prediction Performance"
+    },
+    {
+      "advisory_only": true,
+      "cards": [
+        {
+          "action": "research_watch",
+          "adaptive_recommendation_summary": {
+            "factor_group": "chip",
+            "major_factor": true,
+            "production_mutation_allowed": false,
+            "recommendation_id": "rec-003",
+            "recommended_direction": "monitor",
+            "requires_human_review": true
+          },
+          "advisory_only": true,
+          "calibration_warning": true,
+          "confidence": 0.82,
+          "confidence_status": "high_but_over_confident_warning",
+          "dashboard_priority": "high",
+          "missing_data_factors": [
+            "management_interview_primary_source"
+          ],
+          "prediction_targets": {
+            "next_day_high_low": "positive_bias",
+            "one_month_trend": "up",
+            "same_day_high_low": "range_watch",
+            "three_month_trend": "up_with_primary_source_gap"
+          },
+          "rating": "bullish",
+          "review_status": "review_required",
+          "score": 82,
+          "source_coverage_readiness": "partial_primary_gap",
+          "source_coverage_score": 0.62,
+          "stock_id": "2330",
+          "stock_name": "台積電",
+          "top_negative_factors": [
+            "macro: market_aggregate_pressure"
+          ],
+          "top_positive_factors": [
+            "fundamental: revenue_guidance",
+            "technical: momentum_breakout"
+          ]
+        },
+        {
+          "action": "hold_research",
+          "adaptive_recommendation_summary": {
+            "factor_group": "missing_data",
+            "major_factor": false,
+            "production_mutation_allowed": false,
+            "recommendation_id": "rec-007",
+            "recommended_direction": "monitor",
+            "requires_human_review": true
+          },
+          "advisory_only": true,
+          "calibration_warning": false,
+          "confidence": 0.54,
+          "confidence_status": "sample_insufficient",
+          "dashboard_priority": "watch",
+          "missing_data_factors": [
+            "primary supplier channel check",
+            "recent management guidance"
+          ],
+          "prediction_targets": {
+            "next_day_high_low": "mixed",
+            "one_month_trend": "watch",
+            "same_day_high_low": "not_available",
+            "three_month_trend": "watch"
+          },
+          "rating": "neutral",
+          "review_status": "insufficient_sample",
+          "score": 61,
+          "source_coverage_readiness": "insufficient_primary_source",
+          "source_coverage_score": 0.48,
+          "stock_id": "2317",
+          "stock_name": "鴻海",
+          "top_negative_factors": [
+            "missing_data: incomplete supplier update"
+          ],
+          "top_positive_factors": [
+            "adr: market_context_cross_check"
+          ]
+        }
+      ],
+      "last_updated": "2026-07-02T15:47:25.246278+00:00",
+      "section_id": "stock_intelligence_cards",
+      "status": "available",
+      "summary": "Per-stock dashboard-ready intelligence cards.",
+      "title": "Stock Intelligence Cards"
+    },
+    {
+      "advisory_only": true,
+      "cards": [
+        {
+          "advisory_only": true,
+          "card_id": "source-primary",
+          "card_type": "source_coverage",
+          "status": "partial",
+          "summary": "latest company guidance transcript, primary supplier update",
+          "title": "Primary source status"
+        }
+      ],
+      "last_updated": "2026-07-02T15:47:25.246278+00:00",
+      "section_id": "source_coverage_data_quality",
+      "status": "partial",
+      "summary": "Primary source gaps, supporting source status, and confidence cap reasons.",
+      "title": "Source Coverage & Data Quality"
+    },
+    {
+      "advisory_only": true,
+      "cards": [
+        {
+          "advisory_only": true,
+          "card_id": "explainability-evidence",
+          "card_type": "explainability",
+          "status": "available_sample",
+          "summary": "Deterministic sample evidence only; no invented evidence.",
+          "title": "Evidence summary"
+        }
+      ],
+      "last_updated": "2026-07-02T15:47:25.246278+00:00",
+      "section_id": "explainability",
+      "status": "available_sample",
+      "summary": "Deterministic explanation without invented evidence.",
+      "title": "Explainability"
+    },
+    {
+      "advisory_only": true,
+      "cards": [
+        {
+          "advisory_only": true,
+          "card_id": "calibration-gap",
+          "card_type": "calibration",
+          "status": "over_confident_sample_warning",
+          "summary": "Bucket 0.80-1.00 gap 0.18; Show warning and require review before trust increase.",
+          "title": "Calibration gap"
+        }
+      ],
+      "last_updated": "2026-07-02T15:47:25.246278+00:00",
+      "section_id": "confidence_calibration",
+      "status": "over_confident_sample_warning",
+      "summary": "Confidence bucket findings and limitations.",
+      "title": "Confidence Calibration"
+    },
+    {
+      "advisory_only": true,
+      "cards": [
+        {
+          "advisory_only": true,
+          "card_id": "factor-recommendation",
+          "card_type": "recommendation",
+          "status": "human_review_required",
+          "summary": "Monitor chip factor, decrease macro pressure influence in future review, never auto-apply.",
+          "title": "Recommendation summary"
+        }
+      ],
+      "last_updated": "2026-07-02T15:47:25.246278+00:00",
+      "section_id": "factor_recommendation",
+      "status": "advisory_only",
+      "summary": "Advisory-only factor recommendation summaries.",
+      "title": "Factor Recommendation"
+    },
+    {
+      "advisory_only": true,
+      "cards": [
+        {
+          "advisory_only": true,
+          "card_id": "diagnostics-status",
+          "card_type": "diagnostics",
+          "status": "partial",
+          "summary": "Missing artifacts: real AI-DEV-122 rolling evaluation artifact",
+          "title": "Artifact status"
+        }
+      ],
+      "last_updated": "2026-07-02T15:47:25.246278+00:00",
+      "section_id": "diagnostics",
+      "status": "action_required",
+      "summary": "Operator diagnostics separated from main user-facing content.",
+      "title": "Diagnostics"
+    },
+    {
+      "advisory_only": true,
+      "cards": [
+        {
+          "advisory_only": true,
+          "card_id": "safety-boundary",
+          "card_type": "safety",
+          "status": "safe",
+          "summary": "production_publish_allowed=false; production_mutation_allowed=false; advisory_only=true",
+          "title": "Safety boundary"
+        }
+      ],
+      "last_updated": "2026-07-02T15:47:25.246278+00:00",
+      "section_id": "safety_governance",
+      "status": "safe",
+      "summary": "Advisory-only, no-trading, no-production-publish status.",
+      "title": "Safety & Governance"
+    }
+  ],
+  "source_artifact_summary": {
+    "ai_dev_122_prediction_foundation": "sample_available",
+    "ai_dev_123_explainability": "sample_available",
+    "ai_dev_124_confidence_calibration": "sample_available",
+    "ai_dev_125_factor_recommendation": "sample_available",
+    "real_artifacts_required": false
+  },
+  "source_coverage_summary": {
+    "aggregated_source_status": "supporting_only",
+    "confidence_cap_reasons": [
+      "missing primary source",
+      "news-only evidence cannot act as rating authority"
+    ],
+    "finmind_yfinance_policy_note": "FinMind and yfinance are market-context/supporting sources, not primary authority.",
+    "market_context_status": "available_as_cross_check",
+    "missing_primary_sources": [
+      "latest company guidance transcript",
+      "primary supplier update"
+    ],
+    "primary_source_status": "partial",
+    "source_conflicts": [
+      "news sentiment conflicts with primary-source gap"
+    ],
+    "source_coverage_summary": "Primary source partial; FinMind and yfinance shown only as supporting context."
+  },
+  "stock_card_summary": {
+    "advisory_only": true,
+    "count": 2,
+    "priority_counts": {
+      "high": 1,
+      "low": 0,
+      "medium": 0,
+      "not_available": 0,
+      "watch": 1
+    }
+  },
+  "stock_cards": [
+    {
+      "action": "research_watch",
+      "adaptive_recommendation_summary": {
+        "factor_group": "chip",
+        "major_factor": true,
+        "production_mutation_allowed": false,
+        "recommendation_id": "rec-003",
+        "recommended_direction": "monitor",
+        "requires_human_review": true
+      },
+      "advisory_only": true,
+      "calibration_warning": true,
+      "confidence": 0.82,
+      "confidence_status": "high_but_over_confident_warning",
+      "dashboard_priority": "high",
+      "missing_data_factors": [
+        "management_interview_primary_source"
+      ],
+      "prediction_targets": {
+        "next_day_high_low": "positive_bias",
+        "one_month_trend": "up",
+        "same_day_high_low": "range_watch",
+        "three_month_trend": "up_with_primary_source_gap"
+      },
+      "rating": "bullish",
+      "review_status": "review_required",
+      "score": 82,
+      "source_coverage_readiness": "partial_primary_gap",
+      "source_coverage_score": 0.62,
+      "stock_id": "2330",
+      "stock_name": "台積電",
+      "top_negative_factors": [
+        "macro: market_aggregate_pressure"
+      ],
+      "top_positive_factors": [
+        "fundamental: revenue_guidance",
+        "technical: momentum_breakout"
+      ]
+    },
+    {
+      "action": "hold_research",
+      "adaptive_recommendation_summary": {
+        "factor_group": "missing_data",
+        "major_factor": false,
+        "production_mutation_allowed": false,
+        "recommendation_id": "rec-007",
+        "recommended_direction": "monitor",
+        "requires_human_review": true
+      },
+      "advisory_only": true,
+      "calibration_warning": false,
+      "confidence": 0.54,
+      "confidence_status": "sample_insufficient",
+      "dashboard_priority": "watch",
+      "missing_data_factors": [
+        "primary supplier channel check",
+        "recent management guidance"
+      ],
+      "prediction_targets": {
+        "next_day_high_low": "mixed",
+        "one_month_trend": "watch",
+        "same_day_high_low": "not_available",
+        "three_month_trend": "watch"
+      },
+      "rating": "neutral",
+      "review_status": "insufficient_sample",
+      "score": 61,
+      "source_coverage_readiness": "insufficient_primary_source",
+      "source_coverage_score": 0.48,
+      "stock_id": "2317",
+      "stock_name": "鴻海",
+      "top_negative_factors": [
+        "missing_data: incomplete supplier update"
+      ],
+      "top_positive_factors": [
+        "adr: market_context_cross_check"
+      ]
+    }
+  ],
+  "task_id": "AI-DEV-126"
+}
