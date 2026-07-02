@@ -1,0 +1,843 @@
+{
+  "action_effectiveness": [
+    {
+      "action": "偏多加碼",
+      "avg_return_1d": 0.0,
+      "avg_return_20d": 0.0,
+      "avg_return_5d": 0.0,
+      "direction_hit_rate": 0.5,
+      "finding": "inverted",
+      "positive_return_rate_1d": 0.5,
+      "positive_return_rate_20d": 0.5,
+      "positive_return_rate_5d": 0.5,
+      "sample_size": 12
+    },
+    {
+      "action": "偏多續抱",
+      "avg_return_1d": 0.0055,
+      "avg_return_20d": 0.0176,
+      "avg_return_5d": 0.0099,
+      "direction_hit_rate": 0.666667,
+      "finding": "inverted",
+      "positive_return_rate_1d": 0.666667,
+      "positive_return_rate_20d": 0.666667,
+      "positive_return_rate_5d": 0.666667,
+      "sample_size": 12
+    },
+    {
+      "action": "中性觀察",
+      "avg_return_1d": 0.005077,
+      "avg_return_20d": 0.016246,
+      "avg_return_5d": 0.009138,
+      "direction_hit_rate": 0.666667,
+      "finding": "inverted",
+      "positive_return_rate_1d": 0.615385,
+      "positive_return_rate_20d": 0.615385,
+      "positive_return_rate_5d": 0.615385,
+      "sample_size": 13
+    },
+    {
+      "action": "降低追價",
+      "avg_return_1d": 0.0055,
+      "avg_return_20d": 0.0176,
+      "avg_return_5d": 0.0099,
+      "direction_hit_rate": 0.666667,
+      "finding": "inverted",
+      "positive_return_rate_1d": 0.666667,
+      "positive_return_rate_20d": 0.666667,
+      "positive_return_rate_5d": 0.666667,
+      "sample_size": 12
+    },
+    {
+      "action": "保守觀望",
+      "avg_return_1d": 0.003,
+      "avg_return_20d": 0.0096,
+      "avg_return_5d": 0.0054,
+      "direction_hit_rate": 0.583333,
+      "finding": "inverted",
+      "positive_return_rate_1d": 0.583333,
+      "positive_return_rate_20d": 0.583333,
+      "positive_return_rate_5d": 0.583333,
+      "sample_size": 12
+    },
+    {
+      "action": "unknown",
+      "avg_return_1d": 0.0,
+      "avg_return_20d": 0.0,
+      "avg_return_5d": 0.0,
+      "direction_hit_rate": 0.5,
+      "finding": "insufficient_sample",
+      "positive_return_rate_1d": 0.0,
+      "positive_return_rate_20d": 0.0,
+      "positive_return_rate_5d": 0.0,
+      "sample_size": 4
+    }
+  ],
+  "calibration_findings": [
+    {
+      "evidence_summary": "Bucket 0.40-0.50 gap=None",
+      "finding": "insufficient_sample",
+      "finding_id": "bucket-01",
+      "limitations": [
+        "sample size below reliable threshold"
+      ],
+      "sample_size": 0,
+      "severity": "info",
+      "target_area": "confidence_formula"
+    },
+    {
+      "evidence_summary": "Bucket 0.50-0.60 gap=0.15",
+      "finding": "under_confident",
+      "finding_id": "bucket-02",
+      "limitations": [],
+      "sample_size": 20,
+      "severity": "medium",
+      "target_area": "confidence_formula"
+    },
+    {
+      "evidence_summary": "Bucket 0.60-0.70 gap=-0.0",
+      "finding": "well_calibrated",
+      "finding_id": "bucket-03",
+      "limitations": [],
+      "sample_size": 20,
+      "severity": "info",
+      "target_area": "confidence_formula"
+    },
+    {
+      "evidence_summary": "Bucket 0.70-0.80 gap=-0.25",
+      "finding": "over_confident",
+      "finding_id": "bucket-04",
+      "limitations": [],
+      "sample_size": 20,
+      "severity": "medium",
+      "target_area": "confidence_formula"
+    },
+    {
+      "evidence_summary": "Bucket 0.80-0.90 gap=-0.35",
+      "finding": "insufficient_sample",
+      "finding_id": "bucket-05",
+      "limitations": [
+        "sample size below reliable threshold"
+      ],
+      "sample_size": 4,
+      "severity": "info",
+      "target_area": "confidence_formula"
+    },
+    {
+      "evidence_summary": "Bucket 0.90-1.00 gap=None",
+      "finding": "insufficient_sample",
+      "finding_id": "bucket-06",
+      "limitations": [
+        "sample size below reliable threshold"
+      ],
+      "sample_size": 0,
+      "severity": "info",
+      "target_area": "confidence_formula"
+    },
+    {
+      "evidence_summary": "rating_rule row={'rating': 'A', 'sample_size': 12, 'direction_hit_rate': 0.5, 'avg_return_1d': 0.0, 'avg_return_5d': 0.0, 'avg_return_20d': 0.0, 'median_return_1d': 0.0, 'median_return_5d': 0.0, 'median_return_20d': 0.0, 'positive_return_rate_1d': 0.5, 'positive_return_rate_5d': 0.5, 'positive_return_rate_20d': 0.5, 'finding': 'inverted'}",
+      "finding": "inverted",
+      "finding_id": "rating_rule-07",
+      "limitations": [
+        "advisory-only diagnostic"
+      ],
+      "sample_size": 12,
+      "severity": "medium",
+      "target_area": "rating_rule"
+    },
+    {
+      "evidence_summary": "rating_rule row={'rating': 'B', 'sample_size': 12, 'direction_hit_rate': 0.666667, 'avg_return_1d': 0.0055, 'avg_return_5d': 0.0099, 'avg_return_20d': 0.0176, 'median_return_1d': 0.015, 'median_return_5d': 0.027, 'median_return_20d': 0.048, 'positive_return_rate_1d': 0.666667, 'positive_return_rate_5d': 0.666667, 'positive_return_rate_20d': 0.666667, 'finding': 'inverted'}",
+      "finding": "inverted",
+      "finding_id": "rating_rule-08",
+      "limitations": [
+        "advisory-only diagnostic"
+      ],
+      "sample_size": 12,
+      "severity": "medium",
+      "target_area": "rating_rule"
+    },
+    {
+      "evidence_summary": "rating_rule row={'rating': 'C', 'sample_size': 13, 'direction_hit_rate': 0.666667, 'avg_return_1d': 0.005077, 'avg_return_5d': 0.009138, 'avg_return_20d': 0.016246, 'median_return_1d': 0.015, 'median_return_5d': 0.027, 'median_return_20d': 0.048, 'positive_return_rate_1d': 0.615385, 'positive_return_rate_5d': 0.615385, 'positive_return_rate_20d': 0.615385, 'finding': 'inverted'}",
+      "finding": "inverted",
+      "finding_id": "rating_rule-09",
+      "limitations": [
+        "advisory-only diagnostic"
+      ],
+      "sample_size": 13,
+      "severity": "medium",
+      "target_area": "rating_rule"
+    },
+    {
+      "evidence_summary": "rating_rule row={'rating': 'D', 'sample_size': 12, 'direction_hit_rate': 0.666667, 'avg_return_1d': 0.0055, 'avg_return_5d': 0.0099, 'avg_return_20d': 0.0176, 'median_return_1d': 0.015, 'median_return_5d': 0.027, 'median_return_20d': 0.048, 'positive_return_rate_1d': 0.666667, 'positive_return_rate_5d': 0.666667, 'positive_return_rate_20d': 0.666667, 'finding': 'inverted'}",
+      "finding": "inverted",
+      "finding_id": "rating_rule-10",
+      "limitations": [
+        "advisory-only diagnostic"
+      ],
+      "sample_size": 12,
+      "severity": "medium",
+      "target_area": "rating_rule"
+    },
+    {
+      "evidence_summary": "rating_rule row={'rating': 'E', 'sample_size': 12, 'direction_hit_rate': 0.583333, 'avg_return_1d': 0.003, 'avg_return_5d': 0.0054, 'avg_return_20d': 0.0096, 'median_return_1d': 0.015, 'median_return_5d': 0.027, 'median_return_20d': 0.048, 'positive_return_rate_1d': 0.583333, 'positive_return_rate_5d': 0.583333, 'positive_return_rate_20d': 0.583333, 'finding': 'inverted'}",
+      "finding": "inverted",
+      "finding_id": "rating_rule-11",
+      "limitations": [
+        "advisory-only diagnostic"
+      ],
+      "sample_size": 12,
+      "severity": "medium",
+      "target_area": "rating_rule"
+    },
+    {
+      "evidence_summary": "action_rule row={'action': '偏多加碼', 'sample_size': 12, 'direction_hit_rate': 0.5, 'avg_return_1d': 0.0, 'avg_return_5d': 0.0, 'avg_return_20d': 0.0, 'positive_return_rate_1d': 0.5, 'positive_return_rate_5d': 0.5, 'positive_return_rate_20d': 0.5, 'finding': 'inverted'}",
+      "finding": "inverted",
+      "finding_id": "action_rule-12",
+      "limitations": [
+        "advisory-only diagnostic"
+      ],
+      "sample_size": 12,
+      "severity": "medium",
+      "target_area": "action_rule"
+    },
+    {
+      "evidence_summary": "action_rule row={'action': '偏多續抱', 'sample_size': 12, 'direction_hit_rate': 0.666667, 'avg_return_1d': 0.0055, 'avg_return_5d': 0.0099, 'avg_return_20d': 0.0176, 'positive_return_rate_1d': 0.666667, 'positive_return_rate_5d': 0.666667, 'positive_return_rate_20d': 0.666667, 'finding': 'inverted'}",
+      "finding": "inverted",
+      "finding_id": "action_rule-13",
+      "limitations": [
+        "advisory-only diagnostic"
+      ],
+      "sample_size": 12,
+      "severity": "medium",
+      "target_area": "action_rule"
+    },
+    {
+      "evidence_summary": "action_rule row={'action': '中性觀察', 'sample_size': 13, 'direction_hit_rate': 0.666667, 'avg_return_1d': 0.005077, 'avg_return_5d': 0.009138, 'avg_return_20d': 0.016246, 'positive_return_rate_1d': 0.615385, 'positive_return_rate_5d': 0.615385, 'positive_return_rate_20d': 0.615385, 'finding': 'inverted'}",
+      "finding": "inverted",
+      "finding_id": "action_rule-14",
+      "limitations": [
+        "advisory-only diagnostic"
+      ],
+      "sample_size": 13,
+      "severity": "medium",
+      "target_area": "action_rule"
+    },
+    {
+      "evidence_summary": "action_rule row={'action': '降低追價', 'sample_size': 12, 'direction_hit_rate': 0.666667, 'avg_return_1d': 0.0055, 'avg_return_5d': 0.0099, 'avg_return_20d': 0.0176, 'positive_return_rate_1d': 0.666667, 'positive_return_rate_5d': 0.666667, 'positive_return_rate_20d': 0.666667, 'finding': 'inverted'}",
+      "finding": "inverted",
+      "finding_id": "action_rule-15",
+      "limitations": [
+        "advisory-only diagnostic"
+      ],
+      "sample_size": 12,
+      "severity": "medium",
+      "target_area": "action_rule"
+    },
+    {
+      "evidence_summary": "action_rule row={'action': '保守觀望', 'sample_size': 12, 'direction_hit_rate': 0.583333, 'avg_return_1d': 0.003, 'avg_return_5d': 0.0054, 'avg_return_20d': 0.0096, 'positive_return_rate_1d': 0.583333, 'positive_return_rate_5d': 0.583333, 'positive_return_rate_20d': 0.583333, 'finding': 'inverted'}",
+      "finding": "inverted",
+      "finding_id": "action_rule-16",
+      "limitations": [
+        "advisory-only diagnostic"
+      ],
+      "sample_size": 12,
+      "severity": "medium",
+      "target_area": "action_rule"
+    },
+    {
+      "evidence_summary": "high/low finding range_too_wide",
+      "finding": "range_too_wide",
+      "finding_id": "high-low-01",
+      "limitations": [
+        "does not change formula"
+      ],
+      "sample_size": 60,
+      "severity": "medium",
+      "target_area": "high_low_forecast"
+    }
+  ],
+  "confidence_bucket_analysis": [
+    {
+      "absolute_calibration_error": null,
+      "avg_confidence": null,
+      "bucket": "0.40-0.50",
+      "calibration_gap": null,
+      "close_direction_hit_rate": null,
+      "direction_hit_rate": null,
+      "finding": "insufficient_sample",
+      "recommendation": "Insufficient samples in bucket 0.40-0.50; do not infer calibration.",
+      "sample_size": 0,
+      "unavailable_count": 1
+    },
+    {
+      "absolute_calibration_error": 0.15,
+      "avg_confidence": 0.55,
+      "bucket": "0.50-0.60",
+      "calibration_gap": 0.15,
+      "close_direction_hit_rate": 0.7,
+      "direction_hit_rate": 0.7,
+      "finding": "under_confident",
+      "recommendation": "Investigate whether confidence is too conservative for bucket 0.50-0.60; advisory only.",
+      "sample_size": 20,
+      "unavailable_count": 0
+    },
+    {
+      "absolute_calibration_error": 0.0,
+      "avg_confidence": 0.65,
+      "bucket": "0.60-0.70",
+      "calibration_gap": -0.0,
+      "close_direction_hit_rate": 0.65,
+      "direction_hit_rate": 0.65,
+      "finding": "well_calibrated",
+      "recommendation": "Keep collecting samples for bucket 0.60-0.70; no production change.",
+      "sample_size": 20,
+      "unavailable_count": 0
+    },
+    {
+      "absolute_calibration_error": 0.25,
+      "avg_confidence": 0.75,
+      "bucket": "0.70-0.80",
+      "calibration_gap": -0.25,
+      "close_direction_hit_rate": 0.5,
+      "direction_hit_rate": 0.5,
+      "finding": "over_confident",
+      "recommendation": "Review future confidence cap for bucket 0.70-0.80; advisory only.",
+      "sample_size": 20,
+      "unavailable_count": 0
+    },
+    {
+      "absolute_calibration_error": 0.35,
+      "avg_confidence": 0.85,
+      "bucket": "0.80-0.90",
+      "calibration_gap": -0.35,
+      "close_direction_hit_rate": 0.5,
+      "direction_hit_rate": 0.5,
+      "finding": "insufficient_sample",
+      "recommendation": "Insufficient samples in bucket 0.80-0.90; do not infer calibration.",
+      "sample_size": 4,
+      "unavailable_count": 0
+    },
+    {
+      "absolute_calibration_error": null,
+      "avg_confidence": null,
+      "bucket": "0.90-1.00",
+      "calibration_gap": null,
+      "close_direction_hit_rate": null,
+      "direction_hit_rate": null,
+      "finding": "insufficient_sample",
+      "recommendation": "Insufficient samples in bucket 0.90-1.00; do not infer calibration.",
+      "sample_size": 0,
+      "unavailable_count": 0
+    }
+  ],
+  "future_integration": {
+    "ai_dev_122": "Consumes prediction/evaluation/source coverage history when available.",
+    "ai_dev_123": "Can attach source/evidence IDs for explainability-aware calibration.",
+    "ai_dev_125": "Provides advisory findings for future adaptive weight recommendation research only.",
+    "ai_dev_126": "Dashboard warnings may be considered in a later task after approval.",
+    "backtesting_py": "Offline strategy research may consume artifact; no automatic strategy change."
+  },
+  "generated_at": "2026-07-02T14:39:09+00:00",
+  "high_low_error_analysis": {
+    "avg_high_bias_pct": 0.005101,
+    "avg_high_error_pct": 0.010051,
+    "avg_low_bias_pct": -0.005901,
+    "avg_low_error_pct": 0.009941,
+    "finding": "range_too_wide",
+    "high_overestimate_rate": 0.75,
+    "high_underestimate_rate": 0.25,
+    "low_overestimate_rate": 0.2,
+    "low_underestimate_rate": 0.8,
+    "median_high_error_pct": 0.010101,
+    "median_low_error_pct": 0.009901,
+    "range_too_narrow_rate": 0.25,
+    "range_too_wide_rate": 0.75,
+    "sample_size": 60
+  },
+  "input_summary": {
+    "ai_dev": "AI-DEV-124",
+    "source": "deterministic_offline_sample",
+    "uses_real_history": false
+  },
+  "overall_calibration_metrics": {
+    "finding": "usable",
+    "insufficient_bucket_count": 3,
+    "mean_calibration_gap": -0.1125,
+    "over_confident_bucket_count": 1,
+    "total_sample_size": 65,
+    "unavailable_sample_size": 1,
+    "under_confident_bucket_count": 1,
+    "usable_sample_size": 64,
+    "weighted_expected_calibration_error": 0.146875,
+    "well_calibrated_bucket_count": 1
+  },
+  "rating_effectiveness": [
+    {
+      "avg_return_1d": 0.0,
+      "avg_return_20d": 0.0,
+      "avg_return_5d": 0.0,
+      "direction_hit_rate": 0.5,
+      "finding": "inverted",
+      "median_return_1d": 0.0,
+      "median_return_20d": 0.0,
+      "median_return_5d": 0.0,
+      "positive_return_rate_1d": 0.5,
+      "positive_return_rate_20d": 0.5,
+      "positive_return_rate_5d": 0.5,
+      "rating": "A",
+      "sample_size": 12
+    },
+    {
+      "avg_return_1d": 0.0055,
+      "avg_return_20d": 0.0176,
+      "avg_return_5d": 0.0099,
+      "direction_hit_rate": 0.666667,
+      "finding": "inverted",
+      "median_return_1d": 0.015,
+      "median_return_20d": 0.048,
+      "median_return_5d": 0.027,
+      "positive_return_rate_1d": 0.666667,
+      "positive_return_rate_20d": 0.666667,
+      "positive_return_rate_5d": 0.666667,
+      "rating": "B",
+      "sample_size": 12
+    },
+    {
+      "avg_return_1d": 0.005077,
+      "avg_return_20d": 0.016246,
+      "avg_return_5d": 0.009138,
+      "direction_hit_rate": 0.666667,
+      "finding": "inverted",
+      "median_return_1d": 0.015,
+      "median_return_20d": 0.048,
+      "median_return_5d": 0.027,
+      "positive_return_rate_1d": 0.615385,
+      "positive_return_rate_20d": 0.615385,
+      "positive_return_rate_5d": 0.615385,
+      "rating": "C",
+      "sample_size": 13
+    },
+    {
+      "avg_return_1d": 0.0055,
+      "avg_return_20d": 0.0176,
+      "avg_return_5d": 0.0099,
+      "direction_hit_rate": 0.666667,
+      "finding": "inverted",
+      "median_return_1d": 0.015,
+      "median_return_20d": 0.048,
+      "median_return_5d": 0.027,
+      "positive_return_rate_1d": 0.666667,
+      "positive_return_rate_20d": 0.666667,
+      "positive_return_rate_5d": 0.666667,
+      "rating": "D",
+      "sample_size": 12
+    },
+    {
+      "avg_return_1d": 0.003,
+      "avg_return_20d": 0.0096,
+      "avg_return_5d": 0.0054,
+      "direction_hit_rate": 0.583333,
+      "finding": "inverted",
+      "median_return_1d": 0.015,
+      "median_return_20d": 0.048,
+      "median_return_5d": 0.027,
+      "positive_return_rate_1d": 0.583333,
+      "positive_return_rate_20d": 0.583333,
+      "positive_return_rate_5d": 0.583333,
+      "rating": "E",
+      "sample_size": 12
+    },
+    {
+      "avg_return_1d": 0.0,
+      "avg_return_20d": 0.0,
+      "avg_return_5d": 0.0,
+      "direction_hit_rate": 0.5,
+      "finding": "insufficient_sample",
+      "median_return_1d": 0.0,
+      "median_return_20d": 0.0,
+      "median_return_5d": 0.0,
+      "positive_return_rate_1d": 0.0,
+      "positive_return_rate_20d": 0.0,
+      "positive_return_rate_5d": 0.0,
+      "rating": "unknown",
+      "sample_size": 4
+    }
+  ],
+  "recommendations": [
+    {
+      "evidence_summary": "Bucket 0.40-0.50 gap=None",
+      "finding": "insufficient_sample",
+      "limitations": [
+        "sample size below reliable threshold"
+      ],
+      "production_mutation_allowed": false,
+      "recommendation_id": "calibration-rec-001",
+      "recommended_action": "Collect more prediction history before changing production weights or rules.",
+      "related_metrics": {
+        "finding_id": "bucket-01"
+      },
+      "requires_human_review": true,
+      "sample_size": 0,
+      "severity": "info",
+      "target_area": "confidence_formula"
+    },
+    {
+      "evidence_summary": "Bucket 0.50-0.60 gap=0.15",
+      "finding": "under_confident",
+      "limitations": [
+        "offline deterministic analysis only"
+      ],
+      "production_mutation_allowed": false,
+      "recommendation_id": "calibration-rec-002",
+      "recommended_action": "Investigate conservative confidence formula candidate after human review and larger backtest.",
+      "related_metrics": {
+        "finding_id": "bucket-02"
+      },
+      "requires_human_review": true,
+      "sample_size": 20,
+      "severity": "medium",
+      "target_area": "confidence_formula"
+    },
+    {
+      "evidence_summary": "Bucket 0.60-0.70 gap=-0.0",
+      "finding": "well_calibrated",
+      "limitations": [
+        "offline deterministic analysis only"
+      ],
+      "production_mutation_allowed": false,
+      "recommendation_id": "calibration-rec-003",
+      "recommended_action": "Retain advisory-only monitoring and collect more data.",
+      "related_metrics": {
+        "finding_id": "bucket-03"
+      },
+      "requires_human_review": true,
+      "sample_size": 20,
+      "severity": "info",
+      "target_area": "confidence_formula"
+    },
+    {
+      "evidence_summary": "Bucket 0.70-0.80 gap=-0.25",
+      "finding": "over_confident",
+      "limitations": [
+        "offline deterministic analysis only"
+      ],
+      "production_mutation_allowed": false,
+      "recommendation_id": "calibration-rec-004",
+      "recommended_action": "Lower future confidence cap candidate for affected bucket after human review and larger backtest.",
+      "related_metrics": {
+        "finding_id": "bucket-04"
+      },
+      "requires_human_review": true,
+      "sample_size": 20,
+      "severity": "medium",
+      "target_area": "confidence_formula"
+    },
+    {
+      "evidence_summary": "Bucket 0.80-0.90 gap=-0.35",
+      "finding": "insufficient_sample",
+      "limitations": [
+        "sample size below reliable threshold"
+      ],
+      "production_mutation_allowed": false,
+      "recommendation_id": "calibration-rec-005",
+      "recommended_action": "Collect more prediction history before changing production weights or rules.",
+      "related_metrics": {
+        "finding_id": "bucket-05"
+      },
+      "requires_human_review": true,
+      "sample_size": 4,
+      "severity": "info",
+      "target_area": "confidence_formula"
+    },
+    {
+      "evidence_summary": "Bucket 0.90-1.00 gap=None",
+      "finding": "insufficient_sample",
+      "limitations": [
+        "sample size below reliable threshold"
+      ],
+      "production_mutation_allowed": false,
+      "recommendation_id": "calibration-rec-006",
+      "recommended_action": "Collect more prediction history before changing production weights or rules.",
+      "related_metrics": {
+        "finding_id": "bucket-06"
+      },
+      "requires_human_review": true,
+      "sample_size": 0,
+      "severity": "info",
+      "target_area": "confidence_formula"
+    },
+    {
+      "evidence_summary": "rating_rule row={'rating': 'A', 'sample_size': 12, 'direction_hit_rate': 0.5, 'avg_return_1d': 0.0, 'avg_return_5d': 0.0, 'avg_return_20d': 0.0, 'median_return_1d': 0.0, 'median_return_5d': 0.0, 'median_return_20d': 0.0, 'positive_return_rate_1d': 0.5, 'positive_return_rate_5d': 0.5, 'positive_return_rate_20d': 0.5, 'finding': 'inverted'}",
+      "finding": "inverted",
+      "limitations": [
+        "advisory-only diagnostic"
+      ],
+      "production_mutation_allowed": false,
+      "recommendation_id": "calibration-rec-007",
+      "recommended_action": "Investigate rating A/B/C/D/E ordering offline; do not mutate rating rules.",
+      "related_metrics": {
+        "finding_id": "rating_rule-07"
+      },
+      "requires_human_review": true,
+      "sample_size": 12,
+      "severity": "medium",
+      "target_area": "rating_rule"
+    },
+    {
+      "evidence_summary": "rating_rule row={'rating': 'B', 'sample_size': 12, 'direction_hit_rate': 0.666667, 'avg_return_1d': 0.0055, 'avg_return_5d': 0.0099, 'avg_return_20d': 0.0176, 'median_return_1d': 0.015, 'median_return_5d': 0.027, 'median_return_20d': 0.048, 'positive_return_rate_1d': 0.666667, 'positive_return_rate_5d': 0.666667, 'positive_return_rate_20d': 0.666667, 'finding': 'inverted'}",
+      "finding": "inverted",
+      "limitations": [
+        "advisory-only diagnostic"
+      ],
+      "production_mutation_allowed": false,
+      "recommendation_id": "calibration-rec-008",
+      "recommended_action": "Investigate rating A/B/C/D/E ordering offline; do not mutate rating rules.",
+      "related_metrics": {
+        "finding_id": "rating_rule-08"
+      },
+      "requires_human_review": true,
+      "sample_size": 12,
+      "severity": "medium",
+      "target_area": "rating_rule"
+    },
+    {
+      "evidence_summary": "rating_rule row={'rating': 'C', 'sample_size': 13, 'direction_hit_rate': 0.666667, 'avg_return_1d': 0.005077, 'avg_return_5d': 0.009138, 'avg_return_20d': 0.016246, 'median_return_1d': 0.015, 'median_return_5d': 0.027, 'median_return_20d': 0.048, 'positive_return_rate_1d': 0.615385, 'positive_return_rate_5d': 0.615385, 'positive_return_rate_20d': 0.615385, 'finding': 'inverted'}",
+      "finding": "inverted",
+      "limitations": [
+        "advisory-only diagnostic"
+      ],
+      "production_mutation_allowed": false,
+      "recommendation_id": "calibration-rec-009",
+      "recommended_action": "Investigate rating A/B/C/D/E ordering offline; do not mutate rating rules.",
+      "related_metrics": {
+        "finding_id": "rating_rule-09"
+      },
+      "requires_human_review": true,
+      "sample_size": 13,
+      "severity": "medium",
+      "target_area": "rating_rule"
+    },
+    {
+      "evidence_summary": "rating_rule row={'rating': 'D', 'sample_size': 12, 'direction_hit_rate': 0.666667, 'avg_return_1d': 0.0055, 'avg_return_5d': 0.0099, 'avg_return_20d': 0.0176, 'median_return_1d': 0.015, 'median_return_5d': 0.027, 'median_return_20d': 0.048, 'positive_return_rate_1d': 0.666667, 'positive_return_rate_5d': 0.666667, 'positive_return_rate_20d': 0.666667, 'finding': 'inverted'}",
+      "finding": "inverted",
+      "limitations": [
+        "advisory-only diagnostic"
+      ],
+      "production_mutation_allowed": false,
+      "recommendation_id": "calibration-rec-010",
+      "recommended_action": "Investigate rating A/B/C/D/E ordering offline; do not mutate rating rules.",
+      "related_metrics": {
+        "finding_id": "rating_rule-10"
+      },
+      "requires_human_review": true,
+      "sample_size": 12,
+      "severity": "medium",
+      "target_area": "rating_rule"
+    },
+    {
+      "evidence_summary": "rating_rule row={'rating': 'E', 'sample_size': 12, 'direction_hit_rate': 0.583333, 'avg_return_1d': 0.003, 'avg_return_5d': 0.0054, 'avg_return_20d': 0.0096, 'median_return_1d': 0.015, 'median_return_5d': 0.027, 'median_return_20d': 0.048, 'positive_return_rate_1d': 0.583333, 'positive_return_rate_5d': 0.583333, 'positive_return_rate_20d': 0.583333, 'finding': 'inverted'}",
+      "finding": "inverted",
+      "limitations": [
+        "advisory-only diagnostic"
+      ],
+      "production_mutation_allowed": false,
+      "recommendation_id": "calibration-rec-011",
+      "recommended_action": "Investigate rating A/B/C/D/E ordering offline; do not mutate rating rules.",
+      "related_metrics": {
+        "finding_id": "rating_rule-11"
+      },
+      "requires_human_review": true,
+      "sample_size": 12,
+      "severity": "medium",
+      "target_area": "rating_rule"
+    },
+    {
+      "evidence_summary": "action_rule row={'action': '偏多加碼', 'sample_size': 12, 'direction_hit_rate': 0.5, 'avg_return_1d': 0.0, 'avg_return_5d': 0.0, 'avg_return_20d': 0.0, 'positive_return_rate_1d': 0.5, 'positive_return_rate_5d': 0.5, 'positive_return_rate_20d': 0.5, 'finding': 'inverted'}",
+      "finding": "inverted",
+      "limitations": [
+        "advisory-only diagnostic"
+      ],
+      "production_mutation_allowed": false,
+      "recommendation_id": "calibration-rec-012",
+      "recommended_action": "Investigate action grouping offline; do not promote actions into trading signals.",
+      "related_metrics": {
+        "finding_id": "action_rule-12"
+      },
+      "requires_human_review": true,
+      "sample_size": 12,
+      "severity": "medium",
+      "target_area": "action_rule"
+    },
+    {
+      "evidence_summary": "action_rule row={'action': '偏多續抱', 'sample_size': 12, 'direction_hit_rate': 0.666667, 'avg_return_1d': 0.0055, 'avg_return_5d': 0.0099, 'avg_return_20d': 0.0176, 'positive_return_rate_1d': 0.666667, 'positive_return_rate_5d': 0.666667, 'positive_return_rate_20d': 0.666667, 'finding': 'inverted'}",
+      "finding": "inverted",
+      "limitations": [
+        "advisory-only diagnostic"
+      ],
+      "production_mutation_allowed": false,
+      "recommendation_id": "calibration-rec-013",
+      "recommended_action": "Investigate action grouping offline; do not promote actions into trading signals.",
+      "related_metrics": {
+        "finding_id": "action_rule-13"
+      },
+      "requires_human_review": true,
+      "sample_size": 12,
+      "severity": "medium",
+      "target_area": "action_rule"
+    },
+    {
+      "evidence_summary": "action_rule row={'action': '中性觀察', 'sample_size': 13, 'direction_hit_rate': 0.666667, 'avg_return_1d': 0.005077, 'avg_return_5d': 0.009138, 'avg_return_20d': 0.016246, 'positive_return_rate_1d': 0.615385, 'positive_return_rate_5d': 0.615385, 'positive_return_rate_20d': 0.615385, 'finding': 'inverted'}",
+      "finding": "inverted",
+      "limitations": [
+        "advisory-only diagnostic"
+      ],
+      "production_mutation_allowed": false,
+      "recommendation_id": "calibration-rec-014",
+      "recommended_action": "Investigate action grouping offline; do not promote actions into trading signals.",
+      "related_metrics": {
+        "finding_id": "action_rule-14"
+      },
+      "requires_human_review": true,
+      "sample_size": 13,
+      "severity": "medium",
+      "target_area": "action_rule"
+    },
+    {
+      "evidence_summary": "action_rule row={'action': '降低追價', 'sample_size': 12, 'direction_hit_rate': 0.666667, 'avg_return_1d': 0.0055, 'avg_return_5d': 0.0099, 'avg_return_20d': 0.0176, 'positive_return_rate_1d': 0.666667, 'positive_return_rate_5d': 0.666667, 'positive_return_rate_20d': 0.666667, 'finding': 'inverted'}",
+      "finding": "inverted",
+      "limitations": [
+        "advisory-only diagnostic"
+      ],
+      "production_mutation_allowed": false,
+      "recommendation_id": "calibration-rec-015",
+      "recommended_action": "Investigate action grouping offline; do not promote actions into trading signals.",
+      "related_metrics": {
+        "finding_id": "action_rule-15"
+      },
+      "requires_human_review": true,
+      "sample_size": 12,
+      "severity": "medium",
+      "target_area": "action_rule"
+    },
+    {
+      "evidence_summary": "action_rule row={'action': '保守觀望', 'sample_size': 12, 'direction_hit_rate': 0.583333, 'avg_return_1d': 0.003, 'avg_return_5d': 0.0054, 'avg_return_20d': 0.0096, 'positive_return_rate_1d': 0.583333, 'positive_return_rate_5d': 0.583333, 'positive_return_rate_20d': 0.583333, 'finding': 'inverted'}",
+      "finding": "inverted",
+      "limitations": [
+        "advisory-only diagnostic"
+      ],
+      "production_mutation_allowed": false,
+      "recommendation_id": "calibration-rec-016",
+      "recommended_action": "Investigate action grouping offline; do not promote actions into trading signals.",
+      "related_metrics": {
+        "finding_id": "action_rule-16"
+      },
+      "requires_human_review": true,
+      "sample_size": 12,
+      "severity": "medium",
+      "target_area": "action_rule"
+    },
+    {
+      "evidence_summary": "high/low finding range_too_wide",
+      "finding": "range_too_wide",
+      "limitations": [
+        "does not change formula"
+      ],
+      "production_mutation_allowed": false,
+      "recommendation_id": "calibration-rec-017",
+      "recommended_action": "Research high/low bias offline; do not change forecast formula.",
+      "related_metrics": {
+        "finding_id": "high-low-01"
+      },
+      "requires_human_review": true,
+      "sample_size": 60,
+      "severity": "medium",
+      "target_area": "high_low_forecast"
+    }
+  ],
+  "safety_summary": {
+    "advisory_only": true,
+    "broker_login": false,
+    "dashboard_production_publish": false,
+    "email_send": false,
+    "large_ai_or_gemini_batch_call": false,
+    "line_send": false,
+    "nginx_systemd_cron_mutation": false,
+    "no_forbidden_actions_performed": true,
+    "production_confidence_mutation": false,
+    "production_db_write": false,
+    "production_forecast_weight_change": false,
+    "production_mutation_allowed": false,
+    "production_order": false,
+    "production_rating_action_rule_mutation": false,
+    "scheduler_change": false,
+    "secrets_read": false,
+    "simulation_order": false,
+    "trading_execution_run": false
+  },
+  "sample_size_summary": {
+    "direction_usable_samples": 64,
+    "high_low_usable_samples": 60,
+    "insufficient_sample_handled": true,
+    "total_samples": 65
+  },
+  "sample_window": {
+    "prediction_date_end": "2026-01-02",
+    "prediction_date_start": "2026-01-02",
+    "target_date_count": 20
+  },
+  "schema_version": "confidence_calibration_v1",
+  "source_coverage_accuracy": [
+    {
+      "avg_confidence": 0.645,
+      "avg_return_1d": 0.00345,
+      "avg_return_20d": 0.01104,
+      "avg_return_5d": 0.00621,
+      "calibration_gap": -0.045,
+      "direction_hit_rate": 0.6,
+      "finding": "insufficient_sample",
+      "high_error_pct": null,
+      "low_error_pct": null,
+      "sample_size": 20,
+      "source_coverage_readiness": "ready"
+    },
+    {
+      "avg_confidence": 0.640476,
+      "avg_return_1d": 0.004952,
+      "avg_return_20d": 0.015848,
+      "avg_return_5d": 0.008914,
+      "calibration_gap": 0.009524,
+      "direction_hit_rate": 0.65,
+      "finding": "insufficient_sample",
+      "high_error_pct": null,
+      "low_error_pct": null,
+      "sample_size": 20,
+      "source_coverage_readiness": "partial"
+    },
+    {
+      "avg_confidence": 0.655,
+      "avg_return_1d": 0.00305,
+      "avg_return_20d": 0.00976,
+      "avg_return_5d": 0.00549,
+      "calibration_gap": -0.055,
+      "direction_hit_rate": 0.6,
+      "finding": "insufficient_sample",
+      "high_error_pct": null,
+      "low_error_pct": null,
+      "sample_size": 20,
+      "source_coverage_readiness": "insufficient"
+    },
+    {
+      "avg_confidence": 0.85,
+      "avg_return_1d": 0.0,
+      "avg_return_20d": 0.0,
+      "avg_return_5d": 0.0,
+      "calibration_gap": -0.35,
+      "direction_hit_rate": 0.5,
+      "finding": "insufficient_sample",
+      "high_error_pct": null,
+      "low_error_pct": null,
+      "sample_size": 4,
+      "source_coverage_readiness": "unknown"
+    }
+  ]
+}
