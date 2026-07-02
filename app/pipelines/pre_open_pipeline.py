@@ -4,7 +4,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from app.loaders.google_sheet_loader import load_stock_ids
-from app.market.stock_name_loader import get_stock_name
+from app.market.stock_name_loader import resolve_stock_name
 from app.market.adr_service import get_adr_result
 from app.market.adr_score_engine import calculate_adr_score
 from app.pipelines.context import create_pipeline_context
@@ -99,10 +99,24 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
     print(f"pre_open selected stock ids: {selected_stock_ids}")
 
     daily_reports = []
+    failed_reports = []
+    stock_name_warnings = []
 
     for stock_id in stock_ids:
         stock_id = str(stock_id).zfill(4)
-        stock_name = get_stock_name(stock_id)
+        stock_name_result = resolve_stock_name(stock_id)
+        stock_name = str(stock_name_result["stock_name"])
+        if stock_name_result.get("warning"):
+            warning = {
+                "stock_id": stock_id,
+                "source": stock_name_result["source"],
+                "warning": stock_name_result["warning"],
+            }
+            stock_name_warnings.append(warning)
+            print(
+                f"pre_open stock name fallback for {stock_id}: "
+                f"{stock_name_result['warning']}"
+            )
 
         print(f"開始分析股票：{stock_name}({stock_id})")
 
@@ -110,6 +124,13 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
 
         if not os.path.exists(csv_path):
             print(f"略過股票 {stock_name}({stock_id})：找不到歷史資料 {csv_path}")
+            failed_reports.append(
+                {
+                    "stock_id": stock_id,
+                    "stock_name": stock_name,
+                    "reason": f"找不到歷史資料 {csv_path}",
+                }
+            )
             continue
 
         try:
@@ -183,13 +204,33 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
             daily_reports.append(report)
 
         except Exception as e:
-            print(f"分析失敗：{stock_name}({stock_id})，原因：{e}")
+            reason = e.__class__.__name__
+            print(f"分析失敗：{stock_name}({stock_id})，原因類型：{reason}")
+            failed_reports.append({"stock_id": stock_id, "stock_name": stock_name, "reason": reason})
 
     send_reports_in_batches(daily_reports, dry_run=dry_run)
 
+    result = {
+        "pipeline_type": context["pipeline_type"],
+        "pipeline_run_id": context["pipeline_run_id"],
+        "run_date": context["run_date"],
+        "run_time": context["run_time"],
+        "dry_run": dry_run,
+        "content_state": "stock_analysis_reports_available" if daily_reports else "stock_analysis_reports_unavailable",
+        "report_count": len(daily_reports),
+        "failed_count": len(failed_reports),
+        "stock_name_fallback_count": len(stock_name_warnings),
+        "stock_name_warnings": stock_name_warnings,
+        "full_line_report_disabled": bool(dry_run),
+        "trading_order_portfolio_action": False,
+    }
+    print("pipeline_report_summary:")
+    print(json.dumps(result, ensure_ascii=False, sort_keys=True))
     print("每日總結推播完成")
 
     if dry_run:
         print("dry-run 模式：略過回測自動補值")
     else:
         run_backtest_auto_update()
+
+    return result

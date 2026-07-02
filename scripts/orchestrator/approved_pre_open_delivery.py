@@ -38,6 +38,11 @@ DEFAULT_DASHBOARD_DIR = Path("/var/www/stock-ai-dashboard")
 DEFAULT_MAIL_ENV_FILE = Path("~/.config/stock-ai-orchestrator/mail.env")
 EMAIL_BODY_LIMIT = 14000
 LINE_BODY_LIMIT = 520
+TRACEBACK_MARKERS = (
+    "Traceback (most recent call last):",
+    "ShioajiClientError:",
+    "Exception:",
+)
 WINDOWS = {
     "pre_open_0700": {
         "label": "07:00 pre-open",
@@ -100,6 +105,10 @@ def tail_text(text: str, limit: int) -> str:
     return text[-limit:]
 
 
+def contains_traceback(text: str) -> bool:
+    return any(marker in text for marker in TRACEBACK_MARKERS)
+
+
 def window_config(window_id: str) -> dict[str, str]:
     try:
         return WINDOWS[window_id]
@@ -107,8 +116,12 @@ def window_config(window_id: str) -> dict[str, str]:
         raise SystemExit(f"unsupported approved delivery window: {window_id}") from exc
 
 
-def content_state(window_id: str, output_tail: str) -> str:
+def content_state(window_id: str, output_tail: str, pipeline_status: str = "completed") -> str:
     cfg = window_config(window_id)
+    if pipeline_status != "completed":
+        return "pipeline failed; diagnostics available"
+    if contains_traceback(output_tail):
+        return "validated report content unavailable; diagnostics available"
     if window_id == "post_close_1500" and "prediction" not in output_tail.lower():
         return cfg["fallback_state"]
     if output_tail.strip():
@@ -116,9 +129,34 @@ def content_state(window_id: str, output_tail: str) -> str:
     return cfg["fallback_state"]
 
 
+def user_facing_report_content(window_id: str, pipeline_status: str, output_tail: str) -> str:
+    cfg = window_config(window_id)
+    if pipeline_status != "completed":
+        return (
+            f"{cfg['label']} pipeline did not produce validated report content. "
+            "The delivery artifact keeps error details in diagnostics for operator review."
+        )
+    if contains_traceback(output_tail):
+        return (
+            "Validated report content is unavailable because the pipeline output included "
+            "runtime diagnostics. See the delivery artifact diagnostics."
+        )
+    return tail_text(output_tail, EMAIL_BODY_LIMIT)
+
+
+def build_pipeline_diagnostics(completed: subprocess.CompletedProcess[str], output: str) -> dict[str, Any]:
+    return {
+        "pipeline_returncode": completed.returncode,
+        "raw_output_tail": tail_text(output, EMAIL_BODY_LIMIT),
+        "raw_output_contains_traceback": contains_traceback(output),
+        "raw_output_chars": len(output),
+    }
+
+
 def render_dashboard(window_id: str, run_id: str, generated_at: str, pipeline_status: str, output_tail: str) -> str:
     cfg = window_config(window_id)
-    escaped_tail = html.escape(output_tail)
+    report_content = user_facing_report_content(window_id, pipeline_status, output_tail)
+    escaped_report_content = html.escape(report_content)
     rows = [
         ("Generated At", generated_at),
         ("Run ID", run_id),
@@ -126,10 +164,11 @@ def render_dashboard(window_id: str, run_id: str, generated_at: str, pipeline_st
         ("Local Time", cfg["local_time"]),
         ("Pipeline", cfg["pipeline_type"]),
         ("Pipeline Status", pipeline_status),
-        ("Content State", content_state(window_id, output_tail)),
+        ("Content State", content_state(window_id, output_tail, pipeline_status)),
         ("LINE", cfg["line_policy"]),
         ("Email", cfg["email_policy"]),
         ("Dashboard", cfg["dashboard_policy"]),
+        ("Diagnostics", "stored in delivery artifact; not rendered as the main report"),
         ("Trading", "disabled"),
     ]
     body = "\n".join(
@@ -158,8 +197,8 @@ def render_dashboard(window_id: str, run_id: str, generated_at: str, pipeline_st
   <h1>Stock AI {html.escape(cfg["label"])} Dashboard</h1>
   <p class="status">Approved scheduler delivery snapshot. Advisory only; no trading action is authorized.</p>
   <table>{body}</table>
-  <h2>Run Output Tail</h2>
-  <pre>{escaped_tail}</pre>
+  <h2>Report Content</h2>
+  <pre>{escaped_report_content}</pre>
 </main>
 </body>
 </html>
@@ -181,8 +220,11 @@ def publish_dashboard(publish_dir: Path, window_id: str, run_id: str, generated_
         "generated_at": generated_at,
         "scheduler_window": window_id,
         "pipeline_status": pipeline_status,
-        "content_state": content_state(window_id, output_tail),
+        "content_state": content_state(window_id, output_tail, pipeline_status),
         "index_path": str(index_path),
+        "user_facing_contains_traceback": contains_traceback(
+            user_facing_report_content(window_id, pipeline_status, output_tail)
+        ),
     }
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return {
@@ -195,6 +237,7 @@ def publish_dashboard(publish_dir: Path, window_id: str, run_id: str, generated_
 
 def build_email_body(window_id: str, run_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str) -> str:
     cfg = window_config(window_id)
+    report_content = user_facing_report_content(window_id, pipeline_status, output_tail)
     return (
         f"Stock AI approved {cfg['label']} delivery completed.\n\n"
         f"run_id: {run_id}\n"
@@ -202,14 +245,14 @@ def build_email_body(window_id: str, run_id: str, generated_at: str, pipeline_st
         f"scheduler_window: {window_id}\n"
         f"pipeline_type: {cfg['pipeline_type']}\n"
         f"pipeline_status: {pipeline_status}\n"
-        f"content_state: {content_state(window_id, output_tail)}\n"
+        f"content_state: {content_state(window_id, output_tail, pipeline_status)}\n"
         f"dashboard_url: {dashboard_url}\n"
         f"line_policy: {cfg['line_policy']}\n"
         f"email_policy: {cfg['email_policy']}\n"
         f"dashboard_policy: {cfg['dashboard_policy']}\n"
         "trading/order/portfolio action: no\n\n"
-        "Run output tail:\n"
-        f"{tail_text(output_tail, EMAIL_BODY_LIMIT)}"
+        "Report content:\n"
+        f"{tail_text(report_content, EMAIL_BODY_LIMIT)}"
     )
 
 
@@ -240,7 +283,7 @@ def build_line_message(window_id: str, generated_at: str, pipeline_status: str, 
     message = (
         f"[Stock AI] {cfg['label']} update\n"
         f"status: {pipeline_status}\n"
-        f"state: {content_state(window_id, output_tail)}\n"
+        f"state: {content_state(window_id, output_tail, pipeline_status)}\n"
         f"dashboard: {dashboard_url}\n"
         "advisory only; no trading instruction."
     )
@@ -250,9 +293,19 @@ def build_line_message(window_id: str, generated_at: str, pipeline_status: str, 
 def send_concise_line(window_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str) -> dict[str, Any]:
     cfg = window_config(window_id)
     if cfg["line_mode"] == "handled_by_pipeline":
+        if pipeline_status != "completed":
+            return {
+                "send_attempted": False,
+                "send_status": "not_sent",
+                "reason": "pipeline_failed_before_pipeline_line_delivery",
+                "policy": cfg["line_policy"],
+                "concise_reminder": False,
+                "secret_values_printed": False,
+            }
         return {
             "send_attempted": False,
             "send_status": "handled_by_pipeline",
+            "reason": "pre_open_pipeline_owns_full_line_delivery",
             "policy": cfg["line_policy"],
             "concise_reminder": False,
             "secret_values_printed": False,
@@ -305,6 +358,11 @@ def dry_run_result(args: argparse.Namespace, generated_at: str, run_id: str) -> 
         "dashboard_policy": cfg["dashboard_policy"],
         "dashboard_would_publish": True,
         "fallback_state": cfg["fallback_state"],
+        "content_state": cfg["fallback_state"],
+        "line_delivery_status": "dry_run_not_sent",
+        "line_delivery_reason": "dry_run_no_delivery",
+        "email_delivery_status": "dry_run_not_sent",
+        "dashboard_delivery_status": "dry_run_not_published",
         "dashboard_publish_dir": str(dashboard_dir),
         "dashboard_publish_dir_exists": dashboard_dir.exists(),
         "dashboard_publish_dir_writable": dashboard_dir.exists() and os.access(dashboard_dir, os.W_OK),
@@ -351,6 +409,7 @@ def main() -> int:
 
     pipeline_status = "completed" if completed.returncode == 0 else "failed"
     output_tail = tail_text(output, EMAIL_BODY_LIMIT)
+    pipeline_diagnostics = build_pipeline_diagnostics(completed, output)
     dashboard = publish_dashboard(Path(args.dashboard_publish_dir), args.window, run_id, generated_at, pipeline_status, output_tail)
     try:
         email = send_delivery_email(Path(args.mail_env_file), args.window, run_id, generated_at, pipeline_status, args.dashboard_url, output_tail)
@@ -365,7 +424,7 @@ def main() -> int:
         email_ok = False
     try:
         line = send_concise_line(args.window, generated_at, pipeline_status, args.dashboard_url, output_tail)
-        line_ok = True
+        line_ok = line.get("send_status") in {"sent", "handled_by_pipeline"}
     except Exception as exc:  # pragma: no cover - runtime LINE/config failure path
         line = {
             "send_attempted": True,
@@ -386,7 +445,7 @@ def main() -> int:
         "pipeline_type": cfg["pipeline_type"],
         "pipeline_returncode": completed.returncode,
         "pipeline_status": pipeline_status,
-        "content_state": content_state(args.window, output_tail),
+        "content_state": content_state(args.window, output_tail, pipeline_status),
         "delivery_policy": {
             "line": cfg["line_policy"],
             "email": cfg["email_policy"],
@@ -394,9 +453,19 @@ def main() -> int:
         },
         "fallback_state": cfg["fallback_state"],
         "line_delivery": line,
+        "line_delivery_status": line.get("send_status"),
+        "line_delivery_reason": line.get("reason"),
         "email_delivery": email,
+        "email_delivery_status": email.get("send_status"),
         "dashboard_delivery": dashboard,
+        "dashboard_delivery_status": dashboard.get("publish_status"),
         "dashboard_url": args.dashboard_url,
+        "diagnostics": {
+            "pipeline": pipeline_diagnostics,
+            "user_facing_report_contains_traceback": contains_traceback(
+                user_facing_report_content(args.window, pipeline_status, output_tail)
+            ),
+        },
         "secret_values_printed": False,
         "trading_order_portfolio_action": False,
         "ok": completed.returncode == 0 and email_ok and line_ok,
