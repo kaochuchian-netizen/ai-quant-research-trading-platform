@@ -22,7 +22,7 @@
     "api_key_must_have_trading_permission": true,
     "execution_window": "Monday-Friday 08:00-20:00 Asia/Taipei",
     "minimum_order_interval_seconds": 1,
-    "shioaji_minimum_version": "1.2",
+    "shioaji_minimum_version": "1.5.4",
     "simulation_login_required": true,
     "simulation_place_order_required": true,
     "stock_and_futures_tested_separately": true,
@@ -55,8 +55,8 @@
   "shioaji": {
     "error_class": null,
     "import_ok": true,
-    "installed_version": "1.5.1",
-    "minimum_required_version": "1.2",
+    "installed_version": "1.5.4",
+    "minimum_required_version": "1.5.4",
     "version_ok": true
   },
   "side_effects": {

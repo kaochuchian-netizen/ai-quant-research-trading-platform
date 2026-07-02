@@ -14,7 +14,7 @@ database writes.
 ## Official Test Requirements
 
 - Shioaji API testing must complete login and `place_order` in simulation mode.
-- Shioaji version must be `>= 1.2`.
+- Shioaji version must be `>= 1.5.4`.
 - The official test window is Monday-Friday 08:00-20:00 Asia/Taipei.
 - 18:00-20:00 Asia/Taipei requires Taiwan IP attestation.
 - Securities and futures must be tested separately.
