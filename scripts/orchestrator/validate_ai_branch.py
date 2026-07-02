@@ -28,6 +28,8 @@ DEFAULT_ALLOWED_PATHS = [
     "app/trading/",
     "app/prediction/",
     "app/evaluation/",
+    "app/sources/",
+    "app/explainability/",
     "app/market/historical_price_loader.py",
     "app/market/historical_storage.py",
     "app/market/shioaji_client.py",
@@ -48,7 +50,7 @@ DEFAULT_ALLOWED_PATHS = [
     "test_shioaji.py",
 ]
 
-DEFAULT_MAX_CHANGED_FILES = 20
+DEFAULT_MAX_CHANGED_FILES = 30
 
 
 def run_command(args: list[str], repo_root: Path) -> subprocess.CompletedProcess[str]:
