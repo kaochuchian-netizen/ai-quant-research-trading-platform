@@ -1,0 +1,48 @@
+{
+  "schema_version": "sinopac_api_test_application_request_v1",
+  "task_id": "AI-DEV-116",
+  "request_name": "Sinopac API Test Application Completion V1",
+  "request_scope": "controlled_api_opening_test_only",
+  "production_trading_enabled": false,
+  "simulation_required": true,
+  "official_requirements": {
+    "login_test_required": true,
+    "place_order_test_required": true,
+    "shioaji_minimum_version": "1.2",
+    "stock_and_futures_tested_separately": true,
+    "min_order_test_interval_seconds": 1,
+    "service_window": "Monday-Friday 08:00-20:00 Asia/Taipei",
+    "taiwan_ip_required_after_18": true
+  },
+  "allowed_runtime_tests": {
+    "simulation_login_test": true,
+    "simulation_stock_place_order_test": true,
+    "simulation_futures_place_order_test": {
+      "allowed": true,
+      "default_enabled": false
+    }
+  },
+  "forbidden_integrations": [
+    "production_place_order",
+    "formal_trading",
+    "auto_trading",
+    "scheduler",
+    "strategy_signal",
+    "portfolio",
+    "line_push",
+    "secret_printing"
+  ],
+  "required_manual_confirmations": {
+    "login_test": "RICHARD_APPROVES_SIMULATION_LOGIN_TEST",
+    "stock_place_order_test": "RICHARD_APPROVES_SIMULATION_STOCK_PLACE_ORDER_TEST",
+    "futures_place_order_test": "RICHARD_APPROVES_SIMULATION_FUTURES_PLACE_ORDER_TEST"
+  },
+  "evidence_policy": {
+    "record_json_result": true,
+    "redact_secrets": true,
+    "record_shioaji_version": true,
+    "record_simulation_flag": true,
+    "record_service_window_status": true,
+    "do_not_record_api_key_or_secret": true
+  }
+}

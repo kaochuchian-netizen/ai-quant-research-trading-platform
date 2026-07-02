@@ -1,0 +1,77 @@
+{
+  "application_request": {
+    "production_trading_enabled": false,
+    "request_name": "Sinopac API Test Application Completion V1",
+    "request_scope": "controlled_api_opening_test_only",
+    "schema_version": "sinopac_api_test_application_request_v1",
+    "simulation_required": true,
+    "task_id": "AI-DEV-116"
+  },
+  "decision": "sinopac_api_test_application_package_ready",
+  "environment": {
+    "platform": "Linux-6.8.0-1054-gcp-x86_64-with-glibc2.35",
+    "python_version": "3.10.12",
+    "timezone": "Asia/Taipei"
+  },
+  "generated_at": "2026-07-02T10:00:00+08:00",
+  "mode": "offline_application_package",
+  "ok": true,
+  "required_tests": {
+    "futures_place_order": {
+      "default_enabled": false,
+      "min_interval_seconds": 1,
+      "required_for_futures_api": true,
+      "simulation": true
+    },
+    "login": {
+      "required": true,
+      "simulation": true
+    },
+    "stock_place_order": {
+      "min_interval_seconds": 1,
+      "required": true,
+      "simulation": true
+    }
+  },
+  "run_id": "sinopac-api-test-fixture-20260702",
+  "safety": {
+    "futures_order_test_default_enabled": false,
+    "no_auto_trading": true,
+    "no_formal_trading": true,
+    "no_portfolio_modification": true,
+    "no_scheduler_integration": true,
+    "no_secret_printing": true,
+    "no_strategy_signal_integration": true,
+    "production_place_order_forbidden": true,
+    "requires_richard_same_run_confirmation_for_order": true,
+    "simulation_only": true
+  },
+  "schema_version": "sinopac_api_test_application_v1",
+  "service_window": {
+    "in_service_window": true,
+    "official_window": "Monday-Friday 08:00-20:00 Asia/Taipei",
+    "taiwan_ip_attestation_required": false,
+    "taiwan_ip_only_window": false
+  },
+  "shioaji": {
+    "error_class": null,
+    "import_ok": true,
+    "installed_version": "1.5.1",
+    "minimum_required_version": "1.2",
+    "version_ok": true
+  },
+  "side_effects": {
+    "login_called": false,
+    "modified_portfolio": false,
+    "modified_scheduler": false,
+    "modified_strategy_signal": false,
+    "mutated_secrets": false,
+    "place_order_called": false,
+    "printed_secrets": false,
+    "production_place_order_called": false,
+    "read_secrets": false,
+    "sent_line_push": false,
+    "wrote_persistent_store": false
+  },
+  "task_id": "AI-DEV-116"
+}

@@ -31,6 +31,21 @@ DEFAULT_BLOCKED_KEYWORDS = [
     "StockPriceType",
 ]
 
+CONTROLLED_SINOPAC_TEST_PATHS = [
+    "scripts/orchestrator/sinopac_api_test_application.py",
+    "scripts/orchestrator/validate_sinopac_api_test_application_result.py",
+    "docs/ai_dev_116_sinopac_api_test_application_v1.md",
+    "templates/sinopac_api_test_application_request.example.json",
+    "templates/sinopac_api_test_application_result.example.json",
+]
+
+DEFAULT_KEYWORD_PATH_ALLOWLIST = {
+    DEFAULT_BLOCKED_KEYWORDS[2]: CONTROLLED_SINOPAC_TEST_PATHS,
+    DEFAULT_BLOCKED_KEYWORDS[3]: CONTROLLED_SINOPAC_TEST_PATHS,
+    DEFAULT_BLOCKED_KEYWORDS[4]: CONTROLLED_SINOPAC_TEST_PATHS,
+    DEFAULT_BLOCKED_KEYWORDS[5]: CONTROLLED_SINOPAC_TEST_PATHS,
+}
+
 
 def run_git(args: list[str], repo_root: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
@@ -52,6 +67,31 @@ def is_blocked_path(path: str, blocked_paths: list[str]) -> bool:
         elif normalized == blocked or normalized.startswith(blocked + "/"):
             return True
     return False
+
+
+def is_keyword_allowed(path: str | None, keyword: str, allowlist: dict[str, list[str]]) -> bool:
+    if not path:
+        return False
+    return path in allowlist.get(keyword, [])
+
+
+def collect_keyword_hits(
+    patch_text: str,
+    blocked_keywords: list[str],
+    allowlist: dict[str, list[str]],
+) -> list[dict[str, str]]:
+    hits: list[dict[str, str]] = []
+    current_path: str | None = None
+    for line in patch_text.splitlines():
+        if line.startswith("+++ b/"):
+            current_path = line.removeprefix("+++ b/")
+            continue
+        if not line.startswith("+") or line.startswith("+++"):
+            continue
+        for keyword in blocked_keywords:
+            if keyword in line and not is_keyword_allowed(current_path, keyword, allowlist):
+                hits.append({"keyword": keyword, "path": current_path or "<unknown>"})
+    return hits
 
 
 def main() -> int:
@@ -88,11 +128,9 @@ def main() -> int:
 
     patch_proc = run_git(["diff", "--unified=0", f"{args.base}...{args.head}"], repo_root)
     patch_text = patch_proc.stdout if patch_proc.returncode == 0 else ""
-    keyword_hits = []
-    for keyword in blocked_keywords:
-        if keyword in patch_text:
-            keyword_hits.append(keyword)
-            reasons.append(f"blocked keyword found in diff: {keyword}")
+    keyword_hits = collect_keyword_hits(patch_text, blocked_keywords, DEFAULT_KEYWORD_PATH_ALLOWLIST)
+    for hit in keyword_hits:
+        reasons.append(f"blocked keyword found in diff: {hit['keyword']} ({hit['path']})")
 
     result = {
         "ok": True,
