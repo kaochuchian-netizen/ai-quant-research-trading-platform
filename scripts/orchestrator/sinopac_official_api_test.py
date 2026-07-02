@@ -23,7 +23,8 @@ from zoneinfo import ZoneInfo
 
 TASK_ID = "AI-DEV-119"
 SCHEMA_VERSION = "sinopac_official_api_test_result_v1"
-MIN_SHIOAJI_VERSION = (1, 2)
+MIN_SHIOAJI_VERSION = (1, 5, 4)
+MIN_SHIOAJI_VERSION_TEXT = "1.5.4"
 TAIPEI = ZoneInfo("Asia/Taipei")
 RICHARD_APPROVAL_PHRASE = "RICHARD_APPROVES_AI_DEV_119_SIMULATION_LOGIN_AND_ORDER"
 MASKED = "***MASKED***"
@@ -87,14 +88,14 @@ def shioaji_health() -> dict[str, Any]:
         return {
             "import_ok": False,
             "installed_version": None,
-            "minimum_required_version": "1.2",
+            "minimum_required_version": MIN_SHIOAJI_VERSION_TEXT,
             "version_ok": False,
             "error_class": type(exc).__name__,
         }
     return {
         "import_ok": True,
         "installed_version": version,
-        "minimum_required_version": "1.2",
+        "minimum_required_version": MIN_SHIOAJI_VERSION_TEXT,
         "version_ok": parse_version(version) >= MIN_SHIOAJI_VERSION,
         "error_class": None,
     }
@@ -166,7 +167,7 @@ def base_result(mode: str, run_id: str | None) -> dict[str, Any]:
         "official_requirements": {
             "simulation_login_required": True,
             "simulation_place_order_required": True,
-            "shioaji_minimum_version": "1.2",
+            "shioaji_minimum_version": MIN_SHIOAJI_VERSION_TEXT,
             "execution_window": "Monday-Friday 08:00-20:00 Asia/Taipei",
             "taiwan_ip_required_between": "18:00-20:00 Asia/Taipei",
             "stock_and_futures_tested_separately": True,
