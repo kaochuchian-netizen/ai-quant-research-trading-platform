@@ -30,6 +30,7 @@ DEFAULT_ALLOWED_PATHS = [
     "app/evaluation/",
     "app/sources/",
     "app/explainability/",
+    "app/calibration/",
     "app/market/historical_price_loader.py",
     "app/market/historical_storage.py",
     "app/market/shioaji_client.py",
