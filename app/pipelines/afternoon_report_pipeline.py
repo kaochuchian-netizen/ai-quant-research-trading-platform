@@ -8,7 +8,7 @@ from app.database.sqlite_client import init_database
 from app.loaders.google_sheet_loader import load_stock_ids
 from app.market.adr_score_engine import calculate_adr_score
 from app.market.adr_service import get_adr_result
-from app.market.stock_name_loader import get_stock_name
+from app.market.stock_name_loader import resolve_stock_name
 from app.pipelines.context import create_pipeline_context
 
 from analysis.analysis_engine import analyze_stock
@@ -48,16 +48,23 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
 
     daily_reports = []
     failed_reports = []
+    stock_name_warnings = []
 
     for stock_id in stock_ids:
         stock_id = str(stock_id).zfill(4)
-        try:
-            stock_name = get_stock_name(stock_id)
-        except Exception as exc:
-            stock_name = stock_id
+        stock_name_result = resolve_stock_name(stock_id)
+        stock_name = str(stock_name_result["stock_name"])
+        if stock_name_result.get("warning"):
+            stock_name_warnings.append(
+                {
+                    "stock_id": stock_id,
+                    "source": stock_name_result["source"],
+                    "warning": stock_name_result["warning"],
+                }
+            )
             print(
                 f"{pipeline_type} stock name fallback for {stock_id}: "
-                f"{getattr(exc, 'classification', exc.__class__.__name__)}"
+                f"{stock_name_result['warning']}"
             )
         print(f"開始分析股票：{stock_name}({stock_id})")
 
@@ -145,6 +152,8 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
         "content_state": "stock_analysis_reports_available" if daily_reports else "stock_analysis_reports_unavailable",
         "report_count": len(daily_reports),
         "failed_count": len(failed_reports),
+        "stock_name_fallback_count": len(stock_name_warnings),
+        "stock_name_warnings": stock_name_warnings,
         "full_line_report_disabled": True,
         "trading_order_portfolio_action": False,
     }

@@ -1,10 +1,10 @@
-import shioaji as sj
-
 from app.config.settings import settings
 
 
 def classify_shioaji_error(exc):
     message = str(exc).lower()
+    if "no module named" in message and "shioaji" in message:
+        return "shioaji_dependency_unavailable"
     if "maintenance" in message or "maintain" in message:
         return "shioaji_maintenance"
     if "version" in message or "upgrade" in message or "update" in message:
@@ -23,6 +23,15 @@ class ShioajiClientError(RuntimeError):
 
 
 def get_api():
+    try:
+        import shioaji as sj
+    except Exception as exc:
+        classification = classify_shioaji_error(exc)
+        raise ShioajiClientError(
+            f"Shioaji import failed before market-data fetch ({classification})",
+            classification=classification,
+        ) from exc
+
     api = sj.Shioaji(simulation=True)
 
     try:
