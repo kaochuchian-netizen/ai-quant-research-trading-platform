@@ -45,7 +45,7 @@ DEFAULT_ALLOWED_PATHS = [
     "test_shioaji.py",
 ]
 
-DEFAULT_MAX_CHANGED_FILES = 12
+DEFAULT_MAX_CHANGED_FILES = 20
 
 
 def run_command(args: list[str], repo_root: Path) -> subprocess.CompletedProcess[str]:

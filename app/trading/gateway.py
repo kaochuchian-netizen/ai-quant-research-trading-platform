@@ -20,6 +20,7 @@ from app.trading.schemas import (
     SimulationOrderRequest,
     SnapshotRequest,
 )
+from app.trading.sinopac_adapter import SinopacRuntimeAdapter, build_runtime_adapter
 
 
 @dataclass
@@ -28,6 +29,7 @@ class TradingGateway:
     account_adapter: AccountAdapter
     order_adapter: OrderAdapter
     capability: BrokerCapability
+    runtime_adapter: SinopacRuntimeAdapter | None = None
 
     @classmethod
     def offline_default(cls) -> "TradingGateway":
@@ -36,6 +38,17 @@ class TradingGateway:
             account_adapter=AccountAdapter(),
             order_adapter=OrderAdapter(),
             capability=sinopac_shioaji_capability(),
+        )
+
+    @classmethod
+    def with_sinopac_runtime_adapter(cls) -> "TradingGateway":
+        runtime_adapter = build_runtime_adapter()
+        return cls(
+            quote_adapter=runtime_adapter.quote_adapter,
+            account_adapter=runtime_adapter.account_adapter,
+            order_adapter=OrderAdapter(),
+            capability=runtime_adapter.capability,
+            runtime_adapter=runtime_adapter,
         )
 
     def check_quote_capability(self) -> BrokerCapability:
@@ -58,4 +71,3 @@ class TradingGateway:
 
     def validate_production_order(self, request: ProductionOrderRequest) -> dict[str, object]:
         return self.order_adapter.validate_production_request(request)
-
