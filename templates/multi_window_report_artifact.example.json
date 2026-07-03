@@ -1,0 +1,143 @@
+{
+  "content_state": "prediction_review_pending",
+  "delivery_policy": {
+    "dashboard": "clean report plus diagnostics",
+    "diagnostics": "raw pipeline logs only in diagnostics",
+    "email": "full post-close / prediction review report",
+    "line": "concise post-close summary and dashboard URL"
+  },
+  "diagnostics": {
+    "artifact_status": "prediction_review_pending",
+    "operational_log_suppressed": true,
+    "operator_action_required": false,
+    "pipeline_status": "completed",
+    "raw_log_suppressed": true,
+    "raw_traceback_suppressed": false,
+    "removed_examples": [
+      "Response Code: 200",
+      "Event: Session up",
+      "APISUB/market data host '210.59.255.161'",
+      "開始分析股票 2330",
+      "SQLite 已寫入 data/stock_analysis.db",
+      "post_close selected stock ids: ['2330']",
+      "pipeline_report_summary:",
+      "{\"pipeline_type\":\"post_close\",\"raw\":true}"
+    ],
+    "source_warnings": [
+      "offline sample includes intentionally suppressed raw logs"
+    ],
+    "suppressed_log_categories": {
+      "pipeline_summary_dump": 2,
+      "shioaji_or_solace_session": 3,
+      "sqlite_operational": 1,
+      "stock_analysis_operational": 2
+    },
+    "suppressed_log_count": 8
+  },
+  "future_integration": {
+    "production_dashboard_publish_candidate": "future approval required",
+    "real_historical_artifact_ingestion": "AI-DEV-129",
+    "rolling_evaluation": "future",
+    "source_connector_timeout_hardening": "future"
+  },
+  "generated_at": "2026-07-03T14:54:43+00:00",
+  "input_summary": {
+    "offline_sample": true,
+    "raw_text_chars": 302
+  },
+  "safety_summary": {
+    "advisory_only": true,
+    "broker_login": false,
+    "cron_systemd_timer_mutation": false,
+    "dashboard_production_publish": false,
+    "email_send": false,
+    "line_send": false,
+    "production_confidence_mutation": false,
+    "production_db_write": false,
+    "production_forecast_weight_change": false,
+    "production_order": false,
+    "production_pipeline_run": false,
+    "python3_main_py": false,
+    "rating_action_rule_mutation": false,
+    "scheduler_time_change": false,
+    "secrets_read": false,
+    "simulation_order": false,
+    "trading_order_portfolio_action": false,
+    "var_www_dashboard_write": false
+  },
+  "sanitization_summary": {
+    "raw_line_count": 11,
+    "raw_text_retained_in_user_report": false,
+    "suppressed_log_categories": {
+      "pipeline_summary_dump": 2,
+      "shioaji_or_solace_session": 3,
+      "sqlite_operational": 1,
+      "stock_analysis_operational": 2
+    },
+    "suppressed_log_count": 8
+  },
+  "schema_version": "multi_window_report_artifact_v1",
+  "user_facing_report": {
+    "advisory_only": true,
+    "dashboard_url": "http://example.invalid/dashboard",
+    "rendered_text": "# Stock AI 盤後報告\n\n收盤後摘要、當日結果、prediction review 狀態\n\n今日預測檢討資料尚不足。部分 actual outcome 尚未完成，目前顯示盤後摘要與待檢討狀態。\n\n## 盤後摘要\n今日預測檢討資料尚不足。部分 actual outcome 尚未完成，目前顯示盤後摘要與待檢討狀態。\n\n## 內容狀態\nprediction_review_pending\n\n## 【2330 台積電】盤後 🟡\n依目前樣本資料維持觀察；此為乾淨 user-facing 內容。\n\n## 今日預測檢討待完成\n目前顯示盤後摘要與待檢討狀態。\n\n- prediction review 尚未完整，不應視為完整績效檢討。\n\nDashboard: http://example.invalid/dashboard\n\nadvisory_only: true\n",
+    "review_cards": [
+      {
+        "state": "pending",
+        "summary": "目前顯示盤後摘要與待檢討狀態。",
+        "title": "今日預測檢討待完成"
+      }
+    ],
+    "sections": [
+      {
+        "body": "今日預測檢討資料尚不足。部分 actual outcome 尚未完成，目前顯示盤後摘要與待檢討狀態。",
+        "heading": "盤後摘要"
+      },
+      {
+        "body": "prediction_review_pending",
+        "heading": "內容狀態"
+      }
+    ],
+    "stock_cards": [
+      {
+        "advisory_only": true,
+        "signal": "中性",
+        "stock_id": "2330",
+        "stock_name": "台積電",
+        "summary": "依目前樣本資料維持觀察；此為乾淨 user-facing 內容。",
+        "title": "【2330 台積電】盤後 🟡"
+      }
+    ],
+    "subtitle": "收盤後摘要、當日結果、prediction review 狀態",
+    "summary": "今日預測檢討資料尚不足。部分 actual outcome 尚未完成，目前顯示盤後摘要與待檢討狀態。",
+    "title": "Stock AI 盤後報告",
+    "warnings": [
+      "prediction review 尚未完整，不應視為完整績效檢討。"
+    ]
+  },
+  "window_context": {
+    "advisory_only": true,
+    "allowed_sections": [
+      "close_summary",
+      "prediction_review_state",
+      "stock_cards",
+      "review_cards"
+    ],
+    "dashboard_policy": "clean report plus diagnostics",
+    "diagnostics_policy": "raw pipeline logs only in diagnostics",
+    "disallowed_sections": [
+      "pre_open_watchlist",
+      "raw_diagnostics",
+      "opening_call_to_action"
+    ],
+    "display_label": "盤後",
+    "display_title": "Stock AI 盤後報告",
+    "email_policy": "full post-close / prediction review report",
+    "line_policy": "concise post-close summary and dashboard URL",
+    "market_phase": "post_close",
+    "pipeline_type": "post_close",
+    "primary_purpose": "收盤後摘要、當日結果、prediction review 狀態",
+    "scheduler_window": "post_close_1500",
+    "schema_version": "report_window_context_v1"
+  }
+}
