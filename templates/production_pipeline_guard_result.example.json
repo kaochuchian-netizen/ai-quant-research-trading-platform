@@ -1,0 +1,52 @@
+{
+  "schema_version": "production_pipeline_guard_v1",
+  "generated_at": "2026-07-03T01:10:00+00:00",
+  "window": "pre_open_0700",
+  "pipeline_command": ["./venv/bin/python", "scripts/run_pipeline.py", "pre_open", "--production-approved"],
+  "pipeline_pid": 968808,
+  "started_at": "2026-07-03T07:00:01+08:00",
+  "ended_at": "2026-07-03T07:45:01+08:00",
+  "elapsed_seconds": 2700,
+  "status": "timed_out",
+  "timeout_seconds": 2700,
+  "timed_out": true,
+  "return_code": -15,
+  "stdout_path": null,
+  "stderr_path": null,
+  "log_path": "logs/daily.log",
+  "fresh_artifact_found": false,
+  "line_attempted": false,
+  "email_attempted": false,
+  "dashboard_attempted": false,
+  "delivery_attempted": false,
+  "operator_action_required": true,
+  "diagnostics": {
+    "pipeline": {"termination": [{"pid": 968808, "signal": "TERM", "sent": true}], "raw_output_tail": "", "timeout_seconds": 2700},
+    "zero_byte_log_warning": true,
+    "no_fresh_artifact": true
+  },
+  "safety_summary": {
+    "broker_login": false,
+    "simulation_order": false,
+    "production_order": false,
+    "line_send": false,
+    "email_send": false,
+    "dashboard_production_publish": false,
+    "var_www_dashboard_write": false,
+    "scheduler_time_change": false,
+    "cron_systemd_timer_mutation": false,
+    "production_db_write": false,
+    "secrets_read": false,
+    "production_pipeline_run": false,
+    "python3_main_py": false,
+    "trading_execution": false,
+    "production_publish_allowed": false,
+    "stale_process_auto_kill": false
+  },
+  "ok": false,
+  "examples": [
+    {"status": "stale_process_detected", "operator_action_required": true, "line_attempted": false, "email_attempted": false, "dashboard_attempted": false, "production_publish_allowed": false},
+    {"status": "overlapping_run_blocked", "operator_action_required": true, "line_attempted": false, "email_attempted": false, "dashboard_attempted": false, "production_publish_allowed": false},
+    {"status": "no_fresh_artifact", "operator_action_required": true, "line_attempted": false, "email_attempted": false, "dashboard_attempted": false, "production_publish_allowed": false}
+  ]
+}
