@@ -25,6 +25,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from app.reports.report_content_contract import build_report_content_artifact  # noqa: E402
 from app.runtime.production_run_guard import evaluate_pre_open_run_guard  # noqa: E402
 from app.runtime.runtime_diagnostics import build_guard_result, write_json  # noqa: E402
 from app.runtime.timeout_policy import TimeoutPolicy, timeout_policy_from_env  # noqa: E402
@@ -136,16 +137,28 @@ def content_state(window_id: str, output_tail: str, pipeline_status: str = "comp
 def user_facing_report_content(window_id: str, pipeline_status: str, output_tail: str) -> str:
     cfg = window_config(window_id)
     if pipeline_status != "completed":
-        return (
+        content_state_value = "failed"
+        raw_text = (
             f"{cfg['label']} pipeline did not produce validated report content. "
             "The delivery artifact keeps error details in diagnostics for operator review."
         )
-    if contains_traceback(output_tail):
-        return (
-            "Validated report content is unavailable because the pipeline output included "
-            "runtime diagnostics. See the delivery artifact diagnostics."
-        )
-    return tail_text(output_tail, EMAIL_BODY_LIMIT)
+    elif contains_traceback(output_tail):
+        content_state_value = "partial"
+        raw_text = "Validated report content is unavailable because runtime diagnostics were suppressed."
+    else:
+        content_state_value = content_state(window_id, output_tail, pipeline_status)
+        if content_state_value.startswith("prediction review pending"):
+            content_state_value = "prediction_review_pending"
+        elif content_state_value == "pipeline output available":
+            content_state_value = "stock_analysis_reports_available"
+        raw_text = output_tail
+    artifact = build_report_content_artifact(
+        window_id,
+        tail_text(raw_text, EMAIL_BODY_LIMIT),
+        content_state_value,
+        run_id="delivery-render",
+    )
+    return tail_text(artifact.user_facing_report.get("rendered_text", ""), EMAIL_BODY_LIMIT)
 
 
 def build_pipeline_diagnostics(completed: subprocess.CompletedProcess[str], output: str) -> dict[str, Any]:

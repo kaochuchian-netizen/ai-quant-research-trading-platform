@@ -1,0 +1,18 @@
+{
+  "advisory_only": true,
+  "content_state": "prediction_review_pending",
+  "raw_text": "Response Code: 200\nEvent: Session up\nAPISUB/market host '210.59.255.161'\n開始分析股票 2330\nSQLite 已寫入 data/stock_analysis.db\npipeline_report_summary:\n{\"pipeline_type\":\"post_close\"}\n收盤後摘要：今日預測檢討資料尚不足。",
+  "run_id": "approved-post_close_1500-delivery-20260703-150001",
+  "scheduler_window": "post_close_1500",
+  "schema_version": "multi_window_report_input_v1",
+  "stock_cards": [
+    {
+      "advisory_only": true,
+      "signal": "中性",
+      "stock_id": "2330",
+      "stock_name": "台積電",
+      "summary": "盤後摘要樣本，等待 actual outcome 完成。"
+    }
+  ],
+  "trading_order_portfolio_action": false
+}
