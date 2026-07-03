@@ -1,0 +1,59 @@
+{
+  "advisory_only": true,
+  "generated_at": "2026-07-03T16:12:44+00:00",
+  "input_summary": {
+    "as_of_date": "2026-07-03",
+    "market": "TWSE",
+    "sample_mode": true,
+    "sample_size": 20,
+    "schema_version": "market_regime_input_v1",
+    "source_kind": "offline_sample"
+  },
+  "integration_notes": {
+    "adaptive_recommendation": "future research input only; production_mutation_allowed=false",
+    "dashboard": "future display candidate; production_publish_allowed=false",
+    "factor_effectiveness": "future grouping dimension for rolling evaluation",
+    "prediction_confidence": "future advisory input only; no production confidence mutation"
+  },
+  "regime_history_readiness": {
+    "minimum_sample_size": 10,
+    "sample_size": 20,
+    "status": "ready"
+  },
+  "regime_result": {
+    "confidence": 0.8251,
+    "limitations": [
+      "offline deterministic classifier; no live API or production strategy mutation"
+    ],
+    "metrics_used": {
+      "above_ma20_ratio": 0.64,
+      "advance_decline_ratio": 1.42,
+      "index_return_20d": 0.081,
+      "max_drawdown_20d": -0.028,
+      "realized_volatility_20d": 0.17
+    },
+    "reason_codes": [
+      "positive_trend_strength",
+      "breadth_positive",
+      "momentum_positive"
+    ],
+    "regime": "risk_on"
+  },
+  "safety_summary": {
+    "advisory_only": true,
+    "broker_login": false,
+    "dashboard_published": false,
+    "email_sent": false,
+    "line_sent": false,
+    "production_confidence_mutation": false,
+    "production_db_write": false,
+    "production_forecast_weight_mutation": false,
+    "production_order": false,
+    "production_scheduler_connected": false,
+    "rating_action_rule_mutation": false,
+    "secrets_read": false,
+    "simulation_order": false,
+    "trading_execution": false
+  },
+  "schema_version": "market_regime_artifact_v1"
+}
