@@ -1,0 +1,397 @@
+{
+  "completeness_summary": {
+    "by_artifact_type": {
+      "duplicate": 0,
+      "expected": [
+        "approved_delivery",
+        "prediction_snapshot",
+        "actual_outcome",
+        "evaluation",
+        "confidence_calibration",
+        "factor_recommendation",
+        "dashboard_intelligence"
+      ],
+      "found": {
+        "actual_outcome": 1,
+        "approved_delivery": 1,
+        "confidence_calibration": 1,
+        "dashboard_intelligence": 1,
+        "evaluation": 3,
+        "factor_recommendation": 1,
+        "incident_diagnostic": 1,
+        "prediction_snapshot": 1
+      },
+      "malformed": 0,
+      "missing": [],
+      "stale": 0
+    },
+    "by_scheduler_window": {
+      "intraday_1305": {
+        "finding": "missing",
+        "missing": true,
+        "records_found": 0
+      },
+      "post_close_1500": {
+        "finding": "partial",
+        "missing": false,
+        "records_found": 1
+      },
+      "pre_close_1335": {
+        "finding": "missing",
+        "missing": true,
+        "records_found": 0
+      },
+      "pre_open_0700": {
+        "finding": "partial",
+        "missing": false,
+        "records_found": 1
+      },
+      "prediction_review_1500": {
+        "finding": "missing",
+        "missing": true,
+        "records_found": 0
+      }
+    },
+    "by_stock_id": {
+      "2317": {
+        "insufficient_data": 0,
+        "missing_actual_outcome": true,
+        "missing_evaluation": false,
+        "missing_prediction_snapshot": true,
+        "pending_outcome": 1,
+        "records_found": 1
+      },
+      "2330": {
+        "insufficient_data": 0,
+        "missing_actual_outcome": false,
+        "missing_evaluation": false,
+        "missing_prediction_snapshot": false,
+        "pending_outcome": 0,
+        "records_found": 3
+      },
+      "2454": {
+        "insufficient_data": 1,
+        "missing_actual_outcome": true,
+        "missing_evaluation": false,
+        "missing_prediction_snapshot": true,
+        "pending_outcome": 0,
+        "records_found": 1
+      },
+      "unknown": {
+        "insufficient_data": 0,
+        "missing_actual_outcome": true,
+        "missing_evaluation": true,
+        "missing_prediction_snapshot": true,
+        "pending_outcome": 1,
+        "records_found": 5
+      }
+    },
+    "findings": {
+      "duplicate_count": 0,
+      "insufficient_data_count": 1,
+      "malformed_count": 0,
+      "overall": "partial",
+      "pending_count": 2
+    },
+    "total_records": 10
+  },
+  "dashboard_ready_summary": {
+    "advisory_only": true,
+    "data_gaps": [],
+    "diagnostics": {
+      "insufficient_real_history": true
+    },
+    "key_metrics": {
+      "calibration_status": "demo_only",
+      "evaluation_status": "insufficient",
+      "factor_status": "demo_only"
+    },
+    "pending_reviews": 2,
+    "production_publish_allowed": false,
+    "real_history_available": false,
+    "recommended_operator_actions": [
+      "activate controlled artifact retention in future AI-DEV-130"
+    ],
+    "rolling_windows": [
+      "last_7_records",
+      "last_20_records",
+      "last_60_records",
+      "all_available",
+      "last_7_trading_days",
+      "last_20_trading_days"
+    ],
+    "sample_mode": true,
+    "summary_status": "sample_demo"
+  },
+  "diagnostics": {
+    "insufficient_real_history": true,
+    "no_production_mutation": true
+  },
+  "future_integration": {
+    "backtesting_py_strategy_research": "future offline only",
+    "controlled_retention_activation": "AI-DEV-130"
+  },
+  "generated_at": "2026-07-03T16:01:10+00:00",
+  "historical_store_summary": {
+    "index": {
+      "by_artifact_type": {
+        "actual_outcome": 1,
+        "approved_delivery": 1,
+        "confidence_calibration": 1,
+        "dashboard_intelligence": 1,
+        "evaluation": 3,
+        "factor_recommendation": 1,
+        "incident_diagnostic": 1,
+        "prediction_snapshot": 1
+      },
+      "by_scheduler_window": {
+        "post_close_1500": 1,
+        "pre_open_0700": 1,
+        "unknown": 8
+      },
+      "by_status": {
+        "insufficient_data": 1,
+        "pending": 2,
+        "valid": 7
+      },
+      "stock_ids": [
+        "2317",
+        "2330",
+        "2454"
+      ]
+    },
+    "record_count": 10,
+    "store_id": "offline-history-store"
+  },
+  "input_summary": {
+    "record_count": 10,
+    "sample_mode": true
+  },
+  "rolling_calibration_readiness": {
+    "bucket_readiness": "insufficient_sample",
+    "calibration_sample_size": 2,
+    "calibration_status": "demo_only",
+    "insufficient_bucket_count": 1,
+    "over_confident_bucket_count": 0,
+    "sample_mode": true,
+    "under_confident_bucket_count": 0,
+    "usable_confidence_records": 2,
+    "weighted_ece_if_available": null
+  },
+  "rolling_evaluation": {
+    "action_effectiveness_summary": "insufficient_sample",
+    "avg_return_1d": 0.01,
+    "avg_return_20d": null,
+    "avg_return_5d": null,
+    "close_direction_hit_rate": null,
+    "direction_hit_rate": 1.0,
+    "high_error_pct": 0.02,
+    "insufficient_data_count": 1,
+    "low_error_pct": 0.01,
+    "missing_outcome_count": 0,
+    "pending_outcome_count": 2,
+    "rating_effectiveness_summary": "insufficient_sample",
+    "sample_mode": true,
+    "sample_size": 1,
+    "status": "insufficient"
+  },
+  "rolling_factor_effectiveness_readiness": {
+    "factor_effectiveness_status": "demo_only",
+    "factor_groups_available": [
+      "factor_recommendation"
+    ],
+    "factor_sample_size": 1,
+    "insufficient_sample_reasons": [
+      "usable factor records below 20"
+    ],
+    "production_mutation_allowed": false,
+    "recommendation_readiness": "data_collection_only",
+    "recommended_action": "collect_more_real_history",
+    "sample_mode": true,
+    "source_groups_available": [],
+    "usable_factor_records": 1
+  },
+  "rolling_windows": [
+    {
+      "end_date": "2026-07-03",
+      "exclusion_reasons": {
+        "insufficient_data": 1,
+        "pending": 2
+      },
+      "insufficient_sample": true,
+      "records_excluded": [
+        "hist-approved_delivery-aff6b7a2dede",
+        "hist-evaluation-ec4dcae0e551",
+        "hist-evaluation-bf361f7c4bc2"
+      ],
+      "records_included": [
+        "hist-evaluation-1dcb55f6abe3",
+        "hist-confidence_calibration-0978402f991d",
+        "hist-factor_recommendation-4e4a6fa30457",
+        "hist-dashboard_intelligence-22ec01b54d62"
+      ],
+      "sample_size": 7,
+      "start_date": "2026-07-02",
+      "status": "insufficient",
+      "usable_sample_size": 4,
+      "window_id": "last_7_records",
+      "window_type": "record_count"
+    },
+    {
+      "end_date": "2026-07-03",
+      "exclusion_reasons": {
+        "insufficient_data": 1,
+        "pending": 2
+      },
+      "insufficient_sample": false,
+      "records_excluded": [
+        "hist-approved_delivery-aff6b7a2dede",
+        "hist-evaluation-ec4dcae0e551",
+        "hist-evaluation-bf361f7c4bc2"
+      ],
+      "records_included": [
+        "hist-incident_diagnostic-09e3a4122c98",
+        "hist-prediction_snapshot-4fe705d6e6c6",
+        "hist-actual_outcome-45aeb522ff9e",
+        "hist-evaluation-1dcb55f6abe3",
+        "hist-confidence_calibration-0978402f991d",
+        "hist-factor_recommendation-4e4a6fa30457",
+        "hist-dashboard_intelligence-22ec01b54d62"
+      ],
+      "sample_size": 10,
+      "start_date": "2026-07-01",
+      "status": "unstable",
+      "usable_sample_size": 7,
+      "window_id": "last_20_records",
+      "window_type": "record_count"
+    },
+    {
+      "end_date": "2026-07-03",
+      "exclusion_reasons": {
+        "insufficient_data": 1,
+        "pending": 2
+      },
+      "insufficient_sample": false,
+      "records_excluded": [
+        "hist-approved_delivery-aff6b7a2dede",
+        "hist-evaluation-ec4dcae0e551",
+        "hist-evaluation-bf361f7c4bc2"
+      ],
+      "records_included": [
+        "hist-incident_diagnostic-09e3a4122c98",
+        "hist-prediction_snapshot-4fe705d6e6c6",
+        "hist-actual_outcome-45aeb522ff9e",
+        "hist-evaluation-1dcb55f6abe3",
+        "hist-confidence_calibration-0978402f991d",
+        "hist-factor_recommendation-4e4a6fa30457",
+        "hist-dashboard_intelligence-22ec01b54d62"
+      ],
+      "sample_size": 10,
+      "start_date": "2026-07-01",
+      "status": "unstable",
+      "usable_sample_size": 7,
+      "window_id": "last_60_records",
+      "window_type": "record_count"
+    },
+    {
+      "end_date": "2026-07-03",
+      "exclusion_reasons": {
+        "insufficient_data": 1,
+        "pending": 2
+      },
+      "insufficient_sample": false,
+      "records_excluded": [
+        "hist-approved_delivery-aff6b7a2dede",
+        "hist-evaluation-ec4dcae0e551",
+        "hist-evaluation-bf361f7c4bc2"
+      ],
+      "records_included": [
+        "hist-incident_diagnostic-09e3a4122c98",
+        "hist-prediction_snapshot-4fe705d6e6c6",
+        "hist-actual_outcome-45aeb522ff9e",
+        "hist-evaluation-1dcb55f6abe3",
+        "hist-confidence_calibration-0978402f991d",
+        "hist-factor_recommendation-4e4a6fa30457",
+        "hist-dashboard_intelligence-22ec01b54d62"
+      ],
+      "sample_size": 10,
+      "start_date": "2026-07-01",
+      "status": "unstable",
+      "usable_sample_size": 7,
+      "window_id": "all_available",
+      "window_type": "record_count"
+    },
+    {
+      "end_date": "2026-07-03",
+      "exclusion_reasons": {},
+      "insufficient_sample": false,
+      "records_excluded": [
+        "hist-approved_delivery-aff6b7a2dede",
+        "hist-evaluation-ec4dcae0e551",
+        "hist-evaluation-bf361f7c4bc2"
+      ],
+      "records_included": [
+        "hist-prediction_snapshot-4fe705d6e6c6",
+        "hist-actual_outcome-45aeb522ff9e",
+        "hist-evaluation-1dcb55f6abe3",
+        "hist-confidence_calibration-0978402f991d",
+        "hist-factor_recommendation-4e4a6fa30457",
+        "hist-dashboard_intelligence-22ec01b54d62"
+      ],
+      "sample_size": 9,
+      "start_date": "2026-07-01",
+      "status": "unstable",
+      "usable_sample_size": 6,
+      "window_id": "last_7_trading_days",
+      "window_type": "trading_days"
+    },
+    {
+      "end_date": "2026-07-03",
+      "exclusion_reasons": {},
+      "insufficient_sample": false,
+      "records_excluded": [
+        "hist-approved_delivery-aff6b7a2dede",
+        "hist-evaluation-ec4dcae0e551",
+        "hist-evaluation-bf361f7c4bc2"
+      ],
+      "records_included": [
+        "hist-prediction_snapshot-4fe705d6e6c6",
+        "hist-actual_outcome-45aeb522ff9e",
+        "hist-evaluation-1dcb55f6abe3",
+        "hist-confidence_calibration-0978402f991d",
+        "hist-factor_recommendation-4e4a6fa30457",
+        "hist-dashboard_intelligence-22ec01b54d62"
+      ],
+      "sample_size": 9,
+      "start_date": "2026-07-01",
+      "status": "unstable",
+      "usable_sample_size": 6,
+      "window_id": "last_20_trading_days",
+      "window_type": "trading_days"
+    }
+  ],
+  "safety_summary": {
+    "advisory_only": true,
+    "backtesting_runtime_execution": false,
+    "broker_login": false,
+    "cron_systemd_timer_mutation": false,
+    "dashboard_production_publish": false,
+    "dashboard_published": false,
+    "email_send": false,
+    "email_sent": false,
+    "line_send": false,
+    "line_sent": false,
+    "production_db_write": false,
+    "production_mutation_allowed": false,
+    "production_order": false,
+    "production_pipeline_run": false,
+    "production_publish_allowed": false,
+    "python3_main_py": false,
+    "scheduler_time_change": false,
+    "secrets_read": false,
+    "simulation_order": false,
+    "trading_execution": false,
+    "var_www_dashboard_write": false
+  },
+  "schema_version": "rolling_evaluation_artifact_v1"
+}

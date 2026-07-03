@@ -35,6 +35,8 @@ DEFAULT_ALLOWED_PATHS = [
     "app/dashboard/",
     "app/reports/",
     "app/runtime/",
+    "app/history/",
+    "app/rolling/",
     "app/market/historical_price_loader.py",
     "app/market/historical_storage.py",
     "app/market/shioaji_client.py",
