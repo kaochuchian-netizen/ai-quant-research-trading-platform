@@ -14,6 +14,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -24,6 +25,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from app.runtime.production_run_guard import evaluate_pre_open_run_guard  # noqa: E402
+from app.runtime.runtime_diagnostics import build_guard_result, write_json  # noqa: E402
+from app.runtime.timeout_policy import TimeoutPolicy, timeout_policy_from_env  # noqa: E402
 from scripts.orchestrator.notify_stage_report import (  # noqa: E402
     build_message,
     load_env_file,
@@ -324,16 +328,61 @@ def send_concise_line(window_id: str, generated_at: str, pipeline_status: str, d
     }
 
 
-def run_pipeline(python_bin: str, window_id: str) -> subprocess.CompletedProcess[str]:
+def run_pipeline(python_bin: str, window_id: str, policy: TimeoutPolicy) -> dict[str, Any]:
     cfg = window_config(window_id)
-    return subprocess.run(
-        [python_bin, "scripts/run_pipeline.py", cfg["pipeline_type"], "--production-approved"],
+    command = [python_bin, "scripts/run_pipeline.py", cfg["pipeline_type"], "--production-approved"]
+    started = now_taipei()
+    started_monotonic = time.monotonic()
+    proc = subprocess.Popen(
+        command,
         cwd=REPO_ROOT,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
-        check=False,
     )
+    try:
+        output, _ = proc.communicate(timeout=policy.production_pipeline_timeout_seconds)
+        ended = now_taipei()
+        return {
+            "status": "completed" if proc.returncode == 0 else "failed",
+            "completed": subprocess.CompletedProcess(command, proc.returncode, output or ""),
+            "pipeline_command": command,
+            "pipeline_pid": proc.pid,
+            "started_at": started.isoformat(),
+            "ended_at": ended.isoformat(),
+            "elapsed_seconds": int(time.monotonic() - started_monotonic),
+            "timed_out": False,
+            "termination": [],
+        }
+    except subprocess.TimeoutExpired as exc:
+        partial = exc.stdout or ""
+        if isinstance(partial, bytes):
+            partial = partial.decode(errors="replace")
+        termination = []
+        proc.terminate()
+        termination.append({"pid": proc.pid, "signal": "TERM", "sent": True})
+        try:
+            more, _ = proc.communicate(timeout=policy.terminate_grace_seconds)
+            if more:
+                partial += more
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            termination.append({"pid": proc.pid, "signal": "KILL", "sent": True})
+            more, _ = proc.communicate()
+            if more:
+                partial += more
+        ended = now_taipei()
+        return {
+            "status": "timed_out",
+            "completed": subprocess.CompletedProcess(command, proc.returncode, partial or ""),
+            "pipeline_command": command,
+            "pipeline_pid": proc.pid,
+            "started_at": started.isoformat(),
+            "ended_at": ended.isoformat(),
+            "elapsed_seconds": int(time.monotonic() - started_monotonic),
+            "timed_out": True,
+            "termination": termination,
+        }
 
 
 def dry_run_result(args: argparse.Namespace, generated_at: str, run_id: str) -> dict[str, Any]:
@@ -382,6 +431,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--mail-env-file", default=str(DEFAULT_MAIL_ENV_FILE))
     parser.add_argument("--output", default="/tmp/approved_pre_open_delivery_result.json")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--timeout-seconds", type=int, default=None)
+    parser.add_argument("--stale-threshold-seconds", type=int, default=None)
+    parser.add_argument("--terminate-grace-seconds", type=int, default=None)
     return parser.parse_args()
 
 
@@ -401,15 +453,61 @@ def main() -> int:
     if not env_enabled("STOCK_AI_APPROVED_DELIVERY"):
         raise SystemExit("STOCK_AI_APPROVED_DELIVERY=1 is required for approved delivery")
 
+    base_policy = timeout_policy_from_env()
+    policy = TimeoutPolicy(
+        production_pipeline_timeout_seconds=args.timeout_seconds or base_policy.production_pipeline_timeout_seconds,
+        production_pipeline_warning_seconds=base_policy.production_pipeline_warning_seconds,
+        stale_process_threshold_seconds=args.stale_threshold_seconds or base_policy.stale_process_threshold_seconds,
+        external_http_source_timeout_seconds=base_policy.external_http_source_timeout_seconds,
+        market_data_source_timeout_seconds=base_policy.market_data_source_timeout_seconds,
+        source_stage_soft_timeout_seconds=base_policy.source_stage_soft_timeout_seconds,
+        terminate_grace_seconds=args.terminate_grace_seconds or base_policy.terminate_grace_seconds,
+    )
+    guard = evaluate_pre_open_run_guard(policy=policy) if args.window == "pre_open_0700" else None
+    if guard is not None and not guard.allowed:
+        result = build_guard_result(
+            guard.status,
+            args.window,
+            policy,
+            pipeline_command=[os.environ.get("PYTHON_BIN", sys.executable), "scripts/run_pipeline.py", cfg["pipeline_type"], "--production-approved"],
+            log_path="logs/daily.log",
+            diagnostics={"guard_decision": guard.to_dict(), "reason": guard.reason},
+        )
+        result.update({"task_id": TASK_ID, "run_id": run_id, "mode": "approved_delivery_guard_blocked", "pipeline_type": cfg["pipeline_type"], "line_delivery_status": "not_sent", "email_delivery_status": "not_sent", "dashboard_delivery_status": "not_published", "decision": guard.status})
+        write_json(args.output, result)
+        print(stable_json({key: result[key] for key in ["schema_version", "run_id", "window", "status", "ok", "decision"]}))
+        return 1
+
     python_bin = os.environ.get("PYTHON_BIN", sys.executable)
-    completed = run_pipeline(python_bin, args.window)
+    pipeline_run = run_pipeline(python_bin, args.window, policy)
+    completed = pipeline_run["completed"]
     output = completed.stdout or ""
     if output:
         print(output, end="" if output.endswith("\n") else "\n")
 
-    pipeline_status = "completed" if completed.returncode == 0 else "failed"
     output_tail = tail_text(output, EMAIL_BODY_LIMIT)
     pipeline_diagnostics = build_pipeline_diagnostics(completed, output)
+    pipeline_diagnostics.update({"pipeline_pid": pipeline_run["pipeline_pid"], "started_at": pipeline_run["started_at"], "ended_at": pipeline_run["ended_at"], "elapsed_seconds": pipeline_run["elapsed_seconds"], "termination": pipeline_run["termination"], "timeout_seconds": policy.production_pipeline_timeout_seconds})
+    if pipeline_run["timed_out"]:
+        result = build_guard_result(
+            "timed_out",
+            args.window,
+            policy,
+            pipeline_command=pipeline_run["pipeline_command"],
+            pipeline_pid=pipeline_run["pipeline_pid"],
+            started_at=pipeline_run["started_at"],
+            ended_at=pipeline_run["ended_at"],
+            elapsed_seconds=pipeline_run["elapsed_seconds"],
+            return_code=completed.returncode,
+            log_path="logs/daily.log",
+            diagnostics={"pipeline": pipeline_diagnostics, "reason": "production pipeline exceeded hard timeout; delivery was not attempted"},
+        )
+        result.update({"task_id": TASK_ID, "run_id": run_id, "mode": "approved_delivery_timeout", "pipeline_type": cfg["pipeline_type"], "pipeline_status": "timed_out", "content_state": "pipeline timed out; diagnostics available", "line_delivery_status": "not_sent", "email_delivery_status": "not_sent", "dashboard_delivery_status": "not_published", "secret_values_printed": False, "trading_order_portfolio_action": False, "decision": "approved_scheduler_delivery_timed_out_no_delivery"})
+        write_json(args.output, result)
+        print(stable_json({key: result[key] for key in ["schema_version", "task_id", "run_id", "window", "status", "line_attempted", "email_attempted", "dashboard_attempted", "ok", "decision"]}))
+        return 1
+
+    pipeline_status = "completed" if completed.returncode == 0 else "failed"
     dashboard = publish_dashboard(Path(args.dashboard_publish_dir), args.window, run_id, generated_at, pipeline_status, output_tail)
     try:
         email = send_delivery_email(Path(args.mail_env_file), args.window, run_id, generated_at, pipeline_status, args.dashboard_url, output_tail)

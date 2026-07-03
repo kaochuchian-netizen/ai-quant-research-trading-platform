@@ -1,0 +1,27 @@
+{
+  "schema_version": "production_pipeline_guard_v1",
+  "generated_at": "2026-07-03T01:10:00+00:00",
+  "mode": "read_only_diagnostics",
+  "window": "pre_open_0700",
+  "active_pre_open_processes": [
+    {"pid": 968808, "command": "./venv/bin/python scripts/run_pipeline.py pre_open --production-approved", "elapsed_seconds": 7200, "wchan": "futex_wait_queue", "attached_daily_log": false, "attached_pipeline_artifact": false, "looks_like_pre_open_production": true, "stale": true}
+  ],
+  "stale_process_candidates": [
+    {"pid": 1421299, "command": "./venv/bin/python scripts/run_pipeline.py pre_open --production-approved", "elapsed_seconds": 864000, "looks_like_pre_open_production": true, "stale": true}
+  ],
+  "approved_delivery_result": {"path": "/tmp/approved_pre_open_0700_delivery_result.json", "exists": true, "size_bytes": 1604, "mtime": "2026-07-02T23:00:21+00:00", "is_zero_bytes": false, "fresh_artifact_found": false},
+  "daily_log": {"path": "logs/daily.log", "exists": true, "size_bytes": 0, "is_zero_bytes": true},
+  "dashboard_manifest": {"path": "/var/www/stock-ai-dashboard/publish_manifest.json", "exists": true, "mtime": "2026-07-02T07:05:43+00:00"},
+  "cron_evidence": ["Jul 03 07:00:01 CRON CMD STOCK_AI_APPROVED_DELIVERY=1 /home/kaochuchian/stock-ai/run_stock_analysis.sh"],
+  "warnings": ["logs/daily.log is zero bytes", "stale pre_open process candidates found", "no fresh artifact"],
+  "recommended_operator_action": "manual_review_and_TERM_stale_processes",
+  "line_attempted": false,
+  "email_attempted": false,
+  "dashboard_attempted": false,
+  "delivery_attempted": false,
+  "operator_action_required": true,
+  "production_publish_allowed": false,
+  "safety_summary": {"line_send": false, "email_send": false, "dashboard_production_publish": false, "production_publish_allowed": false, "stale_process_auto_kill": false, "production_pipeline_run": false, "python3_main_py": false},
+  "side_effects": {"read_only": true, "process_killed": false, "line_sent": false, "email_sent": false, "dashboard_published": false, "production_pipeline_run": false, "secrets_read": false},
+  "ok": true
+}
