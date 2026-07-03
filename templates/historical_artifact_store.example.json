@@ -1,0 +1,562 @@
+{
+  "completeness_summary": {
+    "by_artifact_type": {
+      "duplicate": 0,
+      "expected": [
+        "approved_delivery",
+        "prediction_snapshot",
+        "actual_outcome",
+        "evaluation",
+        "confidence_calibration",
+        "factor_recommendation",
+        "dashboard_intelligence"
+      ],
+      "found": {
+        "actual_outcome": 1,
+        "approved_delivery": 1,
+        "confidence_calibration": 1,
+        "dashboard_intelligence": 1,
+        "evaluation": 3,
+        "factor_recommendation": 1,
+        "incident_diagnostic": 1,
+        "prediction_snapshot": 1
+      },
+      "malformed": 0,
+      "missing": [],
+      "stale": 0
+    },
+    "by_scheduler_window": {
+      "intraday_1305": {
+        "finding": "missing",
+        "missing": true,
+        "records_found": 0
+      },
+      "post_close_1500": {
+        "finding": "partial",
+        "missing": false,
+        "records_found": 1
+      },
+      "pre_close_1335": {
+        "finding": "missing",
+        "missing": true,
+        "records_found": 0
+      },
+      "pre_open_0700": {
+        "finding": "partial",
+        "missing": false,
+        "records_found": 1
+      },
+      "prediction_review_1500": {
+        "finding": "missing",
+        "missing": true,
+        "records_found": 0
+      }
+    },
+    "by_stock_id": {
+      "2317": {
+        "insufficient_data": 0,
+        "missing_actual_outcome": true,
+        "missing_evaluation": false,
+        "missing_prediction_snapshot": true,
+        "pending_outcome": 1,
+        "records_found": 1
+      },
+      "2330": {
+        "insufficient_data": 0,
+        "missing_actual_outcome": false,
+        "missing_evaluation": false,
+        "missing_prediction_snapshot": false,
+        "pending_outcome": 0,
+        "records_found": 3
+      },
+      "2454": {
+        "insufficient_data": 1,
+        "missing_actual_outcome": true,
+        "missing_evaluation": false,
+        "missing_prediction_snapshot": true,
+        "pending_outcome": 0,
+        "records_found": 1
+      },
+      "unknown": {
+        "insufficient_data": 0,
+        "missing_actual_outcome": true,
+        "missing_evaluation": true,
+        "missing_prediction_snapshot": true,
+        "pending_outcome": 1,
+        "records_found": 5
+      }
+    },
+    "findings": {
+      "duplicate_count": 0,
+      "insufficient_data_count": 1,
+      "malformed_count": 0,
+      "overall": "partial",
+      "pending_count": 2
+    },
+    "total_records": 10
+  },
+  "deduplication_summary": {
+    "duplicate_count": 1,
+    "duplicate_records": [
+      "hist-approved_delivery-aff6b7a2dede"
+    ],
+    "input_count": 11,
+    "unique_count": 10
+  },
+  "generated_at": "2026-07-03T16:01:10+00:00",
+  "index": {
+    "by_artifact_type": {
+      "actual_outcome": 1,
+      "approved_delivery": 1,
+      "confidence_calibration": 1,
+      "dashboard_intelligence": 1,
+      "evaluation": 3,
+      "factor_recommendation": 1,
+      "incident_diagnostic": 1,
+      "prediction_snapshot": 1
+    },
+    "by_scheduler_window": {
+      "post_close_1500": 1,
+      "pre_open_0700": 1,
+      "unknown": 8
+    },
+    "by_status": {
+      "insufficient_data": 1,
+      "pending": 2,
+      "valid": 7
+    },
+    "stock_ids": [
+      "2317",
+      "2330",
+      "2454"
+    ]
+  },
+  "records": [
+    {
+      "advisory_only": true,
+      "artifact_id": "approved-post_close_1500-delivery-20260703-150001",
+      "artifact_status": "pending",
+      "artifact_type": "approved_delivery",
+      "content_state": "prediction_review_pending",
+      "dedupe_key": "approved-post_close_1500-delivery-20260703-150001|post_close_1500|post_close|||approved_delivery|2026-07-03T15:00:01+08:00|2026-07-03|15:00:01|aff6b7a2dede52a39ec4d7af",
+      "diagnostics": {},
+      "fingerprint": "aff6b7a2dede52a39ec4d7af",
+      "generated_at": "2026-07-03T15:00:01+08:00",
+      "ingested_at": "2026-07-03T16:01:10+00:00",
+      "lineage": {
+        "source_kind": "offline_sample",
+        "source_path": "offline://sample/0"
+      },
+      "pipeline_type": "post_close",
+      "prediction_target": null,
+      "record_id": "hist-approved_delivery-aff6b7a2dede",
+      "run_date": "2026-07-03",
+      "run_id": "approved-post_close_1500-delivery-20260703-150001",
+      "run_time": "15:00:01",
+      "scheduler_window": "post_close_1500",
+      "schema_version": "historical_artifact_record_v1",
+      "source_kind": "offline_sample",
+      "source_path": "offline://sample/0",
+      "stock_id": null,
+      "stock_name": null,
+      "summary": {
+        "keys": [
+          "advisory_only",
+          "content_state",
+          "dashboard_delivery",
+          "email_delivery",
+          "generated_at",
+          "line_delivery",
+          "pipeline_type",
+          "run_id",
+          "scheduler_window",
+          "schema_version"
+        ],
+        "sample_mode": true
+      }
+    },
+    {
+      "advisory_only": true,
+      "artifact_id": "pred-001",
+      "artifact_status": "valid",
+      "artifact_type": "prediction_snapshot",
+      "content_state": null,
+      "dedupe_key": "pred-001|pre_open_0700|pre_open|2330|next_day_high_low|prediction_snapshot|2026-07-01T07:00:00+08:00|2026-07-01|07:00:00|4fe705d6e6c6e3f34ba0a8bd",
+      "diagnostics": {},
+      "fingerprint": "4fe705d6e6c6e3f34ba0a8bd",
+      "generated_at": "2026-07-01T07:00:00+08:00",
+      "ingested_at": "2026-07-03T16:01:10+00:00",
+      "lineage": {
+        "source_kind": "offline_sample",
+        "source_path": "offline://sample/1"
+      },
+      "pipeline_type": "pre_open",
+      "prediction_target": "next_day_high_low",
+      "record_id": "hist-prediction_snapshot-4fe705d6e6c6",
+      "run_date": "2026-07-01",
+      "run_id": "pred-001",
+      "run_time": "07:00:00",
+      "scheduler_window": "pre_open_0700",
+      "schema_version": "historical_artifact_record_v1",
+      "source_kind": "offline_sample",
+      "source_path": "offline://sample/1",
+      "stock_id": "2330",
+      "stock_name": "台積電",
+      "summary": {
+        "keys": [
+          "advisory_only",
+          "generated_at",
+          "pipeline_type",
+          "prediction_target",
+          "run_id",
+          "scheduler_window",
+          "schema_version",
+          "stock_id",
+          "stock_name"
+        ],
+        "sample_mode": true
+      }
+    },
+    {
+      "advisory_only": true,
+      "artifact_id": "outcome-001",
+      "artifact_status": "valid",
+      "artifact_type": "actual_outcome",
+      "content_state": null,
+      "dedupe_key": "outcome-001|||2330||actual_outcome|2026-07-02T15:00:00+08:00|2026-07-02|15:00:00|45aeb522ff9e8c54c529aeb5",
+      "diagnostics": {},
+      "fingerprint": "45aeb522ff9e8c54c529aeb5",
+      "generated_at": "2026-07-02T15:00:00+08:00",
+      "ingested_at": "2026-07-03T16:01:10+00:00",
+      "lineage": {
+        "source_kind": "offline_sample",
+        "source_path": "offline://sample/2"
+      },
+      "pipeline_type": null,
+      "prediction_target": null,
+      "record_id": "hist-actual_outcome-45aeb522ff9e",
+      "run_date": "2026-07-02",
+      "run_id": "outcome-001",
+      "run_time": "15:00:00",
+      "scheduler_window": null,
+      "schema_version": "historical_artifact_record_v1",
+      "source_kind": "offline_sample",
+      "source_path": "offline://sample/2",
+      "stock_id": "2330",
+      "stock_name": "台積電",
+      "summary": {
+        "actual_return_1d": 0.01,
+        "keys": [
+          "actual_return_1d",
+          "advisory_only",
+          "generated_at",
+          "run_id",
+          "schema_version",
+          "stock_id",
+          "stock_name"
+        ],
+        "sample_mode": true
+      }
+    },
+    {
+      "advisory_only": true,
+      "artifact_id": "eval-001",
+      "artifact_status": "valid",
+      "artifact_type": "evaluation",
+      "content_state": null,
+      "dedupe_key": "eval-001|||2330|next_day_high_low|evaluation|2026-07-02T15:10:00+08:00|2026-07-02|15:10:00|1dcb55f6abe340b9bc773ca0",
+      "diagnostics": {},
+      "fingerprint": "1dcb55f6abe340b9bc773ca0",
+      "generated_at": "2026-07-02T15:10:00+08:00",
+      "ingested_at": "2026-07-03T16:01:10+00:00",
+      "lineage": {
+        "source_kind": "offline_sample",
+        "source_path": "offline://sample/3"
+      },
+      "pipeline_type": null,
+      "prediction_target": "next_day_high_low",
+      "record_id": "hist-evaluation-1dcb55f6abe3",
+      "run_date": "2026-07-02",
+      "run_id": "eval-001",
+      "run_time": "15:10:00",
+      "scheduler_window": null,
+      "schema_version": "historical_artifact_record_v1",
+      "source_kind": "offline_sample",
+      "source_path": "offline://sample/3",
+      "stock_id": "2330",
+      "stock_name": "台積電",
+      "summary": {
+        "actual_return_1d": 0.01,
+        "direction_hit": true,
+        "high_error_pct": 0.02,
+        "keys": [
+          "actual_return_1d",
+          "advisory_only",
+          "direction_hit",
+          "generated_at",
+          "high_error_pct",
+          "low_error_pct",
+          "prediction_target",
+          "run_id",
+          "schema_version",
+          "stock_id",
+          "stock_name"
+        ],
+        "low_error_pct": 0.01,
+        "sample_mode": true
+      }
+    },
+    {
+      "advisory_only": true,
+      "artifact_id": "cal-001",
+      "artifact_status": "valid",
+      "artifact_type": "confidence_calibration",
+      "content_state": null,
+      "dedupe_key": "cal-001|||||confidence_calibration|2026-07-03T16:00:00+08:00|2026-07-03|16:00:00|0978402f991dd7ee65e60193",
+      "diagnostics": {},
+      "fingerprint": "0978402f991dd7ee65e60193",
+      "generated_at": "2026-07-03T16:00:00+08:00",
+      "ingested_at": "2026-07-03T16:01:10+00:00",
+      "lineage": {
+        "source_kind": "offline_sample",
+        "source_path": "offline://sample/4"
+      },
+      "pipeline_type": null,
+      "prediction_target": null,
+      "record_id": "hist-confidence_calibration-0978402f991d",
+      "run_date": "2026-07-03",
+      "run_id": "cal-001",
+      "run_time": "16:00:00",
+      "scheduler_window": null,
+      "schema_version": "historical_artifact_record_v1",
+      "source_kind": "offline_sample",
+      "source_path": "offline://sample/4",
+      "stock_id": null,
+      "stock_name": null,
+      "summary": {
+        "keys": [
+          "advisory_only",
+          "confidence_bucket_analysis",
+          "generated_at",
+          "run_id",
+          "schema_version"
+        ],
+        "sample_mode": true
+      }
+    },
+    {
+      "advisory_only": true,
+      "artifact_id": "factor-001",
+      "artifact_status": "valid",
+      "artifact_type": "factor_recommendation",
+      "content_state": null,
+      "dedupe_key": "factor-001|||||factor_recommendation|2026-07-03T16:10:00+08:00|2026-07-03|16:10:00|4e4a6fa30457981ba4ef609f",
+      "diagnostics": {},
+      "fingerprint": "4e4a6fa30457981ba4ef609f",
+      "generated_at": "2026-07-03T16:10:00+08:00",
+      "ingested_at": "2026-07-03T16:01:10+00:00",
+      "lineage": {
+        "source_kind": "offline_sample",
+        "source_path": "offline://sample/5"
+      },
+      "pipeline_type": null,
+      "prediction_target": null,
+      "record_id": "hist-factor_recommendation-4e4a6fa30457",
+      "run_date": "2026-07-03",
+      "run_id": "factor-001",
+      "run_time": "16:10:00",
+      "scheduler_window": null,
+      "schema_version": "historical_artifact_record_v1",
+      "source_kind": "offline_sample",
+      "source_path": "offline://sample/5",
+      "stock_id": null,
+      "stock_name": null,
+      "summary": {
+        "keys": [
+          "advisory_only",
+          "factor_effectiveness",
+          "generated_at",
+          "production_mutation_allowed",
+          "run_id",
+          "schema_version"
+        ],
+        "sample_mode": true
+      }
+    },
+    {
+      "advisory_only": true,
+      "artifact_id": "dash-001",
+      "artifact_status": "valid",
+      "artifact_type": "dashboard_intelligence",
+      "content_state": null,
+      "dedupe_key": "dash-001|||||dashboard_intelligence|2026-07-03T16:20:00+08:00|2026-07-03|16:20:00|22ec01b54d6210efed2cbba2",
+      "diagnostics": {},
+      "fingerprint": "22ec01b54d6210efed2cbba2",
+      "generated_at": "2026-07-03T16:20:00+08:00",
+      "ingested_at": "2026-07-03T16:01:10+00:00",
+      "lineage": {
+        "source_kind": "offline_sample",
+        "source_path": "offline://sample/6"
+      },
+      "pipeline_type": null,
+      "prediction_target": null,
+      "record_id": "hist-dashboard_intelligence-22ec01b54d62",
+      "run_date": "2026-07-03",
+      "run_id": "dash-001",
+      "run_time": "16:20:00",
+      "scheduler_window": null,
+      "schema_version": "historical_artifact_record_v1",
+      "source_kind": "offline_sample",
+      "source_path": "offline://sample/6",
+      "stock_id": null,
+      "stock_name": null,
+      "summary": {
+        "keys": [
+          "advisory_only",
+          "generated_at",
+          "production_publish_allowed",
+          "run_id",
+          "schema_version",
+          "stock_intelligence_cards"
+        ],
+        "sample_mode": true
+      }
+    },
+    {
+      "advisory_only": true,
+      "artifact_id": "hist-incident_diagnostic-09e3a4122c98",
+      "artifact_status": "valid",
+      "artifact_type": "incident_diagnostic",
+      "content_state": null,
+      "dedupe_key": "|||||incident_diagnostic||||09e3a4122c98606703c14533",
+      "diagnostics": {},
+      "fingerprint": "09e3a4122c98606703c14533",
+      "generated_at": null,
+      "ingested_at": "2026-07-03T16:01:10+00:00",
+      "lineage": {
+        "source_kind": "offline_sample",
+        "source_path": "offline://sample/7"
+      },
+      "pipeline_type": null,
+      "prediction_target": null,
+      "record_id": "hist-incident_diagnostic-09e3a4122c98",
+      "run_date": null,
+      "run_id": null,
+      "run_time": null,
+      "scheduler_window": null,
+      "schema_version": "historical_artifact_record_v1",
+      "source_kind": "offline_sample",
+      "source_path": "offline://sample/7",
+      "stock_id": null,
+      "stock_name": null,
+      "summary": {
+        "keys": [],
+        "sample_mode": true
+      }
+    },
+    {
+      "advisory_only": true,
+      "artifact_id": "eval-pending",
+      "artifact_status": "pending",
+      "artifact_type": "evaluation",
+      "content_state": "pending",
+      "dedupe_key": "eval-pending|||2317||evaluation|2026-07-03T15:10:00+08:00|2026-07-03|15:10:00|ec4dcae0e551b05d287ab2d3",
+      "diagnostics": {},
+      "fingerprint": "ec4dcae0e551b05d287ab2d3",
+      "generated_at": "2026-07-03T15:10:00+08:00",
+      "ingested_at": "2026-07-03T16:01:10+00:00",
+      "lineage": {
+        "source_kind": "offline_sample",
+        "source_path": "offline://sample/8"
+      },
+      "pipeline_type": null,
+      "prediction_target": null,
+      "record_id": "hist-evaluation-ec4dcae0e551",
+      "run_date": "2026-07-03",
+      "run_id": "eval-pending",
+      "run_time": "15:10:00",
+      "scheduler_window": null,
+      "schema_version": "historical_artifact_record_v1",
+      "source_kind": "offline_sample",
+      "source_path": "offline://sample/8",
+      "stock_id": "2317",
+      "stock_name": null,
+      "summary": {
+        "keys": [
+          "advisory_only",
+          "content_state",
+          "generated_at",
+          "run_id",
+          "schema_version",
+          "stock_id"
+        ],
+        "sample_mode": true
+      }
+    },
+    {
+      "advisory_only": true,
+      "artifact_id": "eval-insufficient",
+      "artifact_status": "insufficient_data",
+      "artifact_type": "evaluation",
+      "content_state": "insufficient_data",
+      "dedupe_key": "eval-insufficient|||2454||evaluation|2026-07-03T15:20:00+08:00|2026-07-03|15:20:00|bf361f7c4bc277db9b07ddb1",
+      "diagnostics": {},
+      "fingerprint": "bf361f7c4bc277db9b07ddb1",
+      "generated_at": "2026-07-03T15:20:00+08:00",
+      "ingested_at": "2026-07-03T16:01:10+00:00",
+      "lineage": {
+        "source_kind": "offline_sample",
+        "source_path": "offline://sample/9"
+      },
+      "pipeline_type": null,
+      "prediction_target": null,
+      "record_id": "hist-evaluation-bf361f7c4bc2",
+      "run_date": "2026-07-03",
+      "run_id": "eval-insufficient",
+      "run_time": "15:20:00",
+      "scheduler_window": null,
+      "schema_version": "historical_artifact_record_v1",
+      "source_kind": "offline_sample",
+      "source_path": "offline://sample/9",
+      "stock_id": "2454",
+      "stock_name": null,
+      "summary": {
+        "keys": [
+          "advisory_only",
+          "content_state",
+          "generated_at",
+          "run_id",
+          "schema_version",
+          "stock_id"
+        ],
+        "sample_mode": true
+      }
+    }
+  ],
+  "safety_summary": {
+    "advisory_only": true,
+    "backtesting_runtime_execution": false,
+    "broker_login": false,
+    "cron_systemd_timer_mutation": false,
+    "dashboard_production_publish": false,
+    "dashboard_published": false,
+    "email_send": false,
+    "email_sent": false,
+    "line_send": false,
+    "line_sent": false,
+    "production_db_write": false,
+    "production_mutation_allowed": false,
+    "production_order": false,
+    "production_pipeline_run": false,
+    "production_publish_allowed": false,
+    "python3_main_py": false,
+    "scheduler_time_change": false,
+    "secrets_read": false,
+    "simulation_order": false,
+    "trading_execution": false,
+    "var_www_dashboard_write": false
+  },
+  "sample_mode": true,
+  "schema_version": "historical_artifact_store_v1",
+  "store_id": "offline-history-store"
+}

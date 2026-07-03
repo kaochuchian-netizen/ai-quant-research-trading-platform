@@ -1,0 +1,28 @@
+{
+  "advisory_only": true,
+  "data_gaps": [],
+  "diagnostics": {
+    "insufficient_real_history": true
+  },
+  "key_metrics": {
+    "calibration_status": "demo_only",
+    "evaluation_status": "insufficient",
+    "factor_status": "demo_only"
+  },
+  "pending_reviews": 2,
+  "production_publish_allowed": false,
+  "real_history_available": false,
+  "recommended_operator_actions": [
+    "activate controlled artifact retention in future AI-DEV-130"
+  ],
+  "rolling_windows": [
+    "last_7_records",
+    "last_20_records",
+    "last_60_records",
+    "all_available",
+    "last_7_trading_days",
+    "last_20_trading_days"
+  ],
+  "sample_mode": true,
+  "summary_status": "sample_demo"
+}

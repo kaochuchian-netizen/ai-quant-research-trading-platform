@@ -1,0 +1,20 @@
+{
+  "schema_version": "real_historical_artifact_input_v1",
+  "sample_mode": true,
+  "artifacts": [
+    {"schema_version":"approved_scheduler_delivery_v1","run_id":"approved-post_close_1500-delivery-20260703-150001","generated_at":"2026-07-03T15:00:01+08:00","scheduler_window":"post_close_1500","pipeline_type":"post_close","content_state":"prediction_review_pending","line_attempted":false,"email_attempted":false,"dashboard_attempted":false,"advisory_only":true},
+    {"schema_version":"prediction_snapshot_v1","run_id":"pred-2330-20260701","generated_at":"2026-07-01T07:00:00+08:00","scheduler_window":"pre_open_0700","pipeline_type":"pre_open","stock_id":"2330","stock_name":"台積電","prediction_target":"next_day_high_low","confidence":0.72,"rating":"B","action":"偏多續抱","advisory_only":true},
+    {"schema_version":"actual_outcome_v1","run_id":"outcome-2330-20260702","generated_at":"2026-07-02T15:00:00+08:00","stock_id":"2330","stock_name":"台積電","actual_return_1d":0.01,"actual_return_5d":null,"advisory_only":true},
+    {"schema_version":"prediction_evaluation_v1","run_id":"eval-2330-20260702","generated_at":"2026-07-02T15:10:00+08:00","stock_id":"2330","stock_name":"台積電","prediction_target":"next_day_high_low","direction_hit":true,"close_direction_hit":true,"actual_return_1d":0.01,"high_error_pct":0.02,"low_error_pct":0.01,"advisory_only":true},
+    {"schema_version":"confidence_calibration_v1","run_id":"calibration-demo","generated_at":"2026-07-03T16:00:00+08:00","confidence_bucket_analysis":[],"production_mutation_allowed":false,"advisory_only":true},
+    {"schema_version":"factor_recommendation_v1","run_id":"factor-demo","generated_at":"2026-07-03T16:10:00+08:00","factor_effectiveness":[],"production_mutation_allowed":false,"advisory_only":true},
+    {"schema_version":"dashboard_intelligence_v1","run_id":"dashboard-demo","generated_at":"2026-07-03T16:20:00+08:00","stock_intelligence_cards":[],"production_publish_allowed":false,"advisory_only":true},
+    {"schema_version":"prediction_evaluation_v1","run_id":"eval-pending-demo","generated_at":"2026-07-03T15:10:00+08:00","stock_id":"2317","content_state":"pending","advisory_only":true},
+    {"schema_version":"prediction_evaluation_v1","run_id":"eval-insufficient-demo","generated_at":"2026-07-03T15:20:00+08:00","stock_id":"2454","content_state":"insufficient_data","advisory_only":true},
+    {"schema_version":"prediction_snapshot_v1","run_id":"pred-2330-20260701","generated_at":"2026-07-01T07:00:00+08:00","scheduler_window":"pre_open_0700","pipeline_type":"pre_open","stock_id":"2330","prediction_target":"next_day_high_low","advisory_only":true,"duplicate_example":true},
+    {"schema_version":"unknown_v1","artifact_status":"malformed","summary":"malformed artifact status example"},
+    {"schema_version":"approved_scheduler_delivery_v1","run_id":"stale-demo","generated_at":"2026-07-01T07:00:00+08:00","scheduler_window":"pre_open_0700","artifact_status":"stale","advisory_only":true},
+    "incident diagnostic: stale pre_open process captured; no delivery sent"
+  ],
+  "safety_summary": {"advisory_only":true,"production_publish_allowed":false,"production_mutation_allowed":false,"trading_order_portfolio_action":false}
+}
