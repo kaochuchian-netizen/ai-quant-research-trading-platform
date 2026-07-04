@@ -1,0 +1,190 @@
+{
+  "adr_context": {
+    "direct_rating_action_confidence_impact": false,
+    "official_source_replacement_allowed": false,
+    "source_ids": [
+      "yfinance_yahoo"
+    ],
+    "status": "sample_ready",
+    "summary": "ADR and US ETF proxy reference only."
+  },
+  "chip_context": {
+    "direct_rating_action_confidence_impact": false,
+    "source_ids": [
+      "twse_openapi"
+    ],
+    "status": "sample_ready",
+    "summary": "Sample institutional flow context only."
+  },
+  "confidence_calibration_context": {
+    "artifact_ref": "templates/confidence_calibration_artifact.example.json",
+    "direct_rating_action_confidence_impact": false,
+    "status": "sample_ready"
+  },
+  "context_window": {
+    "as_of_date": "2026-07-04",
+    "forecast_horizons": [
+      "same_day_high_low",
+      "next_day_high_low",
+      "one_month_trend",
+      "three_month_trend"
+    ],
+    "lookback_days": 90,
+    "sample_mode": true
+  },
+  "explainability_context": {
+    "artifact_ref": "templates/source_explainability_artifact.example.json",
+    "direct_rating_action_confidence_impact": false,
+    "required_for_future_traceability": true,
+    "status": "sample_ready"
+  },
+  "factor_effectiveness_context": {
+    "artifact_ref": "templates/factor_recommendation_artifact.example.json",
+    "direct_rating_action_confidence_impact": false,
+    "status": "sample_ready"
+  },
+  "finmind_context": {
+    "artifact_ref": "finmind_report_integration_artifact",
+    "direct_rating_action_confidence_impact": false,
+    "official_source_replacement_allowed": false,
+    "status": "sample_ready"
+  },
+  "formal_report_integrations": {
+    "finmind_report_integration_artifact": {
+      "artifact_path": "templates/finmind_report_integration_artifact.example.json",
+      "prediction_context_allowed": true,
+      "report_allowed": true,
+      "source_id": "finmind"
+    },
+    "twse_report_integration_artifact": {
+      "artifact_path": "templates/twse_yfinance_report_integration_artifact.example.json",
+      "prediction_context_allowed": true,
+      "report_allowed": true,
+      "source_id": "twse_openapi"
+    },
+    "yfinance_yahoo_report_integration_artifact": {
+      "artifact_path": "templates/twse_yfinance_report_integration_artifact.example.json",
+      "prediction_context_allowed": true,
+      "report_allowed": true,
+      "source_id": "yfinance_yahoo"
+    }
+  },
+  "generated_at": "2026-07-04T00:00:00+00:00",
+  "historical_context": {
+    "artifact_ref": "templates/historical_artifact_store.example.json",
+    "direct_rating_action_confidence_impact": false,
+    "status": "sample_ready"
+  },
+  "market": "TW",
+  "market_regime_context": {
+    "artifact_ref": "templates/market_regime_artifact.example.json",
+    "direct_rating_action_confidence_impact": false,
+    "status": "sample_ready"
+  },
+  "news_context": {
+    "direct_rating_action_confidence_impact": false,
+    "source_ids": [
+      "google_news_rss"
+    ],
+    "status": "sample_ready",
+    "summary": "Headline metadata only."
+  },
+  "rolling_evaluation_context": {
+    "artifact_ref": "templates/rolling_evaluation_artifact.example.json",
+    "direct_rating_action_confidence_impact": false,
+    "status": "sample_ready"
+  },
+  "schema_version": "prediction_context_v1",
+  "source_inputs": {
+    "ai_generated_analysis": [
+      {
+        "credibility_level": "generated_analysis",
+        "decision_value": "draft explanation only",
+        "provider": "Gemini",
+        "source_id": "gemini_google_generative_ai",
+        "source_priority": "D_ai_generated"
+      }
+    ],
+    "external_reference_proxy": [
+      {
+        "credibility_level": "reference_proxy",
+        "decision_value": "ADR / US ETF / sector proxy only",
+        "provider": "Yahoo Finance / yfinance",
+        "source_id": "yfinance_yahoo",
+        "source_priority": "C_external_proxy"
+      }
+    ],
+    "low_priority_metadata": [
+      {
+        "credibility_level": "sentiment_metadata",
+        "decision_value": "metadata only",
+        "provider": "Broker target/rating metadata",
+        "source_id": "broker_target_price_metadata",
+        "source_priority": "E_low_priority_metadata"
+      },
+      {
+        "credibility_level": "headline_sentiment",
+        "decision_value": "headline context only",
+        "provider": "Google News RSS",
+        "source_id": "google_news_rss",
+        "source_priority": "E_low_priority_metadata"
+      }
+    ],
+    "normalized_external_data_provider": [
+      {
+        "credibility_level": "normalized_supplement",
+        "decision_value": "supplemental formal report context",
+        "provider": "FinMind",
+        "source_id": "finmind",
+        "source_priority": "B_normalized_external"
+      }
+    ],
+    "official_market_source": [
+      {
+        "credibility_level": "official_market",
+        "decision_value": "market/chip attribution",
+        "provider": "TWSE OpenAPI",
+        "source_id": "twse_openapi",
+        "source_priority": "A_official_market"
+      },
+      {
+        "credibility_level": "official_runtime_market",
+        "decision_value": "future runtime market data anchor",
+        "provider": "Sinopac/Shioaji",
+        "source_id": "shioaji_sinopac",
+        "source_priority": "A_broker_market"
+      }
+    ],
+    "official_primary_source": [
+      {
+        "credibility_level": "official",
+        "decision_value": "primary company disclosure anchor",
+        "provider": "Company official filing / MOPS",
+        "source_id": "company_filing",
+        "source_priority": "A_primary"
+      }
+    ]
+  },
+  "symbol": "2330",
+  "task_id": "AI-DEV-136",
+  "technical_context": {
+    "direct_rating_action_confidence_impact": false,
+    "signals": [
+      "momentum_breakout",
+      "moving_average_alignment"
+    ],
+    "status": "sample_ready"
+  },
+  "twse_context": {
+    "artifact_ref": "twse_report_integration_artifact",
+    "direct_rating_action_confidence_impact": false,
+    "official_source_replacement_allowed": true,
+    "status": "sample_ready"
+  },
+  "yfinance_context": {
+    "artifact_ref": "yfinance_yahoo_report_integration_artifact",
+    "direct_rating_action_confidence_impact": false,
+    "official_source_replacement_allowed": false,
+    "status": "sample_ready"
+  }
+}
