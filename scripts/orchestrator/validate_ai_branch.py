@@ -35,6 +35,7 @@ DEFAULT_ALLOWED_PATHS = [
     "app/recommendation/",
     "app/dashboard/",
     "app/dashboard_intelligence/",
+    "app/decision_feedback/",
     "app/reports/",
     "app/report_assembly/",
     "app/runtime/",
