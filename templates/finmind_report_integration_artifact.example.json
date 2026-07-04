@@ -1,0 +1,284 @@
+{
+  "advisory_only": true,
+  "explainability_notes": [
+    "FinMind can reduce integration cost for Taiwan fundamental and market datasets.",
+    "FinMind report sections must carry source_ids and limitations.",
+    "Official source governance wins conflicts with MOPS, TWSE, or Shioaji."
+  ],
+  "freshness_policy": {
+    "builder_mode": "deterministic_offline_sample",
+    "runtime_requirement": "validate dataset period, freshness, schema, and source attribution before formal report use",
+    "stale_data_action": "mark section stale and keep advisory only"
+  },
+  "generated_at": "2026-07-04T04:56:43+00:00",
+  "input_summary": {
+    "as_of_date": "2026-07-03",
+    "sample_mode": true,
+    "schema_version": "finmind_report_integration_input_v1",
+    "source_kind": "offline_sample",
+    "stock_id": "2330",
+    "stock_name": "台積電"
+  },
+  "integration_policy": {
+    "daily_report_integration_next_step": "map validated sections into daily report supplemental blocks",
+    "direct_rating_action_confidence_impact": false,
+    "formal_report_candidate": true,
+    "prediction_context_candidate": true,
+    "prediction_context_next_step": "use only as attributed supplemental context after freshness validation",
+    "production_weight_mutation_allowed": false
+  },
+  "report_sections": [
+    {
+      "explainability_notes": [
+        "FinMind is a normalized external data provider.",
+        "Use as formal report supplement after deterministic validation.",
+        "Must not replace MOPS / TWSE / Shioaji official source governance."
+      ],
+      "freshness_policy": "offline sample; future runtime must validate dataset period and staleness before report use",
+      "limitations": [
+        "sample data only",
+        "not a production runtime fetch",
+        "no direct rating/action/confidence impact"
+      ],
+      "metrics": {
+        "cash_dividend": 13.5,
+        "stock_dividend": 0.0,
+        "year": "2025"
+      },
+      "section_id": "finmind_dividend",
+      "section_type": "dividend",
+      "source_ids": [
+        "finmind_dividend"
+      ],
+      "summary": "2025 dividend sample: cash 13.5, stock 0.0.",
+      "title": "FinMind 股利補充"
+    },
+    {
+      "explainability_notes": [
+        "FinMind is a normalized external data provider.",
+        "Use as formal report supplement after deterministic validation.",
+        "Must not replace MOPS / TWSE / Shioaji official source governance."
+      ],
+      "freshness_policy": "offline sample; future runtime must validate dataset period and staleness before report use",
+      "limitations": [
+        "sample data only",
+        "not a production runtime fetch",
+        "no direct rating/action/confidence impact"
+      ],
+      "metrics": {
+        "eps": 8.7,
+        "period": "2026Q1"
+      },
+      "section_id": "finmind_eps",
+      "section_type": "eps",
+      "source_ids": [
+        "finmind_financial_statement"
+      ],
+      "summary": "2026Q1 normalized FinMind eps sample metrics available.",
+      "title": "FinMind EPS 補充"
+    },
+    {
+      "explainability_notes": [
+        "FinMind is a normalized external data provider.",
+        "Use as formal report supplement after deterministic validation.",
+        "Must not replace MOPS / TWSE / Shioaji official source governance."
+      ],
+      "freshness_policy": "offline sample; future runtime must validate dataset period and staleness before report use",
+      "limitations": [
+        "sample data only",
+        "not a production runtime fetch",
+        "no direct rating/action/confidence impact"
+      ],
+      "metrics": {
+        "gross_margin_pct": 54.2,
+        "net_margin_pct": 38.7,
+        "operating_margin_pct": 42.8,
+        "period": "2026Q1"
+      },
+      "section_id": "finmind_financial_statement_summary",
+      "section_type": "financial_statement_summary",
+      "source_ids": [
+        "finmind_financial_statement"
+      ],
+      "summary": "2026Q1 normalized FinMind financial_statement_summary sample metrics available.",
+      "title": "FinMind 財報摘要補充"
+    },
+    {
+      "explainability_notes": [
+        "FinMind is a normalized external data provider.",
+        "Use as formal report supplement after deterministic validation.",
+        "Must not replace MOPS / TWSE / Shioaji official source governance."
+      ],
+      "freshness_policy": "offline sample; future runtime must validate dataset period and staleness before report use",
+      "limitations": [
+        "sample data only",
+        "not a production runtime fetch",
+        "no direct rating/action/confidence impact"
+      ],
+      "metrics": {
+        "foreign_net_buy_shares": 1250000,
+        "investment_trust_net_buy_shares": 180000,
+        "period": "2026-07-03"
+      },
+      "section_id": "finmind_institutional_trading",
+      "section_type": "institutional_trading",
+      "source_ids": [
+        "finmind_institutional_investors_buy_sell"
+      ],
+      "summary": "2026-07-03 institutional trading sample: foreign net 1250000 shares.",
+      "title": "FinMind 三大法人補充"
+    },
+    {
+      "explainability_notes": [
+        "FinMind is a normalized external data provider.",
+        "Use as formal report supplement after deterministic validation.",
+        "Must not replace MOPS / TWSE / Shioaji official source governance."
+      ],
+      "freshness_policy": "offline sample; future runtime must validate dataset period and staleness before report use",
+      "limitations": [
+        "sample data only",
+        "not a production runtime fetch",
+        "no direct rating/action/confidence impact"
+      ],
+      "metrics": {
+        "gross_margin_pct": 54.2,
+        "operating_margin_pct": 42.8,
+        "period": "2026Q1"
+      },
+      "section_id": "finmind_margin",
+      "section_type": "margin",
+      "source_ids": [
+        "finmind_financial_statement"
+      ],
+      "summary": "2026Q1 normalized FinMind margin sample metrics available.",
+      "title": "FinMind Margin 補充"
+    },
+    {
+      "explainability_notes": [
+        "FinMind is a normalized external data provider.",
+        "Use as formal report supplement after deterministic validation.",
+        "Must not replace MOPS / TWSE / Shioaji official source governance."
+      ],
+      "freshness_policy": "offline sample; future runtime must validate dataset period and staleness before report use",
+      "limitations": [
+        "sample data only",
+        "not a production runtime fetch",
+        "no direct rating/action/confidence impact"
+      ],
+      "metrics": {
+        "market_cap_billion_twd": 23800.0,
+        "period": "2026-07-03"
+      },
+      "section_id": "finmind_market_cap",
+      "section_type": "market_cap",
+      "source_ids": [
+        "finmind_market_cap"
+      ],
+      "summary": "2026-07-03 normalized FinMind market_cap sample metrics available.",
+      "title": "FinMind 市值補充"
+    },
+    {
+      "explainability_notes": [
+        "FinMind is a normalized external data provider.",
+        "Use as formal report supplement after deterministic validation.",
+        "Must not replace MOPS / TWSE / Shioaji official source governance."
+      ],
+      "freshness_policy": "offline sample; future runtime must validate dataset period and staleness before report use",
+      "limitations": [
+        "sample data only",
+        "not a production runtime fetch",
+        "no direct rating/action/confidence impact"
+      ],
+      "metrics": {
+        "period": "2026-06",
+        "revenue_mom_pct": 2.1,
+        "revenue_yoy_pct": 18.4
+      },
+      "section_id": "finmind_monthly_revenue",
+      "section_type": "monthly_revenue",
+      "source_ids": [
+        "finmind_monthly_revenue"
+      ],
+      "summary": "2026-06 revenue YoY 18.4%, MoM 2.1%.",
+      "title": "FinMind 月營收補充"
+    },
+    {
+      "explainability_notes": [
+        "FinMind is a normalized external data provider.",
+        "Use as formal report supplement after deterministic validation.",
+        "Must not replace MOPS / TWSE / Shioaji official source governance."
+      ],
+      "freshness_policy": "offline sample; future runtime must validate dataset period and staleness before report use",
+      "limitations": [
+        "sample data only",
+        "not a production runtime fetch",
+        "no direct rating/action/confidence impact"
+      ],
+      "metrics": {
+        "period": "2026Q1",
+        "roe_pct": 27.5
+      },
+      "section_id": "finmind_roe",
+      "section_type": "roe",
+      "source_ids": [
+        "finmind_financial_statement"
+      ],
+      "summary": "2026Q1 normalized FinMind roe sample metrics available.",
+      "title": "FinMind ROE 補充"
+    },
+    {
+      "explainability_notes": [
+        "FinMind is a normalized external data provider.",
+        "Use as formal report supplement after deterministic validation.",
+        "Must not replace MOPS / TWSE / Shioaji official source governance."
+      ],
+      "freshness_policy": "offline sample; future runtime must validate dataset period and staleness before report use",
+      "limitations": [
+        "sample data only",
+        "not a production runtime fetch",
+        "no direct rating/action/confidence impact"
+      ],
+      "metrics": {
+        "period": "2026-07-03",
+        "share_capital_billion_twd": 259.3
+      },
+      "section_id": "finmind_share_capital",
+      "section_type": "share_capital",
+      "source_ids": [
+        "finmind_share_capital"
+      ],
+      "summary": "2026-07-03 normalized FinMind share_capital sample metrics available.",
+      "title": "FinMind 股本補充"
+    }
+  ],
+  "safety_summary": {
+    "advisory_only": true,
+    "broker_login": false,
+    "dashboard_published": false,
+    "email_sent": false,
+    "external_api_called": false,
+    "finmind_api_token_required": false,
+    "line_sent": false,
+    "production_db_write": false,
+    "production_order": false,
+    "production_rating_action_confidence_weight_changed": false,
+    "production_scheduler_modified": false,
+    "secrets_read": false,
+    "simulation_order": false,
+    "trading_execution": false
+  },
+  "schema_version": "finmind_report_integration_artifact_v1",
+  "source_attribution": {
+    "api_token_required_for_builder": false,
+    "connector_file": "app/sources/finmind_connector.py",
+    "external_api_called": false,
+    "official_governance_sources": [
+      "MOPS/company official sources",
+      "TWSE",
+      "Shioaji/Sinopac"
+    ],
+    "official_source_replacement_allowed": false,
+    "provider": "FinMind",
+    "source_role": "normalized_external_data_provider"
+  }
+}

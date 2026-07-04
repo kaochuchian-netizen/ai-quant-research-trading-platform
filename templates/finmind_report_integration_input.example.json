@@ -1,0 +1,52 @@
+{
+  "advisory_only": true,
+  "as_of_date": "2026-07-03",
+  "schema_version": "finmind_report_integration_input_v1",
+  "sections": {
+    "dividend": {
+      "cash_dividend": 13.5,
+      "stock_dividend": 0.0,
+      "year": "2025"
+    },
+    "eps": {
+      "eps": 8.7,
+      "period": "2026Q1"
+    },
+    "financial_statement_summary": {
+      "gross_margin_pct": 54.2,
+      "net_margin_pct": 38.7,
+      "operating_margin_pct": 42.8,
+      "period": "2026Q1"
+    },
+    "institutional_trading": {
+      "foreign_net_buy_shares": 1250000,
+      "investment_trust_net_buy_shares": 180000,
+      "period": "2026-07-03"
+    },
+    "margin": {
+      "gross_margin_pct": 54.2,
+      "operating_margin_pct": 42.8,
+      "period": "2026Q1"
+    },
+    "market_cap": {
+      "market_cap_billion_twd": 23800.0,
+      "period": "2026-07-03"
+    },
+    "monthly_revenue": {
+      "period": "2026-06",
+      "revenue_mom_pct": 2.1,
+      "revenue_yoy_pct": 18.4
+    },
+    "roe": {
+      "period": "2026Q1",
+      "roe_pct": 27.5
+    },
+    "share_capital": {
+      "period": "2026-07-03",
+      "share_capital_billion_twd": 259.3
+    }
+  },
+  "source_kind": "offline_sample",
+  "stock_id": "2330",
+  "stock_name": "台積電"
+}
