@@ -1,0 +1,200 @@
+{
+  "artifact_type": "twse_yfinance_formal_report_integration_foundation_v1",
+  "daily_report_integration": {
+    "direct_rating_action_confidence_impact": false,
+    "prediction_context_allowed": true,
+    "ready_for_daily_report_context": true,
+    "requires_future_runtime_fetch_task": true
+  },
+  "explainability_notes": [
+    "TWSE is official market/chip attribution, but this artifact does not directly mutate rating/action/confidence.",
+    "yfinance/Yahoo is external reference/proxy only and cannot replace TWSE/MOPS/company official sources."
+  ],
+  "freshness_policy": {
+    "twse_openapi": {
+      "expected_frequency": "market_day",
+      "failure_mode": "mark_unavailable_and_show_diagnostics",
+      "stale_after": "next_market_day"
+    },
+    "yfinance_yahoo": {
+      "expected_frequency": "market_day",
+      "failure_mode": "mark_unavailable_without_failing_report",
+      "stale_after": "next_market_day"
+    }
+  },
+  "future_integration": {
+    "ai_dev_135_ready": true,
+    "notes": [
+      "Connect real runtime data in a separate gated task.",
+      "Keep yfinance as external reference/proxy only.",
+      "TWSE remains official market/chip source."
+    ]
+  },
+  "generated_at": "2026-07-04T10:42:14.867234+00:00",
+  "input_summary": {
+    "external_api_called": false,
+    "secrets_required": false,
+    "source": "deterministic_offline_sample"
+  },
+  "report_sections": [
+    {
+      "direct_rating_action_confidence_impact": false,
+      "official_attribution": true,
+      "section_id": "twse_chip_institutional_summary",
+      "source_id": "twse_openapi",
+      "summary": {
+        "dealer_net_buy_sell": "sample_negative",
+        "foreign_investor_net_buy_sell": "sample_positive",
+        "investment_trust_net_buy_sell": "sample_neutral",
+        "official_attribution": "TWSE official chip/institutional source"
+      },
+      "title": "TWSE chip / institutional summary"
+    },
+    {
+      "direct_rating_action_confidence_impact": false,
+      "official_attribution": true,
+      "section_id": "twse_margin_trading_summary",
+      "source_id": "twse_openapi",
+      "summary": {
+        "margin_balance_change": "sample_increase",
+        "official_attribution": "TWSE official margin trading source",
+        "short_balance_change": "sample_decrease"
+      },
+      "title": "TWSE margin trading summary"
+    },
+    {
+      "direct_rating_action_confidence_impact": false,
+      "official_attribution": true,
+      "section_id": "twse_official_market_attribution",
+      "source_id": "twse_openapi",
+      "summary": "TWSE sections are official market/chip attribution for formal reports.",
+      "title": "Official market/chip attribution"
+    },
+    {
+      "direct_rating_action_confidence_impact": false,
+      "official_source_replacement_allowed": false,
+      "section_id": "yfinance_adr_reference",
+      "source_id": "yfinance_yahoo",
+      "summary": {
+        "symbols": [
+          "TSM"
+        ],
+        "usage": "ADR cross-check/reference only"
+      },
+      "title": "ADR reference"
+    },
+    {
+      "direct_rating_action_confidence_impact": false,
+      "official_source_replacement_allowed": false,
+      "section_id": "yfinance_us_index_etf_sector_proxy",
+      "source_id": "yfinance_yahoo",
+      "summary": {
+        "symbols": [
+          "^IXIC",
+          "SPY",
+          "SOXX",
+          "SMH"
+        ],
+        "usage": "US index/ETF/sector proxy only"
+      },
+      "title": "US index / ETF / sector proxy"
+    },
+    {
+      "direct_rating_action_confidence_impact": false,
+      "official_source_replacement_allowed": false,
+      "section_id": "yfinance_external_market_sentiment_proxy",
+      "source_id": "yfinance_yahoo",
+      "summary": {
+        "signals": [
+          "US index direction",
+          "semiconductor ETF direction",
+          "ADR context"
+        ],
+        "usage": "external market sentiment proxy"
+      },
+      "title": "External market sentiment proxy"
+    },
+    {
+      "direct_rating_action_confidence_impact": false,
+      "section_id": "freshness_and_failure_modes",
+      "source_id": "twse_openapi,yfinance_yahoo",
+      "summary": {
+        "twse": {
+          "expected_frequency": "market_day",
+          "failure_mode": "mark_unavailable_and_show_diagnostics",
+          "stale_after": "next_market_day"
+        },
+        "yfinance": {
+          "expected_frequency": "market_day",
+          "failure_mode": "mark_unavailable_without_failing_report",
+          "stale_after": "next_market_day"
+        }
+      },
+      "title": "Freshness and failure modes"
+    },
+    {
+      "direct_rating_action_confidence_impact": false,
+      "section_id": "safety_and_governance",
+      "source_id": "policy",
+      "summary": {
+        "broker_or_order_execution": false,
+        "dashboard_published": false,
+        "external_api_called": false,
+        "line_email_sent": false,
+        "offline_sample_only": true,
+        "production_db_write": false,
+        "production_rating_action_confidence_weight_mutation": false,
+        "read_only": true,
+        "scheduler_modified": false,
+        "secrets_read": false
+      },
+      "title": "Safety and governance"
+    }
+  ],
+  "safety_summary": {
+    "broker_or_order_execution": false,
+    "dashboard_published": false,
+    "external_api_called": false,
+    "line_email_sent": false,
+    "offline_sample_only": true,
+    "production_db_write": false,
+    "production_rating_action_confidence_weight_mutation": false,
+    "read_only": true,
+    "scheduler_modified": false,
+    "secrets_read": false
+  },
+  "schema_version": "twse_yfinance_report_integration_v1",
+  "source_policies": [
+    {
+      "direct_rating_action_confidence_impact": false,
+      "explainability_note": "TWSE is official market/chip attribution, but this artifact does not directly mutate rating/action/confidence.",
+      "failure_mode": "show unavailable/stale diagnostics without failing full report",
+      "freshness_policy": "market_day; stale after next market day",
+      "official_source_replacement_allowed": true,
+      "provider": "TWSE OpenAPI",
+      "report_use": [
+        "chip / institutional summary",
+        "margin trading summary",
+        "official market/chip attribution"
+      ],
+      "source_id": "twse_openapi",
+      "source_role": "official_market_chip_source"
+    },
+    {
+      "direct_rating_action_confidence_impact": false,
+      "explainability_note": "yfinance/Yahoo is external reference/proxy only and cannot replace TWSE/MOPS/company official sources.",
+      "failure_mode": "show unavailable/stale diagnostics without failing full report",
+      "freshness_policy": "market_day; stale after next market day",
+      "official_source_replacement_allowed": false,
+      "provider": "Yahoo Finance / yfinance",
+      "report_use": [
+        "ADR reference",
+        "US index / ETF / sector proxy",
+        "external market sentiment proxy"
+      ],
+      "source_id": "yfinance_yahoo",
+      "source_role": "external_reference_proxy"
+    }
+  ],
+  "task_id": "AI-DEV-134"
+}
