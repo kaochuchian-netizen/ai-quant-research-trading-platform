@@ -1,0 +1,53 @@
+{
+  "generated_from": "deterministic_offline_sample",
+  "schema_version": "twse_yfinance_report_integration_v1",
+  "task_id": "AI-DEV-134",
+  "twse": {
+    "chip_institutional_summary": {
+      "dealer_net_buy_sell": "sample_negative",
+      "foreign_investor_net_buy_sell": "sample_positive",
+      "investment_trust_net_buy_sell": "sample_neutral",
+      "official_attribution": "TWSE official chip/institutional source"
+    },
+    "freshness": {
+      "expected_frequency": "market_day",
+      "failure_mode": "mark_unavailable_and_show_diagnostics",
+      "stale_after": "next_market_day"
+    },
+    "margin_trading_summary": {
+      "margin_balance_change": "sample_increase",
+      "official_attribution": "TWSE official margin trading source",
+      "short_balance_change": "sample_decrease"
+    }
+  },
+  "yfinance": {
+    "adr_reference": {
+      "symbols": [
+        "TSM"
+      ],
+      "usage": "ADR cross-check/reference only"
+    },
+    "external_market_sentiment_proxy": {
+      "signals": [
+        "US index direction",
+        "semiconductor ETF direction",
+        "ADR context"
+      ],
+      "usage": "external market sentiment proxy"
+    },
+    "freshness": {
+      "expected_frequency": "market_day",
+      "failure_mode": "mark_unavailable_without_failing_report",
+      "stale_after": "next_market_day"
+    },
+    "us_index_etf_sector_proxy": {
+      "symbols": [
+        "^IXIC",
+        "SPY",
+        "SOXX",
+        "SMH"
+      ],
+      "usage": "US index/ETF/sector proxy only"
+    }
+  }
+}
