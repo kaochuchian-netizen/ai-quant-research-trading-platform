@@ -1,0 +1,48 @@
+{
+  "schema_version": "codex_workspace_governance_v1",
+  "task_id": "AI-DEV-135",
+  "source_of_truth": {
+    "system": "github",
+    "repo": "kaochuchian-netizen/ai-quant-research-trading-platform",
+    "pr_state_authority": true,
+    "actions_state_authority": true
+  },
+  "formal_execution_workspace": {
+    "host_alias": "stock-ai-gcp",
+    "repo_path": "~/stock-ai",
+    "required_opening_steps": [
+      "ssh stock-ai-gcp",
+      "cd ~/stock-ai",
+      "git branch --show-current",
+      "git status --short"
+    ]
+  },
+  "codex_app_workspace": {
+    "workspace_name": "stock-ai",
+    "role": "formal_ai_dev_coordination_workspace",
+    "repo_mutation_allowed_locally": false,
+    "ssh_relay_allowed": true
+  },
+  "historical_workspace": {
+    "workspace_name": "wimac",
+    "role": "historical_chat_attachment_reference_only",
+    "new_ai_dev_repo_mutation_allowed": false
+  },
+  "future_task_opening_rule": {
+    "must_ssh_to_gcp": true,
+    "must_cd_to_gcp_repo": true,
+    "must_not_modify_macbook_workspace": true,
+    "must_not_modify_iphone_workspace": true,
+    "github_is_merge_gate_source_of_truth": true
+  },
+  "safety_summary": {
+    "external_api_called": false,
+    "secrets_read": false,
+    "scheduler_modified": false,
+    "line_email_sent": false,
+    "dashboard_published": false,
+    "db_written": false,
+    "broker_order_trading": false,
+    "production_logic_changed": false
+  }
+}
