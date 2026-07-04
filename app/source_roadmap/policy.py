@@ -3,12 +3,14 @@ from typing import Any
 from app.source_roadmap.schemas import SourceConnectorPriorityPolicy
 
 LOW_PRIORITY_IDS = {"google_news_rss", "gemini_google_generative_ai", "management_interviews", "analyst_target_broker_opinion"}
-FORMAL_REPORT_FIRST = {"twse_openapi", "yfinance_yahoo"}
+FORMAL_REPORT_FIRST = {"twse_openapi", "yfinance_yahoo", "finmind"}
 CONNECTOR_BUILD = {"mops_public_information_observatory", "company_announcements", "financial_statements", "investor_conference", "industry_supply_chain", "etf_index_sector_proxy"}
-IMMEDIATE_CONTEXT = {"google_sheet", "shioaji_sinopac", "sqlite_historical_csv", "twse_openapi", "mops_public_information_observatory", "financial_statements", "company_announcements"}
+IMMEDIATE_CONTEXT = {"google_sheet", "shioaji_sinopac", "sqlite_historical_csv", "twse_openapi", "finmind", "mops_public_information_observatory", "financial_statements", "company_announcements"}
 MANUAL_REVIEW = {"analyst_target_broker_opinion"}
 
 def _risk_from_record(record: dict[str, Any]) -> str:
+    if record.get("source_id") == "finmind":
+        return "medium"
     if record.get("credential_required") or record.get("current_status") == "needs_connector":
         return "high"
     if record.get("source_priority") in {"C_market_or_industry", "D_low_priority_metadata_noise"}:
@@ -16,6 +18,8 @@ def _risk_from_record(record: dict[str, Any]) -> str:
     return "low"
 
 def _decision_value(record: dict[str, Any]) -> str:
+    if record.get("source_id") == "finmind":
+        return "high"
     if record.get("source_id") in LOW_PRIORITY_IDS:
         return "low"
     if record.get("source_priority") in {"A_primary", "B_official_or_company_linked"}:
@@ -23,6 +27,8 @@ def _decision_value(record: dict[str, Any]) -> str:
     return "medium"
 
 def _complexity(record: dict[str, Any]) -> str:
+    if record.get("source_id") == "finmind":
+        return "medium"
     status = record.get("current_status")
     if status == "production_used":
         return "low"
@@ -61,24 +67,28 @@ def build_priority_policy(record: dict[str, Any]) -> dict[str, Any]:
         rationale.append("candidate for formal report once freshness and failure policy are validated")
     if low_priority:
         rationale.append("low-priority metadata/noise; must not independently affect rating/action/confidence")
+    if source_id == "finmind":
+        rationale.append("normalized external data provider; reduces integration cost but must not replace MOPS/TWSE/Shioaji official governance")
     if phase == "manual_review_required":
         rationale.append("requires manual review for licensing, quality, and credential policy")
     return SourceConnectorPriorityPolicy(
         source_id=source_id,
         source_name=record["source_name"],
+        source_type=record.get("source_type", "unknown"),
+        provider=record.get("provider", "unknown"),
         current_status=record["current_status"],
         source_priority=record["source_priority"],
         decision_value=_decision_value(record),
         freshness_requirement=record.get("freshness_policy", "to_be_defined"),
         reliability_risk=_risk_from_record(record),
-        explainability_value="high" if record.get("explainability_support") == "supported_with_evidence_ids" else "medium" if record.get("source_priority") != "D_low_priority_metadata_noise" else "low",
+        explainability_value="high" if record.get("source_id") == "finmind" or record.get("explainability_support") == "supported_with_evidence_ids" else "medium" if record.get("source_priority") != "D_low_priority_metadata_noise" else "low",
         credential_requirement="required" if record.get("credential_required") else "not_required",
         implementation_complexity=_complexity(record),
-        production_risk="high" if low_priority or record.get("credential_required") else "medium" if record.get("current_status") != "production_used" else "low",
+        production_risk="medium" if record.get("source_id") == "finmind" else "high" if low_priority or record.get("credential_required") else "medium" if record.get("current_status") != "production_used" else "low",
         recommended_phase=phase,
         prediction_context_candidate=prediction_candidate,
         formal_report_candidate=formal_report_candidate,
         low_priority_metadata_only=low_priority,
-        rating_action_confidence_allowed=rating_allowed,
+        rating_action_confidence_allowed=False if record.get("source_id") == "finmind" else rating_allowed,
         rationale=rationale,
     ).to_dict()

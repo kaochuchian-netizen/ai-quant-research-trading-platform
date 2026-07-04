@@ -7,6 +7,35 @@ import json
 from app.source_roadmap.policy import build_priority_policy
 from app.source_roadmap.schemas import ExternalSourceConnectorRoadmapArtifact, SCHEMA_VERSION, safety_summary
 
+FINMIND_RECORD = {
+    "source_id": "finmind",
+    "source_name": "FinMind",
+    "source_type": "market_data_provider / fundamental_data_provider",
+    "provider": "FinMind",
+    "current_status": "connector_exists_not_in_formal_report",
+    "connector_exists": True,
+    "runtime_used": False,
+    "artifact_used": False,
+    "report_used": False,
+    "dashboard_used": False,
+    "prediction_used": False,
+    "evaluation_used": False,
+    "credential_required": True,
+    "freshness_policy": "daily_or_periodic_dataset_refresh; API token optional/required depending implementation tier",
+    "failure_mode": "api_quota_or_schema_change_or_stale_dataset",
+    "source_priority": "C_market_or_industry",
+    "explainability_support": "supported_after_dataset_attribution",
+    "production_readiness": "shadow_ready",
+    "gaps": ["report_integration_gap", "dashboard_integration_gap", "evaluation_gap", "credential_policy_gap"],
+    "recommended_next_action": "promote existing connector into shadow report artifacts; do not replace official source governance",
+    "evidence_files": ["app/sources/finmind_connector.py"],
+}
+
+def _records_with_finmind(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    if any(record.get("source_id") == "finmind" for record in records):
+        return records
+    return [*records, FINMIND_RECORD.copy()]
+
 DEFAULT_AUDIT_PATH = Path("templates/external_source_coverage_audit.example.json")
 
 def load_audit_artifact(repo_root: Path, audit_path: str | None = None) -> dict[str, Any]:
@@ -20,7 +49,7 @@ def _ids(policy_rows: list[dict[str, Any]], predicate) -> list[str]:
 
 def build_external_source_connector_roadmap(repo_root: Path, audit_path: str | None = None) -> dict[str, Any]:
     audit = load_audit_artifact(repo_root, audit_path)
-    records = audit.get("source_records", [])
+    records = _records_with_finmind(audit.get("source_records", []))
     policies = [build_priority_policy(record) for record in records]
     roadmap = {
         "immediate_candidates": _ids(policies, lambda r: r["prediction_context_candidate"] and r["recommended_phase"] in {"phase_0_maintain", "phase_1_prediction_context"}),

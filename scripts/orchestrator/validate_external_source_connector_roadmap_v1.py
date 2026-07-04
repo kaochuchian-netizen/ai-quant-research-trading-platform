@@ -25,7 +25,7 @@ REQUIRED_FILES = [
     "docs/runbooks/external_source_connector_roadmap_runbook.md",
 ]
 REQUIRED_POLICY_FIELDS = {
-    "source_id", "source_name", "current_status", "source_priority", "decision_value", "freshness_requirement",
+    "source_id", "source_name", "source_type", "provider", "current_status", "source_priority", "decision_value", "freshness_requirement",
     "reliability_risk", "explainability_value", "credential_requirement", "implementation_complexity", "production_risk",
     "recommended_phase", "prediction_context_candidate", "formal_report_candidate", "low_priority_metadata_only",
     "rating_action_confidence_allowed", "rationale",
@@ -58,7 +58,7 @@ def main() -> int:
     artifact = build_external_source_connector_roadmap(ROOT)
     expect(artifact.get("schema_version") == SCHEMA_VERSION, reasons, "schema_version mismatch")
     policies = artifact.get("priority_policy", [])
-    expect(len(policies) == 15, reasons, f"expected 15 source policies, got {len(policies)}")
+    expect(len(policies) == 16, reasons, f"expected 16 source policies, got {len(policies)}")
     source_ids = {row.get("source_id") for row in policies}
     expect(len(source_ids) == len(policies), reasons, "source ids must be unique")
 
@@ -81,10 +81,19 @@ def main() -> int:
     for key in REQUIRED_ROADMAP_FIELDS:
         expect(isinstance(roadmap.get(key), list), reasons, f"roadmap {key} must be list")
     expect("twse_openapi" in roadmap.get("report_integration_candidates", []), reasons, "TWSE should be report integration candidate")
+    expect("finmind" in roadmap.get("report_integration_candidates", []), reasons, "FinMind has connector and should be report integration candidate")
     expect("mops_public_information_observatory" in roadmap.get("connector_build_candidates", []), reasons, "MOPS should be connector build candidate")
     expect("google_news_rss" in roadmap.get("defer_or_metadata_only", []), reasons, "Google News should defer/metadata only")
     expect("analyst_target_broker_opinion" in roadmap.get("blocked_or_requires_manual_review", []), reasons, "Analyst/broker opinion requires manual review")
-    for source_id in ["google_news_rss", "gemini_google_generative_ai", "management_interviews", "analyst_target_broker_opinion"]:
+    finmind = {row["source_id"]: row for row in policies}["finmind"]
+    expect(finmind["provider"] == "FinMind", reasons, "FinMind provider mismatch")
+    expect(finmind["decision_value"] == "high", reasons, "FinMind decision_value must be high")
+    expect(finmind["explainability_value"] == "high", reasons, "FinMind explainability_value must be high")
+    expect(finmind["reliability_risk"] == "medium", reasons, "FinMind reliability_risk must be medium")
+    expect(finmind["implementation_complexity"] == "medium", reasons, "FinMind implementation_complexity must be medium")
+    expect(finmind["production_risk"] == "medium", reasons, "FinMind production_risk must be medium")
+    expect(finmind["rating_action_confidence_allowed"] is False, reasons, "FinMind must not directly affect rating/action/confidence")
+    for source_id in ["google_news_rss", "gemini_google_generative_ai", "management_interviews", "analyst_target_broker_opinion", "finmind"]:
         expect(source_id in roadmap.get("must_not_affect_rating_action_confidence", []), reasons, f"{source_id} must not affect rating/action/confidence")
 
     example = json.loads((ROOT / "templates/external_source_connector_roadmap.example.json").read_text(encoding="utf-8")) if (ROOT / "templates/external_source_connector_roadmap.example.json").exists() else {}

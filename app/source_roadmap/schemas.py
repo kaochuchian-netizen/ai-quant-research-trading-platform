@@ -14,6 +14,8 @@ STATUSES = {"production_used", "connector_exists_not_in_formal_report", "invento
 class SourceConnectorPriorityPolicy:
     source_id: str
     source_name: str
+    source_type: str
+    provider: str
     current_status: str
     source_priority: str
     decision_value: str

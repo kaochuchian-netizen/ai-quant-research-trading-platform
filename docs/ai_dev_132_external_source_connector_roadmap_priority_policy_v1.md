@@ -47,3 +47,16 @@ No external API calls, secret reads, scheduler changes, LINE/Email, dashboard pu
 ./venv/bin/python scripts/orchestrator/build_external_source_connector_roadmap.py --pretty
 ./venv/bin/python scripts/orchestrator/validate_ai_branch.py --base main --head HEAD --pretty
 ```
+
+## FinMind positioning
+FinMind is included as a high-quality normalized external data provider. The repo already contains `app/sources/finmind_connector.py`, so AI-DEV-132 places FinMind in `report_integration_candidates` rather than `connector_build_candidates`.
+
+FinMind can support 月營收, 財報, EPS / ROE / margin, 三大法人, 股利, 股本 / 市值, and 台股基本面資料. It reduces integration cost by normalizing multiple Taiwan market datasets, but it must not replace official-source governance.
+
+Source positioning:
+- MOPS / company official sources: primary official source.
+- TWSE: official market/chip source.
+- Shioaji: broker market data / runtime quote source.
+- FinMind: normalized external data provider; useful for integration speed and completeness, but not a substitute for MOPS/TWSE/Shioaji authority.
+
+FinMind may support Prediction Context and formal reports after deterministic artifact validation. It must not directly mutate rating, action, confidence, or forecast weights.
