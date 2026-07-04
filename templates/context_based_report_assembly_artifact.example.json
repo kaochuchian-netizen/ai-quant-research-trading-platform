@@ -1,0 +1,940 @@
+{
+  "artifact_type": "context_based_report_assembly_foundation_v1",
+  "context_ref": {
+    "schema_version": "prediction_context_v1",
+    "task_id": "AI-DEV-136",
+    "template_path": "templates/prediction_context_artifact.example.json"
+  },
+  "dashboard_ready_blocks": [
+    {
+      "block_id": "summary_card",
+      "deterministic": true,
+      "section_id": "executive_summary",
+      "title": "Report summary"
+    },
+    {
+      "block_id": "source_credibility_card",
+      "deterministic": true,
+      "section_id": "source_credibility_summary",
+      "title": "Source credibility"
+    },
+    {
+      "block_id": "factor_rationale_card",
+      "deterministic": true,
+      "source_block": "report_factor_rationale_summary",
+      "title": "Factor rationale"
+    },
+    {
+      "block_id": "evidence_trace_card",
+      "deterministic": true,
+      "title": "Evidence trace",
+      "trace_edge_count": 40,
+      "trace_node_count": 47
+    },
+    {
+      "block_id": "warning_card",
+      "deterministic": true,
+      "section_ids": [
+        "metadata_only_warning",
+        "official_source_replacement_warning"
+      ],
+      "title": "Warnings"
+    },
+    {
+      "block_id": "formal_integration_card",
+      "deterministic": true,
+      "section_id": "formal_report_integration_section",
+      "title": "Formal integrations"
+    }
+  ],
+  "delivery_policy": {
+    "dashboard_allowed_for_full_report_and_drilldown": true,
+    "dashboard_published": false,
+    "delivery_executed": false,
+    "email_allowed_for_full_report": true,
+    "external_notification_sent": false,
+    "line_allowed_for_summary_only": true,
+    "production_delivery_behavior_modified": false
+  },
+  "email_ready_blocks": [
+    {
+      "block_id": "headline",
+      "deterministic": true,
+      "text": "Context-based report assembly dry-run"
+    },
+    {
+      "block_id": "summary_paragraph",
+      "deterministic": true,
+      "text": "Unified context and evidence trace are assembled into report-ready sections."
+    },
+    {
+      "block_id": "detailed_sections",
+      "deterministic": true,
+      "section_ids": [
+        "executive_summary",
+        "market_regime_summary",
+        "source_credibility_summary",
+        "technical_context_summary",
+        "chip_context_summary",
+        "adr_context_summary",
+        "finmind_summary",
+        "twse_summary",
+        "yfinance_summary",
+        "rolling_evaluation_summary",
+        "confidence_rationale_summary",
+        "evidence_trace_summary",
+        "metadata_only_warning",
+        "official_source_replacement_warning",
+        "advisory_only_disclaimer"
+      ]
+    },
+    {
+      "block_id": "evidence_notes",
+      "deterministic": true,
+      "text": "Evidence trace remains deterministic and advisory-only."
+    },
+    {
+      "block_id": "warnings",
+      "deterministic": true,
+      "items": [
+        {
+          "direct_rating_action_confidence_impact": false,
+          "source_id": "broker_target_price_metadata",
+          "warning": "Broker target / analyst opinion is metadata only and cannot directly affect rating/action/confidence.",
+          "warning_type": "metadata_only"
+        },
+        {
+          "direct_rating_action_confidence_impact": false,
+          "source_id": "google_news_rss",
+          "warning": "Google News RSS is event detection / sentiment support only and cannot be core forecast evidence.",
+          "warning_type": "metadata_only"
+        },
+        {
+          "direct_rating_action_confidence_impact": false,
+          "source_id": "broker_target_price_metadata",
+          "warning": "Broker target / analyst opinion is metadata only and cannot directly affect rating/action/confidence.",
+          "warning_type": "official_source_replacement"
+        },
+        {
+          "direct_rating_action_confidence_impact": false,
+          "source_id": "finmind",
+          "warning": "FinMind is a normalized external data provider and cannot replace MOPS / TWSE / company official information.",
+          "warning_type": "official_source_replacement"
+        },
+        {
+          "direct_rating_action_confidence_impact": false,
+          "source_id": "gemini_google_generative_ai",
+          "warning": "Gemini is AI-generated analysis and not original evidence.",
+          "warning_type": "official_source_replacement"
+        },
+        {
+          "direct_rating_action_confidence_impact": false,
+          "source_id": "google_news_rss",
+          "warning": "Google News RSS is event detection / sentiment support only and cannot be core forecast evidence.",
+          "warning_type": "official_source_replacement"
+        },
+        {
+          "direct_rating_action_confidence_impact": false,
+          "source_id": "yfinance_yahoo",
+          "warning": "yfinance/Yahoo is an external reference/proxy and cannot replace official sources.",
+          "warning_type": "official_source_replacement"
+        }
+      ]
+    },
+    {
+      "block_id": "advisory_only_disclaimer",
+      "deterministic": true,
+      "text": "No delivery executed; no production decision mutation."
+    }
+  ],
+  "evidence_trace_section": {
+    "direct_rating_action_confidence_impact": false,
+    "evidence_links": [
+      {
+        "allowed_usage": [
+          "sentiment_metadata",
+          "analyst_opinion_context"
+        ],
+        "context_section": "news_context",
+        "credibility_level": "sentiment_metadata",
+        "dashboard_block_id": "dashboard_card_broker_target_price_metadata",
+        "direct_rating_action_confidence_impact": false,
+        "disallowed_usage": [
+          "direct_rating_action_confidence_change",
+          "production_weight_mutation",
+          "order_execution",
+          "official_source_replacement"
+        ],
+        "explanation_id": "explain_broker_target_price_metadata",
+        "explanation_summary": "Broker target / analyst opinion is metadata only and cannot directly affect rating/action/confidence.",
+        "factor_id": "factor_broker_metadata",
+        "factor_name": "Broker target/rating metadata",
+        "provider": "Broker target/rating metadata",
+        "report_block_id": "report_block_broker_target_price_metadata",
+        "source_id": "broker_target_price_metadata",
+        "source_type": "low_priority_metadata"
+      },
+      {
+        "allowed_usage": [
+          "context_anchor",
+          "report_explanation",
+          "dashboard_drill_down"
+        ],
+        "context_section": "source_summary.official_primary_source",
+        "credibility_level": "official",
+        "dashboard_block_id": "dashboard_card_company_filing",
+        "direct_rating_action_confidence_impact": false,
+        "disallowed_usage": [
+          "direct_rating_action_confidence_change",
+          "production_weight_mutation",
+          "order_execution"
+        ],
+        "explanation_id": "explain_company_filing",
+        "explanation_summary": "Official primary source can anchor context but still does not mutate production decisions in this artifact.",
+        "factor_id": "factor_company_disclosure",
+        "factor_name": "Company disclosure anchor",
+        "provider": "Company official filing / MOPS",
+        "report_block_id": "report_block_company_filing",
+        "source_id": "company_filing",
+        "source_type": "official_primary_source"
+      },
+      {
+        "allowed_usage": [
+          "supplemental_context",
+          "report_explanation",
+          "dashboard_drill_down"
+        ],
+        "context_section": "finmind_context",
+        "credibility_level": "normalized_supplement",
+        "dashboard_block_id": "dashboard_card_finmind",
+        "direct_rating_action_confidence_impact": false,
+        "disallowed_usage": [
+          "direct_rating_action_confidence_change",
+          "production_weight_mutation",
+          "order_execution",
+          "official_source_replacement"
+        ],
+        "explanation_id": "explain_finmind",
+        "explanation_summary": "FinMind is a normalized external data provider and cannot replace MOPS / TWSE / company official information.",
+        "factor_id": "factor_finmind_supplement",
+        "factor_name": "FinMind normalized supplemental context",
+        "provider": "FinMind",
+        "report_block_id": "report_block_finmind",
+        "source_id": "finmind",
+        "source_type": "normalized_external_data_provider"
+      },
+      {
+        "allowed_usage": [
+          "draft_explanation",
+          "summary_generation_after_source_attribution"
+        ],
+        "context_section": "explainability_context",
+        "credibility_level": "generated_analysis",
+        "dashboard_block_id": "dashboard_card_gemini_google_generative_ai",
+        "direct_rating_action_confidence_impact": false,
+        "disallowed_usage": [
+          "direct_rating_action_confidence_change",
+          "production_weight_mutation",
+          "order_execution",
+          "official_source_replacement",
+          "original_evidence"
+        ],
+        "explanation_id": "explain_gemini_google_generative_ai",
+        "explanation_summary": "Gemini is AI-generated analysis and not original evidence.",
+        "factor_id": "factor_ai_generated_summary",
+        "factor_name": "AI generated explanation draft",
+        "provider": "Gemini",
+        "report_block_id": "report_block_gemini_google_generative_ai",
+        "source_id": "gemini_google_generative_ai",
+        "source_type": "ai_generated_analysis"
+      },
+      {
+        "allowed_usage": [
+          "event_detection",
+          "sentiment_support",
+          "metadata_warning"
+        ],
+        "context_section": "news_context",
+        "credibility_level": "headline_sentiment",
+        "dashboard_block_id": "dashboard_card_google_news_rss",
+        "direct_rating_action_confidence_impact": false,
+        "disallowed_usage": [
+          "direct_rating_action_confidence_change",
+          "production_weight_mutation",
+          "order_execution",
+          "official_source_replacement",
+          "core_forecast_evidence"
+        ],
+        "explanation_id": "explain_google_news_rss",
+        "explanation_summary": "Google News RSS is event detection / sentiment support only and cannot be core forecast evidence.",
+        "factor_id": "factor_news_event_detection",
+        "factor_name": "Headline event/sentiment detection",
+        "provider": "Google News RSS",
+        "report_block_id": "report_block_google_news_rss",
+        "source_id": "google_news_rss",
+        "source_type": "low_priority_metadata"
+      },
+      {
+        "allowed_usage": [
+          "context_anchor",
+          "report_explanation",
+          "dashboard_drill_down"
+        ],
+        "context_section": "source_summary.official_market_source",
+        "credibility_level": "official_runtime_market",
+        "dashboard_block_id": "dashboard_card_shioaji_sinopac",
+        "direct_rating_action_confidence_impact": false,
+        "disallowed_usage": [
+          "direct_rating_action_confidence_change",
+          "production_weight_mutation",
+          "order_execution"
+        ],
+        "explanation_id": "explain_shioaji_sinopac",
+        "explanation_summary": "Official market source can explain market/chip context but cannot directly change production rating/action/confidence here.",
+        "factor_id": "factor_runtime_market_data",
+        "factor_name": "Runtime market data anchor",
+        "provider": "Sinopac/Shioaji",
+        "report_block_id": "report_block_shioaji_sinopac",
+        "source_id": "shioaji_sinopac",
+        "source_type": "official_market_source"
+      },
+      {
+        "allowed_usage": [
+          "context_anchor",
+          "report_explanation",
+          "dashboard_drill_down"
+        ],
+        "context_section": "twse_context",
+        "credibility_level": "official_market",
+        "dashboard_block_id": "dashboard_card_twse_openapi",
+        "direct_rating_action_confidence_impact": false,
+        "disallowed_usage": [
+          "direct_rating_action_confidence_change",
+          "production_weight_mutation",
+          "order_execution"
+        ],
+        "explanation_id": "explain_twse_openapi",
+        "explanation_summary": "Official market source can explain market/chip context but cannot directly change production rating/action/confidence here.",
+        "factor_id": "factor_twse_chip_flow",
+        "factor_name": "TWSE official market/chip context",
+        "provider": "TWSE OpenAPI",
+        "report_block_id": "report_block_twse_openapi",
+        "source_id": "twse_openapi",
+        "source_type": "official_market_source"
+      },
+      {
+        "allowed_usage": [
+          "supplemental_context",
+          "report_explanation",
+          "dashboard_drill_down"
+        ],
+        "context_section": "yfinance_context",
+        "credibility_level": "reference_proxy",
+        "dashboard_block_id": "dashboard_card_yfinance_yahoo",
+        "direct_rating_action_confidence_impact": false,
+        "disallowed_usage": [
+          "direct_rating_action_confidence_change",
+          "production_weight_mutation",
+          "order_execution",
+          "official_source_replacement"
+        ],
+        "explanation_id": "explain_yfinance_yahoo",
+        "explanation_summary": "yfinance/Yahoo is an external reference/proxy and cannot replace official sources.",
+        "factor_id": "factor_external_proxy",
+        "factor_name": "ADR and US market proxy context",
+        "provider": "Yahoo Finance / yfinance",
+        "report_block_id": "report_block_yfinance_yahoo",
+        "source_id": "yfinance_yahoo",
+        "source_type": "external_reference_proxy"
+      }
+    ],
+    "trace_graph_summary": {
+      "edge_count": 40,
+      "node_count": 47
+    }
+  },
+  "exclusion_section": {
+    "direct_rating_action_confidence_impact": false,
+    "exclusion_reasons": {
+      "broker_target_price_metadata": "Broker target / analyst opinion is metadata only and cannot directly affect rating/action/confidence.",
+      "finmind": "FinMind is a normalized external data provider and cannot replace MOPS / TWSE / company official information.",
+      "gemini_google_generative_ai": "Gemini is AI-generated analysis and not original evidence.",
+      "google_news_rss": "Google News RSS is event detection / sentiment support only and cannot be core forecast evidence.",
+      "yfinance_yahoo": "yfinance/Yahoo is an external reference/proxy and cannot replace official sources."
+    }
+  },
+  "explainability_ref": {
+    "schema_version": "unified_explainability_evidence_trace_v1",
+    "task_id": "AI-DEV-137",
+    "template_path": "templates/unified_explainability_artifact.example.json"
+  },
+  "factor_rationale_section": {
+    "direct_rating_action_confidence_impact": false,
+    "factor_explanations": [
+      {
+        "allowed_usage": [
+          "sentiment_metadata",
+          "analyst_opinion_context"
+        ],
+        "direct_rating_action_confidence_impact": false,
+        "disallowed_usage": [
+          "direct_rating_action_confidence_change",
+          "production_weight_mutation",
+          "order_execution",
+          "official_source_replacement"
+        ],
+        "factor_id": "factor_broker_metadata",
+        "factor_name": "Broker target/rating metadata",
+        "rationale": "Broker target / analyst opinion is metadata only and cannot directly affect rating/action/confidence.",
+        "source_ids": [
+          "broker_target_price_metadata"
+        ]
+      },
+      {
+        "allowed_usage": [
+          "context_anchor",
+          "report_explanation",
+          "dashboard_drill_down"
+        ],
+        "direct_rating_action_confidence_impact": false,
+        "disallowed_usage": [
+          "direct_rating_action_confidence_change",
+          "production_weight_mutation",
+          "order_execution"
+        ],
+        "factor_id": "factor_company_disclosure",
+        "factor_name": "Company disclosure anchor",
+        "rationale": "Official primary source can anchor context but still does not mutate production decisions in this artifact.",
+        "source_ids": [
+          "company_filing"
+        ]
+      },
+      {
+        "allowed_usage": [
+          "supplemental_context",
+          "report_explanation",
+          "dashboard_drill_down"
+        ],
+        "direct_rating_action_confidence_impact": false,
+        "disallowed_usage": [
+          "direct_rating_action_confidence_change",
+          "production_weight_mutation",
+          "order_execution",
+          "official_source_replacement"
+        ],
+        "factor_id": "factor_finmind_supplement",
+        "factor_name": "FinMind normalized supplemental context",
+        "rationale": "FinMind is a normalized external data provider and cannot replace MOPS / TWSE / company official information.",
+        "source_ids": [
+          "finmind"
+        ]
+      },
+      {
+        "allowed_usage": [
+          "draft_explanation",
+          "summary_generation_after_source_attribution"
+        ],
+        "direct_rating_action_confidence_impact": false,
+        "disallowed_usage": [
+          "direct_rating_action_confidence_change",
+          "production_weight_mutation",
+          "order_execution",
+          "official_source_replacement",
+          "original_evidence"
+        ],
+        "factor_id": "factor_ai_generated_summary",
+        "factor_name": "AI generated explanation draft",
+        "rationale": "Gemini is AI-generated analysis and not original evidence.",
+        "source_ids": [
+          "gemini_google_generative_ai"
+        ]
+      },
+      {
+        "allowed_usage": [
+          "event_detection",
+          "sentiment_support",
+          "metadata_warning"
+        ],
+        "direct_rating_action_confidence_impact": false,
+        "disallowed_usage": [
+          "direct_rating_action_confidence_change",
+          "production_weight_mutation",
+          "order_execution",
+          "official_source_replacement",
+          "core_forecast_evidence"
+        ],
+        "factor_id": "factor_news_event_detection",
+        "factor_name": "Headline event/sentiment detection",
+        "rationale": "Google News RSS is event detection / sentiment support only and cannot be core forecast evidence.",
+        "source_ids": [
+          "google_news_rss"
+        ]
+      },
+      {
+        "allowed_usage": [
+          "context_anchor",
+          "report_explanation",
+          "dashboard_drill_down"
+        ],
+        "direct_rating_action_confidence_impact": false,
+        "disallowed_usage": [
+          "direct_rating_action_confidence_change",
+          "production_weight_mutation",
+          "order_execution"
+        ],
+        "factor_id": "factor_runtime_market_data",
+        "factor_name": "Runtime market data anchor",
+        "rationale": "Official market source can explain market/chip context but cannot directly change production rating/action/confidence here.",
+        "source_ids": [
+          "shioaji_sinopac"
+        ]
+      },
+      {
+        "allowed_usage": [
+          "context_anchor",
+          "report_explanation",
+          "dashboard_drill_down"
+        ],
+        "direct_rating_action_confidence_impact": false,
+        "disallowed_usage": [
+          "direct_rating_action_confidence_change",
+          "production_weight_mutation",
+          "order_execution"
+        ],
+        "factor_id": "factor_twse_chip_flow",
+        "factor_name": "TWSE official market/chip context",
+        "rationale": "Official market source can explain market/chip context but cannot directly change production rating/action/confidence here.",
+        "source_ids": [
+          "twse_openapi"
+        ]
+      },
+      {
+        "allowed_usage": [
+          "supplemental_context",
+          "report_explanation",
+          "dashboard_drill_down"
+        ],
+        "direct_rating_action_confidence_impact": false,
+        "disallowed_usage": [
+          "direct_rating_action_confidence_change",
+          "production_weight_mutation",
+          "order_execution",
+          "official_source_replacement"
+        ],
+        "factor_id": "factor_external_proxy",
+        "factor_name": "ADR and US market proxy context",
+        "rationale": "yfinance/Yahoo is an external reference/proxy and cannot replace official sources.",
+        "source_ids": [
+          "yfinance_yahoo"
+        ]
+      }
+    ]
+  },
+  "formal_report_integration_section": {
+    "direct_rating_action_confidence_impact": false,
+    "integrations": [
+      {
+        "artifact_path": "templates/finmind_report_integration_artifact.example.json",
+        "direct_rating_action_confidence_impact": false,
+        "integration_id": "finmind_report_integration",
+        "prediction_context_allowed": true,
+        "report_allowed": true,
+        "source_id": "finmind",
+        "title": "FinMind report integration"
+      },
+      {
+        "artifact_path": "templates/twse_yfinance_report_integration_artifact.example.json",
+        "direct_rating_action_confidence_impact": false,
+        "integration_id": "twse_report_integration",
+        "prediction_context_allowed": true,
+        "report_allowed": true,
+        "source_id": "twse_openapi",
+        "title": "TWSE report integration"
+      },
+      {
+        "artifact_path": "templates/twse_yfinance_report_integration_artifact.example.json",
+        "direct_rating_action_confidence_impact": false,
+        "integration_id": "yfinance_yahoo_report_integration",
+        "prediction_context_allowed": true,
+        "report_allowed": true,
+        "source_id": "yfinance_yahoo",
+        "title": "yfinance/Yahoo report integration"
+      }
+    ]
+  },
+  "generated_at": "2026-07-04T00:00:00+00:00",
+  "line_summary_blocks": [
+    {
+      "block_id": "short_title",
+      "deterministic": true,
+      "text": "AI report context ready"
+    },
+    {
+      "block_id": "one_line_summary",
+      "deterministic": true,
+      "text": "Offline context-based report assembly artifact is ready for review."
+    },
+    {
+      "block_id": "dashboard_link_placeholder",
+      "deterministic": true,
+      "text": "DASHBOARD_LINK_PLACEHOLDER"
+    },
+    {
+      "block_id": "advisory_only_badge",
+      "deterministic": true,
+      "text": "Research-only / no trading instruction"
+    }
+  ],
+  "market": "TW",
+  "market_regime_section": {
+    "context": {
+      "artifact_ref": "templates/market_regime_artifact.example.json",
+      "direct_rating_action_confidence_impact": false,
+      "status": "sample_ready"
+    },
+    "direct_rating_action_confidence_impact": false
+  },
+  "report_sections": [
+    {
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "section_id": "executive_summary",
+      "source_ids": [
+        "broker_target_price_metadata",
+        "company_filing",
+        "finmind",
+        "gemini_google_generative_ai",
+        "google_news_rss",
+        "shioaji_sinopac",
+        "twse_openapi",
+        "yfinance_yahoo"
+      ],
+      "summary": "Offline sample report-ready context assembled from Prediction Context and Unified Explainability.",
+      "title": "Executive summary",
+      "warning": false
+    },
+    {
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "section_id": "market_regime_summary",
+      "source_ids": [],
+      "summary": "Market regime context is included as advisory context only.",
+      "title": "Market regime summary",
+      "warning": false
+    },
+    {
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "section_id": "source_credibility_summary",
+      "source_ids": [
+        "broker_target_price_metadata",
+        "company_filing",
+        "finmind",
+        "gemini_google_generative_ai",
+        "google_news_rss",
+        "shioaji_sinopac",
+        "twse_openapi",
+        "yfinance_yahoo"
+      ],
+      "summary": "Sources are grouped by official, normalized external, external proxy, AI-generated, and metadata-only roles.",
+      "title": "Source credibility summary",
+      "warning": false
+    },
+    {
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "section_id": "technical_context_summary",
+      "source_ids": [],
+      "summary": "Technical context is sample-ready and has no direct production decision impact.",
+      "title": "Technical context summary",
+      "warning": false
+    },
+    {
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "section_id": "chip_context_summary",
+      "source_ids": [
+        "twse_openapi"
+      ],
+      "summary": "TWSE chip context is official market/chip attribution but does not mutate rating/action/confidence.",
+      "title": "Chip context summary",
+      "warning": false
+    },
+    {
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "section_id": "adr_context_summary",
+      "source_ids": [
+        "yfinance_yahoo"
+      ],
+      "summary": "ADR and US ETF proxy context is external reference only.",
+      "title": "ADR context summary",
+      "warning": false
+    },
+    {
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "section_id": "finmind_summary",
+      "source_ids": [
+        "finmind"
+      ],
+      "summary": "FinMind is normalized external report supplement and cannot replace official sources.",
+      "title": "FinMind summary",
+      "warning": false
+    },
+    {
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "section_id": "twse_summary",
+      "source_ids": [
+        "twse_openapi"
+      ],
+      "summary": "TWSE is official market/chip source for formal report context.",
+      "title": "TWSE summary",
+      "warning": false
+    },
+    {
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "section_id": "yfinance_summary",
+      "source_ids": [
+        "yfinance_yahoo"
+      ],
+      "summary": "yfinance/Yahoo supports ADR, US index, ETF, and sector proxy context only.",
+      "title": "yfinance/Yahoo summary",
+      "warning": false
+    },
+    {
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "section_id": "rolling_evaluation_summary",
+      "source_ids": [],
+      "summary": "Rolling evaluation context is included for future decision quality review.",
+      "title": "Rolling evaluation summary",
+      "warning": false
+    },
+    {
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "section_id": "confidence_rationale_summary",
+      "source_ids": [],
+      "summary": "Confidence can be explained from prediction context calibration, source credibility, factor effectiveness, and evidence trace; this task does not rewrite production confidence.",
+      "title": "Confidence rationale summary",
+      "warning": false
+    },
+    {
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "section_id": "evidence_trace_summary",
+      "source_ids": [],
+      "summary": "Evidence trace links available: 8.",
+      "title": "Evidence trace summary",
+      "warning": false
+    },
+    {
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "section_id": "metadata_only_warning",
+      "source_ids": [
+        "broker_target_price_metadata",
+        "google_news_rss"
+      ],
+      "summary": "Broker target / analyst opinion is metadata only and cannot directly affect rating/action/confidence.; Google News RSS is event detection / sentiment support only and cannot be core forecast evidence.",
+      "title": "Metadata-only warning",
+      "warning": true
+    },
+    {
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "section_id": "official_source_replacement_warning",
+      "source_ids": [
+        "yfinance_yahoo",
+        "finmind",
+        "gemini_google_generative_ai"
+      ],
+      "summary": "yfinance/Yahoo is an external reference/proxy and cannot replace official sources.; FinMind is a normalized external data provider and cannot replace MOPS / TWSE / company official information.; Gemini is AI-generated analysis and not original evidence.",
+      "title": "Official-source replacement warning",
+      "warning": true
+    },
+    {
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "section_id": "advisory_only_disclaimer",
+      "source_ids": [],
+      "summary": "This report assembly artifact is advisory-only and does not execute delivery or production decisions.",
+      "title": "Advisory-only disclaimer",
+      "warning": true
+    }
+  ],
+  "report_summary": {
+    "advisory_only": true,
+    "direct_rating_action_confidence_impact": false,
+    "section_count": 15
+  },
+  "report_window": {
+    "as_of_date": "2026-07-04",
+    "forecast_horizons": [
+      "same_day_high_low",
+      "next_day_high_low",
+      "one_month_trend",
+      "three_month_trend"
+    ],
+    "lookback_days": 90,
+    "sample_mode": true
+  },
+  "rolling_evaluation_section": {
+    "context": {
+      "artifact_ref": "templates/rolling_evaluation_artifact.example.json",
+      "direct_rating_action_confidence_impact": false,
+      "status": "sample_ready"
+    },
+    "direct_rating_action_confidence_impact": false
+  },
+  "safety_policy": {
+    "broker_order_trading": false,
+    "dashboard_published": false,
+    "dashboard_ui_modified": false,
+    "external_api_called": false,
+    "formal_delivery_behavior_modified": false,
+    "line_email_sent": false,
+    "no_direct_rating_action_confidence_change": true,
+    "not_production_decision_engine": true,
+    "not_production_renderer": true,
+    "offline_sample_only": true,
+    "production_db_read": false,
+    "production_db_write": false,
+    "production_pipeline_run": false,
+    "production_rating_action_confidence_weight_mutation": false,
+    "production_runtime_modified": false,
+    "python_main_executed": false,
+    "read_only": true,
+    "report_assembly_artifact_only": true,
+    "scheduler_modified": false,
+    "secrets_read": false
+  },
+  "schema_version": "context_based_report_assembly_v1",
+  "source_credibility_section": {
+    "categories": [
+      {
+        "category": "official_primary_source",
+        "count": 1,
+        "direct_rating_action_confidence_impact": false,
+        "providers": [
+          "Company official filing / MOPS"
+        ],
+        "source_ids": [
+          "company_filing"
+        ]
+      },
+      {
+        "category": "official_market_source",
+        "count": 2,
+        "direct_rating_action_confidence_impact": false,
+        "providers": [
+          "Sinopac/Shioaji",
+          "TWSE OpenAPI"
+        ],
+        "source_ids": [
+          "shioaji_sinopac",
+          "twse_openapi"
+        ]
+      },
+      {
+        "category": "normalized_external_data_provider",
+        "count": 1,
+        "direct_rating_action_confidence_impact": false,
+        "providers": [
+          "FinMind"
+        ],
+        "source_ids": [
+          "finmind"
+        ]
+      },
+      {
+        "category": "external_reference_proxy",
+        "count": 1,
+        "direct_rating_action_confidence_impact": false,
+        "providers": [
+          "Yahoo Finance / yfinance"
+        ],
+        "source_ids": [
+          "yfinance_yahoo"
+        ]
+      },
+      {
+        "category": "ai_generated_analysis",
+        "count": 1,
+        "direct_rating_action_confidence_impact": false,
+        "providers": [
+          "Gemini"
+        ],
+        "source_ids": [
+          "gemini_google_generative_ai"
+        ]
+      },
+      {
+        "category": "low_priority_metadata",
+        "count": 2,
+        "direct_rating_action_confidence_impact": false,
+        "providers": [
+          "Broker target/rating metadata",
+          "Google News RSS"
+        ],
+        "source_ids": [
+          "broker_target_price_metadata",
+          "google_news_rss"
+        ]
+      }
+    ],
+    "direct_rating_action_confidence_impact": false
+  },
+  "symbol": "2330",
+  "task_id": "AI-DEV-138",
+  "warning_section": {
+    "direct_rating_action_confidence_impact": false,
+    "warnings": [
+      {
+        "direct_rating_action_confidence_impact": false,
+        "source_id": "broker_target_price_metadata",
+        "warning": "Broker target / analyst opinion is metadata only and cannot directly affect rating/action/confidence.",
+        "warning_type": "metadata_only"
+      },
+      {
+        "direct_rating_action_confidence_impact": false,
+        "source_id": "google_news_rss",
+        "warning": "Google News RSS is event detection / sentiment support only and cannot be core forecast evidence.",
+        "warning_type": "metadata_only"
+      },
+      {
+        "direct_rating_action_confidence_impact": false,
+        "source_id": "broker_target_price_metadata",
+        "warning": "Broker target / analyst opinion is metadata only and cannot directly affect rating/action/confidence.",
+        "warning_type": "official_source_replacement"
+      },
+      {
+        "direct_rating_action_confidence_impact": false,
+        "source_id": "finmind",
+        "warning": "FinMind is a normalized external data provider and cannot replace MOPS / TWSE / company official information.",
+        "warning_type": "official_source_replacement"
+      },
+      {
+        "direct_rating_action_confidence_impact": false,
+        "source_id": "gemini_google_generative_ai",
+        "warning": "Gemini is AI-generated analysis and not original evidence.",
+        "warning_type": "official_source_replacement"
+      },
+      {
+        "direct_rating_action_confidence_impact": false,
+        "source_id": "google_news_rss",
+        "warning": "Google News RSS is event detection / sentiment support only and cannot be core forecast evidence.",
+        "warning_type": "official_source_replacement"
+      },
+      {
+        "direct_rating_action_confidence_impact": false,
+        "source_id": "yfinance_yahoo",
+        "warning": "yfinance/Yahoo is an external reference/proxy and cannot replace official sources.",
+        "warning_type": "official_source_replacement"
+      }
+    ]
+  }
+}

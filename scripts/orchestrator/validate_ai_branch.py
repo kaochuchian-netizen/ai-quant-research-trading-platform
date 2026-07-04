@@ -35,6 +35,7 @@ DEFAULT_ALLOWED_PATHS = [
     "app/recommendation/",
     "app/dashboard/",
     "app/reports/",
+    "app/report_assembly/",
     "app/runtime/",
     "app/market_regime/",
     "app/source_audit/",
