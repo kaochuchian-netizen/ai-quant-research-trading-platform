@@ -1,0 +1,430 @@
+{
+  "advisory_only": true,
+  "future_integration": {
+    "dashboard": "display roadmap only in future advisory dashboard task",
+    "formal_report": "promote phase_2 connectors before new runtime activation",
+    "prediction_context": "use phase_1/phase_3 official sources after deterministic artifacts exist",
+    "production_logic": "no rating/action/confidence/weight mutation in AI-DEV-132"
+  },
+  "generated_at": "2026-07-04T03:06:52+00:00",
+  "input_summary": {
+    "audit_schema_version": "external_source_coverage_audit_v1",
+    "audit_source_count": 15,
+    "audit_status_counts": {
+      "connector_exists_not_in_formal_report": 2,
+      "inventory_only_not_connectorized": 6,
+      "low_priority_metadata_only": 3,
+      "needs_connector": 1,
+      "production_used": 3
+    }
+  },
+  "phase_summary": {
+    "phase_counts": {
+      "manual_review_required": 1,
+      "phase_0_maintain": 3,
+      "phase_2_formal_report": 2,
+      "phase_3_connector_build": 6,
+      "phase_4_defer_metadata_only": 3
+    },
+    "total_sources": 15
+  },
+  "priority_policy": [
+    {
+      "credential_requirement": "required",
+      "current_status": "production_used",
+      "decision_value": "high",
+      "explainability_value": "high",
+      "formal_report_candidate": true,
+      "freshness_requirement": "manual_or_runtime_refresh",
+      "implementation_complexity": "low",
+      "low_priority_metadata_only": false,
+      "prediction_context_candidate": true,
+      "production_risk": "high",
+      "rating_action_confidence_allowed": true,
+      "rationale": [
+        "candidate for prediction context after deterministic artifact validation",
+        "candidate for formal report once freshness and failure policy are validated"
+      ],
+      "recommended_phase": "phase_0_maintain",
+      "reliability_risk": "high",
+      "source_id": "google_sheet",
+      "source_name": "Google Sheet stock universe",
+      "source_priority": "A_primary"
+    },
+    {
+      "credential_requirement": "required",
+      "current_status": "production_used",
+      "decision_value": "high",
+      "explainability_value": "high",
+      "formal_report_candidate": true,
+      "freshness_requirement": "market_session",
+      "implementation_complexity": "low",
+      "low_priority_metadata_only": false,
+      "prediction_context_candidate": true,
+      "production_risk": "high",
+      "rating_action_confidence_allowed": true,
+      "rationale": [
+        "candidate for prediction context after deterministic artifact validation",
+        "candidate for formal report once freshness and failure policy are validated"
+      ],
+      "recommended_phase": "phase_0_maintain",
+      "reliability_risk": "high",
+      "source_id": "shioaji_sinopac",
+      "source_name": "Shioaji / Sinopac",
+      "source_priority": "A_primary"
+    },
+    {
+      "credential_requirement": "not_required",
+      "current_status": "connector_exists_not_in_formal_report",
+      "decision_value": "high",
+      "explainability_value": "high",
+      "formal_report_candidate": true,
+      "freshness_requirement": "daily",
+      "implementation_complexity": "medium",
+      "low_priority_metadata_only": false,
+      "prediction_context_candidate": true,
+      "production_risk": "medium",
+      "rating_action_confidence_allowed": true,
+      "rationale": [
+        "candidate for prediction context after deterministic artifact validation",
+        "candidate for formal report once freshness and failure policy are validated"
+      ],
+      "recommended_phase": "phase_2_formal_report",
+      "reliability_risk": "low",
+      "source_id": "twse_openapi",
+      "source_name": "TWSE",
+      "source_priority": "B_official_or_company_linked"
+    },
+    {
+      "credential_requirement": "not_required",
+      "current_status": "low_priority_metadata_only",
+      "decision_value": "low",
+      "explainability_value": "high",
+      "formal_report_candidate": false,
+      "freshness_requirement": "event_driven",
+      "implementation_complexity": "medium",
+      "low_priority_metadata_only": true,
+      "prediction_context_candidate": false,
+      "production_risk": "high",
+      "rating_action_confidence_allowed": false,
+      "rationale": [
+        "low-priority metadata/noise; must not independently affect rating/action/confidence"
+      ],
+      "recommended_phase": "phase_4_defer_metadata_only",
+      "reliability_risk": "medium",
+      "source_id": "google_news_rss",
+      "source_name": "Google News RSS",
+      "source_priority": "D_low_priority_metadata_noise"
+    },
+    {
+      "credential_requirement": "not_required",
+      "current_status": "connector_exists_not_in_formal_report",
+      "decision_value": "medium",
+      "explainability_value": "high",
+      "formal_report_candidate": true,
+      "freshness_requirement": "market_day",
+      "implementation_complexity": "medium",
+      "low_priority_metadata_only": false,
+      "prediction_context_candidate": false,
+      "production_risk": "medium",
+      "rating_action_confidence_allowed": false,
+      "rationale": [
+        "candidate for formal report once freshness and failure policy are validated"
+      ],
+      "recommended_phase": "phase_2_formal_report",
+      "reliability_risk": "medium",
+      "source_id": "yfinance_yahoo",
+      "source_name": "yfinance / Yahoo",
+      "source_priority": "C_market_or_industry"
+    },
+    {
+      "credential_requirement": "required",
+      "current_status": "low_priority_metadata_only",
+      "decision_value": "low",
+      "explainability_value": "high",
+      "formal_report_candidate": false,
+      "freshness_requirement": "on_demand",
+      "implementation_complexity": "high",
+      "low_priority_metadata_only": true,
+      "prediction_context_candidate": false,
+      "production_risk": "high",
+      "rating_action_confidence_allowed": false,
+      "rationale": [
+        "low-priority metadata/noise; must not independently affect rating/action/confidence"
+      ],
+      "recommended_phase": "phase_4_defer_metadata_only",
+      "reliability_risk": "high",
+      "source_id": "gemini_google_generative_ai",
+      "source_name": "Gemini / Google Generative AI",
+      "source_priority": "D_low_priority_metadata_noise"
+    },
+    {
+      "credential_requirement": "not_required",
+      "current_status": "production_used",
+      "decision_value": "high",
+      "explainability_value": "high",
+      "formal_report_candidate": true,
+      "freshness_requirement": "repo_local_or_pipeline_artifact",
+      "implementation_complexity": "low",
+      "low_priority_metadata_only": false,
+      "prediction_context_candidate": true,
+      "production_risk": "low",
+      "rating_action_confidence_allowed": true,
+      "rationale": [
+        "candidate for prediction context after deterministic artifact validation",
+        "candidate for formal report once freshness and failure policy are validated"
+      ],
+      "recommended_phase": "phase_0_maintain",
+      "reliability_risk": "low",
+      "source_id": "sqlite_historical_csv",
+      "source_name": "SQLite / historical CSV",
+      "source_priority": "A_primary"
+    },
+    {
+      "credential_requirement": "not_required",
+      "current_status": "inventory_only_not_connectorized",
+      "decision_value": "high",
+      "explainability_value": "medium",
+      "formal_report_candidate": true,
+      "freshness_requirement": "event_or_periodic",
+      "implementation_complexity": "medium",
+      "low_priority_metadata_only": false,
+      "prediction_context_candidate": true,
+      "production_risk": "medium",
+      "rating_action_confidence_allowed": true,
+      "rationale": [
+        "candidate for prediction context after deterministic artifact validation",
+        "candidate for formal report once freshness and failure policy are validated"
+      ],
+      "recommended_phase": "phase_3_connector_build",
+      "reliability_risk": "low",
+      "source_id": "mops_public_information_observatory",
+      "source_name": "MOPS / 公開資訊觀測站",
+      "source_priority": "B_official_or_company_linked"
+    },
+    {
+      "credential_requirement": "not_required",
+      "current_status": "inventory_only_not_connectorized",
+      "decision_value": "high",
+      "explainability_value": "medium",
+      "formal_report_candidate": true,
+      "freshness_requirement": "event_driven",
+      "implementation_complexity": "medium",
+      "low_priority_metadata_only": false,
+      "prediction_context_candidate": true,
+      "production_risk": "medium",
+      "rating_action_confidence_allowed": true,
+      "rationale": [
+        "candidate for prediction context after deterministic artifact validation",
+        "candidate for formal report once freshness and failure policy are validated"
+      ],
+      "recommended_phase": "phase_3_connector_build",
+      "reliability_risk": "low",
+      "source_id": "company_announcements",
+      "source_name": "公司公告",
+      "source_priority": "B_official_or_company_linked"
+    },
+    {
+      "credential_requirement": "not_required",
+      "current_status": "inventory_only_not_connectorized",
+      "decision_value": "high",
+      "explainability_value": "medium",
+      "formal_report_candidate": true,
+      "freshness_requirement": "quarterly",
+      "implementation_complexity": "medium",
+      "low_priority_metadata_only": false,
+      "prediction_context_candidate": true,
+      "production_risk": "medium",
+      "rating_action_confidence_allowed": true,
+      "rationale": [
+        "candidate for prediction context after deterministic artifact validation",
+        "candidate for formal report once freshness and failure policy are validated"
+      ],
+      "recommended_phase": "phase_3_connector_build",
+      "reliability_risk": "low",
+      "source_id": "financial_statements",
+      "source_name": "財報",
+      "source_priority": "B_official_or_company_linked"
+    },
+    {
+      "credential_requirement": "not_required",
+      "current_status": "inventory_only_not_connectorized",
+      "decision_value": "high",
+      "explainability_value": "medium",
+      "formal_report_candidate": true,
+      "freshness_requirement": "event_driven",
+      "implementation_complexity": "medium",
+      "low_priority_metadata_only": false,
+      "prediction_context_candidate": false,
+      "production_risk": "medium",
+      "rating_action_confidence_allowed": true,
+      "rationale": [
+        "candidate for formal report once freshness and failure policy are validated"
+      ],
+      "recommended_phase": "phase_3_connector_build",
+      "reliability_risk": "low",
+      "source_id": "investor_conference",
+      "source_name": "法說會 / investor conference",
+      "source_priority": "B_official_or_company_linked"
+    },
+    {
+      "credential_requirement": "not_required",
+      "current_status": "low_priority_metadata_only",
+      "decision_value": "low",
+      "explainability_value": "low",
+      "formal_report_candidate": false,
+      "freshness_requirement": "event_driven",
+      "implementation_complexity": "medium",
+      "low_priority_metadata_only": true,
+      "prediction_context_candidate": false,
+      "production_risk": "high",
+      "rating_action_confidence_allowed": false,
+      "rationale": [
+        "low-priority metadata/noise; must not independently affect rating/action/confidence"
+      ],
+      "recommended_phase": "phase_4_defer_metadata_only",
+      "reliability_risk": "medium",
+      "source_id": "management_interviews",
+      "source_name": "管理層訪談",
+      "source_priority": "D_low_priority_metadata_noise"
+    },
+    {
+      "credential_requirement": "not_required",
+      "current_status": "inventory_only_not_connectorized",
+      "decision_value": "medium",
+      "explainability_value": "medium",
+      "formal_report_candidate": true,
+      "freshness_requirement": "weekly_or_monthly",
+      "implementation_complexity": "medium",
+      "low_priority_metadata_only": false,
+      "prediction_context_candidate": false,
+      "production_risk": "medium",
+      "rating_action_confidence_allowed": false,
+      "rationale": [
+        "candidate for formal report once freshness and failure policy are validated"
+      ],
+      "recommended_phase": "phase_3_connector_build",
+      "reliability_risk": "medium",
+      "source_id": "industry_supply_chain",
+      "source_name": "產業上下游資料",
+      "source_priority": "C_market_or_industry"
+    },
+    {
+      "credential_requirement": "not_required",
+      "current_status": "inventory_only_not_connectorized",
+      "decision_value": "medium",
+      "explainability_value": "medium",
+      "formal_report_candidate": true,
+      "freshness_requirement": "market_day",
+      "implementation_complexity": "medium",
+      "low_priority_metadata_only": false,
+      "prediction_context_candidate": false,
+      "production_risk": "medium",
+      "rating_action_confidence_allowed": false,
+      "rationale": [
+        "candidate for formal report once freshness and failure policy are validated"
+      ],
+      "recommended_phase": "phase_3_connector_build",
+      "reliability_risk": "medium",
+      "source_id": "etf_index_sector_proxy",
+      "source_name": "ETF / index / sector proxy",
+      "source_priority": "C_market_or_industry"
+    },
+    {
+      "credential_requirement": "required",
+      "current_status": "needs_connector",
+      "decision_value": "low",
+      "explainability_value": "low",
+      "formal_report_candidate": false,
+      "freshness_requirement": "event_driven",
+      "implementation_complexity": "high",
+      "low_priority_metadata_only": true,
+      "prediction_context_candidate": false,
+      "production_risk": "high",
+      "rating_action_confidence_allowed": false,
+      "rationale": [
+        "low-priority metadata/noise; must not independently affect rating/action/confidence",
+        "requires manual review for licensing, quality, and credential policy"
+      ],
+      "recommended_phase": "manual_review_required",
+      "reliability_risk": "high",
+      "source_id": "analyst_target_broker_opinion",
+      "source_name": "analyst target price / broker opinion",
+      "source_priority": "D_low_priority_metadata_noise"
+    }
+  ],
+  "roadmap": {
+    "blocked_or_requires_manual_review": [
+      "analyst_target_broker_opinion"
+    ],
+    "connector_build_candidates": [
+      "company_announcements",
+      "etf_index_sector_proxy",
+      "financial_statements",
+      "industry_supply_chain",
+      "investor_conference",
+      "mops_public_information_observatory"
+    ],
+    "defer_or_metadata_only": [
+      "gemini_google_generative_ai",
+      "google_news_rss",
+      "management_interviews"
+    ],
+    "formal_report_first": [
+      "company_announcements",
+      "etf_index_sector_proxy",
+      "financial_statements",
+      "google_sheet",
+      "industry_supply_chain",
+      "investor_conference",
+      "mops_public_information_observatory",
+      "shioaji_sinopac",
+      "sqlite_historical_csv",
+      "twse_openapi",
+      "yfinance_yahoo"
+    ],
+    "immediate_candidates": [
+      "google_sheet",
+      "shioaji_sinopac",
+      "sqlite_historical_csv"
+    ],
+    "must_not_affect_rating_action_confidence": [
+      "analyst_target_broker_opinion",
+      "etf_index_sector_proxy",
+      "gemini_google_generative_ai",
+      "google_news_rss",
+      "industry_supply_chain",
+      "management_interviews",
+      "yfinance_yahoo"
+    ],
+    "prediction_context_first": [
+      "company_announcements",
+      "financial_statements",
+      "google_sheet",
+      "mops_public_information_observatory",
+      "shioaji_sinopac",
+      "sqlite_historical_csv",
+      "twse_openapi"
+    ],
+    "report_integration_candidates": [
+      "twse_openapi",
+      "yfinance_yahoo"
+    ]
+  },
+  "safety_summary": {
+    "advisory_only": true,
+    "broker_login": false,
+    "dashboard_published": false,
+    "email_sent": false,
+    "external_api_called": false,
+    "line_sent": false,
+    "production_db_write": false,
+    "production_order": false,
+    "production_rating_action_confidence_weight_changed": false,
+    "production_scheduler_modified": false,
+    "secrets_read": false,
+    "simulation_order": false,
+    "trading_execution": false
+  },
+  "schema_version": "external_source_connector_roadmap_v1"
+}

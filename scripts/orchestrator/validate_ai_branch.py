@@ -37,6 +37,7 @@ DEFAULT_ALLOWED_PATHS = [
     "app/runtime/",
     "app/market_regime/",
     "app/source_audit/",
+    "app/source_roadmap/",
     "app/history/",
     "app/rolling/",
     "app/market/historical_price_loader.py",
