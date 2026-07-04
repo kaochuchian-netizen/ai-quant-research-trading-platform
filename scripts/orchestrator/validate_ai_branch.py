@@ -27,6 +27,7 @@ DEFAULT_ALLOWED_PATHS = [
     ".github/workflows/ai_dev_validation.yml",
     "app/trading/",
     "app/prediction/",
+    "app/prediction_context/",
     "app/evaluation/",
     "app/sources/",
     "app/explainability/",
