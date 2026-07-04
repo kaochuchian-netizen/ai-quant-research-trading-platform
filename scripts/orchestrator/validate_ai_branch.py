@@ -34,6 +34,7 @@ DEFAULT_ALLOWED_PATHS = [
     "app/calibration/",
     "app/recommendation/",
     "app/dashboard/",
+    "app/dashboard_intelligence/",
     "app/reports/",
     "app/report_assembly/",
     "app/runtime/",

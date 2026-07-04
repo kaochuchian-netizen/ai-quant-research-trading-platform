@@ -1,0 +1,841 @@
+{
+  "advisory_only_badges": [
+    {
+      "advisory_only": true,
+      "badge_id": "advisory_only",
+      "label": "advisory only"
+    },
+    {
+      "badge_id": "not_trading_advice",
+      "label": "not trading advice",
+      "not_trading_advice": true
+    },
+    {
+      "badge_id": "no_order_execution",
+      "label": "no order execution",
+      "no_order_execution": true
+    },
+    {
+      "badge_id": "no_direct_rating_action_confidence_mutation",
+      "label": "no direct rating action confidence mutation",
+      "no_direct_rating_action_confidence_mutation": true
+    }
+  ],
+  "artifact_type": "dashboard_decision_intelligence_drilldown_foundation_v1",
+  "dashboard_context_ref": {
+    "artifact_type": "dashboard_decision_intelligence_drilldown_foundation_v1",
+    "template_path": "templates/dashboard_decision_intelligence_artifact.example.json"
+  },
+  "dashboard_page_model": [
+    {
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "drilldown_enabled": true,
+      "page_id": "overview",
+      "publish_url": null,
+      "title": "Overview"
+    },
+    {
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "drilldown_enabled": true,
+      "page_id": "source_credibility",
+      "publish_url": null,
+      "title": "Source credibility"
+    },
+    {
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "drilldown_enabled": true,
+      "page_id": "factor_rationale",
+      "publish_url": null,
+      "title": "Factor rationale"
+    },
+    {
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "drilldown_enabled": true,
+      "page_id": "evidence_trace",
+      "publish_url": null,
+      "title": "Evidence trace"
+    },
+    {
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "drilldown_enabled": true,
+      "page_id": "formal_integrations",
+      "publish_url": null,
+      "title": "Formal integrations"
+    },
+    {
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "drilldown_enabled": true,
+      "page_id": "market_regime",
+      "publish_url": null,
+      "title": "Market regime"
+    },
+    {
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "drilldown_enabled": true,
+      "page_id": "rolling_evaluation",
+      "publish_url": null,
+      "title": "Rolling evaluation"
+    },
+    {
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "drilldown_enabled": true,
+      "page_id": "warnings",
+      "publish_url": null,
+      "title": "Warnings"
+    },
+    {
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "drilldown_enabled": true,
+      "page_id": "advisory_policy",
+      "publish_url": null,
+      "title": "Advisory policy"
+    }
+  ],
+  "drilldown_links": [
+    {
+      "href": "dashboard://symbol/2330/overview",
+      "link_id": "overview_drilldown",
+      "page_id": "overview",
+      "placeholder_only": true,
+      "published": false
+    },
+    {
+      "href": "dashboard://symbol/2330/source-credibility",
+      "link_id": "source_credibility_drilldown",
+      "page_id": "source_credibility",
+      "placeholder_only": true,
+      "published": false
+    },
+    {
+      "href": "dashboard://symbol/2330/factor-rationale",
+      "link_id": "factor_rationale_drilldown",
+      "page_id": "factor_rationale",
+      "placeholder_only": true,
+      "published": false
+    },
+    {
+      "href": "dashboard://symbol/2330/evidence-trace",
+      "link_id": "evidence_trace_drilldown",
+      "page_id": "evidence_trace",
+      "placeholder_only": true,
+      "published": false
+    },
+    {
+      "href": "dashboard://symbol/2330/formal-integrations",
+      "link_id": "formal_integrations_drilldown",
+      "page_id": "formal_integrations",
+      "placeholder_only": true,
+      "published": false
+    },
+    {
+      "href": "dashboard://symbol/2330/market-regime",
+      "link_id": "market_regime_drilldown",
+      "page_id": "market_regime",
+      "placeholder_only": true,
+      "published": false
+    },
+    {
+      "href": "dashboard://symbol/2330/rolling-evaluation",
+      "link_id": "rolling_evaluation_drilldown",
+      "page_id": "rolling_evaluation",
+      "placeholder_only": true,
+      "published": false
+    },
+    {
+      "href": "dashboard://symbol/2330/warnings",
+      "link_id": "warnings_drilldown",
+      "page_id": "warnings",
+      "placeholder_only": true,
+      "published": false
+    },
+    {
+      "href": "dashboard://symbol/2330/advisory-policy",
+      "link_id": "advisory_policy_drilldown",
+      "page_id": "advisory_policy",
+      "placeholder_only": true,
+      "published": false
+    }
+  ],
+  "evidence_trace_cards": [
+    {
+      "card_id": "evidence_trace_01",
+      "context_section": "news_context",
+      "dashboard_block_id": "dashboard_card_broker_target_price_metadata",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "edge_count": 40,
+      "explanation_id": "explain_broker_target_price_metadata",
+      "factor_id": "factor_broker_metadata",
+      "node_count": 47,
+      "report_block_id": "report_block_broker_target_price_metadata",
+      "source_id": "broker_target_price_metadata",
+      "trace_summary": "Deterministic evidence trace link for dashboard drill-down."
+    },
+    {
+      "card_id": "evidence_trace_02",
+      "context_section": "source_summary.official_primary_source",
+      "dashboard_block_id": "dashboard_card_company_filing",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "edge_count": 40,
+      "explanation_id": "explain_company_filing",
+      "factor_id": "factor_company_disclosure",
+      "node_count": 47,
+      "report_block_id": "report_block_company_filing",
+      "source_id": "company_filing",
+      "trace_summary": "Deterministic evidence trace link for dashboard drill-down."
+    },
+    {
+      "card_id": "evidence_trace_03",
+      "context_section": "finmind_context",
+      "dashboard_block_id": "dashboard_card_finmind",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "edge_count": 40,
+      "explanation_id": "explain_finmind",
+      "factor_id": "factor_finmind_supplement",
+      "node_count": 47,
+      "report_block_id": "report_block_finmind",
+      "source_id": "finmind",
+      "trace_summary": "Deterministic evidence trace link for dashboard drill-down."
+    },
+    {
+      "card_id": "evidence_trace_04",
+      "context_section": "explainability_context",
+      "dashboard_block_id": "dashboard_card_gemini_google_generative_ai",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "edge_count": 40,
+      "explanation_id": "explain_gemini_google_generative_ai",
+      "factor_id": "factor_ai_generated_summary",
+      "node_count": 47,
+      "report_block_id": "report_block_gemini_google_generative_ai",
+      "source_id": "gemini_google_generative_ai",
+      "trace_summary": "Deterministic evidence trace link for dashboard drill-down."
+    },
+    {
+      "card_id": "evidence_trace_05",
+      "context_section": "news_context",
+      "dashboard_block_id": "dashboard_card_google_news_rss",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "edge_count": 40,
+      "explanation_id": "explain_google_news_rss",
+      "factor_id": "factor_news_event_detection",
+      "node_count": 47,
+      "report_block_id": "report_block_google_news_rss",
+      "source_id": "google_news_rss",
+      "trace_summary": "Deterministic evidence trace link for dashboard drill-down."
+    },
+    {
+      "card_id": "evidence_trace_06",
+      "context_section": "source_summary.official_market_source",
+      "dashboard_block_id": "dashboard_card_shioaji_sinopac",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "edge_count": 40,
+      "explanation_id": "explain_shioaji_sinopac",
+      "factor_id": "factor_runtime_market_data",
+      "node_count": 47,
+      "report_block_id": "report_block_shioaji_sinopac",
+      "source_id": "shioaji_sinopac",
+      "trace_summary": "Deterministic evidence trace link for dashboard drill-down."
+    },
+    {
+      "card_id": "evidence_trace_07",
+      "context_section": "twse_context",
+      "dashboard_block_id": "dashboard_card_twse_openapi",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "edge_count": 40,
+      "explanation_id": "explain_twse_openapi",
+      "factor_id": "factor_twse_chip_flow",
+      "node_count": 47,
+      "report_block_id": "report_block_twse_openapi",
+      "source_id": "twse_openapi",
+      "trace_summary": "Deterministic evidence trace link for dashboard drill-down."
+    },
+    {
+      "card_id": "evidence_trace_08",
+      "context_section": "yfinance_context",
+      "dashboard_block_id": "dashboard_card_yfinance_yahoo",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "edge_count": 40,
+      "explanation_id": "explain_yfinance_yahoo",
+      "factor_id": "factor_external_proxy",
+      "node_count": 47,
+      "report_block_id": "report_block_yfinance_yahoo",
+      "source_id": "yfinance_yahoo",
+      "trace_summary": "Deterministic evidence trace link for dashboard drill-down."
+    }
+  ],
+  "exclusion_cards": [
+    {
+      "card_id": "broker_target_price_metadata_exclusion_card",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "exclusion_reason": "Broker target / analyst opinion is metadata only and cannot directly affect rating/action/confidence.",
+      "source_id": "broker_target_price_metadata"
+    },
+    {
+      "card_id": "finmind_exclusion_card",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "exclusion_reason": "FinMind is a normalized external data provider and cannot replace MOPS / TWSE / company official information.",
+      "source_id": "finmind"
+    },
+    {
+      "card_id": "gemini_google_generative_ai_exclusion_card",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "exclusion_reason": "Gemini is AI-generated analysis and not original evidence.",
+      "source_id": "gemini_google_generative_ai"
+    },
+    {
+      "card_id": "google_news_rss_exclusion_card",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "exclusion_reason": "Google News RSS is event detection / sentiment support only and cannot be core forecast evidence.",
+      "source_id": "google_news_rss"
+    },
+    {
+      "card_id": "yfinance_yahoo_exclusion_card",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "exclusion_reason": "yfinance/Yahoo is an external reference/proxy and cannot replace official sources.",
+      "source_id": "yfinance_yahoo"
+    }
+  ],
+  "explainability_ref": {
+    "schema_version": "unified_explainability_evidence_trace_v1",
+    "task_id": "AI-DEV-137",
+    "template_path": "templates/unified_explainability_artifact.example.json"
+  },
+  "factor_rationale_cards": [
+    {
+      "allowed_usage": [
+        "draft_explanation",
+        "summary_generation_after_source_attribution"
+      ],
+      "card_id": "factor_ai_generated_summary_rationale_card",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "disallowed_usage": [
+        "direct_rating_action_confidence_change",
+        "production_weight_mutation",
+        "order_execution",
+        "official_source_replacement",
+        "original_evidence"
+      ],
+      "factor_category": "context",
+      "factor_id": "factor_ai_generated_summary",
+      "factor_name": "AI generated explanation draft",
+      "rationale_summary": "Deterministic factor rationale sample.",
+      "supporting_sources": [
+        "gemini_google_generative_ai"
+      ]
+    },
+    {
+      "allowed_usage": [
+        "sentiment_metadata",
+        "analyst_opinion_context"
+      ],
+      "card_id": "factor_broker_metadata_rationale_card",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "disallowed_usage": [
+        "direct_rating_action_confidence_change",
+        "production_weight_mutation",
+        "order_execution",
+        "official_source_replacement"
+      ],
+      "factor_category": "context",
+      "factor_id": "factor_broker_metadata",
+      "factor_name": "Broker target/rating metadata",
+      "rationale_summary": "Deterministic factor rationale sample.",
+      "supporting_sources": [
+        "broker_target_price_metadata"
+      ]
+    },
+    {
+      "allowed_usage": [
+        "context_anchor",
+        "report_explanation",
+        "dashboard_drill_down"
+      ],
+      "card_id": "factor_company_disclosure_rationale_card",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "disallowed_usage": [
+        "direct_rating_action_confidence_change",
+        "production_weight_mutation",
+        "order_execution"
+      ],
+      "factor_category": "context",
+      "factor_id": "factor_company_disclosure",
+      "factor_name": "Company disclosure anchor",
+      "rationale_summary": "Deterministic factor rationale sample.",
+      "supporting_sources": [
+        "company_filing"
+      ]
+    },
+    {
+      "allowed_usage": [
+        "supplemental_context",
+        "report_explanation",
+        "dashboard_drill_down"
+      ],
+      "card_id": "factor_external_proxy_rationale_card",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "disallowed_usage": [
+        "direct_rating_action_confidence_change",
+        "production_weight_mutation",
+        "order_execution",
+        "official_source_replacement"
+      ],
+      "factor_category": "context",
+      "factor_id": "factor_external_proxy",
+      "factor_name": "ADR and US market proxy context",
+      "rationale_summary": "Deterministic factor rationale sample.",
+      "supporting_sources": [
+        "yfinance_yahoo"
+      ]
+    },
+    {
+      "allowed_usage": [
+        "supplemental_context",
+        "report_explanation",
+        "dashboard_drill_down"
+      ],
+      "card_id": "factor_finmind_supplement_rationale_card",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "disallowed_usage": [
+        "direct_rating_action_confidence_change",
+        "production_weight_mutation",
+        "order_execution",
+        "official_source_replacement"
+      ],
+      "factor_category": "context",
+      "factor_id": "factor_finmind_supplement",
+      "factor_name": "FinMind normalized supplemental context",
+      "rationale_summary": "Deterministic factor rationale sample.",
+      "supporting_sources": [
+        "finmind"
+      ]
+    },
+    {
+      "allowed_usage": [
+        "event_detection",
+        "sentiment_support",
+        "metadata_warning"
+      ],
+      "card_id": "factor_news_event_detection_rationale_card",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "disallowed_usage": [
+        "direct_rating_action_confidence_change",
+        "production_weight_mutation",
+        "order_execution",
+        "official_source_replacement",
+        "core_forecast_evidence"
+      ],
+      "factor_category": "context",
+      "factor_id": "factor_news_event_detection",
+      "factor_name": "Headline event/sentiment detection",
+      "rationale_summary": "Deterministic factor rationale sample.",
+      "supporting_sources": [
+        "google_news_rss"
+      ]
+    },
+    {
+      "allowed_usage": [
+        "context_anchor",
+        "report_explanation",
+        "dashboard_drill_down"
+      ],
+      "card_id": "factor_runtime_market_data_rationale_card",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "disallowed_usage": [
+        "direct_rating_action_confidence_change",
+        "production_weight_mutation",
+        "order_execution"
+      ],
+      "factor_category": "context",
+      "factor_id": "factor_runtime_market_data",
+      "factor_name": "Runtime market data anchor",
+      "rationale_summary": "Deterministic factor rationale sample.",
+      "supporting_sources": [
+        "shioaji_sinopac"
+      ]
+    },
+    {
+      "allowed_usage": [
+        "context_anchor",
+        "report_explanation",
+        "dashboard_drill_down"
+      ],
+      "card_id": "factor_twse_chip_flow_rationale_card",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "disallowed_usage": [
+        "direct_rating_action_confidence_change",
+        "production_weight_mutation",
+        "order_execution"
+      ],
+      "factor_category": "context",
+      "factor_id": "factor_twse_chip_flow",
+      "factor_name": "TWSE official market/chip context",
+      "rationale_summary": "Deterministic factor rationale sample.",
+      "supporting_sources": [
+        "twse_openapi"
+      ]
+    }
+  ],
+  "formal_integration_cards": [
+    {
+      "allowed_usage": "Dashboard context and attribution only.",
+      "artifact_path": "templates/finmind_report_integration_artifact.example.json",
+      "card_id": "finmind_report_integration_card",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "disallowed_usage": "No direct rating/action/confidence mutation and no official-source replacement unless explicitly official.",
+      "integration_id": "finmind_report_integration",
+      "source_id": "finmind",
+      "title": "FinMind report integration"
+    },
+    {
+      "allowed_usage": "Dashboard context and attribution only.",
+      "artifact_path": "templates/twse_yfinance_report_integration_artifact.example.json",
+      "card_id": "twse_report_integration_card",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "disallowed_usage": "No direct rating/action/confidence mutation and no official-source replacement unless explicitly official.",
+      "integration_id": "twse_report_integration",
+      "source_id": "twse_openapi",
+      "title": "TWSE report integration"
+    },
+    {
+      "allowed_usage": "Dashboard context and attribution only.",
+      "artifact_path": "templates/twse_yfinance_report_integration_artifact.example.json",
+      "card_id": "yfinance_yahoo_report_integration_card",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "disallowed_usage": "No direct rating/action/confidence mutation and no official-source replacement unless explicitly official.",
+      "integration_id": "yfinance_yahoo_report_integration",
+      "source_id": "yfinance_yahoo",
+      "title": "yfinance/Yahoo report integration"
+    }
+  ],
+  "generated_at": "2026-07-04T00:00:00+00:00",
+  "market": "TW",
+  "market_regime_cards": [
+    {
+      "card_id": "market_regime_detail_card",
+      "context": {
+        "artifact_ref": "templates/market_regime_artifact.example.json",
+        "direct_rating_action_confidence_impact": false,
+        "status": "sample_ready"
+      },
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false
+    }
+  ],
+  "metadata_only_badges": [
+    {
+      "badge_id": "broker_target_analyst_opinion_metadata_only",
+      "direct_rating_action_confidence_impact": false,
+      "label": "Broker target / analyst opinion metadata only.",
+      "metadata_only": true
+    },
+    {
+      "badge_id": "google_news_rss_support_only",
+      "direct_rating_action_confidence_impact": false,
+      "label": "Google News RSS support only; event detection / sentiment support.",
+      "metadata_only": true
+    },
+    {
+      "badge_id": "gemini_generated_analysis_only",
+      "direct_rating_action_confidence_impact": false,
+      "label": "Gemini generated analysis only; not original evidence.",
+      "metadata_only": true
+    }
+  ],
+  "prediction_context_ref": {
+    "schema_version": "prediction_context_v1",
+    "task_id": "AI-DEV-136",
+    "template_path": "templates/prediction_context_artifact.example.json"
+  },
+  "publish_policy": {
+    "dashboard_published": false,
+    "dashboard_runtime_modified": false,
+    "dashboard_ui_modified": false,
+    "delivery_executed": false,
+    "external_notification_sent": false,
+    "production_delivery_behavior_modified": false
+  },
+  "report_assembly_ref": {
+    "schema_version": "context_based_report_assembly_v1",
+    "task_id": "AI-DEV-138",
+    "template_path": "templates/context_based_report_assembly_artifact.example.json"
+  },
+  "rolling_evaluation_cards": [
+    {
+      "card_id": "rolling_evaluation_detail_card",
+      "context": {
+        "artifact_ref": "templates/rolling_evaluation_artifact.example.json",
+        "direct_rating_action_confidence_impact": false,
+        "status": "sample_ready"
+      },
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false
+    }
+  ],
+  "safety_policy": {
+    "broker_order_trading": false,
+    "dashboard_drilldown_artifact_only": true,
+    "dashboard_published": false,
+    "dashboard_runtime_modified": false,
+    "dashboard_ui_modified": false,
+    "direct_rating_action_confidence_impact": false,
+    "external_api_called": false,
+    "formal_delivery_behavior_modified": false,
+    "line_email_sent": false,
+    "no_direct_rating_action_confidence_change": true,
+    "not_dashboard_ui_implementation": true,
+    "not_production_dashboard_runtime": true,
+    "not_production_decision_engine": true,
+    "offline_sample_only": true,
+    "production_db_read": false,
+    "production_db_write": false,
+    "production_pipeline_run": false,
+    "production_rating_action_confidence_weight_mutation": false,
+    "production_runtime_modified": false,
+    "python_main_executed": false,
+    "read_only": true,
+    "scheduler_modified": false,
+    "secrets_read": false
+  },
+  "schema_version": "dashboard_decision_intelligence_v1",
+  "source_credibility_cards": [
+    {
+      "allowed_usage": "Display source role and credibility context for drill-down.",
+      "card_id": "official_primary_source_card",
+      "category": "official_primary_source",
+      "count": 1,
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "disallowed_usage": "Must not directly mutate rating/action/confidence.",
+      "providers": [
+        "Company official filing / MOPS"
+      ],
+      "source_ids": [
+        "company_filing"
+      ]
+    },
+    {
+      "allowed_usage": "Display source role and credibility context for drill-down.",
+      "card_id": "official_market_source_card",
+      "category": "official_market_source",
+      "count": 2,
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "disallowed_usage": "Must not directly mutate rating/action/confidence.",
+      "providers": [
+        "Sinopac/Shioaji",
+        "TWSE OpenAPI"
+      ],
+      "source_ids": [
+        "shioaji_sinopac",
+        "twse_openapi"
+      ]
+    },
+    {
+      "allowed_usage": "Display source role and credibility context for drill-down.",
+      "card_id": "normalized_external_data_provider_card",
+      "category": "normalized_external_data_provider",
+      "count": 1,
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "disallowed_usage": "Must not directly mutate rating/action/confidence.",
+      "providers": [
+        "FinMind"
+      ],
+      "source_ids": [
+        "finmind"
+      ]
+    },
+    {
+      "allowed_usage": "Display source role and credibility context for drill-down.",
+      "card_id": "external_reference_proxy_card",
+      "category": "external_reference_proxy",
+      "count": 1,
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "disallowed_usage": "Must not directly mutate rating/action/confidence.",
+      "providers": [
+        "Yahoo Finance / yfinance"
+      ],
+      "source_ids": [
+        "yfinance_yahoo"
+      ]
+    },
+    {
+      "allowed_usage": "Display source role and credibility context for drill-down.",
+      "card_id": "ai_generated_analysis_card",
+      "category": "ai_generated_analysis",
+      "count": 1,
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "disallowed_usage": "Must not directly mutate rating/action/confidence.",
+      "providers": [
+        "Gemini"
+      ],
+      "source_ids": [
+        "gemini_google_generative_ai"
+      ]
+    },
+    {
+      "allowed_usage": "Display source role and credibility context for drill-down.",
+      "card_id": "low_priority_metadata_card",
+      "category": "low_priority_metadata",
+      "count": 2,
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "disallowed_usage": "Must not directly mutate rating/action/confidence.",
+      "providers": [
+        "Broker target/rating metadata",
+        "Google News RSS"
+      ],
+      "source_ids": [
+        "broker_target_price_metadata",
+        "google_news_rss"
+      ]
+    }
+  ],
+  "summary_cards": [
+    {
+      "card_id": "symbol_summary_card",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "subtitle": "TW",
+      "title": "Symbol",
+      "value": "2330"
+    },
+    {
+      "card_id": "report_window_summary_card",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "title": "Report window",
+      "value": {
+        "as_of_date": "2026-07-04",
+        "forecast_horizons": [
+          "same_day_high_low",
+          "next_day_high_low",
+          "one_month_trend",
+          "three_month_trend"
+        ],
+        "lookback_days": 90,
+        "sample_mode": true
+      }
+    },
+    {
+      "card_id": "market_regime_summary_card",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "title": "Market regime",
+      "value": "sample_only"
+    },
+    {
+      "card_id": "confidence_rationale_summary_card",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "title": "Confidence rationale",
+      "value": "Confidence can be explained from prediction context calibration, source credibility, factor effectiveness, and evidence trace; this task does not rewrite production confidence."
+    },
+    {
+      "card_id": "advisory_only_summary_card",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "title": "Advisory only",
+      "value": "Research-only; no trading advice; no order execution."
+    }
+  ],
+  "symbol": "2330",
+  "task_id": "AI-DEV-139",
+  "ui_contract_notes": [
+    "Artifact only; not a Dashboard UI implementation.",
+    "Renderer may consume cards and placeholder drilldown links in a later gated task.",
+    "Do not publish dashboard from this artifact builder or validator."
+  ],
+  "warning_cards": [
+    {
+      "card_id": "broker_target_price_metadata_metadata_only_card",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "source_id": "broker_target_price_metadata",
+      "warning_summary": "Broker target / analyst opinion is metadata only and cannot directly affect rating/action/confidence.",
+      "warning_type": "metadata_only"
+    },
+    {
+      "card_id": "broker_target_price_metadata_official_source_replacement_card",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "source_id": "broker_target_price_metadata",
+      "warning_summary": "Broker target / analyst opinion is metadata only and cannot directly affect rating/action/confidence.",
+      "warning_type": "official_source_replacement"
+    },
+    {
+      "card_id": "finmind_official_source_replacement_card",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "source_id": "finmind",
+      "warning_summary": "FinMind is a normalized external data provider and cannot replace MOPS / TWSE / company official information.",
+      "warning_type": "official_source_replacement"
+    },
+    {
+      "card_id": "gemini_google_generative_ai_official_source_replacement_card",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "source_id": "gemini_google_generative_ai",
+      "warning_summary": "Gemini is AI-generated analysis and not original evidence.",
+      "warning_type": "official_source_replacement"
+    },
+    {
+      "card_id": "google_news_rss_metadata_only_card",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "source_id": "google_news_rss",
+      "warning_summary": "Google News RSS is event detection / sentiment support only and cannot be core forecast evidence.",
+      "warning_type": "metadata_only"
+    },
+    {
+      "card_id": "google_news_rss_official_source_replacement_card",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "source_id": "google_news_rss",
+      "warning_summary": "Google News RSS is event detection / sentiment support only and cannot be core forecast evidence.",
+      "warning_type": "official_source_replacement"
+    },
+    {
+      "card_id": "yfinance_yahoo_official_source_replacement_card",
+      "deterministic": true,
+      "direct_rating_action_confidence_impact": false,
+      "source_id": "yfinance_yahoo",
+      "warning_summary": "yfinance/Yahoo is an external reference/proxy and cannot replace official sources.",
+      "warning_type": "official_source_replacement"
+    }
+  ]
+}
