@@ -1,0 +1,25 @@
+{
+  "allowed_sources": [
+    "templates/",
+    "docs/",
+    "orchestrator/templates/",
+    "orchestrator/queue/",
+    "/var/www/stock-ai-dashboard/.ai_dev_145_publish_results/latest.json",
+    "/home/kaochuchian/dify/docker/volumes/certbot/www/stock-ai-dashboard/.ai_dev_145_publish_results",
+    "/home/kaochuchian/dify/docker/volumes/certbot/www/stock-ai-dashboard/.ai_dev_145_publish_results/",
+    "/home/kaochuchian/.local/state/stock-ai-orchestrator/",
+    "data/stock_analysis.db"
+  ],
+  "dashboard_public_url": "http://35.201.242.167/stock-ai-dashboard/dashboard/decision-intelligence/four-window-preview/index.html",
+  "freshness_hours": {
+    "intraday_1305": 4,
+    "post_close_1500": 36,
+    "pre_close_1335": 4,
+    "pre_open_0700": 18,
+    "prediction_fields": 36,
+    "report_summary": 36,
+    "stock_universe": 168
+  },
+  "schema_version": "four_window_dashboard_runtime_data_input_v1",
+  "task_id": "AI-DEV-147"
+}
