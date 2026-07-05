@@ -1,0 +1,39 @@
+{
+  "schema_version": "four_window_dashboard_pm_readable_ux_v1",
+  "task_id": "AI-DEV-146",
+  "page_title": "四時段 AI 決策儀表板",
+  "preview_status": "預覽版 / 尚未接正式即時資料",
+  "primary_sections": [
+    "今日決策摘要",
+    "四個時段怎麼看",
+    "資料可信度與證據來源",
+    "正式上線後會補上的內容"
+  ],
+  "window_cards": [
+    {"time": "07:00", "title": "盤前預測 / Pre-open Forecast", "purpose": "開盤前建立今日 / 次日 / 1M / 3M 預測脈絡", "status": "Preview sample"},
+    {"time": "13:05", "title": "盤中追蹤 / Intraday Tracking", "purpose": "檢查盤中走勢是否偏離盤前假設", "status": "Preview sample"},
+    {"time": "13:35", "title": "收盤快照 / Close Snapshot", "purpose": "接近收盤時保留當日狀態快照", "full_prediction_review": false},
+    {"time": "15:00", "title": "盤後檢討 / Prediction Review", "purpose": "完整檢討預測品質", "full_prediction_review": true}
+  ],
+  "debug_section": {
+    "title": "技術檢查 / Debug",
+    "placement": "after_main_content",
+    "collapsed_with_details": true
+  },
+  "removed_from_main_view": [
+    "Route Contract as first section",
+    "wide technical mapping table",
+    "embedded iframe",
+    "deterministic placeholder text as user-facing copy"
+  ],
+  "safety_policy": {
+    "external_notification_sent": false,
+    "scheduler_modified": false,
+    "db_write": false,
+    "production_pipeline_executed": false,
+    "python_main_executed": false,
+    "trading_or_order_executed": false,
+    "production_rating_action_confidence_weight_mutated": false,
+    "formal_delivery_behavior_changed": false
+  }
+}
