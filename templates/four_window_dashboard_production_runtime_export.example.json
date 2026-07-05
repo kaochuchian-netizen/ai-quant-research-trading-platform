@@ -43,19 +43,7 @@
       "message": "資料待接：未找到安全 actual outcome / review 欄位"
     }
   ],
-  "bound_categories": [
-    "production_runtime_export",
-    "stock_universe",
-    "latest_report_summary",
-    "per_stock_summary",
-    "prediction_fields_status",
-    "actual_outcome_fields_status",
-    "prediction_review_fields_status",
-    "source_credibility_policy",
-    "four_window_status"
-  ],
-  "dashboard_public_url": "http://35.201.242.167/stock-ai-dashboard/dashboard/decision-intelligence/four-window-preview/index.html",
-  "data_binding_mode": "production_runtime_export_normalized_for_dashboard",
+  "export_mode": "safe_local_read_only_existing_runtime_artifacts",
   "four_windows": [
     {
       "available_sections": [
@@ -566,7 +554,6 @@
       "used": true
     }
   ],
-  "latest_data_timestamp": "2026-07-03 07:06:14",
   "latest_reports": [
     {
       "freshness_label": "資料過期",
@@ -638,6 +625,7 @@
       "summary": "Existing sanitized structured artifact discovered for dashboard context."
     }
   ],
+  "latest_runtime_timestamp": "2026-07-03 07:06:14",
   "latest_runtime_window": "latest_local_analysis_results",
   "missing_data": [
     {
@@ -749,106 +737,6 @@
       "category": "prediction_review_fields",
       "id": "recommendation_for_improvement",
       "message": "source timestamp or field unavailable"
-    },
-    {
-      "category": "prediction_fields",
-      "id": "same_day_high_low",
-      "message": "資料待接：未找到具 timestamp 的正式 same-day high/low forecast 欄位"
-    },
-    {
-      "category": "prediction_fields",
-      "id": "next_day_high_low",
-      "message": "資料待接：未找到具 timestamp 的正式 next-day high/low forecast 欄位"
-    },
-    {
-      "category": "prediction_fields",
-      "id": "one_month_trend",
-      "message": "資料待接：未找到具 timestamp 的正式 1M trend 欄位"
-    },
-    {
-      "category": "prediction_fields",
-      "id": "three_month_trend",
-      "message": "資料待接：未找到具 timestamp 的正式 3M trend 欄位"
-    },
-    {
-      "category": "prediction_fields",
-      "id": "confidence",
-      "message": "資料待接：未找到具 timestamp 的正式 confidence 欄位"
-    },
-    {
-      "category": "prediction_fields",
-      "id": "rationale",
-      "message": "資料待接：未找到具 timestamp 的正式 rationale 欄位"
-    },
-    {
-      "category": "actual_outcome_fields",
-      "id": "actual_high",
-      "message": "資料待接：未找到安全 actual outcome / review 欄位"
-    },
-    {
-      "category": "actual_outcome_fields",
-      "id": "actual_low",
-      "message": "資料待接：未找到安全 actual outcome / review 欄位"
-    },
-    {
-      "category": "actual_outcome_fields",
-      "id": "actual_close",
-      "message": "資料待接：未找到安全 actual outcome / review 欄位"
-    },
-    {
-      "category": "actual_outcome_fields",
-      "id": "direction_result",
-      "message": "資料待接：未找到安全 actual outcome / review 欄位"
-    },
-    {
-      "category": "actual_outcome_fields",
-      "id": "high_low_forecast_error",
-      "message": "資料待接：未找到安全 actual outcome / review 欄位"
-    },
-    {
-      "category": "actual_outcome_fields",
-      "id": "hit_miss_status",
-      "message": "資料待接：未找到安全 actual outcome / review 欄位"
-    },
-    {
-      "category": "actual_outcome_fields",
-      "id": "review_timestamp",
-      "message": "資料待接：未找到安全 actual outcome / review 欄位"
-    },
-    {
-      "category": "prediction_review_fields",
-      "id": "review_window",
-      "message": "資料待接：未找到正式 prediction review runtime 欄位"
-    },
-    {
-      "category": "prediction_review_fields",
-      "id": "review_timestamp",
-      "message": "資料待接：未找到正式 prediction review runtime 欄位"
-    },
-    {
-      "category": "prediction_review_fields",
-      "id": "seven_day_hit_rate",
-      "message": "資料待接：未找到正式 prediction review runtime 欄位"
-    },
-    {
-      "category": "prediction_review_fields",
-      "id": "confidence_calibration",
-      "message": "資料待接：未找到正式 prediction review runtime 欄位"
-    },
-    {
-      "category": "prediction_review_fields",
-      "id": "factor_effectiveness",
-      "message": "資料待接：未找到正式 prediction review runtime 欄位"
-    },
-    {
-      "category": "prediction_review_fields",
-      "id": "error_reasons",
-      "message": "資料待接：未找到正式 prediction review runtime 欄位"
-    },
-    {
-      "category": "prediction_review_fields",
-      "id": "recommendation_for_improvement",
-      "message": "資料待接：未找到正式 prediction review runtime 欄位"
     }
   ],
   "per_stock_summaries": [
@@ -966,7 +854,10 @@
       "message": "資料待接：未找到正式 prediction review runtime 欄位"
     }
   ],
-  "production_runtime_export_ref": "templates/four_window_dashboard_production_runtime_export.example.json",
+  "rollback": {
+    "latest_known_publish_manifest": "/var/www/stock-ai-dashboard/.ai_dev_145_publish_results/latest.json",
+    "static_preview_rollback_supported": true
+  },
   "safety": {
     "db_write": false,
     "external_api_called": false,
@@ -983,7 +874,7 @@
     "sqlite_opened_read_only": true,
     "trading_or_order_executed": false
   },
-  "schema_version": "four_window_dashboard_runtime_data_v1",
+  "schema_version": "four_window_dashboard_production_runtime_export_v1",
   "source_credibility": [
     {
       "allowed_usage": "core forecast evidence when present",
@@ -1032,57 +923,6 @@
       "credibility": "explanation_layer",
       "freshness_status": "always_current",
       "label": "Gemini / AI summary",
-      "source_family": "gemini_ai_summary"
-    }
-  ],
-  "source_quality": [
-    {
-      "allowed_usage": "core forecast evidence when present",
-      "freshness_status": "always_current",
-      "label": "官方公告 / 財報 / 法說會",
-      "quality": "core_evidence",
-      "source_family": "official_company_financial_ir"
-    },
-    {
-      "allowed_usage": "official market/chip evidence",
-      "freshness_status": "always_current",
-      "label": "TWSE / 籌碼 / 市場官方資料",
-      "quality": "structured_evidence",
-      "source_family": "twse_chip_market"
-    },
-    {
-      "allowed_usage": "contextual evidence",
-      "freshness_status": "always_current",
-      "label": "產業 / 同業脈絡",
-      "quality": "contextual_evidence",
-      "source_family": "industry_peer_context"
-    },
-    {
-      "allowed_usage": "event/sentiment support only",
-      "freshness_status": "always_current",
-      "label": "Google News / yfinance / broker target",
-      "quality": "auxiliary_context",
-      "source_family": "google_news_rss"
-    },
-    {
-      "allowed_usage": "external market proxy, not official evidence",
-      "freshness_status": "always_current",
-      "label": "yfinance / Yahoo",
-      "quality": "external_market_proxy",
-      "source_family": "yfinance_yahoo"
-    },
-    {
-      "allowed_usage": "metadata only; no direct rating/action/confidence impact",
-      "freshness_status": "always_current",
-      "label": "券商目標價 / 分析師評等",
-      "quality": "metadata_noise",
-      "source_family": "broker_target_analyst_rating"
-    },
-    {
-      "allowed_usage": "not original evidence",
-      "freshness_status": "always_current",
-      "label": "Gemini / AI summary",
-      "quality": "explanation_layer",
       "source_family": "gemini_ai_summary"
     }
   ],
