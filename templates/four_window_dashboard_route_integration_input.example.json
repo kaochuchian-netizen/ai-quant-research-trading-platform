@@ -1,0 +1,10 @@
+{
+  "controlled_route_only": true,
+  "generated_at": "2026-07-05T00:00:00Z",
+  "production_publish_allowed": false,
+  "route_path": "/dashboard/decision-intelligence/four-window-preview",
+  "schema_version": "four_window_dashboard_route_integration_input_v1",
+  "source_preview_artifact": "templates/four_window_decision_intelligence_dashboard_artifact.example.json",
+  "source_preview_html": "templates/four_window_decision_intelligence_dashboard_preview.example.html",
+  "task_id": "AI-DEV-144"
+}
