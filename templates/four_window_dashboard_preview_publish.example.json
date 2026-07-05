@@ -1,0 +1,47 @@
+{
+  "schema_version": "four_window_dashboard_preview_publish_v1",
+  "task_id": "AI-DEV-145",
+  "mode": "controlled_static_dashboard_preview_publish_plan",
+  "dashboard_static_root": "/var/www/stock-ai-dashboard",
+  "dashboard_public_base_url": "http://35.201.242.167/stock-ai-dashboard",
+  "target_route_path": "/dashboard/decision-intelligence/four-window-preview",
+  "target_relative_path": "dashboard/decision-intelligence/four-window-preview/index.html",
+  "public_url": "http://35.201.242.167/stock-ai-dashboard/dashboard/decision-intelligence/four-window-preview/index.html",
+  "source_file": "templates/four_window_dashboard_route_preview.example.html",
+  "route_artifact": "templates/four_window_dashboard_route_integration.example.json",
+  "backup_policy": {
+    "timestamped_backup_required": true,
+    "backup_root_pattern": "<dashboard_static_root>/.ai_dev_145_rollback/<timestamp>",
+    "rollback_command_documented": true
+  },
+  "four_window_mapping": [
+    {"time": "07:00", "runtime_key": "pre_open_0700", "ui_display": "盤前預測 / Pre-open Forecast"},
+    {"time": "13:05", "runtime_key": "intraday_1305", "ui_display": "盤中追蹤 / Intraday Tracking"},
+    {"time": "13:35", "runtime_key": "pre_close_1335", "ui_window_id": "close_snapshot_1335", "ui_display": "收盤快照 / Close Snapshot"},
+    {"time": "15:00", "runtime_key": "post_close_1500", "ui_window_id": "prediction_review_1500", "ui_display": "盤後檢討 / Prediction Review"}
+  ],
+  "semantic_policy": {
+    "pre_close_1335_runtime_key_compatible": true,
+    "close_snapshot_1335_ui_label_required": true,
+    "pre_close_primary_semantic_allowed": false,
+    "full_prediction_review_window": "post_close_1500"
+  },
+  "publish_state": {
+    "production_dashboard_publish_executed": false,
+    "dashboard_published": false,
+    "external_notification_sent": false,
+    "scheduler_modified": false,
+    "production_pipeline_executed": false,
+    "db_write": false,
+    "secrets_read": false,
+    "formal_delivery_behavior_changed": false
+  },
+  "safety_policy": {
+    "line_email_notification_sent": false,
+    "trading_or_order_executed": false,
+    "python_main_executed": false,
+    "production_rating_action_confidence_weight_mutated": false,
+    "nginx_system_service_modified": false,
+    "firewall_or_vm_infra_modified": false
+  }
+}
