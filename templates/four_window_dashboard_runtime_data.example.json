@@ -1,0 +1,562 @@
+{
+  "bound_categories": [
+    "stock_universe",
+    "latest_report_summary",
+    "source_quality_policy",
+    "four_window_status",
+    "prediction_fields_missing"
+  ],
+  "dashboard_public_url": "http://35.201.242.167/stock-ai-dashboard/dashboard/decision-intelligence/four-window-preview/index.html",
+  "data_binding_mode": "safe_local_read_only_export",
+  "four_windows": [
+    {
+      "available_sections": [
+        "local_analysis_summary"
+      ],
+      "display_name": "盤前預測 / Pre-open Forecast",
+      "expected_time": "07:00",
+      "freshness_label": "資料過期",
+      "freshness_status": "stale",
+      "full_prediction_review": false,
+      "latest_available_data_timestamp": "2026-07-03 07:06:14",
+      "missing_sections": [],
+      "pm_readable_action": "可參考本機最近分析摘要，但仍需正式 runtime 接線",
+      "window_key": "pre_open_0700"
+    },
+    {
+      "available_sections": [],
+      "display_name": "盤中追蹤 / Intraday Tracking",
+      "expected_time": "13:05",
+      "freshness_label": "資料待接",
+      "freshness_status": "missing",
+      "full_prediction_review": false,
+      "latest_available_data_timestamp": null,
+      "missing_sections": [
+        "intraday_status",
+        "price_vs_range",
+        "volume_chip_context",
+        "invalidation_notes"
+      ],
+      "pm_readable_action": "資料待接：請先完成正式 runtime data binding",
+      "window_key": "intraday_1305"
+    },
+    {
+      "available_sections": [],
+      "display_name": "收盤快照 / Close Snapshot",
+      "expected_time": "13:35",
+      "freshness_label": "資料待接",
+      "freshness_status": "missing",
+      "full_prediction_review": false,
+      "latest_available_data_timestamp": null,
+      "missing_sections": [
+        "actual_high_low",
+        "close_price",
+        "initial_hit_status",
+        "pending_full_review"
+      ],
+      "pm_readable_action": "資料待接：請先完成正式 runtime data binding",
+      "window_key": "pre_close_1335"
+    },
+    {
+      "available_sections": [
+        "local_analysis_summary"
+      ],
+      "display_name": "盤後檢討 / Prediction Review",
+      "expected_time": "15:00",
+      "freshness_label": "資料過期",
+      "freshness_status": "stale",
+      "full_prediction_review": true,
+      "latest_available_data_timestamp": "2026-07-03 07:06:14",
+      "missing_sections": [],
+      "pm_readable_action": "可參考本機最近分析摘要，但仍需正式 runtime 接線",
+      "window_key": "post_close_1500"
+    }
+  ],
+  "freshness_checks": [
+    {
+      "category": "four_windows",
+      "id": "pre_open_0700",
+      "max_age_hours": 18,
+      "status": "stale",
+      "timestamp": "2026-07-03 07:06:14"
+    },
+    {
+      "category": "four_windows",
+      "id": "intraday_1305",
+      "max_age_hours": 4,
+      "status": "missing",
+      "timestamp": null
+    },
+    {
+      "category": "four_windows",
+      "id": "pre_close_1335",
+      "max_age_hours": 4,
+      "status": "missing",
+      "timestamp": null
+    },
+    {
+      "category": "four_windows",
+      "id": "post_close_1500",
+      "max_age_hours": 36,
+      "status": "stale",
+      "timestamp": "2026-07-03 07:06:14"
+    },
+    {
+      "category": "stock_universe",
+      "id": "00878",
+      "max_age_hours": 168,
+      "status": "fresh",
+      "timestamp": "2026-07-03 07:05:39"
+    },
+    {
+      "category": "stock_universe",
+      "id": "009816",
+      "max_age_hours": 168,
+      "status": "fresh",
+      "timestamp": "2026-07-03 07:02:09"
+    },
+    {
+      "category": "stock_universe",
+      "id": "1409",
+      "max_age_hours": 168,
+      "status": "fresh",
+      "timestamp": "2026-07-03 07:06:14"
+    },
+    {
+      "category": "stock_universe",
+      "id": "2305",
+      "max_age_hours": 168,
+      "status": "fresh",
+      "timestamp": "2026-07-03 07:04:59"
+    },
+    {
+      "category": "stock_universe",
+      "id": "2330",
+      "max_age_hours": 168,
+      "status": "fresh",
+      "timestamp": "2026-07-03 07:01:28"
+    },
+    {
+      "category": "stock_universe",
+      "id": "2337",
+      "max_age_hours": 168,
+      "status": "fresh",
+      "timestamp": "2026-07-03 07:02:41"
+    },
+    {
+      "category": "stock_universe",
+      "id": "2353",
+      "max_age_hours": 168,
+      "status": "fresh",
+      "timestamp": "2026-07-03 07:03:12"
+    },
+    {
+      "category": "stock_universe",
+      "id": "4743",
+      "max_age_hours": 168,
+      "status": "fresh",
+      "timestamp": "2026-07-03 07:04:27"
+    },
+    {
+      "category": "stock_universe",
+      "id": "6873",
+      "max_age_hours": 168,
+      "status": "fresh",
+      "timestamp": "2026-07-03 07:03:42"
+    },
+    {
+      "category": "prediction_fields",
+      "id": "same_day_high_low",
+      "max_age_hours": 36,
+      "status": "missing",
+      "timestamp": null
+    },
+    {
+      "category": "prediction_fields",
+      "id": "next_day_high_low",
+      "max_age_hours": 36,
+      "status": "missing",
+      "timestamp": null
+    },
+    {
+      "category": "prediction_fields",
+      "id": "one_month_trend",
+      "max_age_hours": 36,
+      "status": "missing",
+      "timestamp": null
+    },
+    {
+      "category": "prediction_fields",
+      "id": "three_month_trend",
+      "max_age_hours": 36,
+      "status": "missing",
+      "timestamp": null
+    },
+    {
+      "category": "prediction_fields",
+      "id": "confidence_rationale",
+      "max_age_hours": 36,
+      "status": "preview_only",
+      "timestamp": null
+    }
+  ],
+  "generated_at": "2026-07-05T23:56:00+08:00",
+  "global_freshness_status": "stale",
+  "inspected_sources": [
+    {
+      "exists": true,
+      "path": "templates/prediction_context_artifact.example.json",
+      "reason": null,
+      "secret_pattern_hits": [],
+      "used": true
+    },
+    {
+      "exists": true,
+      "path": "templates/unified_explainability_artifact.example.json",
+      "reason": null,
+      "secret_pattern_hits": [],
+      "used": true
+    },
+    {
+      "exists": true,
+      "path": "templates/context_based_report_assembly_artifact.example.json",
+      "reason": null,
+      "secret_pattern_hits": [],
+      "used": true
+    },
+    {
+      "exists": true,
+      "path": "templates/dashboard_decision_intelligence_artifact.example.json",
+      "reason": null,
+      "secret_pattern_hits": [],
+      "used": true
+    },
+    {
+      "exists": true,
+      "path": "templates/decision_quality_feedback_artifact.example.json",
+      "reason": null,
+      "secret_pattern_hits": [],
+      "used": true
+    },
+    {
+      "exists": true,
+      "path": "templates/official_primary_source_context_admission_artifact.example.json",
+      "reason": null,
+      "secret_pattern_hits": [],
+      "used": true
+    },
+    {
+      "exists": true,
+      "path": "templates/four_window_dashboard_route_integration.example.json",
+      "reason": null,
+      "secret_pattern_hits": [],
+      "used": true
+    },
+    {
+      "exists": true,
+      "path": "templates/four_window_dashboard_pm_readable_ux.example.json",
+      "reason": null,
+      "secret_pattern_hits": [],
+      "used": true
+    },
+    {
+      "exists": true,
+      "path": "/home/kaochuchian/dify/docker/volumes/certbot/www/stock-ai-dashboard/.ai_dev_145_publish_results",
+      "reason": null,
+      "secret_pattern_hits": [],
+      "used": true
+    },
+    {
+      "exists": true,
+      "latest_created_at": "2026-07-03 07:06:14",
+      "path": "data/stock_analysis.db",
+      "read_only_uri": "file:data/stock_analysis.db?mode=ro",
+      "row_count": 147,
+      "stocks": [
+        {
+          "last_updated": "2026-07-03 07:05:39",
+          "record_count": 14,
+          "stock_id": "00878",
+          "stock_name": "國泰永續高股息"
+        },
+        {
+          "last_updated": "2026-07-03 07:02:09",
+          "record_count": 18,
+          "stock_id": "009816",
+          "stock_name": "凱基台灣TOP50"
+        },
+        {
+          "last_updated": "2026-07-03 07:06:14",
+          "record_count": 14,
+          "stock_id": "1409",
+          "stock_name": "新纖"
+        },
+        {
+          "last_updated": "2026-07-03 07:04:59",
+          "record_count": 14,
+          "stock_id": "2305",
+          "stock_name": "全友"
+        },
+        {
+          "last_updated": "2026-07-03 07:01:28",
+          "record_count": 18,
+          "stock_id": "2330",
+          "stock_name": "台積電"
+        },
+        {
+          "last_updated": "2026-07-03 07:02:41",
+          "record_count": 18,
+          "stock_id": "2337",
+          "stock_name": "旺宏"
+        },
+        {
+          "last_updated": "2026-07-03 07:03:12",
+          "record_count": 18,
+          "stock_id": "2353",
+          "stock_name": "宏碁"
+        },
+        {
+          "last_updated": "2026-07-03 07:04:27",
+          "record_count": 16,
+          "stock_id": "4743",
+          "stock_name": "合一"
+        },
+        {
+          "last_updated": "2026-07-03 07:03:42",
+          "record_count": 17,
+          "stock_id": "6873",
+          "stock_name": "泓德能源"
+        }
+      ],
+      "tables": [
+        "analysis_results",
+        "sqlite_sequence"
+      ],
+      "used": true
+    }
+  ],
+  "latest_data_timestamp": "2026-07-03 07:06:14",
+  "latest_reports": [
+    {
+      "freshness_label": "資料過期",
+      "freshness_status": "stale",
+      "generated_timestamp": "2026-07-03 07:06:14",
+      "report_window": "latest_local_analysis_results",
+      "source_path": "data/stock_analysis.db",
+      "stock_count": 9,
+      "summary": "已從本機 SQLite analysis_results 讀取 sanitized 摘要；未執行 production pipeline。"
+    }
+  ],
+  "missing_data": [
+    {
+      "category": "four_window",
+      "id": "intraday_1305",
+      "missing_sections": [
+        "intraday_status",
+        "price_vs_range",
+        "volume_chip_context",
+        "invalidation_notes"
+      ]
+    },
+    {
+      "category": "four_window",
+      "id": "pre_close_1335",
+      "missing_sections": [
+        "actual_high_low",
+        "close_price",
+        "initial_hit_status",
+        "pending_full_review"
+      ]
+    },
+    {
+      "category": "prediction_fields",
+      "id": "same_day_high_low",
+      "message": "資料待接：未找到具 timestamp 的正式同日高低點預測欄位"
+    },
+    {
+      "category": "prediction_fields",
+      "id": "next_day_high_low",
+      "message": "資料待接：未找到具 timestamp 的正式次日高低點預測欄位"
+    },
+    {
+      "category": "prediction_fields",
+      "id": "one_month_trend",
+      "message": "資料待接：未找到正式 1M trend 欄位"
+    },
+    {
+      "category": "prediction_fields",
+      "id": "three_month_trend",
+      "message": "資料待接：未找到正式 3M trend 欄位"
+    }
+  ],
+  "prediction_fields": [
+    {
+      "data_state": "missing",
+      "field": "same_day_high_low",
+      "freshness_status": "missing",
+      "message": "資料待接：未找到具 timestamp 的正式同日高低點預測欄位"
+    },
+    {
+      "data_state": "missing",
+      "field": "next_day_high_low",
+      "freshness_status": "missing",
+      "message": "資料待接：未找到具 timestamp 的正式次日高低點預測欄位"
+    },
+    {
+      "data_state": "missing",
+      "field": "one_month_trend",
+      "freshness_status": "missing",
+      "message": "資料待接：未找到正式 1M trend 欄位"
+    },
+    {
+      "data_state": "missing",
+      "field": "three_month_trend",
+      "freshness_status": "missing",
+      "message": "資料待接：未找到正式 3M trend 欄位"
+    },
+    {
+      "data_state": "preview_only",
+      "field": "confidence_rationale",
+      "freshness_status": "preview_only",
+      "message": "僅預覽：static artifacts 提供政策與解釋架構，不提供正式 confidence 數值"
+    }
+  ],
+  "safety": {
+    "db_write": false,
+    "external_api_called": false,
+    "external_notification_sent": false,
+    "fabricated_market_data": false,
+    "formal_delivery_behavior_changed": false,
+    "production_pipeline_executed": false,
+    "production_rating_action_confidence_weight_mutated": false,
+    "python_main_executed": false,
+    "scheduler_modified": false,
+    "secrets_read": false,
+    "sqlite_opened_read_only": true,
+    "trading_or_order_executed": false
+  },
+  "schema_version": "four_window_dashboard_runtime_data_v1",
+  "source_quality": [
+    {
+      "allowed_usage": "core evidence",
+      "freshness_status": "always_current",
+      "label": "官方公告 / 財報 / 法說會",
+      "quality": "high",
+      "source_family": "official_company_filings"
+    },
+    {
+      "allowed_usage": "contextual evidence",
+      "freshness_status": "always_current",
+      "label": "產業供應鏈 / 同業脈絡",
+      "quality": "medium",
+      "source_family": "industry_peer_context"
+    },
+    {
+      "allowed_usage": "auxiliary only, no direct rating/action/confidence change",
+      "freshness_status": "always_current",
+      "label": "Google News / yfinance / broker target",
+      "quality": "support_only",
+      "source_family": "google_news_yfinance_broker"
+    },
+    {
+      "allowed_usage": "not original evidence",
+      "freshness_status": "always_current",
+      "label": "Gemini / AI summary",
+      "quality": "explanation_layer",
+      "source_family": "gemini_ai_summary"
+    }
+  ],
+  "stock_universe": [
+    {
+      "data_state": "usable",
+      "freshness_label": "資料正常",
+      "freshness_status": "fresh",
+      "last_updated": "2026-07-03 07:05:39",
+      "record_count": 14,
+      "source_artifact_or_table": "data/stock_analysis.db:analysis_results",
+      "stock_id": "00878",
+      "stock_name": "國泰永續高股息"
+    },
+    {
+      "data_state": "usable",
+      "freshness_label": "資料正常",
+      "freshness_status": "fresh",
+      "last_updated": "2026-07-03 07:02:09",
+      "record_count": 18,
+      "source_artifact_or_table": "data/stock_analysis.db:analysis_results",
+      "stock_id": "009816",
+      "stock_name": "凱基台灣TOP50"
+    },
+    {
+      "data_state": "usable",
+      "freshness_label": "資料正常",
+      "freshness_status": "fresh",
+      "last_updated": "2026-07-03 07:06:14",
+      "record_count": 14,
+      "source_artifact_or_table": "data/stock_analysis.db:analysis_results",
+      "stock_id": "1409",
+      "stock_name": "新纖"
+    },
+    {
+      "data_state": "usable",
+      "freshness_label": "資料正常",
+      "freshness_status": "fresh",
+      "last_updated": "2026-07-03 07:04:59",
+      "record_count": 14,
+      "source_artifact_or_table": "data/stock_analysis.db:analysis_results",
+      "stock_id": "2305",
+      "stock_name": "全友"
+    },
+    {
+      "data_state": "usable",
+      "freshness_label": "資料正常",
+      "freshness_status": "fresh",
+      "last_updated": "2026-07-03 07:01:28",
+      "record_count": 18,
+      "source_artifact_or_table": "data/stock_analysis.db:analysis_results",
+      "stock_id": "2330",
+      "stock_name": "台積電"
+    },
+    {
+      "data_state": "usable",
+      "freshness_label": "資料正常",
+      "freshness_status": "fresh",
+      "last_updated": "2026-07-03 07:02:41",
+      "record_count": 18,
+      "source_artifact_or_table": "data/stock_analysis.db:analysis_results",
+      "stock_id": "2337",
+      "stock_name": "旺宏"
+    },
+    {
+      "data_state": "usable",
+      "freshness_label": "資料正常",
+      "freshness_status": "fresh",
+      "last_updated": "2026-07-03 07:03:12",
+      "record_count": 18,
+      "source_artifact_or_table": "data/stock_analysis.db:analysis_results",
+      "stock_id": "2353",
+      "stock_name": "宏碁"
+    },
+    {
+      "data_state": "usable",
+      "freshness_label": "資料正常",
+      "freshness_status": "fresh",
+      "last_updated": "2026-07-03 07:04:27",
+      "record_count": 16,
+      "source_artifact_or_table": "data/stock_analysis.db:analysis_results",
+      "stock_id": "4743",
+      "stock_name": "合一"
+    },
+    {
+      "data_state": "usable",
+      "freshness_label": "資料正常",
+      "freshness_status": "fresh",
+      "last_updated": "2026-07-03 07:03:42",
+      "record_count": 17,
+      "source_artifact_or_table": "data/stock_analysis.db:analysis_results",
+      "stock_id": "6873",
+      "stock_name": "泓德能源"
+    }
+  ],
+  "task_id": "AI-DEV-147"
+}
