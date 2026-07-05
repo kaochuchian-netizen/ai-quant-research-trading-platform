@@ -1,0 +1,16 @@
+{
+  "external_api_calls_allowed": false,
+  "generated_at": "2026-07-05T00:00:00Z",
+  "integration_target_templates": [
+    "templates/prediction_context_artifact.example.json",
+    "templates/unified_explainability_artifact.example.json",
+    "templates/context_based_report_assembly_artifact.example.json",
+    "templates/dashboard_decision_intelligence_artifact.example.json",
+    "templates/decision_quality_feedback_artifact.example.json"
+  ],
+  "mode": "deterministic_offline_sample",
+  "production_connector_modification_allowed": false,
+  "schema_version": "official_primary_source_context_admission_input_v1",
+  "secrets_read_allowed": false,
+  "task_id": "AI-DEV-141"
+}
