@@ -1,0 +1,9 @@
+{
+  "generated_at": "2026-07-05T00:00:00Z",
+  "preview_artifact_ref": "templates/four_window_decision_intelligence_dashboard_artifact.example.json",
+  "preview_html_ref": "templates/four_window_decision_intelligence_dashboard_preview.example.html",
+  "production_publish_allowed": false,
+  "review_mode": "deterministic_read_only",
+  "schema_version": "four_window_dashboard_preview_review_input_v1",
+  "task_id": "AI-DEV-143"
+}
