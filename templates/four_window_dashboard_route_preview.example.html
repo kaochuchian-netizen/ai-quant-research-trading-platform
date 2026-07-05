@@ -3,59 +3,103 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Controlled Four-Window Dashboard Route Preview</title>
+<title>四時段 AI 決策儀表板</title>
 <style>
-body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f4f6f7;color:#162127;line-height:1.45}
-header{background:#0f333b;color:#fff;padding:22px 16px}
-main{max-width:1120px;margin:0 auto;padding:14px}
-.card{background:#fff;border:1px solid #d9e2e5;border-radius:10px;padding:14px;margin:14px 0}
-table{width:100%;border-collapse:collapse;background:#fff}th,td{border-bottom:1px solid #dce5e8;padding:9px;text-align:left;vertical-align:top}th{background:#edf3f5}
-.badges{display:flex;flex-wrap:wrap;gap:6px}.badges span{background:#eaf2f4;border:1px solid #cbdde2;border-radius:999px;padding:4px 8px;font-size:.84rem}
-iframe{width:100%;height:820px;border:1px solid #d9e2e5;border-radius:10px;background:#fff}
-@media (max-width:680px){table,thead,tbody,tr,td,th{display:block}th{display:none}td{padding:8px 10px}iframe{height:900px}}
+:root{--ink:#132227;--muted:#5f6f76;--line:#d8e2e6;--ok:#e8f5ee;--warn:#fff7e5;--blue:#e9f3fb}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f4f7f8;color:var(--ink);line-height:1.55}
+header{background:linear-gradient(135deg,#103640,#1d5a63);color:#fff;padding:26px 16px 22px}
+main{max-width:1120px;margin:0 auto;padding:16px}
+h1{font-size:clamp(28px,4vw,44px);margin:0 0 8px;letter-spacing:0}
+h2{font-size:22px;margin:0 0 12px;letter-spacing:0}
+h3{font-size:18px;margin:0 0 8px;letter-spacing:0}
+p{margin:0 0 10px} ul{margin:8px 0 0;padding-left:20px} li{margin:4px 0}
+.badge-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.badge{display:inline-flex;align-items:center;border-radius:999px;padding:6px 10px;background:#e9f3fb;color:#123b44;font-weight:700;font-size:14px;border:1px solid rgba(18,59,68,.18)}
+.badge.warn{background:var(--warn);color:#6e4d00} .badge.safe{background:var(--ok);color:#23533b}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;margin:14px 0;box-shadow:0 1px 0 rgba(14,39,46,.04)}
+.hero{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:-12px;box-shadow:0 8px 24px rgba(14,39,46,.08)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.window-card{display:flex;flex-direction:column;gap:8px;min-height:260px}
+.window-time{font-size:28px;font-weight:800;color:#123b44} .window-title{font-size:24px;font-weight:800}
+.preview-note{background:var(--blue);border:1px solid #c8dcea;border-radius:10px;padding:12px;color:#244f64}
+.source-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.source-item{border:1px solid var(--line);border-radius:10px;padding:12px;background:#fbfdfe}
+details{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin:14px 0} summary{font-weight:800;cursor:pointer}
+.debug-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+.debug-list span{background:#f6f8f9;border:1px solid #e0e7ea;border-radius:8px;padding:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+@media (max-width:760px){main{padding:12px}.grid,.source-grid,.debug-list{grid-template-columns:1fr}.window-time{font-size:24px}.window-title{font-size:21px}.hero,.card{border-radius:10px;padding:14px}}
 </style>
 </head>
 <body>
-<header><h1>Controlled Four-Window Dashboard Route Preview</h1><p>Route path: <code>/dashboard/decision-intelligence/four-window-preview</code>. Static preview only; production publish is false.</p></header>
+<header>
+  <h1>四時段 AI 決策儀表板</h1>
+  <p>盤前、盤中、收盤快照、盤後檢討</p>
+  <div class="badge-row"><span class="badge warn">預覽版 / 尚未接正式即時資料</span><span class="badge safe">不通知、不下單、不改策略</span><span class="badge">更新時間 2026-07-05T23:27:28+08:00</span></div>
+</header>
 <main>
-<section class="card"><h2>Route Contract</h2><div class="badges"><span>production_dashboard_publish_executed=false</span><span>external_notification_sent=false</span><span>scheduler_modified=false</span><span>production_pipeline_executed=false</span><span>db_write=false</span></div></section>
-<section class="card"><h2>Four-Window Mapping</h2><table><thead><tr><th>Time</th><th>Runtime Key</th><th>UI ID</th><th>Label</th><th>Phase</th></tr></thead><tbody><tr><td>07:00</td><td><code>pre_open_0700</code></td><td><code>pre_open_0700</code></td><td>盤前預測 / Pre-open Forecast</td><td>pre_open</td></tr><tr><td>13:05</td><td><code>intraday_1305</code></td><td><code>intraday_1305</code></td><td>盤中追蹤 / Intraday Tracking</td><td>intraday_tracking</td></tr><tr><td>13:35</td><td><code>pre_close_1335</code></td><td><code>close_snapshot_1335</code></td><td>收盤快照 / Close Snapshot</td><td>close_snapshot</td></tr><tr><td>15:00</td><td><code>post_close_1500</code></td><td><code>prediction_review_1500</code></td><td>盤後檢討 / Prediction Review</td><td>post_close_review</td></tr></tbody></table></section>
-<section class="card"><h2>13:35 Semantic Rule</h2><p><code>pre_close_1335</code> remains the runtime key, but the UI concept is <code>close_snapshot_1335</code> / 收盤快照 / Close Snapshot. Full prediction review remains at 15:00.</p></section>
-<section class="card"><h2>Embedded Static Preview</h2><iframe srcdoc="&lt;!doctype html&gt;
-&lt;html lang=&quot;zh-Hant&quot;&gt;
-&lt;head&gt;
-&lt;meta charset=&quot;utf-8&quot;&gt;
-&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width,initial-scale=1&quot;&gt;
-&lt;title&gt;Four-Window Decision Intelligence Dashboard&lt;/title&gt;
-&lt;style&gt;
-body{margin:0;font-family:-apple-system,BlinkMacSystemFont,&#x27;Segoe UI&#x27;,sans-serif;background:#f4f6f7;color:#162127;line-height:1.45}
-header{background:#11343b;color:#fff;padding:22px 16px}
-main{max-width:1080px;margin:0 auto;padding:14px}
-nav{display:grid;grid-template-columns:repeat(auto-fit,minmax(138px,1fr));gap:8px;margin:12px 0}
-nav a{background:#fff;border:1px solid #d9e2e5;border-radius:8px;padding:10px;text-decoration:none;color:#17343c;font-weight:700}
-.window{background:#fff;border:1px solid #d9e2e5;border-radius:10px;padding:14px;margin:14px 0}
-.time{font-weight:800;color:#2d6b79;margin:0 0 4px}
-h1{font-size:1.45rem;margin:0 0 8px} h2{font-size:1.22rem;margin:0 0 6px} h3{font-size:1rem;margin:0 0 6px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
-.card{border:1px solid #dfe7ea;border-radius:8px;padding:10px;background:#fbfcfc}
-.badges,.policy{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.badges span,.policy span{background:#eaf2f4;border:1px solid #cbdde2;border-radius:999px;padding:4px 8px;font-size:.82rem}
-.note,.purpose,.safe{color:#53666e}
-.debug{border-top:1px solid #d9e2e5;margin-top:18px;padding-top:12px}
-@media (max-width:560px){main{padding:10px}.grid{grid-template-columns:1fr}}
-&lt;/style&gt;
-&lt;/head&gt;
-&lt;body&gt;
-&lt;header&gt;&lt;h1&gt;Four-Window Decision Intelligence Dashboard&lt;/h1&gt;&lt;p&gt;Static preview only. No notification, no production pipeline, no trading, no delivery execution.&lt;/p&gt;&lt;/header&gt;
-&lt;main&gt;
-&lt;nav&gt;&lt;a href=&quot;#pre_open_0700&quot;&gt;07:00 盤前預測&lt;/a&gt;&lt;a href=&quot;#intraday_1305&quot;&gt;13:05 盤中追蹤&lt;/a&gt;&lt;a href=&quot;#close_snapshot_1335&quot;&gt;13:35 收盤快照&lt;/a&gt;&lt;a href=&quot;#prediction_review_1500&quot;&gt;15:00 盤後檢討&lt;/a&gt;&lt;/nav&gt;
-&lt;section class=&quot;window&quot;&gt;&lt;h2&gt;Executive Decision Intelligence Summary&lt;/h2&gt;&lt;ul&gt;&lt;li&gt;Executive Decision Intelligence Summary&lt;/li&gt;&lt;li&gt;Official Source Admission Summary&lt;/li&gt;&lt;li&gt;Source Credibility Cards&lt;/li&gt;&lt;li&gt;Formal Integration Cards&lt;/li&gt;&lt;li&gt;Evidence Trace Summary&lt;/li&gt;&lt;li&gt;Factor Rationale Cards&lt;/li&gt;&lt;li&gt;Warning / Exclusion Cards&lt;/li&gt;&lt;li&gt;Metadata-only Badges&lt;/li&gt;&lt;li&gt;Advisory-only Badges&lt;/li&gt;&lt;li&gt;Feedback Recommendation Cards&lt;/li&gt;&lt;li&gt;Mutation Policy Summary&lt;/li&gt;&lt;/ul&gt;&lt;div class=&quot;policy&quot;&gt;&lt;span&gt;FinMind cannot replace official sources&lt;/span&gt;&lt;span&gt;yfinance/Yahoo cannot replace official sources&lt;/span&gt;&lt;span&gt;Google News RSS cannot be core forecast evidence&lt;/span&gt;&lt;span&gt;broker target / analyst rating metadata-only&lt;/span&gt;&lt;span&gt;Gemini / AI-generated analysis is not original evidence&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;policy&quot;&gt;&lt;span&gt;recommendation_only=true&lt;/span&gt;&lt;span&gt;human_review_required_for_any_mutation=true&lt;/span&gt;&lt;span&gt;direct_rating_action_confidence_impact=false&lt;/span&gt;&lt;span&gt;production_weight_changed=false&lt;/span&gt;&lt;span&gt;production_confidence_changed=false&lt;/span&gt;&lt;span&gt;production_rating_action_changed=false&lt;/span&gt;&lt;span&gt;production_pipeline_modified=false&lt;/span&gt;&lt;span&gt;delivery_behavior_modified=false&lt;/span&gt;&lt;/div&gt;&lt;/section&gt;
-&lt;section id=&quot;pre_open_0700&quot; class=&quot;window&quot;&gt;&lt;p class=&quot;time&quot;&gt;07:00&lt;/p&gt;&lt;h2&gt;盤前預測 · Pre-open Forecast&lt;/h2&gt;&lt;p class=&quot;purpose&quot;&gt;Prepare same-day, next-day, one-month, and three-month forecast context before the market opens.&lt;/p&gt;&lt;p class=&quot;note&quot;&gt;Forecast-oriented context before market open; no delivery action is executed.&lt;/p&gt;&lt;div class=&quot;grid&quot;&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Today Market Context&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Pre-open Forecast / 盤前預測.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Same Day High Low Forecast Context&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Pre-open Forecast / 盤前預測.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Next Day High Low Forecast Context&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Pre-open Forecast / 盤前預測.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;One Month Trend Context&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Pre-open Forecast / 盤前預測.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Three Month Trend Context&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Pre-open Forecast / 盤前預測.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Market Regime&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Pre-open Forecast / 盤前預測.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Official Source Admission Summary&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Pre-open Forecast / 盤前預測.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Source Credibility Cards&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Pre-open Forecast / 盤前預測.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Formal Integration Cards&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Pre-open Forecast / 盤前預測.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Risk Scenario Invalidation Notes&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Pre-open Forecast / 盤前預測.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Advisory Only Badge&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Pre-open Forecast / 盤前預測.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Recommendation Only Badge&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Pre-open Forecast / 盤前預測.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;/div&gt;&lt;/section&gt;&lt;section id=&quot;intraday_1305&quot; class=&quot;window&quot;&gt;&lt;p class=&quot;time&quot;&gt;13:05&lt;/p&gt;&lt;h2&gt;盤中追蹤 · Intraday Tracking&lt;/h2&gt;&lt;p class=&quot;purpose&quot;&gt;Track whether current price action remains aligned with the pre-open scenario.&lt;/p&gt;&lt;p class=&quot;note&quot;&gt;Tracking window only; it does not run full prediction review.&lt;/p&gt;&lt;div class=&quot;grid&quot;&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Current Price Vs Pre Open Range Placeholder&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Intraday Tracking / 盤中追蹤.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Near Same Day High Low Status&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Intraday Tracking / 盤中追蹤.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Pre Open Scenario Validity&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Intraday Tracking / 盤中追蹤.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Volume Chip Adr External Proxy Support&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Intraday Tracking / 盤中追蹤.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Intraday Status Card&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Intraday Tracking / 盤中追蹤.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Invalidation Warning&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Intraday Tracking / 盤中追蹤.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Source Credibility Badges&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Intraday Tracking / 盤中追蹤.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;/div&gt;&lt;/section&gt;&lt;section id=&quot;close_snapshot_1335&quot; class=&quot;window&quot;&gt;&lt;p class=&quot;time&quot;&gt;13:35&lt;/p&gt;&lt;h2&gt;收盤快照 · Close Snapshot&lt;/h2&gt;&lt;p class=&quot;purpose&quot;&gt;Capture preliminary close snapshot quality signals while preserving the legacy runtime key.&lt;/p&gt;&lt;p class=&quot;note&quot;&gt;Runtime key remains pre_close_1335 for compatibility; UI label is close_snapshot_1335 / 收盤快照.&lt;/p&gt;&lt;div class=&quot;grid&quot;&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Actual High Low Placeholder&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Close Snapshot / 收盤快照.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Close Price Placeholder&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Close Snapshot / 收盤快照.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Same Day Direction Preliminary Hit Status&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Close Snapshot / 收盤快照.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Same Day Range Preliminary Hit Status&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Close Snapshot / 收盤快照.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Abnormal Stock Factor Hint&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Close Snapshot / 收盤快照.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Pre Open Forecast Preliminary Gap&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Close Snapshot / 收盤快照.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Pending Full Review Badge&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Close Snapshot / 收盤快照.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;/div&gt;&lt;/section&gt;&lt;section id=&quot;prediction_review_1500&quot; class=&quot;window&quot;&gt;&lt;p class=&quot;time&quot;&gt;15:00&lt;/p&gt;&lt;h2&gt;盤後檢討 · Prediction Review&lt;/h2&gt;&lt;p class=&quot;purpose&quot;&gt;Review forecast versus actuals and summarize decision quality feedback after close.&lt;/p&gt;&lt;p class=&quot;note&quot;&gt;Full review window; recommendations remain advisory and require human review for any mutation.&lt;/p&gt;&lt;div class=&quot;grid&quot;&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Forecast Vs Actual&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Prediction Review / 盤後檢討.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;High Low Range Hit&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Prediction Review / 盤後檢討.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Direction Hit&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Prediction Review / 盤後檢討.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Major Error Sources&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Prediction Review / 盤後檢討.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Seven Day Rolling Evaluation&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Prediction Review / 盤後檢討.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Factor Effectiveness&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Prediction Review / 盤後檢討.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Confidence Calibration&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Prediction Review / 盤後檢討.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Source Error Attribution&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Prediction Review / 盤後檢討.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Decision Quality Feedback Recommendations&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Prediction Review / 盤後檢討.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Human Review Required For Any Mutation Badge&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Prediction Review / 盤後檢討.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;article class=&quot;card&quot;&gt;&lt;h3&gt;Recommendation Only Badge&lt;/h3&gt;&lt;p&gt;Deterministic placeholder for Prediction Review / 盤後檢討.&lt;/p&gt;&lt;div class=&quot;badges&quot;&gt;&lt;span&gt;advisory only&lt;/span&gt;&lt;span&gt;recommendation only&lt;/span&gt;&lt;/div&gt;&lt;/article&gt;&lt;/div&gt;&lt;/section&gt;
-&lt;section class=&quot;debug&quot;&gt;&lt;h2&gt;Preview Diagnostics&lt;/h2&gt;&lt;p class=&quot;safe&quot;&gt;Artifact references are deterministic repo templates. Raw JSON is intentionally kept out of the main view.&lt;/p&gt;&lt;/section&gt;
-&lt;/main&gt;
-&lt;/body&gt;
-&lt;/html&gt;
-" title="Four-window dashboard preview"></iframe></section>
+<section class="hero" aria-label="Today Decision Summary">
+  <h2>今日決策摘要</h2>
+  <p>這個頁面用來把一天拆成四個清楚時段：開盤前先建立預測脈絡，盤中追蹤是否偏離假設，13:35 保留收盤快照，15:00 再做完整預測檢討。</p>
+  <p class="preview-note">目前為預覽資料，尚未接正式 runtime data。實際上線後，這裡會顯示每檔股票的預測區間、主要依據、風險與回測檢討。非投資建議，不會觸發通知或下單。</p>
+  <div class="badge-row"><span class="badge safe">controlled preview</span><span class="badge safe">no notification</span><span class="badge safe">no trading</span><span class="badge safe">no strategy weight change</span></div>
+</section>
+<section class="card">
+  <h2>四個時段怎麼看</h2>
+  <div class="grid">
+    <article class="card window-card">
+      <div class="window-time">07:00</div><div class="window-title">盤前預測 / Pre-open Forecast</div>
+      <p><strong>用途：</strong>開盤前建立今日、次日、1M、3M 的預測脈絡。</p>
+      <p><strong>使用者該看：</strong>今日偏多/偏空因素、預測區間、風險提醒。</p>
+      <p><strong>預覽內容：</strong>正式資料接上後，這裡會整理市場情境、官方來源摘要、FinMind/TWSE/yfinance 輔助脈絡與失效條件。</p>
+      <span class="badge">Preview sample</span>
+    </article>
+    <article class="card window-card">
+      <div class="window-time">13:05</div><div class="window-title">盤中追蹤 / Intraday Tracking</div>
+      <p><strong>用途：</strong>檢查盤中走勢是否偏離盤前假設。</p>
+      <p><strong>使用者該看：</strong>價格是否接近高低點、量能、新聞/籌碼變化。</p>
+      <p><strong>預覽內容：</strong>正式上線後會用盤中狀態卡提醒假設仍有效或需要提高警覺，但不做完整 prediction review。</p>
+      <span class="badge">Preview sample</span>
+    </article>
+    <article class="card window-card">
+      <div class="window-time">13:35</div><div class="window-title">收盤快照 / Close Snapshot</div>
+      <p><strong>用途：</strong>接近收盤時保留當日狀態快照。</p>
+      <p><strong>使用者該看：</strong>今日走勢是否符合預測、是否需納入盤後檢討。</p>
+      <p><strong>預覽內容：</strong>顯示今日高低價、收盤價與方向初步命中狀態的樣式；完整檢討延後到 15:00。</p>
+      <span class="badge warn">完整檢討待 15:00</span>
+    </article>
+    <article class="card window-card">
+      <div class="window-time">15:00</div><div class="window-title">盤後檢討 / Prediction Review</div>
+      <p><strong>用途：</strong>完整檢討預測品質。</p>
+      <p><strong>使用者該看：</strong>預測命中率、偏差、錯誤原因、明日改進。</p>
+      <p><strong>預覽內容：</strong>正式資料接上後，這裡會呈現 forecast vs actual、7 日 rolling evaluation、factor effectiveness 與 confidence calibration。</p>
+      <span class="badge safe">Full prediction review</span>
+    </article>
+  </div>
+</section>
+<section class="card">
+  <h2>資料可信度與證據來源</h2>
+  <div class="source-grid">
+    <div class="source-item"><h3>官方公告 / 財報 / 法說會</h3><p>高可信，可作為核心證據。未來接入 MOPS、公司公告、月營收與 IR 資料時會放在這一層。</p></div>
+    <div class="source-item"><h3>產業供應鏈 / 同業脈絡</h3><p>中可信，作為背景脈絡，協助理解同業與上下游影響。</p></div>
+    <div class="source-item"><h3>Google News / yfinance / broker target</h3><p>輔助資訊，不直接改變評等、行動或信心分數；也不能取代官方來源。</p></div>
+    <div class="source-item"><h3>Gemini / AI summary</h3><p>解釋層，不是原始證據。它只能協助整理，不可當作來源本身。</p></div>
+  </div>
+</section>
+<section class="card">
+  <h2>正式上線後會補上的內容</h2>
+  <ul>
+    <li>每檔股票的預測區間、主要依據、風險情境與失效條件。</li>
+    <li>盤中是否偏離盤前假設，以及接近高低點時的提醒式狀態。</li>
+    <li>13:35 的當日快照與 15:00 的完整 forecast vs actual 檢討。</li>
+    <li>回測命中率、factor effectiveness、confidence calibration 與人工 review 建議。</li>
+  </ul>
+</section>
+<details>
+  <summary>技術檢查 / Debug</summary>
+  <p>以下資訊保留給維運檢查，不是主要使用者閱讀區。</p>
+  <div class="debug-list"><span>route=/dashboard/decision-intelligence/four-window-preview</span><span>runtime keys: pre_open_0700 / intraday_1305 / pre_close_1335 / post_close_1500</span><span>ui concept: close_snapshot_1335 / prediction_review_1500</span><span>production_dashboard_publish_executed=false</span><span>no notification</span><span>no scheduler change</span><span>no DB write</span><span>no production pipeline</span><span>no trading</span><span>no rating/action/confidence/weight mutation</span></div>
+</details>
 </main>
 </body>
 </html>
