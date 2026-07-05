@@ -1,0 +1,594 @@
+{
+  "artifact_type": "decision_quality_feedback_loop_foundation_v1",
+  "confidence_calibration_summary": {
+    "calibration_window": "last_7_sessions_sample",
+    "confidence_bias": "sample_slight_overconfidence",
+    "overconfidence_flag": true,
+    "production_confidence_changed": false,
+    "recommended_confidence_note": "Display confidence caution in report/dashboard; do not change production confidence.",
+    "underconfidence_flag": false
+  },
+  "confidence_feedback_blocks": [
+    {
+      "block_id": "confidence_calibration_feedback",
+      "confidence_bias": "sample_slight_overconfidence",
+      "overconfidence_flag": true,
+      "production_confidence_changed": false,
+      "recommendation_only": true,
+      "recommended_confidence_note": "Display confidence caution in report/dashboard; do not change production confidence.",
+      "underconfidence_flag": false
+    }
+  ],
+  "dashboard_feedback_blocks": [
+    {
+      "card_id": "feedback_summary_card",
+      "recommendation_only": true,
+      "text": "Decision quality feedback summary."
+    },
+    {
+      "card_id": "factor_quality_card",
+      "recommendation_only": true,
+      "text": "Factor quality review card."
+    },
+    {
+      "card_id": "confidence_bias_card",
+      "recommendation_only": true,
+      "text": "Confidence bias review card."
+    },
+    {
+      "card_id": "source_error_attribution_card",
+      "recommendation_only": true,
+      "text": "Source error attribution card."
+    },
+    {
+      "card_id": "regime_quality_card",
+      "recommendation_only": true,
+      "text": "Market regime quality card."
+    },
+    {
+      "card_id": "recommendation_card",
+      "recommendation_only": true,
+      "text": "Human-gated recommendation card."
+    }
+  ],
+  "dashboard_intelligence_ref": {
+    "schema_version": "dashboard_decision_intelligence_v1",
+    "task_id": "AI-DEV-139",
+    "template_path": "templates/dashboard_decision_intelligence_artifact.example.json"
+  },
+  "explainability_ref": {
+    "schema_version": "unified_explainability_evidence_trace_v1",
+    "task_id": "AI-DEV-137",
+    "template_path": "templates/unified_explainability_artifact.example.json"
+  },
+  "factor_effectiveness_summary": [
+    {
+      "confidence_support": "sample_watch",
+      "evidence_support": [
+        "gemini_google_generative_ai"
+      ],
+      "factor_category": "context",
+      "factor_id": "factor_ai_generated_summary",
+      "factor_name": "AI generated explanation draft",
+      "production_weight_changed": false,
+      "recent_effectiveness": "neutral",
+      "recommended_action": "display_review_hint_no_weight_change",
+      "warning_flag": false
+    },
+    {
+      "confidence_support": "sample_support",
+      "evidence_support": [
+        "broker_target_price_metadata"
+      ],
+      "factor_category": "context",
+      "factor_id": "factor_broker_metadata",
+      "factor_name": "Broker target/rating metadata",
+      "production_weight_changed": false,
+      "recent_effectiveness": "effective",
+      "recommended_action": "display_review_hint_no_weight_change",
+      "warning_flag": false
+    },
+    {
+      "confidence_support": "sample_watch",
+      "evidence_support": [
+        "company_filing"
+      ],
+      "factor_category": "context",
+      "factor_id": "factor_company_disclosure",
+      "factor_name": "Company disclosure anchor",
+      "production_weight_changed": false,
+      "recent_effectiveness": "mixed",
+      "recommended_action": "display_review_hint_no_weight_change",
+      "warning_flag": false
+    },
+    {
+      "confidence_support": "sample_watch",
+      "evidence_support": [
+        "yfinance_yahoo"
+      ],
+      "factor_category": "context",
+      "factor_id": "factor_external_proxy",
+      "factor_name": "ADR and US market proxy context",
+      "production_weight_changed": false,
+      "recent_effectiveness": "neutral",
+      "recommended_action": "display_review_hint_no_weight_change",
+      "warning_flag": false
+    },
+    {
+      "confidence_support": "sample_support",
+      "evidence_support": [
+        "finmind"
+      ],
+      "factor_category": "context",
+      "factor_id": "factor_finmind_supplement",
+      "factor_name": "FinMind normalized supplemental context",
+      "production_weight_changed": false,
+      "recent_effectiveness": "watch",
+      "recommended_action": "display_review_hint_no_weight_change",
+      "warning_flag": true
+    },
+    {
+      "confidence_support": "sample_support",
+      "evidence_support": [
+        "google_news_rss"
+      ],
+      "factor_category": "context",
+      "factor_id": "factor_news_event_detection",
+      "factor_name": "Headline event/sentiment detection",
+      "production_weight_changed": false,
+      "recent_effectiveness": "effective",
+      "recommended_action": "display_review_hint_no_weight_change",
+      "warning_flag": false
+    },
+    {
+      "confidence_support": "sample_watch",
+      "evidence_support": [
+        "shioaji_sinopac"
+      ],
+      "factor_category": "context",
+      "factor_id": "factor_runtime_market_data",
+      "factor_name": "Runtime market data anchor",
+      "production_weight_changed": false,
+      "recent_effectiveness": "mixed",
+      "recommended_action": "display_review_hint_no_weight_change",
+      "warning_flag": true
+    },
+    {
+      "confidence_support": "sample_support",
+      "evidence_support": [
+        "twse_openapi"
+      ],
+      "factor_category": "context",
+      "factor_id": "factor_twse_chip_flow",
+      "factor_name": "TWSE official market/chip context",
+      "production_weight_changed": false,
+      "recent_effectiveness": "watch",
+      "recommended_action": "display_review_hint_no_weight_change",
+      "warning_flag": false
+    }
+  ],
+  "factor_feedback_blocks": [
+    {
+      "block_id": "factor_ai_generated_summary_feedback",
+      "factor_id": "factor_ai_generated_summary",
+      "feedback_summary": "AI generated explanation draft recent effectiveness: neutral",
+      "production_weight_changed": false,
+      "recommendation_only": true,
+      "recommended_action": "display_review_hint_no_weight_change"
+    },
+    {
+      "block_id": "factor_broker_metadata_feedback",
+      "factor_id": "factor_broker_metadata",
+      "feedback_summary": "Broker target/rating metadata recent effectiveness: effective",
+      "production_weight_changed": false,
+      "recommendation_only": true,
+      "recommended_action": "display_review_hint_no_weight_change"
+    },
+    {
+      "block_id": "factor_company_disclosure_feedback",
+      "factor_id": "factor_company_disclosure",
+      "feedback_summary": "Company disclosure anchor recent effectiveness: mixed",
+      "production_weight_changed": false,
+      "recommendation_only": true,
+      "recommended_action": "display_review_hint_no_weight_change"
+    },
+    {
+      "block_id": "factor_external_proxy_feedback",
+      "factor_id": "factor_external_proxy",
+      "feedback_summary": "ADR and US market proxy context recent effectiveness: neutral",
+      "production_weight_changed": false,
+      "recommendation_only": true,
+      "recommended_action": "display_review_hint_no_weight_change"
+    },
+    {
+      "block_id": "factor_finmind_supplement_feedback",
+      "factor_id": "factor_finmind_supplement",
+      "feedback_summary": "FinMind normalized supplemental context recent effectiveness: watch",
+      "production_weight_changed": false,
+      "recommendation_only": true,
+      "recommended_action": "display_review_hint_no_weight_change"
+    },
+    {
+      "block_id": "factor_news_event_detection_feedback",
+      "factor_id": "factor_news_event_detection",
+      "feedback_summary": "Headline event/sentiment detection recent effectiveness: effective",
+      "production_weight_changed": false,
+      "recommendation_only": true,
+      "recommended_action": "display_review_hint_no_weight_change"
+    },
+    {
+      "block_id": "factor_runtime_market_data_feedback",
+      "factor_id": "factor_runtime_market_data",
+      "feedback_summary": "Runtime market data anchor recent effectiveness: mixed",
+      "production_weight_changed": false,
+      "recommendation_only": true,
+      "recommended_action": "display_review_hint_no_weight_change"
+    },
+    {
+      "block_id": "factor_twse_chip_flow_feedback",
+      "factor_id": "factor_twse_chip_flow",
+      "feedback_summary": "TWSE official market/chip context recent effectiveness: watch",
+      "production_weight_changed": false,
+      "recommendation_only": true,
+      "recommended_action": "display_review_hint_no_weight_change"
+    }
+  ],
+  "feedback_window": "last_7_sessions_sample",
+  "generated_at": "2026-07-04T00:00:00+00:00",
+  "market": "TW",
+  "market_regime_quality_summary": {
+    "recommended_report_note": "Add regime caution to future report feedback display.",
+    "regime": "sample_range_bound",
+    "regime_caution": "Market regime sample suggests caution on narrow high/low intervals.",
+    "regime_confidence": "medium_sample",
+    "regime_specific_performance_note": "Range forecasts need wider interval review in this sample regime."
+  },
+  "mutation_policy": {
+    "adaptive_strategy_engine": false,
+    "dashboard_runtime_modified": false,
+    "delivery_behavior_modified": false,
+    "direct_rating_action_confidence_impact": false,
+    "human_review_required_for_any_mutation": true,
+    "production_confidence_changed": false,
+    "production_mutation_engine": false,
+    "production_pipeline_modified": false,
+    "production_rating_action_changed": false,
+    "production_weight_changed": false,
+    "recommendation_only": true
+  },
+  "prediction_context_ref": {
+    "schema_version": "prediction_context_v1",
+    "task_id": "AI-DEV-136",
+    "template_path": "templates/prediction_context_artifact.example.json"
+  },
+  "prediction_review_summary": {
+    "insufficient_actuals": 0,
+    "major_error_cases": [
+      "sample_gap_up_outlier"
+    ],
+    "pending_predictions": 2,
+    "review_quality_flag": "sample_review_only",
+    "reviewed_predictions": 5
+  },
+  "recommendation_blocks": [
+    {
+      "evidence_refs": [
+        "factor_ai_generated_summary",
+        "factor_broker_metadata",
+        "factor_company_disclosure"
+      ],
+      "priority": "medium",
+      "production_mutation_allowed": false,
+      "production_mutation_executed": false,
+      "rationale": "Recent factor effectiveness should be displayed for human review.",
+      "recommendation_id": "review_factor_effectiveness_notes",
+      "recommendation_type": "factor_review",
+      "requires_human_review": true,
+      "target": "factor_effectiveness_summary"
+    },
+    {
+      "evidence_refs": [
+        "confidence_calibration_summary"
+      ],
+      "priority": "medium",
+      "production_mutation_allowed": false,
+      "production_mutation_executed": false,
+      "rationale": "Display confidence caution in report/dashboard; do not change production confidence.",
+      "recommendation_id": "review_confidence_calibration_note",
+      "recommendation_type": "confidence_review",
+      "requires_human_review": true,
+      "target": "confidence_calibration_summary"
+    },
+    {
+      "evidence_refs": [
+        "market_regime_quality_summary"
+      ],
+      "priority": "low",
+      "production_mutation_allowed": false,
+      "production_mutation_executed": false,
+      "rationale": "Add regime caution to future report feedback display.",
+      "recommendation_id": "show_market_regime_caution",
+      "recommendation_type": "regime_report_note",
+      "requires_human_review": true,
+      "target": "market_regime_quality_summary"
+    }
+  ],
+  "regime_feedback_blocks": [
+    {
+      "block_id": "market_regime_quality_feedback",
+      "recommendation_only": true,
+      "recommended_report_note": "Add regime caution to future report feedback display.",
+      "regime": "sample_range_bound",
+      "regime_caution": "Market regime sample suggests caution on narrow high/low intervals."
+    }
+  ],
+  "report_assembly_ref": {
+    "schema_version": "context_based_report_assembly_v1",
+    "task_id": "AI-DEV-138",
+    "template_path": "templates/context_based_report_assembly_artifact.example.json"
+  },
+  "report_feedback_blocks": [
+    {
+      "block_id": "feedback_summary",
+      "recommendation_only": true,
+      "text": "Decision quality feedback is available for report review."
+    },
+    {
+      "block_id": "factor_effectiveness_note",
+      "recommendation_only": true,
+      "text": "Show factor effectiveness notes without changing weights."
+    },
+    {
+      "block_id": "confidence_calibration_note",
+      "recommendation_only": true,
+      "text": "Show confidence calibration note without changing confidence."
+    },
+    {
+      "block_id": "source_reliability_note",
+      "recommendation_only": true,
+      "text": "Show source reliability attribution for human review."
+    },
+    {
+      "block_id": "market_regime_caution",
+      "recommendation_only": true,
+      "text": "Show regime caution in future report display."
+    },
+    {
+      "block_id": "human_review_required_note",
+      "recommendation_only": true,
+      "text": "All recommendations require human review before production mutation."
+    }
+  ],
+  "rolling_evaluation_summary": {
+    "bias_summary": "Sample indicates mild range-width bias; review before any production use.",
+    "direction_hit_rate": 0.57,
+    "evaluation_window": "last_7_sessions_sample",
+    "high_range_hit_rate": 0.43,
+    "insufficient_data_flag": false,
+    "low_range_hit_rate": 0.5,
+    "sample_count": 7
+  },
+  "safety_policy": {
+    "broker_order_trading": false,
+    "confidence_adjusted": false,
+    "dashboard_published": false,
+    "dashboard_runtime_modified": false,
+    "dashboard_ui_modified": false,
+    "direct_rating_action_confidence_impact": false,
+    "external_api_called": false,
+    "factor_weights_adjusted": false,
+    "feedback_loop_artifact_only": true,
+    "formal_delivery_behavior_modified": false,
+    "line_email_sent": false,
+    "no_direct_rating_action_confidence_change": true,
+    "not_adaptive_strategy_engine": true,
+    "not_production_mutation_engine": true,
+    "offline_sample_only": true,
+    "production_db_read": false,
+    "production_db_write": false,
+    "production_pipeline_run": false,
+    "production_rating_action_confidence_weight_mutation": false,
+    "production_runtime_modified": false,
+    "python_main_executed": false,
+    "rating_action_adjusted": false,
+    "read_only": true,
+    "recommendation_review_attribution_only": true,
+    "scheduler_modified": false,
+    "secrets_read": false
+  },
+  "schema_version": "decision_quality_feedback_v1",
+  "source_error_attribution": [
+    {
+      "allowed_usage": "Context and attribution only.",
+      "attribution_confidence": "low_sample_only",
+      "credibility_level": "sentiment_metadata",
+      "disallowed_usage": "No direct production mutation.",
+      "possible_error_contribution": "sample_attribution_only",
+      "provider": "Broker target/rating metadata",
+      "recommendation_only": true,
+      "source_id": "broker_target_price_metadata",
+      "source_type": "low_priority_metadata"
+    },
+    {
+      "allowed_usage": "Context and attribution only.",
+      "attribution_confidence": "low_sample_only",
+      "credibility_level": "official",
+      "disallowed_usage": "No direct production mutation.",
+      "possible_error_contribution": "sample_attribution_only",
+      "provider": "Company official filing / MOPS",
+      "recommendation_only": true,
+      "source_id": "company_filing",
+      "source_type": "official_primary_source"
+    },
+    {
+      "allowed_usage": "Context and attribution only.",
+      "attribution_confidence": "low_sample_only",
+      "credibility_level": "normalized_supplement",
+      "disallowed_usage": "No direct production mutation.",
+      "possible_error_contribution": "sample_attribution_only",
+      "provider": "FinMind",
+      "recommendation_only": true,
+      "source_id": "finmind",
+      "source_type": "normalized_external_data_provider"
+    },
+    {
+      "allowed_usage": "Context and attribution only.",
+      "attribution_confidence": "low_sample_only",
+      "credibility_level": "generated_analysis",
+      "disallowed_usage": "No direct production mutation.",
+      "possible_error_contribution": "sample_attribution_only",
+      "provider": "Gemini",
+      "recommendation_only": true,
+      "source_id": "gemini_google_generative_ai",
+      "source_type": "ai_generated_analysis"
+    },
+    {
+      "allowed_usage": "Context and attribution only.",
+      "attribution_confidence": "low_sample_only",
+      "credibility_level": "headline_sentiment",
+      "disallowed_usage": "No direct production mutation.",
+      "possible_error_contribution": "sample_attribution_only",
+      "provider": "Google News RSS",
+      "recommendation_only": true,
+      "source_id": "google_news_rss",
+      "source_type": "low_priority_metadata"
+    },
+    {
+      "allowed_usage": "Context and attribution only.",
+      "attribution_confidence": "low_sample_only",
+      "credibility_level": "official_runtime_market",
+      "disallowed_usage": "No direct production mutation.",
+      "possible_error_contribution": "sample_attribution_only",
+      "provider": "Sinopac/Shioaji",
+      "recommendation_only": true,
+      "source_id": "shioaji_sinopac",
+      "source_type": "official_market_source"
+    },
+    {
+      "allowed_usage": "Context and attribution only.",
+      "attribution_confidence": "low_sample_only",
+      "credibility_level": "official_market",
+      "disallowed_usage": "No direct production mutation.",
+      "possible_error_contribution": "sample_attribution_only",
+      "provider": "TWSE OpenAPI",
+      "recommendation_only": true,
+      "source_id": "twse_openapi",
+      "source_type": "official_market_source"
+    },
+    {
+      "allowed_usage": "Context and attribution only.",
+      "attribution_confidence": "low_sample_only",
+      "credibility_level": "reference_proxy",
+      "disallowed_usage": "No direct production mutation.",
+      "possible_error_contribution": "sample_attribution_only",
+      "provider": "Yahoo Finance / yfinance",
+      "recommendation_only": true,
+      "source_id": "yfinance_yahoo",
+      "source_type": "external_reference_proxy"
+    }
+  ],
+  "source_reliability_feedback_blocks": [
+    {
+      "attribution_confidence": "low_sample_only",
+      "block_id": "broker_target_price_metadata_source_reliability_feedback",
+      "possible_error_contribution": "sample_attribution_only",
+      "recommendation_only": true,
+      "source_id": "broker_target_price_metadata"
+    },
+    {
+      "attribution_confidence": "low_sample_only",
+      "block_id": "company_filing_source_reliability_feedback",
+      "possible_error_contribution": "sample_attribution_only",
+      "recommendation_only": true,
+      "source_id": "company_filing"
+    },
+    {
+      "attribution_confidence": "low_sample_only",
+      "block_id": "finmind_source_reliability_feedback",
+      "possible_error_contribution": "sample_attribution_only",
+      "recommendation_only": true,
+      "source_id": "finmind"
+    },
+    {
+      "attribution_confidence": "low_sample_only",
+      "block_id": "gemini_google_generative_ai_source_reliability_feedback",
+      "possible_error_contribution": "sample_attribution_only",
+      "recommendation_only": true,
+      "source_id": "gemini_google_generative_ai"
+    },
+    {
+      "attribution_confidence": "low_sample_only",
+      "block_id": "google_news_rss_source_reliability_feedback",
+      "possible_error_contribution": "sample_attribution_only",
+      "recommendation_only": true,
+      "source_id": "google_news_rss"
+    },
+    {
+      "attribution_confidence": "low_sample_only",
+      "block_id": "shioaji_sinopac_source_reliability_feedback",
+      "possible_error_contribution": "sample_attribution_only",
+      "recommendation_only": true,
+      "source_id": "shioaji_sinopac"
+    },
+    {
+      "attribution_confidence": "low_sample_only",
+      "block_id": "twse_openapi_source_reliability_feedback",
+      "possible_error_contribution": "sample_attribution_only",
+      "recommendation_only": true,
+      "source_id": "twse_openapi"
+    },
+    {
+      "attribution_confidence": "low_sample_only",
+      "block_id": "yfinance_yahoo_source_reliability_feedback",
+      "possible_error_contribution": "sample_attribution_only",
+      "recommendation_only": true,
+      "source_id": "yfinance_yahoo"
+    }
+  ],
+  "symbol": "2330",
+  "task_id": "AI-DEV-140",
+  "warning_blocks": [
+    {
+      "direct_rating_action_confidence_impact": false,
+      "recommendation_only": true,
+      "source_id": "broker_target_price_metadata",
+      "warning_id": "broker_target_price_metadata",
+      "warning_summary": "Broker target / analyst opinion is metadata only and cannot directly affect rating/action/confidence."
+    },
+    {
+      "direct_rating_action_confidence_impact": false,
+      "recommendation_only": true,
+      "source_id": "google_news_rss",
+      "warning_id": "google_news_rss",
+      "warning_summary": "Google News RSS is event detection / sentiment support only and cannot be core forecast evidence."
+    },
+    {
+      "direct_rating_action_confidence_impact": false,
+      "recommendation_only": true,
+      "source_id": "yfinance_yahoo",
+      "warning_id": "yfinance_yahoo",
+      "warning_summary": "yfinance/Yahoo is an external reference/proxy and cannot replace official sources."
+    },
+    {
+      "direct_rating_action_confidence_impact": false,
+      "recommendation_only": true,
+      "source_id": "finmind",
+      "warning_id": "finmind",
+      "warning_summary": "FinMind is a normalized external data provider and cannot replace MOPS / TWSE / company official information."
+    },
+    {
+      "direct_rating_action_confidence_impact": false,
+      "recommendation_only": true,
+      "source_id": "gemini_google_generative_ai",
+      "warning_id": "gemini_google_generative_ai",
+      "warning_summary": "Gemini is AI-generated analysis and not original evidence."
+    },
+    {
+      "direct_rating_action_confidence_impact": false,
+      "recommendation_only": true,
+      "source_id": "recommendation_policy",
+      "warning_id": "recommendation_policy",
+      "warning_summary": "recommendation cannot automatically change production rating/action/confidence/weight."
+    }
+  ]
+}
