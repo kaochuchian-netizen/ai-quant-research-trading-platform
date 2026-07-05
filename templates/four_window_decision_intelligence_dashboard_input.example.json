@@ -1,0 +1,22 @@
+{
+  "artifact_refs": {
+    "dashboard_decision_intelligence": "templates/dashboard_decision_intelligence_artifact.example.json",
+    "decision_quality_feedback": "templates/decision_quality_feedback_artifact.example.json",
+    "explainability": "templates/unified_explainability_artifact.example.json",
+    "official_primary_source_admission": "templates/official_primary_source_context_admission_artifact.example.json",
+    "prediction_context": "templates/prediction_context_artifact.example.json",
+    "report_assembly": "templates/context_based_report_assembly_artifact.example.json"
+  },
+  "generated_at": "2026-07-05T00:00:00Z",
+  "market": "TW",
+  "preview_only": true,
+  "requested_windows": [
+    "pre_open_0700",
+    "intraday_1305",
+    "pre_close_1335",
+    "post_close_1500"
+  ],
+  "schema_version": "four_window_decision_intelligence_dashboard_input_v1",
+  "symbol": "2330",
+  "task_id": "AI-DEV-142"
+}
