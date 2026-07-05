@@ -1,0 +1,103 @@
+{
+  "four_window_mapping": [
+    {
+      "full_prediction_review_assigned": false,
+      "market_phase": "pre_open",
+      "primary_purpose": "Prepare same-day, next-day, one-month, and three-month forecast context before the market opens.",
+      "scheduled_time_tw": "07:00",
+      "ui_display_name_en": "Pre-open Forecast",
+      "ui_display_name_zh": "盤前預測",
+      "ui_window_id": "pre_open_0700",
+      "window_key": "pre_open_0700"
+    },
+    {
+      "full_prediction_review_assigned": false,
+      "market_phase": "intraday_tracking",
+      "primary_purpose": "Track whether current price action remains aligned with the pre-open scenario.",
+      "scheduled_time_tw": "13:05",
+      "ui_display_name_en": "Intraday Tracking",
+      "ui_display_name_zh": "盤中追蹤",
+      "ui_window_id": "intraday_1305",
+      "window_key": "intraday_1305"
+    },
+    {
+      "full_prediction_review_assigned": false,
+      "market_phase": "close_snapshot",
+      "primary_purpose": "Capture preliminary close snapshot quality signals while preserving the legacy runtime key.",
+      "scheduled_time_tw": "13:35",
+      "ui_display_name_en": "Close Snapshot",
+      "ui_display_name_zh": "收盤快照",
+      "ui_window_id": "close_snapshot_1335",
+      "window_key": "pre_close_1335"
+    },
+    {
+      "full_prediction_review_assigned": true,
+      "market_phase": "post_close_review",
+      "primary_purpose": "Review forecast versus actuals and summarize decision quality feedback after close.",
+      "scheduled_time_tw": "15:00",
+      "ui_display_name_en": "Prediction Review",
+      "ui_display_name_zh": "盤後檢討",
+      "ui_window_id": "prediction_review_1500",
+      "window_key": "post_close_1500"
+    }
+  ],
+  "generated_at": "2026-07-05T00:00:00Z",
+  "rollback_instructions": [
+    "Remove the controlled dashboard route mapping from the future dashboard router.",
+    "Restore the previous dashboard preview route configuration.",
+    "Keep scheduler, notification delivery, production pipeline, and DB state untouched.",
+    "Re-run route integration and post-merge validators after rollback."
+  ],
+  "route_id": "four_window_decision_intelligence_preview_route",
+  "route_integration_status": {
+    "dashboard_published": false,
+    "db_write": false,
+    "external_notification_sent": false,
+    "production_dashboard_publish_executed": false,
+    "production_pipeline_executed": false,
+    "scheduler_modified": false,
+    "static_controlled_route_artifact_created": true
+  },
+  "route_kind": "controlled_static_dashboard_preview",
+  "route_path": "/dashboard/decision-intelligence/four-window-preview",
+  "route_preview_html": "templates/four_window_dashboard_route_preview.example.html",
+  "safety_policy": {
+    "controlled_static_route": true,
+    "dashboard_published": false,
+    "db_write": false,
+    "direct_rating_action_confidence_impact": false,
+    "external_api_called": false,
+    "external_notification_sent": false,
+    "formal_delivery_behavior_changed": false,
+    "line_email_notification_sent": false,
+    "production_dashboard_publish_executed": false,
+    "production_pipeline_executed": false,
+    "production_rating_action_confidence_weight_mutated": false,
+    "python_main_executed": false,
+    "repo_side_preview_only": true,
+    "scheduler_modified": false,
+    "secrets_read": false,
+    "trading_or_order_executed": false
+  },
+  "schema_version": "four_window_dashboard_route_integration_v1",
+  "semantic_rules": {
+    "full_prediction_review_ui_id": "prediction_review_1500",
+    "full_prediction_review_window_key": "post_close_1500",
+    "intraday_1305_is_intraday_tracking": true,
+    "pre_close_1335_primary_ui_must_not_be_pre_close": true,
+    "pre_close_1335_runtime_key_compatible": true,
+    "pre_close_1335_ui_id": "close_snapshot_1335",
+    "pre_close_1335_ui_label_en": "Close Snapshot",
+    "pre_close_1335_ui_label_zh": "收盤快照",
+    "pre_open_0700_is_pre_open_forecast": true
+  },
+  "source_preview_artifact": "templates/four_window_decision_intelligence_dashboard_artifact.example.json",
+  "source_preview_html": "templates/four_window_decision_intelligence_dashboard_preview.example.html",
+  "task_id": "AI-DEV-144",
+  "validation_gates": [
+    "validate_four_window_decision_intelligence_dashboard_ui_v1",
+    "validate_four_window_dashboard_preview_review_v1",
+    "validate_four_window_dashboard_route_integration_v1",
+    "validate_post_merge_status"
+  ]
+}
