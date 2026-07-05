@@ -1,0 +1,1004 @@
+{
+  "artifact_refs": {
+    "dashboard_decision_intelligence": "templates/dashboard_decision_intelligence_artifact.example.json",
+    "decision_quality_feedback": "templates/decision_quality_feedback_artifact.example.json",
+    "explainability": "templates/unified_explainability_artifact.example.json",
+    "official_primary_source_admission": "templates/official_primary_source_context_admission_artifact.example.json",
+    "prediction_context": "templates/prediction_context_artifact.example.json",
+    "report_assembly": "templates/context_based_report_assembly_artifact.example.json"
+  },
+  "common_decision_intelligence_sections": [
+    "Executive Decision Intelligence Summary",
+    "Official Source Admission Summary",
+    "Source Credibility Cards",
+    "Formal Integration Cards",
+    "Evidence Trace Summary",
+    "Factor Rationale Cards",
+    "Warning / Exclusion Cards",
+    "Metadata-only Badges",
+    "Advisory-only Badges",
+    "Feedback Recommendation Cards",
+    "Mutation Policy Summary"
+  ],
+  "dashboard_subtitle": "V10 decision context, evidence, report assembly, dashboard drill-down, feedback, and official-source admission preview.",
+  "dashboard_title": "Four-Window Decision Intelligence Dashboard",
+  "delivery_policy": {
+    "dashboard_allowed_for_full_report_and_drilldown": true,
+    "dashboard_published": false,
+    "delivery_executed": false,
+    "email_allowed_for_full_report": true,
+    "external_notification_sent": false,
+    "line_allowed_for_summary_only": true
+  },
+  "four_window_content_contract": [
+    {
+      "allowed_sections": [
+        "today_market_context",
+        "same_day_high_low_forecast_context",
+        "next_day_high_low_forecast_context",
+        "one_month_trend_context",
+        "three_month_trend_context",
+        "market_regime",
+        "official_source_admission_summary",
+        "source_credibility_cards",
+        "formal_integration_cards",
+        "risk_scenario_invalidation_notes",
+        "advisory_only_badge",
+        "recommendation_only_badge"
+      ],
+      "common_ui_sections": [
+        "Executive Decision Intelligence Summary",
+        "Official Source Admission Summary",
+        "Source Credibility Cards",
+        "Formal Integration Cards",
+        "Evidence Trace Summary",
+        "Factor Rationale Cards",
+        "Warning / Exclusion Cards",
+        "Metadata-only Badges",
+        "Advisory-only Badges",
+        "Feedback Recommendation Cards",
+        "Mutation Policy Summary"
+      ],
+      "dashboard_cards": [
+        {
+          "advisory_only": true,
+          "card_id": "pre_open_0700_today_market_context",
+          "recommendation_only": true,
+          "sort_order": 1,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Pre-open Forecast / 盤前預測.",
+          "title": "Today Market Context"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "pre_open_0700_same_day_high_low_forecast_context",
+          "recommendation_only": true,
+          "sort_order": 2,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Pre-open Forecast / 盤前預測.",
+          "title": "Same Day High Low Forecast Context"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "pre_open_0700_next_day_high_low_forecast_context",
+          "recommendation_only": true,
+          "sort_order": 3,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Pre-open Forecast / 盤前預測.",
+          "title": "Next Day High Low Forecast Context"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "pre_open_0700_one_month_trend_context",
+          "recommendation_only": true,
+          "sort_order": 4,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Pre-open Forecast / 盤前預測.",
+          "title": "One Month Trend Context"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "pre_open_0700_three_month_trend_context",
+          "recommendation_only": true,
+          "sort_order": 5,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Pre-open Forecast / 盤前預測.",
+          "title": "Three Month Trend Context"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "pre_open_0700_market_regime",
+          "recommendation_only": true,
+          "sort_order": 6,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Pre-open Forecast / 盤前預測.",
+          "title": "Market Regime"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "pre_open_0700_official_source_admission_summary",
+          "recommendation_only": true,
+          "sort_order": 7,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Pre-open Forecast / 盤前預測.",
+          "title": "Official Source Admission Summary"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "pre_open_0700_source_credibility_cards",
+          "recommendation_only": true,
+          "sort_order": 8,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Pre-open Forecast / 盤前預測.",
+          "title": "Source Credibility Cards"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "pre_open_0700_formal_integration_cards",
+          "recommendation_only": true,
+          "sort_order": 9,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Pre-open Forecast / 盤前預測.",
+          "title": "Formal Integration Cards"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "pre_open_0700_risk_scenario_invalidation_notes",
+          "recommendation_only": true,
+          "sort_order": 10,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Pre-open Forecast / 盤前預測.",
+          "title": "Risk Scenario Invalidation Notes"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "pre_open_0700_advisory_only_badge",
+          "recommendation_only": true,
+          "sort_order": 11,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Pre-open Forecast / 盤前預測.",
+          "title": "Advisory Only Badge"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "pre_open_0700_recommendation_only_badge",
+          "recommendation_only": true,
+          "sort_order": 12,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Pre-open Forecast / 盤前預測.",
+          "title": "Recommendation Only Badge"
+        }
+      ],
+      "decision_intelligence_artifact_refs": {
+        "dashboard_decision_intelligence": "templates/dashboard_decision_intelligence_artifact.example.json",
+        "decision_quality_feedback": "templates/decision_quality_feedback_artifact.example.json",
+        "explainability": "templates/unified_explainability_artifact.example.json",
+        "official_primary_source_admission": "templates/official_primary_source_context_admission_artifact.example.json",
+        "prediction_context": "templates/prediction_context_artifact.example.json",
+        "report_assembly": "templates/context_based_report_assembly_artifact.example.json"
+      },
+      "delivery_channel_policy": {
+        "dashboard_allowed_for_full_report_and_drilldown": true,
+        "dashboard_published": false,
+        "delivery_executed": false,
+        "email_allowed_for_full_report": true,
+        "external_notification_sent": false,
+        "line_allowed_for_summary_only": true
+      },
+      "disallowed_sections": [
+        "full_prediction_review",
+        "external_notification_send",
+        "production_mutation"
+      ],
+      "market_phase": "pre_open",
+      "primary_purpose": "Prepare same-day, next-day, one-month, and three-month forecast context before the market opens.",
+      "scheduled_time_tw": "07:00",
+      "source_policy": {
+        "contextual_evidence_families": [
+          "industry supply chain",
+          "peer company context"
+        ],
+        "formal_integrations": [
+          "FinMind",
+          "TWSE",
+          "yfinance/Yahoo"
+        ],
+        "official_core_evidence_families": [
+          "MOPS / 公司公告",
+          "財報 / 月營收",
+          "法說會 / IR"
+        ],
+        "policy_badges": [
+          "FinMind cannot replace official sources",
+          "yfinance/Yahoo cannot replace official sources",
+          "Google News RSS cannot be core forecast evidence",
+          "broker target / analyst rating metadata-only",
+          "Gemini / AI-generated analysis is not original evidence"
+        ]
+      },
+      "timing_alignment_notes": "Forecast-oriented context before market open; no delivery action is executed.",
+      "ui_display_name_en": "Pre-open Forecast",
+      "ui_display_name_zh": "盤前預測",
+      "ui_window_id": "pre_open_0700",
+      "window_key": "pre_open_0700"
+    },
+    {
+      "allowed_sections": [
+        "current_price_vs_pre_open_range_placeholder",
+        "near_same_day_high_low_status",
+        "pre_open_scenario_validity",
+        "volume_chip_adr_external_proxy_support",
+        "intraday_status_card",
+        "invalidation_warning",
+        "source_credibility_badges"
+      ],
+      "common_ui_sections": [
+        "Executive Decision Intelligence Summary",
+        "Official Source Admission Summary",
+        "Source Credibility Cards",
+        "Formal Integration Cards",
+        "Evidence Trace Summary",
+        "Factor Rationale Cards",
+        "Warning / Exclusion Cards",
+        "Metadata-only Badges",
+        "Advisory-only Badges",
+        "Feedback Recommendation Cards",
+        "Mutation Policy Summary"
+      ],
+      "dashboard_cards": [
+        {
+          "advisory_only": true,
+          "card_id": "intraday_1305_current_price_vs_pre_open_range_placeholder",
+          "recommendation_only": true,
+          "sort_order": 1,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Intraday Tracking / 盤中追蹤.",
+          "title": "Current Price Vs Pre Open Range Placeholder"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "intraday_1305_near_same_day_high_low_status",
+          "recommendation_only": true,
+          "sort_order": 2,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Intraday Tracking / 盤中追蹤.",
+          "title": "Near Same Day High Low Status"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "intraday_1305_pre_open_scenario_validity",
+          "recommendation_only": true,
+          "sort_order": 3,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Intraday Tracking / 盤中追蹤.",
+          "title": "Pre Open Scenario Validity"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "intraday_1305_volume_chip_adr_external_proxy_support",
+          "recommendation_only": true,
+          "sort_order": 4,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Intraday Tracking / 盤中追蹤.",
+          "title": "Volume Chip Adr External Proxy Support"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "intraday_1305_intraday_status_card",
+          "recommendation_only": true,
+          "sort_order": 5,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Intraday Tracking / 盤中追蹤.",
+          "title": "Intraday Status Card"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "intraday_1305_invalidation_warning",
+          "recommendation_only": true,
+          "sort_order": 6,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Intraday Tracking / 盤中追蹤.",
+          "title": "Invalidation Warning"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "intraday_1305_source_credibility_badges",
+          "recommendation_only": true,
+          "sort_order": 7,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Intraday Tracking / 盤中追蹤.",
+          "title": "Source Credibility Badges"
+        }
+      ],
+      "decision_intelligence_artifact_refs": {
+        "dashboard_decision_intelligence": "templates/dashboard_decision_intelligence_artifact.example.json",
+        "decision_quality_feedback": "templates/decision_quality_feedback_artifact.example.json",
+        "explainability": "templates/unified_explainability_artifact.example.json",
+        "official_primary_source_admission": "templates/official_primary_source_context_admission_artifact.example.json",
+        "prediction_context": "templates/prediction_context_artifact.example.json",
+        "report_assembly": "templates/context_based_report_assembly_artifact.example.json"
+      },
+      "delivery_channel_policy": {
+        "dashboard_allowed_for_full_report_and_drilldown": true,
+        "dashboard_published": false,
+        "delivery_executed": false,
+        "email_allowed_for_full_report": true,
+        "external_notification_sent": false,
+        "line_allowed_for_summary_only": true
+      },
+      "disallowed_sections": [
+        "full_prediction_review",
+        "seven_day_rolling_review",
+        "external_notification_send",
+        "production_mutation"
+      ],
+      "market_phase": "intraday_tracking",
+      "primary_purpose": "Track whether current price action remains aligned with the pre-open scenario.",
+      "scheduled_time_tw": "13:05",
+      "source_policy": {
+        "contextual_evidence_families": [
+          "industry supply chain",
+          "peer company context"
+        ],
+        "formal_integrations": [
+          "FinMind",
+          "TWSE",
+          "yfinance/Yahoo"
+        ],
+        "official_core_evidence_families": [
+          "MOPS / 公司公告",
+          "財報 / 月營收",
+          "法說會 / IR"
+        ],
+        "policy_badges": [
+          "FinMind cannot replace official sources",
+          "yfinance/Yahoo cannot replace official sources",
+          "Google News RSS cannot be core forecast evidence",
+          "broker target / analyst rating metadata-only",
+          "Gemini / AI-generated analysis is not original evidence"
+        ]
+      },
+      "timing_alignment_notes": "Tracking window only; it does not run full prediction review.",
+      "ui_display_name_en": "Intraday Tracking",
+      "ui_display_name_zh": "盤中追蹤",
+      "ui_window_id": "intraday_1305",
+      "window_key": "intraday_1305"
+    },
+    {
+      "allowed_sections": [
+        "actual_high_low_placeholder",
+        "close_price_placeholder",
+        "same_day_direction_preliminary_hit_status",
+        "same_day_range_preliminary_hit_status",
+        "abnormal_stock_factor_hint",
+        "pre_open_forecast_preliminary_gap",
+        "pending_full_review_badge"
+      ],
+      "common_ui_sections": [
+        "Executive Decision Intelligence Summary",
+        "Official Source Admission Summary",
+        "Source Credibility Cards",
+        "Formal Integration Cards",
+        "Evidence Trace Summary",
+        "Factor Rationale Cards",
+        "Warning / Exclusion Cards",
+        "Metadata-only Badges",
+        "Advisory-only Badges",
+        "Feedback Recommendation Cards",
+        "Mutation Policy Summary"
+      ],
+      "dashboard_cards": [
+        {
+          "advisory_only": true,
+          "card_id": "close_snapshot_1335_actual_high_low_placeholder",
+          "recommendation_only": true,
+          "sort_order": 1,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Close Snapshot / 收盤快照.",
+          "title": "Actual High Low Placeholder"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "close_snapshot_1335_close_price_placeholder",
+          "recommendation_only": true,
+          "sort_order": 2,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Close Snapshot / 收盤快照.",
+          "title": "Close Price Placeholder"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "close_snapshot_1335_same_day_direction_preliminary_hit_status",
+          "recommendation_only": true,
+          "sort_order": 3,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Close Snapshot / 收盤快照.",
+          "title": "Same Day Direction Preliminary Hit Status"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "close_snapshot_1335_same_day_range_preliminary_hit_status",
+          "recommendation_only": true,
+          "sort_order": 4,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Close Snapshot / 收盤快照.",
+          "title": "Same Day Range Preliminary Hit Status"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "close_snapshot_1335_abnormal_stock_factor_hint",
+          "recommendation_only": true,
+          "sort_order": 5,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Close Snapshot / 收盤快照.",
+          "title": "Abnormal Stock Factor Hint"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "close_snapshot_1335_pre_open_forecast_preliminary_gap",
+          "recommendation_only": true,
+          "sort_order": 6,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Close Snapshot / 收盤快照.",
+          "title": "Pre Open Forecast Preliminary Gap"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "close_snapshot_1335_pending_full_review_badge",
+          "recommendation_only": true,
+          "sort_order": 7,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Close Snapshot / 收盤快照.",
+          "title": "Pending Full Review Badge"
+        }
+      ],
+      "decision_intelligence_artifact_refs": {
+        "dashboard_decision_intelligence": "templates/dashboard_decision_intelligence_artifact.example.json",
+        "decision_quality_feedback": "templates/decision_quality_feedback_artifact.example.json",
+        "explainability": "templates/unified_explainability_artifact.example.json",
+        "official_primary_source_admission": "templates/official_primary_source_context_admission_artifact.example.json",
+        "prediction_context": "templates/prediction_context_artifact.example.json",
+        "report_assembly": "templates/context_based_report_assembly_artifact.example.json"
+      },
+      "delivery_channel_policy": {
+        "dashboard_allowed_for_full_report_and_drilldown": true,
+        "dashboard_published": false,
+        "delivery_executed": false,
+        "email_allowed_for_full_report": true,
+        "external_notification_sent": false,
+        "line_allowed_for_summary_only": true
+      },
+      "disallowed_sections": [
+        "full_prediction_review",
+        "external_notification_send",
+        "production_mutation"
+      ],
+      "market_phase": "close_snapshot",
+      "primary_purpose": "Capture preliminary close snapshot quality signals while preserving the legacy runtime key.",
+      "scheduled_time_tw": "13:35",
+      "source_policy": {
+        "contextual_evidence_families": [
+          "industry supply chain",
+          "peer company context"
+        ],
+        "formal_integrations": [
+          "FinMind",
+          "TWSE",
+          "yfinance/Yahoo"
+        ],
+        "official_core_evidence_families": [
+          "MOPS / 公司公告",
+          "財報 / 月營收",
+          "法說會 / IR"
+        ],
+        "policy_badges": [
+          "FinMind cannot replace official sources",
+          "yfinance/Yahoo cannot replace official sources",
+          "Google News RSS cannot be core forecast evidence",
+          "broker target / analyst rating metadata-only",
+          "Gemini / AI-generated analysis is not original evidence"
+        ]
+      },
+      "timing_alignment_notes": "Runtime key remains pre_close_1335 for compatibility; UI label is close_snapshot_1335 / 收盤快照.",
+      "ui_display_name_en": "Close Snapshot",
+      "ui_display_name_zh": "收盤快照",
+      "ui_window_id": "close_snapshot_1335",
+      "window_key": "pre_close_1335"
+    },
+    {
+      "allowed_sections": [
+        "forecast_vs_actual",
+        "high_low_range_hit",
+        "direction_hit",
+        "major_error_sources",
+        "seven_day_rolling_evaluation",
+        "factor_effectiveness",
+        "confidence_calibration",
+        "source_error_attribution",
+        "decision_quality_feedback_recommendations",
+        "human_review_required_for_any_mutation_badge",
+        "recommendation_only_badge"
+      ],
+      "common_ui_sections": [
+        "Executive Decision Intelligence Summary",
+        "Official Source Admission Summary",
+        "Source Credibility Cards",
+        "Formal Integration Cards",
+        "Evidence Trace Summary",
+        "Factor Rationale Cards",
+        "Warning / Exclusion Cards",
+        "Metadata-only Badges",
+        "Advisory-only Badges",
+        "Feedback Recommendation Cards",
+        "Mutation Policy Summary"
+      ],
+      "dashboard_cards": [
+        {
+          "advisory_only": true,
+          "card_id": "prediction_review_1500_forecast_vs_actual",
+          "recommendation_only": true,
+          "sort_order": 1,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Prediction Review / 盤後檢討.",
+          "title": "Forecast Vs Actual"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "prediction_review_1500_high_low_range_hit",
+          "recommendation_only": true,
+          "sort_order": 2,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Prediction Review / 盤後檢討.",
+          "title": "High Low Range Hit"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "prediction_review_1500_direction_hit",
+          "recommendation_only": true,
+          "sort_order": 3,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Prediction Review / 盤後檢討.",
+          "title": "Direction Hit"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "prediction_review_1500_major_error_sources",
+          "recommendation_only": true,
+          "sort_order": 4,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Prediction Review / 盤後檢討.",
+          "title": "Major Error Sources"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "prediction_review_1500_seven_day_rolling_evaluation",
+          "recommendation_only": true,
+          "sort_order": 5,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Prediction Review / 盤後檢討.",
+          "title": "Seven Day Rolling Evaluation"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "prediction_review_1500_factor_effectiveness",
+          "recommendation_only": true,
+          "sort_order": 6,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Prediction Review / 盤後檢討.",
+          "title": "Factor Effectiveness"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "prediction_review_1500_confidence_calibration",
+          "recommendation_only": true,
+          "sort_order": 7,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Prediction Review / 盤後檢討.",
+          "title": "Confidence Calibration"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "prediction_review_1500_source_error_attribution",
+          "recommendation_only": true,
+          "sort_order": 8,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Prediction Review / 盤後檢討.",
+          "title": "Source Error Attribution"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "prediction_review_1500_decision_quality_feedback_recommendations",
+          "recommendation_only": true,
+          "sort_order": 9,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Prediction Review / 盤後檢討.",
+          "title": "Decision Quality Feedback Recommendations"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "prediction_review_1500_human_review_required_for_any_mutation_badge",
+          "recommendation_only": true,
+          "sort_order": 10,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Prediction Review / 盤後檢討.",
+          "title": "Human Review Required For Any Mutation Badge"
+        },
+        {
+          "advisory_only": true,
+          "card_id": "prediction_review_1500_recommendation_only_badge",
+          "recommendation_only": true,
+          "sort_order": 11,
+          "source_refs": [
+            "templates/prediction_context_artifact.example.json",
+            "templates/unified_explainability_artifact.example.json",
+            "templates/context_based_report_assembly_artifact.example.json",
+            "templates/dashboard_decision_intelligence_artifact.example.json",
+            "templates/decision_quality_feedback_artifact.example.json",
+            "templates/official_primary_source_context_admission_artifact.example.json"
+          ],
+          "summary": "Deterministic placeholder for Prediction Review / 盤後檢討.",
+          "title": "Recommendation Only Badge"
+        }
+      ],
+      "decision_intelligence_artifact_refs": {
+        "dashboard_decision_intelligence": "templates/dashboard_decision_intelligence_artifact.example.json",
+        "decision_quality_feedback": "templates/decision_quality_feedback_artifact.example.json",
+        "explainability": "templates/unified_explainability_artifact.example.json",
+        "official_primary_source_admission": "templates/official_primary_source_context_admission_artifact.example.json",
+        "prediction_context": "templates/prediction_context_artifact.example.json",
+        "report_assembly": "templates/context_based_report_assembly_artifact.example.json"
+      },
+      "delivery_channel_policy": {
+        "dashboard_allowed_for_full_report_and_drilldown": true,
+        "dashboard_published": false,
+        "delivery_executed": false,
+        "email_allowed_for_full_report": true,
+        "external_notification_sent": false,
+        "line_allowed_for_summary_only": true
+      },
+      "disallowed_sections": [
+        "external_notification_send",
+        "production_mutation"
+      ],
+      "market_phase": "post_close_review",
+      "primary_purpose": "Review forecast versus actuals and summarize decision quality feedback after close.",
+      "scheduled_time_tw": "15:00",
+      "source_policy": {
+        "contextual_evidence_families": [
+          "industry supply chain",
+          "peer company context"
+        ],
+        "formal_integrations": [
+          "FinMind",
+          "TWSE",
+          "yfinance/Yahoo"
+        ],
+        "official_core_evidence_families": [
+          "MOPS / 公司公告",
+          "財報 / 月營收",
+          "法說會 / IR"
+        ],
+        "policy_badges": [
+          "FinMind cannot replace official sources",
+          "yfinance/Yahoo cannot replace official sources",
+          "Google News RSS cannot be core forecast evidence",
+          "broker target / analyst rating metadata-only",
+          "Gemini / AI-generated analysis is not original evidence"
+        ]
+      },
+      "timing_alignment_notes": "Full review window; recommendations remain advisory and require human review for any mutation.",
+      "ui_display_name_en": "Prediction Review",
+      "ui_display_name_zh": "盤後檢討",
+      "ui_window_id": "prediction_review_1500",
+      "window_key": "post_close_1500"
+    }
+  ],
+  "generated_at": "2026-07-05T00:00:00Z",
+  "market": "TW",
+  "mutation_policy": {
+    "delivery_behavior_modified": false,
+    "direct_rating_action_confidence_impact": false,
+    "human_review_required_for_any_mutation": true,
+    "production_confidence_changed": false,
+    "production_pipeline_modified": false,
+    "production_rating_action_changed": false,
+    "production_weight_changed": false,
+    "recommendation_only": true
+  },
+  "preview_outputs": {
+    "html_path": "templates/four_window_decision_intelligence_dashboard_preview.example.html",
+    "json_path": "templates/four_window_decision_intelligence_dashboard_artifact.example.json",
+    "published_preview": false
+  },
+  "safety_policy": {
+    "dashboard_preview_only": true,
+    "dashboard_published": false,
+    "db_write": false,
+    "external_api_called": false,
+    "line_email_notification_sent": false,
+    "production_dashboard_runtime_modified": false,
+    "production_pipeline_executed": false,
+    "python_main_executed": false,
+    "scheduler_modified": false,
+    "secrets_read": false,
+    "trading_or_order_executed": false
+  },
+  "schema_version": "four_window_decision_intelligence_dashboard_ui_v1",
+  "source_policy": {
+    "contextual_evidence_families": [
+      "industry supply chain",
+      "peer company context"
+    ],
+    "formal_integrations": [
+      "FinMind",
+      "TWSE",
+      "yfinance/Yahoo"
+    ],
+    "official_core_evidence_families": [
+      "MOPS / 公司公告",
+      "財報 / 月營收",
+      "法說會 / IR"
+    ],
+    "policy_badges": [
+      "FinMind cannot replace official sources",
+      "yfinance/Yahoo cannot replace official sources",
+      "Google News RSS cannot be core forecast evidence",
+      "broker target / analyst rating metadata-only",
+      "Gemini / AI-generated analysis is not original evidence"
+    ]
+  },
+  "symbol": "2330",
+  "task_id": "AI-DEV-142"
+}
