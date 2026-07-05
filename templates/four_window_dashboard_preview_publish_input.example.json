@@ -1,0 +1,30 @@
+{
+  "schema_version": "four_window_dashboard_preview_publish_input_v1",
+  "task_id": "AI-DEV-145",
+  "source_route_artifact": "templates/four_window_dashboard_route_integration.example.json",
+  "source_route_preview_html": "templates/four_window_dashboard_route_preview.example.html",
+  "dashboard_public_base_url": "http://35.201.242.167/stock-ai-dashboard",
+  "target_route_path": "/dashboard/decision-intelligence/four-window-preview",
+  "expected_public_url": "http://35.201.242.167/stock-ai-dashboard/dashboard/decision-intelligence/four-window-preview/index.html",
+  "controlled_publish_approved": true,
+  "add_index_link": true,
+  "publish_scope": {
+    "static_preview_route_only": true,
+    "production_dashboard_publish_executed": true,
+    "dashboard_published": true,
+    "nginx_config_change_allowed": false,
+    "system_service_change_allowed": false,
+    "formal_delivery_behavior_change_allowed": false
+  },
+  "safety_policy": {
+    "secrets_read": false,
+    "db_write": false,
+    "scheduler_modified": false,
+    "external_notification_sent": false,
+    "production_pipeline_executed": false,
+    "python_main_executed": false,
+    "trading_or_order_executed": false,
+    "production_rating_action_confidence_weight_mutated": false,
+    "formal_delivery_behavior_changed": false
+  }
+}
