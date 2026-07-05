@@ -1,0 +1,43 @@
+{
+  "allowed_sources": [
+    "templates/",
+    "docs/",
+    "orchestrator/templates/",
+    "orchestrator/queue/",
+    "/var/www/stock-ai-dashboard/.ai_dev_145_publish_results/latest.json",
+    "/home/kaochuchian/dify/docker/volumes/certbot/www/stock-ai-dashboard/.ai_dev_145_publish_results",
+    "/home/kaochuchian/dify/docker/volumes/certbot/www/stock-ai-dashboard/.ai_dev_145_publish_results/",
+    "/home/kaochuchian/.local/state/stock-ai-orchestrator/",
+    "data/stock_analysis.db"
+  ],
+  "dashboard_public_url": "http://35.201.242.167/stock-ai-dashboard/dashboard/decision-intelligence/four-window-preview/index.html",
+  "freshness_hours": {
+    "actual_outcome_fields": 36,
+    "intraday_1305": 4,
+    "latest_report": 36,
+    "per_stock_summary": 36,
+    "post_close_1500": 36,
+    "pre_close_1335": 4,
+    "pre_open_0700": 18,
+    "prediction_fields": 36,
+    "prediction_review_fields": 36,
+    "stock_universe": 168
+  },
+  "schema_version": "four_window_dashboard_production_runtime_export_input_v1",
+  "source_candidates": [
+    "templates/daily_report_forecast_v1_result.example.json",
+    "templates/daily_report_renderer_result.example.json",
+    "templates/daily_report_intelligence_integration_result.example.json",
+    "templates/daily_report_dashboard_preview_feed_result.example.json",
+    "templates/prediction_quality_review_result.example.json",
+    "templates/daily_forecast_review_result.example.json",
+    "templates/decision_quality_feedback_artifact.example.json",
+    "templates/context_based_report_assembly_artifact.example.json",
+    "templates/dashboard_decision_intelligence_artifact.example.json",
+    "templates/official_primary_source_context_admission_artifact.example.json",
+    "templates/four_window_dashboard_runtime_data.example.json",
+    "/home/kaochuchian/dify/docker/volumes/certbot/www/stock-ai-dashboard/.ai_dev_145_publish_results/latest.json"
+  ],
+  "sqlite_uri": "file:data/stock_analysis.db?mode=ro",
+  "task_id": "AI-DEV-148"
+}
