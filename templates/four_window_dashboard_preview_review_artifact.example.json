@@ -1,0 +1,235 @@
+{
+  "blockers": [],
+  "decision_intelligence_coverage_review": {
+    "all_required_sections_visible": true,
+    "covered_sections": [
+      "Executive Decision Intelligence Summary",
+      "Official Source Admission Summary",
+      "Source Credibility Cards",
+      "Formal Integration Cards",
+      "Evidence Trace Summary",
+      "Factor Rationale Cards",
+      "Warning / Exclusion Cards",
+      "Metadata-only Badges",
+      "Advisory-only Badges",
+      "Feedback Recommendation Cards",
+      "Mutation Policy Summary"
+    ],
+    "formal_integration_cards": [
+      "FinMind",
+      "TWSE",
+      "yfinance"
+    ],
+    "required_sections": [
+      "Executive Decision Intelligence Summary",
+      "Official Source Admission Summary",
+      "Source Credibility Cards",
+      "Formal Integration Cards",
+      "Evidence Trace Summary",
+      "Factor Rationale Cards",
+      "Warning / Exclusion Cards",
+      "Metadata-only Badges",
+      "Advisory-only Badges",
+      "Feedback Recommendation Cards",
+      "Mutation Policy Summary"
+    ],
+    "status": "passed"
+  },
+  "generated_at": "2026-07-05T00:00:00Z",
+  "mobile_readability_review": {
+    "card_count_reasonable": true,
+    "details_debug_layering_available": true,
+    "long_paragraphs_avoided": true,
+    "section_order_mobile_friendly": true,
+    "status": "passed",
+    "technical_logs_absent_from_main_view": true
+  },
+  "mutation_policy_visibility_review": {
+    "all_flags_correct": true,
+    "displayed_policy": {
+      "delivery_behavior_modified": false,
+      "direct_rating_action_confidence_impact": false,
+      "human_review_required_for_any_mutation": true,
+      "production_confidence_changed": false,
+      "production_pipeline_modified": false,
+      "production_rating_action_changed": false,
+      "production_weight_changed": false,
+      "recommendation_only": true
+    },
+    "requirements": {
+      "delivery_behavior_modified": false,
+      "direct_rating_action_confidence_impact": false,
+      "human_review_required_for_any_mutation": true,
+      "production_confidence_changed": false,
+      "production_pipeline_modified": false,
+      "production_rating_action_changed": false,
+      "production_weight_changed": false,
+      "recommendation_only": true
+    },
+    "status": "passed"
+  },
+  "preview_artifact_ref": "templates/four_window_decision_intelligence_dashboard_artifact.example.json",
+  "preview_html_ref": "templates/four_window_decision_intelligence_dashboard_preview.example.html",
+  "production_integration_plan": {
+    "human_review_gate": true,
+    "no_notification_rule": true,
+    "no_scheduler_change_rule": true,
+    "production_publish_executed": false,
+    "recommended_ai_dev_144_scope": "controlled dashboard route integration using the static preview artifact, with no notification and no scheduler changes",
+    "renderer_integration_points": [
+      "app.dashboard.four_window_decision_intelligence.build_artifact",
+      "app.dashboard.four_window_decision_intelligence.render_html"
+    ],
+    "rollback_plan": "remove controlled route and restore previous dashboard routing without touching scheduler or notification delivery",
+    "static_preview_to_controlled_route_path": "templates/four_window_decision_intelligence_dashboard_preview.example.html -> approved dashboard preview route",
+    "suggested_dashboard_route": "/dashboard/decision-intelligence/four-window-preview",
+    "suggested_file_path": "app/dashboard/static/four_window_decision_intelligence_preview.html",
+    "validation_gates": [
+      "validate_four_window_decision_intelligence_dashboard_ui_v1",
+      "validate_four_window_dashboard_preview_review_v1",
+      "validate_post_merge_status"
+    ]
+  },
+  "readability_review": {
+    "cards_first_layout": true,
+    "four_windows_visually_distinguishable": true,
+    "official_source_policy_understandable": true,
+    "raw_json_blob_in_main_view": false,
+    "recommendation_mutation_policy_clear": true,
+    "short_clear_headings": true,
+    "status": "passed",
+    "warnings_badges_readable": true
+  },
+  "recommended_next_actions": [
+    "Open AI-DEV-144 for controlled dashboard route integration.",
+    "Keep scheduler, notification delivery, production pipeline, and rating/action/confidence mutation out of AI-DEV-144 unless separately approved."
+  ],
+  "safety_policy": {
+    "dashboard_published": false,
+    "db_write": false,
+    "direct_rating_action_confidence_impact": false,
+    "external_api_called": false,
+    "external_notification_sent": false,
+    "formal_delivery_behavior_changed": false,
+    "line_email_notification_sent": false,
+    "production_pipeline_executed": false,
+    "production_publish_executed": false,
+    "python_main_executed": false,
+    "read_only_review": true,
+    "scheduler_modified": false,
+    "secrets_read": false,
+    "trading_or_order_executed": false
+  },
+  "schema_version": "four_window_dashboard_preview_review_v1",
+  "source_policy_visibility_review": {
+    "ai_generated_analysis_not_original_evidence_visible": true,
+    "contextual_evidence_family_visible": true,
+    "core_evidence_family_visible": true,
+    "external_replacement_warnings_visible": true,
+    "metadata_only_policy_visible": true,
+    "requirements": [
+      "MOPS / 公司公告 / 財報 / 月營收 / 法說會 / IR 是 core evidence admission family",
+      "industry supply chain / peer company context 是 contextual evidence",
+      "FinMind cannot replace official sources",
+      "yfinance/Yahoo cannot replace official sources",
+      "Google News RSS cannot be core forecast evidence",
+      "broker target / analyst rating metadata-only",
+      "Gemini / AI-generated analysis is not original evidence"
+    ],
+    "status": "passed",
+    "visible_policy_badges": [
+      "FinMind cannot replace official sources",
+      "yfinance/Yahoo cannot replace official sources",
+      "Google News RSS cannot be core forecast evidence",
+      "broker target / analyst rating metadata-only",
+      "Gemini / AI-generated analysis is not original evidence"
+    ]
+  },
+  "task_id": "AI-DEV-143",
+  "timing_alignment_review": {
+    "close_1335_avoids_pre_close_main_semantics": true,
+    "close_1335_full_review_deferred_to_1500": true,
+    "close_1335_runtime_key_compatible": true,
+    "close_1335_ui_label_corrected": true,
+    "intraday_1305_is_intraday_tracking": true,
+    "post_close_1500_is_prediction_review": true,
+    "pre_open_0700_is_pre_open_forecast": true,
+    "status": "passed"
+  },
+  "warning_badge_review": {
+    "advisory_only_badges_visible": true,
+    "metadata_only_badges_visible": true,
+    "status": "passed",
+    "warning_badges_visible": true
+  },
+  "windows_review": [
+    {
+      "allowed_section_count": 12,
+      "content_positioning_ok": true,
+      "disallowed_sections": [
+        "full_prediction_review",
+        "external_notification_send",
+        "production_mutation"
+      ],
+      "notes": "Forecast-oriented context before market open; no delivery action is executed.",
+      "review_status": "passed",
+      "scheduled_time_tw": "07:00",
+      "ui_display_name_en": "Pre-open Forecast",
+      "ui_display_name_zh": "盤前預測",
+      "ui_window_id": "pre_open_0700",
+      "visible_in_preview_html": true,
+      "window_key": "pre_open_0700"
+    },
+    {
+      "allowed_section_count": 7,
+      "content_positioning_ok": true,
+      "disallowed_sections": [
+        "full_prediction_review",
+        "seven_day_rolling_review",
+        "external_notification_send",
+        "production_mutation"
+      ],
+      "notes": "Tracking window only; it does not run full prediction review.",
+      "review_status": "passed",
+      "scheduled_time_tw": "13:05",
+      "ui_display_name_en": "Intraday Tracking",
+      "ui_display_name_zh": "盤中追蹤",
+      "ui_window_id": "intraday_1305",
+      "visible_in_preview_html": true,
+      "window_key": "intraday_1305"
+    },
+    {
+      "allowed_section_count": 7,
+      "content_positioning_ok": true,
+      "disallowed_sections": [
+        "full_prediction_review",
+        "external_notification_send",
+        "production_mutation"
+      ],
+      "notes": "Runtime key remains pre_close_1335 for compatibility; UI label is close_snapshot_1335 / 收盤快照.",
+      "review_status": "passed",
+      "scheduled_time_tw": "13:35",
+      "ui_display_name_en": "Close Snapshot",
+      "ui_display_name_zh": "收盤快照",
+      "ui_window_id": "close_snapshot_1335",
+      "visible_in_preview_html": true,
+      "window_key": "pre_close_1335"
+    },
+    {
+      "allowed_section_count": 11,
+      "content_positioning_ok": true,
+      "disallowed_sections": [
+        "external_notification_send",
+        "production_mutation"
+      ],
+      "notes": "Full review window; recommendations remain advisory and require human review for any mutation.",
+      "review_status": "passed",
+      "scheduled_time_tw": "15:00",
+      "ui_display_name_en": "Prediction Review",
+      "ui_display_name_zh": "盤後檢討",
+      "ui_window_id": "prediction_review_1500",
+      "visible_in_preview_html": true,
+      "window_key": "post_close_1500"
+    }
+  ]
+}
