@@ -1,0 +1,665 @@
+{
+  "artifact_type": "formal_prediction_runtime",
+  "data_cutoff_at": "2026-07-06T07:00:00+08:00",
+  "generated_at": "2026-07-06T07:01:00+08:00",
+  "is_example": false,
+  "market": "TW",
+  "producer_name": "build_formal_prediction_runtime_artifact.py",
+  "producer_version": "formal_prediction_runtime_v1",
+  "runtime_window": "pre_open_0700",
+  "safety": {
+    "db_write": false,
+    "external_api_called": false,
+    "fabricated_forecast_values": false,
+    "notification_sent": false,
+    "production_pipeline_executed": false,
+    "python_main_executed": false,
+    "secrets_read": false,
+    "sqlite_opened_read_only": true,
+    "trading_or_order_executed": false
+  },
+  "schema_version": "formal_prediction_runtime_v1",
+  "source_mode": "safe_local_read_only_existing_artifacts",
+  "stock_universe_count": 9,
+  "stocks": [
+    {
+      "confidence_level": null,
+      "confidence_score": null,
+      "created_at": "2026-07-06T07:01:00+08:00",
+      "data_quality": {
+        "blocking_missing_fields": [
+          "same_day_high_prediction",
+          "same_day_low_prediction",
+          "next_day_high_prediction",
+          "next_day_low_prediction",
+          "one_month_trend",
+          "three_month_trend",
+          "confidence_score"
+        ],
+        "completeness": "insufficient_data",
+        "confidence_basis": "no formal prediction model output; local summary is context only",
+        "freshness": "missing_context"
+      },
+      "evidence_summary": "insufficient_data: no contract-backed high/low prediction model output is available.",
+      "insufficient_data_reasons": [
+        "no_contract_backed_high_low_prediction_output",
+        "no_safe_formal_forecast_model_result",
+        "local_summary_must_not_be_recast_as_prediction"
+      ],
+      "key_factors": [],
+      "missing_fields": [
+        "same_day_high_prediction",
+        "same_day_low_prediction",
+        "next_day_high_prediction",
+        "next_day_low_prediction",
+        "one_month_trend",
+        "three_month_trend",
+        "confidence_score"
+      ],
+      "model_version": "safe_null_formal_prediction_v1",
+      "next_day_high_prediction": null,
+      "next_day_low_prediction": null,
+      "next_trading_date": "2026-07-07",
+      "one_month_trend": null,
+      "prediction_date": "2026-07-06",
+      "risk_notes": [
+        "資料待接: formal prediction values remain null until a safe model output exists."
+      ],
+      "same_day_high_prediction": null,
+      "same_day_low_prediction": null,
+      "source_evidence": [
+        {
+          "source_type": "local_summary",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "historical_price",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "technical_snapshot",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "chip_summary",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "news_summary",
+          "status": "insufficient_data"
+        }
+      ],
+      "stock_id": "00878",
+      "stock_name": "國泰永續高股息",
+      "three_month_trend": null
+    },
+    {
+      "confidence_level": null,
+      "confidence_score": null,
+      "created_at": "2026-07-06T07:01:00+08:00",
+      "data_quality": {
+        "blocking_missing_fields": [
+          "same_day_high_prediction",
+          "same_day_low_prediction",
+          "next_day_high_prediction",
+          "next_day_low_prediction",
+          "one_month_trend",
+          "three_month_trend",
+          "confidence_score"
+        ],
+        "completeness": "insufficient_data",
+        "confidence_basis": "no formal prediction model output; local summary is context only",
+        "freshness": "missing_context"
+      },
+      "evidence_summary": "insufficient_data: no contract-backed high/low prediction model output is available.",
+      "insufficient_data_reasons": [
+        "no_contract_backed_high_low_prediction_output",
+        "no_safe_formal_forecast_model_result",
+        "local_summary_must_not_be_recast_as_prediction"
+      ],
+      "key_factors": [],
+      "missing_fields": [
+        "same_day_high_prediction",
+        "same_day_low_prediction",
+        "next_day_high_prediction",
+        "next_day_low_prediction",
+        "one_month_trend",
+        "three_month_trend",
+        "confidence_score"
+      ],
+      "model_version": "safe_null_formal_prediction_v1",
+      "next_day_high_prediction": null,
+      "next_day_low_prediction": null,
+      "next_trading_date": "2026-07-07",
+      "one_month_trend": null,
+      "prediction_date": "2026-07-06",
+      "risk_notes": [
+        "資料待接: formal prediction values remain null until a safe model output exists."
+      ],
+      "same_day_high_prediction": null,
+      "same_day_low_prediction": null,
+      "source_evidence": [
+        {
+          "source_type": "local_summary",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "historical_price",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "technical_snapshot",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "chip_summary",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "news_summary",
+          "status": "insufficient_data"
+        }
+      ],
+      "stock_id": "009816",
+      "stock_name": "凱基台灣TOP50",
+      "three_month_trend": null
+    },
+    {
+      "confidence_level": null,
+      "confidence_score": null,
+      "created_at": "2026-07-06T07:01:00+08:00",
+      "data_quality": {
+        "blocking_missing_fields": [
+          "same_day_high_prediction",
+          "same_day_low_prediction",
+          "next_day_high_prediction",
+          "next_day_low_prediction",
+          "one_month_trend",
+          "three_month_trend",
+          "confidence_score"
+        ],
+        "completeness": "insufficient_data",
+        "confidence_basis": "no formal prediction model output; local summary is context only",
+        "freshness": "context_available"
+      },
+      "evidence_summary": "insufficient_data: no contract-backed high/low prediction model output is available.",
+      "insufficient_data_reasons": [
+        "no_contract_backed_high_low_prediction_output",
+        "no_safe_formal_forecast_model_result",
+        "local_summary_must_not_be_recast_as_prediction"
+      ],
+      "key_factors": [],
+      "missing_fields": [
+        "same_day_high_prediction",
+        "same_day_low_prediction",
+        "next_day_high_prediction",
+        "next_day_low_prediction",
+        "one_month_trend",
+        "three_month_trend",
+        "confidence_score"
+      ],
+      "model_version": "safe_null_formal_prediction_v1",
+      "next_day_high_prediction": null,
+      "next_day_low_prediction": null,
+      "next_trading_date": "2026-07-07",
+      "one_month_trend": null,
+      "prediction_date": "2026-07-06",
+      "risk_notes": [
+        "資料待接: formal prediction values remain null until a safe model output exists."
+      ],
+      "same_day_high_prediction": null,
+      "same_day_low_prediction": null,
+      "source_evidence": [
+        {
+          "source_type": "local_summary",
+          "status": "available_for_context_only"
+        },
+        {
+          "source_type": "historical_price",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "technical_snapshot",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "chip_summary",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "news_summary",
+          "status": "insufficient_data"
+        }
+      ],
+      "stock_id": "1409",
+      "stock_name": "新纖",
+      "three_month_trend": null
+    },
+    {
+      "confidence_level": null,
+      "confidence_score": null,
+      "created_at": "2026-07-06T07:01:00+08:00",
+      "data_quality": {
+        "blocking_missing_fields": [
+          "same_day_high_prediction",
+          "same_day_low_prediction",
+          "next_day_high_prediction",
+          "next_day_low_prediction",
+          "one_month_trend",
+          "three_month_trend",
+          "confidence_score"
+        ],
+        "completeness": "insufficient_data",
+        "confidence_basis": "no formal prediction model output; local summary is context only",
+        "freshness": "missing_context"
+      },
+      "evidence_summary": "insufficient_data: no contract-backed high/low prediction model output is available.",
+      "insufficient_data_reasons": [
+        "no_contract_backed_high_low_prediction_output",
+        "no_safe_formal_forecast_model_result",
+        "local_summary_must_not_be_recast_as_prediction"
+      ],
+      "key_factors": [],
+      "missing_fields": [
+        "same_day_high_prediction",
+        "same_day_low_prediction",
+        "next_day_high_prediction",
+        "next_day_low_prediction",
+        "one_month_trend",
+        "three_month_trend",
+        "confidence_score"
+      ],
+      "model_version": "safe_null_formal_prediction_v1",
+      "next_day_high_prediction": null,
+      "next_day_low_prediction": null,
+      "next_trading_date": "2026-07-07",
+      "one_month_trend": null,
+      "prediction_date": "2026-07-06",
+      "risk_notes": [
+        "資料待接: formal prediction values remain null until a safe model output exists."
+      ],
+      "same_day_high_prediction": null,
+      "same_day_low_prediction": null,
+      "source_evidence": [
+        {
+          "source_type": "local_summary",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "historical_price",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "technical_snapshot",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "chip_summary",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "news_summary",
+          "status": "insufficient_data"
+        }
+      ],
+      "stock_id": "2305",
+      "stock_name": "全友",
+      "three_month_trend": null
+    },
+    {
+      "confidence_level": null,
+      "confidence_score": null,
+      "created_at": "2026-07-06T07:01:00+08:00",
+      "data_quality": {
+        "blocking_missing_fields": [
+          "same_day_high_prediction",
+          "same_day_low_prediction",
+          "next_day_high_prediction",
+          "next_day_low_prediction",
+          "one_month_trend",
+          "three_month_trend",
+          "confidence_score"
+        ],
+        "completeness": "insufficient_data",
+        "confidence_basis": "no formal prediction model output; local summary is context only",
+        "freshness": "missing_context"
+      },
+      "evidence_summary": "insufficient_data: no contract-backed high/low prediction model output is available.",
+      "insufficient_data_reasons": [
+        "no_contract_backed_high_low_prediction_output",
+        "no_safe_formal_forecast_model_result",
+        "local_summary_must_not_be_recast_as_prediction"
+      ],
+      "key_factors": [],
+      "missing_fields": [
+        "same_day_high_prediction",
+        "same_day_low_prediction",
+        "next_day_high_prediction",
+        "next_day_low_prediction",
+        "one_month_trend",
+        "three_month_trend",
+        "confidence_score"
+      ],
+      "model_version": "safe_null_formal_prediction_v1",
+      "next_day_high_prediction": null,
+      "next_day_low_prediction": null,
+      "next_trading_date": "2026-07-07",
+      "one_month_trend": null,
+      "prediction_date": "2026-07-06",
+      "risk_notes": [
+        "資料待接: formal prediction values remain null until a safe model output exists."
+      ],
+      "same_day_high_prediction": null,
+      "same_day_low_prediction": null,
+      "source_evidence": [
+        {
+          "source_type": "local_summary",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "historical_price",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "technical_snapshot",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "chip_summary",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "news_summary",
+          "status": "insufficient_data"
+        }
+      ],
+      "stock_id": "2330",
+      "stock_name": "台積電",
+      "three_month_trend": null
+    },
+    {
+      "confidence_level": null,
+      "confidence_score": null,
+      "created_at": "2026-07-06T07:01:00+08:00",
+      "data_quality": {
+        "blocking_missing_fields": [
+          "same_day_high_prediction",
+          "same_day_low_prediction",
+          "next_day_high_prediction",
+          "next_day_low_prediction",
+          "one_month_trend",
+          "three_month_trend",
+          "confidence_score"
+        ],
+        "completeness": "insufficient_data",
+        "confidence_basis": "no formal prediction model output; local summary is context only",
+        "freshness": "missing_context"
+      },
+      "evidence_summary": "insufficient_data: no contract-backed high/low prediction model output is available.",
+      "insufficient_data_reasons": [
+        "no_contract_backed_high_low_prediction_output",
+        "no_safe_formal_forecast_model_result",
+        "local_summary_must_not_be_recast_as_prediction"
+      ],
+      "key_factors": [],
+      "missing_fields": [
+        "same_day_high_prediction",
+        "same_day_low_prediction",
+        "next_day_high_prediction",
+        "next_day_low_prediction",
+        "one_month_trend",
+        "three_month_trend",
+        "confidence_score"
+      ],
+      "model_version": "safe_null_formal_prediction_v1",
+      "next_day_high_prediction": null,
+      "next_day_low_prediction": null,
+      "next_trading_date": "2026-07-07",
+      "one_month_trend": null,
+      "prediction_date": "2026-07-06",
+      "risk_notes": [
+        "資料待接: formal prediction values remain null until a safe model output exists."
+      ],
+      "same_day_high_prediction": null,
+      "same_day_low_prediction": null,
+      "source_evidence": [
+        {
+          "source_type": "local_summary",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "historical_price",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "technical_snapshot",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "chip_summary",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "news_summary",
+          "status": "insufficient_data"
+        }
+      ],
+      "stock_id": "2337",
+      "stock_name": "旺宏",
+      "three_month_trend": null
+    },
+    {
+      "confidence_level": null,
+      "confidence_score": null,
+      "created_at": "2026-07-06T07:01:00+08:00",
+      "data_quality": {
+        "blocking_missing_fields": [
+          "same_day_high_prediction",
+          "same_day_low_prediction",
+          "next_day_high_prediction",
+          "next_day_low_prediction",
+          "one_month_trend",
+          "three_month_trend",
+          "confidence_score"
+        ],
+        "completeness": "insufficient_data",
+        "confidence_basis": "no formal prediction model output; local summary is context only",
+        "freshness": "missing_context"
+      },
+      "evidence_summary": "insufficient_data: no contract-backed high/low prediction model output is available.",
+      "insufficient_data_reasons": [
+        "no_contract_backed_high_low_prediction_output",
+        "no_safe_formal_forecast_model_result",
+        "local_summary_must_not_be_recast_as_prediction"
+      ],
+      "key_factors": [],
+      "missing_fields": [
+        "same_day_high_prediction",
+        "same_day_low_prediction",
+        "next_day_high_prediction",
+        "next_day_low_prediction",
+        "one_month_trend",
+        "three_month_trend",
+        "confidence_score"
+      ],
+      "model_version": "safe_null_formal_prediction_v1",
+      "next_day_high_prediction": null,
+      "next_day_low_prediction": null,
+      "next_trading_date": "2026-07-07",
+      "one_month_trend": null,
+      "prediction_date": "2026-07-06",
+      "risk_notes": [
+        "資料待接: formal prediction values remain null until a safe model output exists."
+      ],
+      "same_day_high_prediction": null,
+      "same_day_low_prediction": null,
+      "source_evidence": [
+        {
+          "source_type": "local_summary",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "historical_price",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "technical_snapshot",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "chip_summary",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "news_summary",
+          "status": "insufficient_data"
+        }
+      ],
+      "stock_id": "2353",
+      "stock_name": "宏碁",
+      "three_month_trend": null
+    },
+    {
+      "confidence_level": null,
+      "confidence_score": null,
+      "created_at": "2026-07-06T07:01:00+08:00",
+      "data_quality": {
+        "blocking_missing_fields": [
+          "same_day_high_prediction",
+          "same_day_low_prediction",
+          "next_day_high_prediction",
+          "next_day_low_prediction",
+          "one_month_trend",
+          "three_month_trend",
+          "confidence_score"
+        ],
+        "completeness": "insufficient_data",
+        "confidence_basis": "no formal prediction model output; local summary is context only",
+        "freshness": "missing_context"
+      },
+      "evidence_summary": "insufficient_data: no contract-backed high/low prediction model output is available.",
+      "insufficient_data_reasons": [
+        "no_contract_backed_high_low_prediction_output",
+        "no_safe_formal_forecast_model_result",
+        "local_summary_must_not_be_recast_as_prediction"
+      ],
+      "key_factors": [],
+      "missing_fields": [
+        "same_day_high_prediction",
+        "same_day_low_prediction",
+        "next_day_high_prediction",
+        "next_day_low_prediction",
+        "one_month_trend",
+        "three_month_trend",
+        "confidence_score"
+      ],
+      "model_version": "safe_null_formal_prediction_v1",
+      "next_day_high_prediction": null,
+      "next_day_low_prediction": null,
+      "next_trading_date": "2026-07-07",
+      "one_month_trend": null,
+      "prediction_date": "2026-07-06",
+      "risk_notes": [
+        "資料待接: formal prediction values remain null until a safe model output exists."
+      ],
+      "same_day_high_prediction": null,
+      "same_day_low_prediction": null,
+      "source_evidence": [
+        {
+          "source_type": "local_summary",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "historical_price",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "technical_snapshot",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "chip_summary",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "news_summary",
+          "status": "insufficient_data"
+        }
+      ],
+      "stock_id": "4743",
+      "stock_name": "合一",
+      "three_month_trend": null
+    },
+    {
+      "confidence_level": null,
+      "confidence_score": null,
+      "created_at": "2026-07-06T07:01:00+08:00",
+      "data_quality": {
+        "blocking_missing_fields": [
+          "same_day_high_prediction",
+          "same_day_low_prediction",
+          "next_day_high_prediction",
+          "next_day_low_prediction",
+          "one_month_trend",
+          "three_month_trend",
+          "confidence_score"
+        ],
+        "completeness": "insufficient_data",
+        "confidence_basis": "no formal prediction model output; local summary is context only",
+        "freshness": "missing_context"
+      },
+      "evidence_summary": "insufficient_data: no contract-backed high/low prediction model output is available.",
+      "insufficient_data_reasons": [
+        "no_contract_backed_high_low_prediction_output",
+        "no_safe_formal_forecast_model_result",
+        "local_summary_must_not_be_recast_as_prediction"
+      ],
+      "key_factors": [],
+      "missing_fields": [
+        "same_day_high_prediction",
+        "same_day_low_prediction",
+        "next_day_high_prediction",
+        "next_day_low_prediction",
+        "one_month_trend",
+        "three_month_trend",
+        "confidence_score"
+      ],
+      "model_version": "safe_null_formal_prediction_v1",
+      "next_day_high_prediction": null,
+      "next_day_low_prediction": null,
+      "next_trading_date": "2026-07-07",
+      "one_month_trend": null,
+      "prediction_date": "2026-07-06",
+      "risk_notes": [
+        "資料待接: formal prediction values remain null until a safe model output exists."
+      ],
+      "same_day_high_prediction": null,
+      "same_day_low_prediction": null,
+      "source_evidence": [
+        {
+          "source_type": "local_summary",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "historical_price",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "technical_snapshot",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "chip_summary",
+          "status": "insufficient_data"
+        },
+        {
+          "source_type": "news_summary",
+          "status": "insufficient_data"
+        }
+      ],
+      "stock_id": "6873",
+      "stock_name": "泓德能源",
+      "three_month_trend": null
+    }
+  ]
+}

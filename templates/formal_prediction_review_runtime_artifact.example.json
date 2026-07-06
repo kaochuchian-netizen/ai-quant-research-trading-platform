@@ -1,0 +1,72 @@
+{
+  "artifact_type": "formal_prediction_review_runtime",
+  "generated_at": "2026-07-06T15:01:00+08:00",
+  "is_example": true,
+  "market": "TW",
+  "producer_name": "build_formal_prediction_review_runtime_artifact.py",
+  "producer_version": "formal_prediction_review_runtime_v1",
+  "review_date": "2026-07-06",
+  "review_window_days": 7,
+  "runtime_window": "prediction_review_1500",
+  "schema_version": "formal_prediction_review_runtime_v1",
+  "source_mode": "deterministic_example_non_production",
+  "stock_universe_count": 1,
+  "stocks": [
+    {
+      "actual_close": null,
+      "actual_high": null,
+      "actual_low": null,
+      "confidence_calibration": null,
+      "created_at": "2026-07-06T15:01:00+08:00",
+      "data_quality": {
+        "blocking_missing_fields": [
+          "actual_high",
+          "actual_low",
+          "actual_close",
+          "seven_day_hit_rate"
+        ],
+        "completeness": "insufficient_data",
+        "confidence_basis": "example artifact only; not production review evidence",
+        "freshness": "example_static"
+      },
+      "direction_result": null,
+      "error_reasons": [],
+      "factor_effectiveness": null,
+      "high_low_forecast_error": null,
+      "hit_miss_status": null,
+      "insufficient_data_reasons": [
+        "example_artifact_not_production",
+        "no_comparable_prediction_and_actual_outcome"
+      ],
+      "missing_fields": [
+        "actual_high",
+        "actual_low",
+        "actual_close",
+        "direction_result",
+        "high_low_forecast_error",
+        "hit_miss_status",
+        "seven_day_hit_rate",
+        "confidence_calibration",
+        "factor_effectiveness",
+        "recommendation_for_improvement"
+      ],
+      "recommendation_for_improvement": null,
+      "review_date": "2026-07-06",
+      "review_window_end": "2026-07-06",
+      "review_window_start": "2026-06-30",
+      "seven_day_hit_rate": null,
+      "source_evidence": [
+        {
+          "source_type": "formal_prediction_runtime",
+          "status": "example_only"
+        },
+        {
+          "source_type": "actual_outcome",
+          "status": "insufficient_data"
+        }
+      ],
+      "stock_id": "2330",
+      "stock_name": "台積電"
+    }
+  ]
+}
