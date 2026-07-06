@@ -1,0 +1,577 @@
+{
+  "channel_policies": {
+    "dashboard": {
+      "dashboard_full_state_required": true,
+      "email_full_report_required": false,
+      "line_summary_required": false,
+      "max_intent": "full_state",
+      "required_behavior": "完整資料狀態、freshness、缺資料原因"
+    },
+    "email": {
+      "dashboard_full_state_required": false,
+      "email_full_report_required": true,
+      "line_summary_required": false,
+      "max_intent": "full_report",
+      "required_behavior": "完整報告 sections"
+    },
+    "line": {
+      "dashboard_full_state_required": false,
+      "email_full_report_required": false,
+      "line_summary_required": true,
+      "max_intent": "concise_summary",
+      "required_behavior": "短摘要 + 預測欄位狀態 + Dashboard URL"
+    }
+  },
+  "generated_at": "2026-07-06T00:00:00+08:00",
+  "missing_prediction_fallback": "資料待接：尚未找到正式 prediction runtime artifact，不產生假預測。",
+  "safety_policy": {
+    "db_write": false,
+    "fabricated_forecast_values": false,
+    "line_email_notification_sent": false,
+    "production_pipeline_executed": false,
+    "production_rating_action_confidence_weight_mutated": false,
+    "python_main_executed": false,
+    "scheduler_modified": false,
+    "trading_or_order_executed": false
+  },
+  "schema_version": "four_batch_delivery_content_contract_v1",
+  "strategy_v2_0620_alignment": "four batches consolidate the original 07:00/11:30/13:40/15:00/US/futures expectations without fabricating unavailable prediction data",
+  "task_id": "AI-DEV-149",
+  "us_market_fallback": "美股資料待接：尚未提供美股股票代號或正式 runtime artifact。",
+  "windows": [
+    {
+      "channel": "line",
+      "channel_behavior": "短摘要 + 預測欄位狀態 + Dashboard URL",
+      "dashboard_full_state_required": false,
+      "dashboard_url_required": true,
+      "email_full_report_required": false,
+      "fallback_text": "資料待接：尚未找到正式 prediction runtime artifact，不產生假預測。",
+      "forbidden_sections": [],
+      "freshness_rules": {
+        "missing_state_must_be_explicit": true,
+        "stale_state_must_be_explicit": true
+      },
+      "line_summary_required": true,
+      "optional_sections": [
+        "source credibility",
+        "freshness",
+        "debug artifact inventory"
+      ],
+      "required_prediction_fields": [
+        "今日最高價預測",
+        "今日最低價預測",
+        "隔天最高價預測",
+        "隔天最低價預測",
+        "未來 1 個月走勢",
+        "未來 3 個月走勢",
+        "信心分數",
+        "主要依據"
+      ],
+      "required_sections": [
+        "台股盤前預測",
+        "今日最高價預測",
+        "今日最低價預測",
+        "隔天最高價預測",
+        "隔天最低價預測",
+        "未來 1 個月走勢",
+        "未來 3 個月走勢",
+        "信心分數 / confidence",
+        "主要依據 / rationale",
+        "風險提醒",
+        "台指期夜盤觀察",
+        "美股盤後摘要狀態",
+        "Dashboard URL"
+      ],
+      "scheduled_time_tw": "07:00",
+      "strategy_v2_mapping": [
+        "台股盤前報告",
+        "台指期夜盤觀察",
+        "美股盤後摘要狀態"
+      ],
+      "ui_label": "盤前預測 / Pre-open Forecast",
+      "ui_window_id": "pre_open_0700",
+      "window": "pre_open_0700"
+    },
+    {
+      "channel": "email",
+      "channel_behavior": "完整報告 sections",
+      "dashboard_full_state_required": false,
+      "dashboard_url_required": true,
+      "email_full_report_required": true,
+      "fallback_text": "資料待接：尚未找到正式 prediction runtime artifact，不產生假預測。",
+      "forbidden_sections": [],
+      "freshness_rules": {
+        "missing_state_must_be_explicit": true,
+        "stale_state_must_be_explicit": true
+      },
+      "line_summary_required": false,
+      "optional_sections": [
+        "source credibility",
+        "freshness",
+        "debug artifact inventory"
+      ],
+      "required_prediction_fields": [
+        "今日最高價預測",
+        "今日最低價預測",
+        "隔天最高價預測",
+        "隔天最低價預測",
+        "未來 1 個月走勢",
+        "未來 3 個月走勢",
+        "信心分數",
+        "主要依據"
+      ],
+      "required_sections": [
+        "台股盤前預測",
+        "今日最高價預測",
+        "今日最低價預測",
+        "隔天最高價預測",
+        "隔天最低價預測",
+        "未來 1 個月走勢",
+        "未來 3 個月走勢",
+        "信心分數 / confidence",
+        "主要依據 / rationale",
+        "風險提醒",
+        "台指期夜盤觀察",
+        "美股盤後摘要狀態",
+        "Dashboard URL"
+      ],
+      "scheduled_time_tw": "07:00",
+      "strategy_v2_mapping": [
+        "台股盤前報告",
+        "台指期夜盤觀察",
+        "美股盤後摘要狀態"
+      ],
+      "ui_label": "盤前預測 / Pre-open Forecast",
+      "ui_window_id": "pre_open_0700",
+      "window": "pre_open_0700"
+    },
+    {
+      "channel": "dashboard",
+      "channel_behavior": "完整資料狀態、freshness、缺資料原因",
+      "dashboard_full_state_required": true,
+      "dashboard_url_required": true,
+      "email_full_report_required": false,
+      "fallback_text": "資料待接：尚未找到正式 prediction runtime artifact，不產生假預測。",
+      "forbidden_sections": [],
+      "freshness_rules": {
+        "missing_state_must_be_explicit": true,
+        "stale_state_must_be_explicit": true
+      },
+      "line_summary_required": false,
+      "optional_sections": [
+        "source credibility",
+        "freshness",
+        "debug artifact inventory"
+      ],
+      "required_prediction_fields": [
+        "今日最高價預測",
+        "今日最低價預測",
+        "隔天最高價預測",
+        "隔天最低價預測",
+        "未來 1 個月走勢",
+        "未來 3 個月走勢",
+        "信心分數",
+        "主要依據"
+      ],
+      "required_sections": [
+        "台股盤前預測",
+        "今日最高價預測",
+        "今日最低價預測",
+        "隔天最高價預測",
+        "隔天最低價預測",
+        "未來 1 個月走勢",
+        "未來 3 個月走勢",
+        "信心分數 / confidence",
+        "主要依據 / rationale",
+        "風險提醒",
+        "台指期夜盤觀察",
+        "美股盤後摘要狀態",
+        "Dashboard URL"
+      ],
+      "scheduled_time_tw": "07:00",
+      "strategy_v2_mapping": [
+        "台股盤前報告",
+        "台指期夜盤觀察",
+        "美股盤後摘要狀態"
+      ],
+      "ui_label": "盤前預測 / Pre-open Forecast",
+      "ui_window_id": "pre_open_0700",
+      "window": "pre_open_0700"
+    },
+    {
+      "channel": "line",
+      "channel_behavior": "短摘要 + 預測欄位狀態 + Dashboard URL",
+      "dashboard_full_state_required": false,
+      "dashboard_url_required": true,
+      "email_full_report_required": false,
+      "fallback_text": "資料待接：尚未找到正式 intraday runtime artifact。",
+      "forbidden_sections": [],
+      "freshness_rules": {
+        "missing_state_must_be_explicit": true,
+        "stale_state_must_be_explicit": true
+      },
+      "line_summary_required": true,
+      "optional_sections": [
+        "source credibility",
+        "freshness",
+        "debug artifact inventory"
+      ],
+      "required_prediction_fields": [
+        "是否接近今日預測高低區間"
+      ],
+      "required_sections": [
+        "盤中分析",
+        "目前價格狀態",
+        "是否接近今日預測高低區間",
+        "成交量 / 量能狀態",
+        "新聞 / 籌碼 / ADR / 外部市場變化",
+        "盤前假設是否仍有效",
+        "風險提醒",
+        "Dashboard URL"
+      ],
+      "scheduled_time_tw": "13:05",
+      "strategy_v2_mapping": [
+        "11:30 盤中分析"
+      ],
+      "ui_label": "盤中追蹤 / Intraday Tracking",
+      "ui_window_id": "intraday_1305",
+      "window": "intraday_1305"
+    },
+    {
+      "channel": "email",
+      "channel_behavior": "完整報告 sections",
+      "dashboard_full_state_required": false,
+      "dashboard_url_required": true,
+      "email_full_report_required": true,
+      "fallback_text": "資料待接：尚未找到正式 intraday runtime artifact。",
+      "forbidden_sections": [],
+      "freshness_rules": {
+        "missing_state_must_be_explicit": true,
+        "stale_state_must_be_explicit": true
+      },
+      "line_summary_required": false,
+      "optional_sections": [
+        "source credibility",
+        "freshness",
+        "debug artifact inventory"
+      ],
+      "required_prediction_fields": [
+        "是否接近今日預測高低區間"
+      ],
+      "required_sections": [
+        "盤中分析",
+        "目前價格狀態",
+        "是否接近今日預測高低區間",
+        "成交量 / 量能狀態",
+        "新聞 / 籌碼 / ADR / 外部市場變化",
+        "盤前假設是否仍有效",
+        "風險提醒",
+        "Dashboard URL"
+      ],
+      "scheduled_time_tw": "13:05",
+      "strategy_v2_mapping": [
+        "11:30 盤中分析"
+      ],
+      "ui_label": "盤中追蹤 / Intraday Tracking",
+      "ui_window_id": "intraday_1305",
+      "window": "intraday_1305"
+    },
+    {
+      "channel": "dashboard",
+      "channel_behavior": "完整資料狀態、freshness、缺資料原因",
+      "dashboard_full_state_required": true,
+      "dashboard_url_required": true,
+      "email_full_report_required": false,
+      "fallback_text": "資料待接：尚未找到正式 intraday runtime artifact。",
+      "forbidden_sections": [],
+      "freshness_rules": {
+        "missing_state_must_be_explicit": true,
+        "stale_state_must_be_explicit": true
+      },
+      "line_summary_required": false,
+      "optional_sections": [
+        "source credibility",
+        "freshness",
+        "debug artifact inventory"
+      ],
+      "required_prediction_fields": [
+        "是否接近今日預測高低區間"
+      ],
+      "required_sections": [
+        "盤中分析",
+        "目前價格狀態",
+        "是否接近今日預測高低區間",
+        "成交量 / 量能狀態",
+        "新聞 / 籌碼 / ADR / 外部市場變化",
+        "盤前假設是否仍有效",
+        "風險提醒",
+        "Dashboard URL"
+      ],
+      "scheduled_time_tw": "13:05",
+      "strategy_v2_mapping": [
+        "11:30 盤中分析"
+      ],
+      "ui_label": "盤中追蹤 / Intraday Tracking",
+      "ui_window_id": "intraday_1305",
+      "window": "intraday_1305"
+    },
+    {
+      "channel": "line",
+      "channel_behavior": "短摘要 + 預測欄位狀態 + Dashboard URL",
+      "dashboard_full_state_required": false,
+      "dashboard_url_required": true,
+      "email_full_report_required": false,
+      "fallback_text": "資料待接：完整檢討待 15:00。",
+      "forbidden_sections": [
+        "legacy 13:35 risk-reminder wording in primary UI",
+        "runtime key wording outside Debug"
+      ],
+      "freshness_rules": {
+        "missing_state_must_be_explicit": true,
+        "stale_state_must_be_explicit": true
+      },
+      "line_summary_required": true,
+      "optional_sections": [
+        "source credibility",
+        "freshness",
+        "debug artifact inventory"
+      ],
+      "required_prediction_fields": [
+        "與 07:00 預測區間的初步比對"
+      ],
+      "required_sections": [
+        "收盤快照",
+        "今日高 / 低 / 收盤狀態",
+        "與 07:00 預測區間的初步比對",
+        "當日方向是否符合預期",
+        "需要進入 15:00 檢討的項目",
+        "當日總結摘要",
+        "完整檢討待 15:00",
+        "Dashboard URL"
+      ],
+      "scheduled_time_tw": "13:35",
+      "strategy_v2_mapping": [
+        "13:40 當天盤後總結檢討的初步快照"
+      ],
+      "ui_label": "收盤快照 / Close Snapshot",
+      "ui_window_id": "close_snapshot_1335",
+      "window": "pre_close_1335"
+    },
+    {
+      "channel": "email",
+      "channel_behavior": "完整報告 sections",
+      "dashboard_full_state_required": false,
+      "dashboard_url_required": true,
+      "email_full_report_required": true,
+      "fallback_text": "資料待接：完整檢討待 15:00。",
+      "forbidden_sections": [
+        "legacy 13:35 risk-reminder wording in primary UI",
+        "runtime key wording outside Debug"
+      ],
+      "freshness_rules": {
+        "missing_state_must_be_explicit": true,
+        "stale_state_must_be_explicit": true
+      },
+      "line_summary_required": false,
+      "optional_sections": [
+        "source credibility",
+        "freshness",
+        "debug artifact inventory"
+      ],
+      "required_prediction_fields": [
+        "與 07:00 預測區間的初步比對"
+      ],
+      "required_sections": [
+        "收盤快照",
+        "今日高 / 低 / 收盤狀態",
+        "與 07:00 預測區間的初步比對",
+        "當日方向是否符合預期",
+        "需要進入 15:00 檢討的項目",
+        "當日總結摘要",
+        "完整檢討待 15:00",
+        "Dashboard URL"
+      ],
+      "scheduled_time_tw": "13:35",
+      "strategy_v2_mapping": [
+        "13:40 當天盤後總結檢討的初步快照"
+      ],
+      "ui_label": "收盤快照 / Close Snapshot",
+      "ui_window_id": "close_snapshot_1335",
+      "window": "pre_close_1335"
+    },
+    {
+      "channel": "dashboard",
+      "channel_behavior": "完整資料狀態、freshness、缺資料原因",
+      "dashboard_full_state_required": true,
+      "dashboard_url_required": true,
+      "email_full_report_required": false,
+      "fallback_text": "資料待接：完整檢討待 15:00。",
+      "forbidden_sections": [
+        "legacy 13:35 risk-reminder wording in primary UI",
+        "runtime key wording outside Debug"
+      ],
+      "freshness_rules": {
+        "missing_state_must_be_explicit": true,
+        "stale_state_must_be_explicit": true
+      },
+      "line_summary_required": false,
+      "optional_sections": [
+        "source credibility",
+        "freshness",
+        "debug artifact inventory"
+      ],
+      "required_prediction_fields": [
+        "與 07:00 預測區間的初步比對"
+      ],
+      "required_sections": [
+        "收盤快照",
+        "今日高 / 低 / 收盤狀態",
+        "與 07:00 預測區間的初步比對",
+        "當日方向是否符合預期",
+        "需要進入 15:00 檢討的項目",
+        "當日總結摘要",
+        "完整檢討待 15:00",
+        "Dashboard URL"
+      ],
+      "scheduled_time_tw": "13:35",
+      "strategy_v2_mapping": [
+        "13:40 當天盤後總結檢討的初步快照"
+      ],
+      "ui_label": "收盤快照 / Close Snapshot",
+      "ui_window_id": "close_snapshot_1335",
+      "window": "pre_close_1335"
+    },
+    {
+      "channel": "line",
+      "channel_behavior": "短摘要 + 預測欄位狀態 + Dashboard URL",
+      "dashboard_full_state_required": false,
+      "dashboard_url_required": true,
+      "email_full_report_required": false,
+      "fallback_text": "資料待接：尚未找到正式 prediction review runtime artifact，不產生假檢討。",
+      "forbidden_sections": [],
+      "freshness_rules": {
+        "missing_state_must_be_explicit": true,
+        "stale_state_must_be_explicit": true
+      },
+      "line_summary_required": true,
+      "optional_sections": [
+        "source credibility",
+        "freshness",
+        "debug artifact inventory"
+      ],
+      "required_prediction_fields": [
+        "過去 7 天預測命中率",
+        "今日 forecast vs actual",
+        "高低價預測誤差"
+      ],
+      "required_sections": [
+        "盤後檢討 / Prediction Review",
+        "過去 7 天預測命中率",
+        "今日 forecast vs actual",
+        "高低價預測誤差",
+        "方向判斷命中 / 失誤",
+        "confidence calibration",
+        "factor effectiveness",
+        "錯誤原因",
+        "隔日改善建議",
+        "Dashboard URL"
+      ],
+      "scheduled_time_tw": "15:00",
+      "strategy_v2_mapping": [
+        "15:00 滾動檢討過去 7 天預測品質",
+        "美股 7-day rolling review 待接"
+      ],
+      "ui_label": "盤後檢討 / Prediction Review",
+      "ui_window_id": "prediction_review_1500",
+      "window": "post_close_1500"
+    },
+    {
+      "channel": "email",
+      "channel_behavior": "完整報告 sections",
+      "dashboard_full_state_required": false,
+      "dashboard_url_required": true,
+      "email_full_report_required": true,
+      "fallback_text": "資料待接：尚未找到正式 prediction review runtime artifact，不產生假檢討。",
+      "forbidden_sections": [],
+      "freshness_rules": {
+        "missing_state_must_be_explicit": true,
+        "stale_state_must_be_explicit": true
+      },
+      "line_summary_required": false,
+      "optional_sections": [
+        "source credibility",
+        "freshness",
+        "debug artifact inventory"
+      ],
+      "required_prediction_fields": [
+        "過去 7 天預測命中率",
+        "今日 forecast vs actual",
+        "高低價預測誤差"
+      ],
+      "required_sections": [
+        "盤後檢討 / Prediction Review",
+        "過去 7 天預測命中率",
+        "今日 forecast vs actual",
+        "高低價預測誤差",
+        "方向判斷命中 / 失誤",
+        "confidence calibration",
+        "factor effectiveness",
+        "錯誤原因",
+        "隔日改善建議",
+        "Dashboard URL"
+      ],
+      "scheduled_time_tw": "15:00",
+      "strategy_v2_mapping": [
+        "15:00 滾動檢討過去 7 天預測品質",
+        "美股 7-day rolling review 待接"
+      ],
+      "ui_label": "盤後檢討 / Prediction Review",
+      "ui_window_id": "prediction_review_1500",
+      "window": "post_close_1500"
+    },
+    {
+      "channel": "dashboard",
+      "channel_behavior": "完整資料狀態、freshness、缺資料原因",
+      "dashboard_full_state_required": true,
+      "dashboard_url_required": true,
+      "email_full_report_required": false,
+      "fallback_text": "資料待接：尚未找到正式 prediction review runtime artifact，不產生假檢討。",
+      "forbidden_sections": [],
+      "freshness_rules": {
+        "missing_state_must_be_explicit": true,
+        "stale_state_must_be_explicit": true
+      },
+      "line_summary_required": false,
+      "optional_sections": [
+        "source credibility",
+        "freshness",
+        "debug artifact inventory"
+      ],
+      "required_prediction_fields": [
+        "過去 7 天預測命中率",
+        "今日 forecast vs actual",
+        "高低價預測誤差"
+      ],
+      "required_sections": [
+        "盤後檢討 / Prediction Review",
+        "過去 7 天預測命中率",
+        "今日 forecast vs actual",
+        "高低價預測誤差",
+        "方向判斷命中 / 失誤",
+        "confidence calibration",
+        "factor effectiveness",
+        "錯誤原因",
+        "隔日改善建議",
+        "Dashboard URL"
+      ],
+      "scheduled_time_tw": "15:00",
+      "strategy_v2_mapping": [
+        "15:00 滾動檢討過去 7 天預測品質",
+        "美股 7-day rolling review 待接"
+      ],
+      "ui_label": "盤後檢討 / Prediction Review",
+      "ui_window_id": "prediction_review_1500",
+      "window": "post_close_1500"
+    }
+  ]
+}
