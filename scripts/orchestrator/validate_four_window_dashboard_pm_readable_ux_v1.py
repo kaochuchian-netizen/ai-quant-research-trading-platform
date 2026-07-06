@@ -57,10 +57,7 @@ def validate_html(html: str, errors: list[str]) -> dict[str, object]:
     required = [
         "四時段 AI 決策儀表板",
         "盤前、盤中、收盤快照、盤後檢討",
-        "預覽版 / 尚未接正式即時資料",
         "今日決策摘要",
-        "目前為預覽資料",
-        "尚未接正式 runtime data",
         "不會觸發通知或下單",
         "四個時段怎麼看",
         "07:00",
@@ -87,6 +84,18 @@ def validate_html(html: str, errors: list[str]) -> dict[str, object]:
     for needle in required:
         if needle not in html:
             errors.append(f"missing required PM-readable content: {needle}")
+    allowed_runtime_state_markers = [
+        "預覽版 / 尚未接正式即時資料",
+        "目前為預覽資料",
+        "尚未接正式 runtime data",
+        "formal prediction artifact 已接線",
+        "formal review artifact 已接線",
+        "正式預測資料待接",
+        "盤後檢討資料待接",
+        "資料待接",
+    ]
+    if not any(marker in html for marker in allowed_runtime_state_markers):
+        errors.append("missing PM-readable formal runtime state marker")
     if "<iframe" in html.lower():
         errors.append("iframe / embedded nested static preview must not be present")
     forbidden_user_phrases = ["Embedded Static Preview", "Deterministic placeholder", "Route Contract</h2>", "<table"]
