@@ -1,0 +1,396 @@
+{
+  "audit_scope": "read-only local artifacts; no LINE/Email resend; no DB write",
+  "generated_at": "2026-07-06T22:57:06",
+  "public_dashboard_url": "http://35.201.242.167/stock-ai-dashboard/dashboard/decision-intelligence/four-window-preview/index.html",
+  "records": [
+    {
+      "channel": "line",
+      "contains_1m_trend": false,
+      "contains_3m_trend": false,
+      "contains_dashboard_url": false,
+      "contains_next_day_high_low": false,
+      "contains_prediction_fields": false,
+      "contains_raw_logs": false,
+      "contains_same_day_high_low": false,
+      "contains_secret_like_text": false,
+      "content_hash": null,
+      "delivery_state": "unknown_delivery_state",
+      "detected_sections": [],
+      "missing_sections": [
+        "台股盤前預測",
+        "今日最高價預測",
+        "今日最低價預測",
+        "隔天最高價預測",
+        "隔天最低價預測",
+        "未來 1 個月走勢",
+        "未來 3 個月走勢",
+        "信心分數",
+        "主要依據",
+        "風險提醒",
+        "台指期夜盤觀察",
+        "美股盤後摘要狀態",
+        "Dashboard URL"
+      ],
+      "notes": [
+        "channel could not be verified; explicit missing/unknown state retained"
+      ],
+      "sent_or_published": false,
+      "source_artifact": null,
+      "timestamp": null,
+      "window": "pre_open_0700"
+    },
+    {
+      "channel": "email",
+      "contains_1m_trend": false,
+      "contains_3m_trend": false,
+      "contains_dashboard_url": false,
+      "contains_next_day_high_low": false,
+      "contains_prediction_fields": false,
+      "contains_raw_logs": false,
+      "contains_same_day_high_low": false,
+      "contains_secret_like_text": false,
+      "content_hash": null,
+      "delivery_state": "unknown_delivery_state",
+      "detected_sections": [],
+      "missing_sections": [
+        "台股盤前預測",
+        "今日最高價預測",
+        "今日最低價預測",
+        "隔天最高價預測",
+        "隔天最低價預測",
+        "未來 1 個月走勢",
+        "未來 3 個月走勢",
+        "信心分數",
+        "主要依據",
+        "風險提醒",
+        "台指期夜盤觀察",
+        "美股盤後摘要狀態",
+        "Dashboard URL"
+      ],
+      "notes": [
+        "channel could not be verified; explicit missing/unknown state retained"
+      ],
+      "sent_or_published": false,
+      "source_artifact": null,
+      "timestamp": null,
+      "window": "pre_open_0700"
+    },
+    {
+      "channel": "dashboard",
+      "contains_1m_trend": true,
+      "contains_3m_trend": true,
+      "contains_dashboard_url": false,
+      "contains_next_day_high_low": true,
+      "contains_prediction_fields": true,
+      "contains_raw_logs": false,
+      "contains_same_day_high_low": true,
+      "contains_secret_like_text": false,
+      "content_hash": "c7a2a149be0eaab7ad2c25e085542cb2776c196303d540b7c78c2c1cebf55146",
+      "delivery_state": "published",
+      "detected_sections": [
+        "今日最高價預測",
+        "今日最低價預測",
+        "隔天最高價預測",
+        "隔天最低價預測",
+        "未來 1 個月走勢",
+        "未來 3 個月走勢",
+        "信心分數",
+        "主要依據"
+      ],
+      "missing_sections": [
+        "台股盤前預測",
+        "風險提醒",
+        "台指期夜盤觀察",
+        "美股盤後摘要狀態",
+        "Dashboard URL"
+      ],
+      "notes": [],
+      "sent_or_published": true,
+      "source_artifact": "templates/four_window_dashboard_route_preview.example.html",
+      "timestamp": "2026-07-06T00:41:59+08:00",
+      "window": "pre_open_0700"
+    },
+    {
+      "channel": "line",
+      "contains_1m_trend": false,
+      "contains_3m_trend": false,
+      "contains_dashboard_url": false,
+      "contains_next_day_high_low": false,
+      "contains_prediction_fields": false,
+      "contains_raw_logs": false,
+      "contains_same_day_high_low": false,
+      "contains_secret_like_text": false,
+      "content_hash": null,
+      "delivery_state": "unknown_delivery_state",
+      "detected_sections": [],
+      "missing_sections": [
+        "盤中分析",
+        "目前價格狀態",
+        "是否接近今日預測高低區間",
+        "成交量",
+        "盤前假設是否仍有效",
+        "風險提醒",
+        "Dashboard URL"
+      ],
+      "notes": [
+        "channel could not be verified; explicit missing/unknown state retained"
+      ],
+      "sent_or_published": false,
+      "source_artifact": null,
+      "timestamp": null,
+      "window": "intraday_1305"
+    },
+    {
+      "channel": "email",
+      "contains_1m_trend": false,
+      "contains_3m_trend": false,
+      "contains_dashboard_url": false,
+      "contains_next_day_high_low": false,
+      "contains_prediction_fields": false,
+      "contains_raw_logs": false,
+      "contains_same_day_high_low": false,
+      "contains_secret_like_text": false,
+      "content_hash": null,
+      "delivery_state": "unknown_delivery_state",
+      "detected_sections": [],
+      "missing_sections": [
+        "盤中分析",
+        "目前價格狀態",
+        "是否接近今日預測高低區間",
+        "成交量",
+        "盤前假設是否仍有效",
+        "風險提醒",
+        "Dashboard URL"
+      ],
+      "notes": [
+        "channel could not be verified; explicit missing/unknown state retained"
+      ],
+      "sent_or_published": false,
+      "source_artifact": null,
+      "timestamp": null,
+      "window": "intraday_1305"
+    },
+    {
+      "channel": "dashboard",
+      "contains_1m_trend": true,
+      "contains_3m_trend": true,
+      "contains_dashboard_url": false,
+      "contains_next_day_high_low": true,
+      "contains_prediction_fields": true,
+      "contains_raw_logs": false,
+      "contains_same_day_high_low": true,
+      "contains_secret_like_text": false,
+      "content_hash": "c7a2a149be0eaab7ad2c25e085542cb2776c196303d540b7c78c2c1cebf55146",
+      "delivery_state": "published",
+      "detected_sections": [],
+      "missing_sections": [
+        "盤中分析",
+        "目前價格狀態",
+        "是否接近今日預測高低區間",
+        "成交量",
+        "盤前假設是否仍有效",
+        "風險提醒",
+        "Dashboard URL"
+      ],
+      "notes": [],
+      "sent_or_published": true,
+      "source_artifact": "templates/four_window_dashboard_route_preview.example.html",
+      "timestamp": "2026-07-06T00:41:59+08:00",
+      "window": "intraday_1305"
+    },
+    {
+      "channel": "line",
+      "contains_1m_trend": false,
+      "contains_3m_trend": false,
+      "contains_dashboard_url": false,
+      "contains_next_day_high_low": false,
+      "contains_prediction_fields": false,
+      "contains_raw_logs": false,
+      "contains_same_day_high_low": false,
+      "contains_secret_like_text": false,
+      "content_hash": null,
+      "delivery_state": "unknown_delivery_state",
+      "detected_sections": [],
+      "missing_sections": [
+        "收盤快照",
+        "今日高 / 低 / 收盤狀態",
+        "與 07:00 預測區間的初步比對",
+        "完整檢討待 15:00",
+        "Dashboard URL"
+      ],
+      "notes": [
+        "channel could not be verified; explicit missing/unknown state retained"
+      ],
+      "sent_or_published": false,
+      "source_artifact": null,
+      "timestamp": null,
+      "window": "pre_close_1335"
+    },
+    {
+      "channel": "email",
+      "contains_1m_trend": false,
+      "contains_3m_trend": false,
+      "contains_dashboard_url": false,
+      "contains_next_day_high_low": false,
+      "contains_prediction_fields": false,
+      "contains_raw_logs": false,
+      "contains_same_day_high_low": false,
+      "contains_secret_like_text": false,
+      "content_hash": null,
+      "delivery_state": "unknown_delivery_state",
+      "detected_sections": [],
+      "missing_sections": [
+        "收盤快照",
+        "今日高 / 低 / 收盤狀態",
+        "與 07:00 預測區間的初步比對",
+        "完整檢討待 15:00",
+        "Dashboard URL"
+      ],
+      "notes": [
+        "channel could not be verified; explicit missing/unknown state retained"
+      ],
+      "sent_or_published": false,
+      "source_artifact": null,
+      "timestamp": null,
+      "window": "pre_close_1335"
+    },
+    {
+      "channel": "dashboard",
+      "contains_1m_trend": true,
+      "contains_3m_trend": true,
+      "contains_dashboard_url": false,
+      "contains_next_day_high_low": true,
+      "contains_prediction_fields": true,
+      "contains_raw_logs": false,
+      "contains_same_day_high_low": true,
+      "contains_secret_like_text": false,
+      "content_hash": "c7a2a149be0eaab7ad2c25e085542cb2776c196303d540b7c78c2c1cebf55146",
+      "delivery_state": "published",
+      "detected_sections": [
+        "收盤快照",
+        "完整檢討待 15:00"
+      ],
+      "missing_sections": [
+        "今日高 / 低 / 收盤狀態",
+        "與 07:00 預測區間的初步比對",
+        "Dashboard URL"
+      ],
+      "notes": [],
+      "sent_or_published": true,
+      "source_artifact": "templates/four_window_dashboard_route_preview.example.html",
+      "timestamp": "2026-07-06T00:41:59+08:00",
+      "window": "pre_close_1335"
+    },
+    {
+      "channel": "line",
+      "contains_1m_trend": false,
+      "contains_3m_trend": false,
+      "contains_dashboard_url": false,
+      "contains_next_day_high_low": false,
+      "contains_prediction_fields": false,
+      "contains_raw_logs": false,
+      "contains_same_day_high_low": false,
+      "contains_secret_like_text": false,
+      "content_hash": null,
+      "delivery_state": "unknown_delivery_state",
+      "detected_sections": [],
+      "missing_sections": [
+        "盤後檢討",
+        "過去 7 天預測命中率",
+        "今日 forecast vs actual",
+        "高低價預測誤差",
+        "方向判斷命中",
+        "confidence calibration",
+        "factor effectiveness",
+        "Dashboard URL"
+      ],
+      "notes": [
+        "channel could not be verified; explicit missing/unknown state retained"
+      ],
+      "sent_or_published": false,
+      "source_artifact": null,
+      "timestamp": null,
+      "window": "post_close_1500"
+    },
+    {
+      "channel": "email",
+      "contains_1m_trend": false,
+      "contains_3m_trend": false,
+      "contains_dashboard_url": false,
+      "contains_next_day_high_low": false,
+      "contains_prediction_fields": false,
+      "contains_raw_logs": false,
+      "contains_same_day_high_low": false,
+      "contains_secret_like_text": false,
+      "content_hash": null,
+      "delivery_state": "unknown_delivery_state",
+      "detected_sections": [],
+      "missing_sections": [
+        "盤後檢討",
+        "過去 7 天預測命中率",
+        "今日 forecast vs actual",
+        "高低價預測誤差",
+        "方向判斷命中",
+        "confidence calibration",
+        "factor effectiveness",
+        "Dashboard URL"
+      ],
+      "notes": [
+        "channel could not be verified; explicit missing/unknown state retained"
+      ],
+      "sent_or_published": false,
+      "source_artifact": null,
+      "timestamp": null,
+      "window": "post_close_1500"
+    },
+    {
+      "channel": "dashboard",
+      "contains_1m_trend": true,
+      "contains_3m_trend": true,
+      "contains_dashboard_url": false,
+      "contains_next_day_high_low": true,
+      "contains_prediction_fields": true,
+      "contains_raw_logs": false,
+      "contains_same_day_high_low": true,
+      "contains_secret_like_text": false,
+      "content_hash": "c7a2a149be0eaab7ad2c25e085542cb2776c196303d540b7c78c2c1cebf55146",
+      "delivery_state": "published",
+      "detected_sections": [
+        "盤後檢討"
+      ],
+      "missing_sections": [
+        "過去 7 天預測命中率",
+        "今日 forecast vs actual",
+        "高低價預測誤差",
+        "方向判斷命中",
+        "confidence calibration",
+        "factor effectiveness",
+        "Dashboard URL"
+      ],
+      "notes": [],
+      "sent_or_published": true,
+      "source_artifact": "templates/four_window_dashboard_route_preview.example.html",
+      "timestamp": "2026-07-06T00:41:59+08:00",
+      "window": "post_close_1500"
+    }
+  ],
+  "safety": {
+    "db_write": false,
+    "line_email_notification_sent": false,
+    "production_pipeline_executed": false,
+    "python_main_executed": false,
+    "scheduler_modified": false,
+    "secrets_read": false,
+    "trading_or_order_executed": false
+  },
+  "schema_version": "four_batch_delivery_content_audit_v1",
+  "summary": {
+    "dashboard_published_records": 4,
+    "missing_delivery_artifact_count": 0,
+    "raw_log_record_count": 0,
+    "record_count": 12,
+    "secret_like_record_count": 0,
+    "unknown_delivery_state_count": 8
+  },
+  "task_id": "AI-DEV-149"
+}
