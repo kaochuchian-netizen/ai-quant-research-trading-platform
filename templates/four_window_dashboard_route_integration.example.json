@@ -98,6 +98,8 @@
     "validate_four_window_decision_intelligence_dashboard_ui_v1",
     "validate_four_window_dashboard_preview_review_v1",
     "validate_four_window_dashboard_route_integration_v1",
-    "validate_dashboard_decision_state_semantics_v1"
+    "validate_dashboard_decision_state_semantics_v1",
+    "validate_formal_prediction_runtime_artifact_v1",
+    "validate_formal_prediction_review_runtime_artifact_v1"
   ]
 }

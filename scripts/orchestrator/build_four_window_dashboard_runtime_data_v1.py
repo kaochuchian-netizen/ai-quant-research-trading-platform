@@ -9,6 +9,8 @@ ROOT=Path(__file__).resolve().parents[2]
 OUT=ROOT/'templates/four_window_dashboard_runtime_data.example.json'
 INP=ROOT/'templates/four_window_dashboard_runtime_data_input.example.json'
 EXPORT=ROOT/'templates/four_window_dashboard_production_runtime_export.example.json'
+FORMAL_PREDICTION=ROOT/'artifacts/runtime/formal_prediction_runtime_latest.json'
+FORMAL_REVIEW=ROOT/'artifacts/runtime/formal_prediction_review_runtime_latest.json'
 EXPORT_BUILDER=ROOT/'scripts/orchestrator/build_four_window_dashboard_production_runtime_export_v1.py'
 AUDIT=ROOT/'templates/four_batch_delivery_content_audit.example.json'
 CONTRACT=ROOT/'templates/four_batch_delivery_content_contract.example.json'
@@ -28,6 +30,15 @@ def load_optional_json(path):
         return json.loads(path.read_text(encoding='utf-8')) if path.exists() else {}
     except Exception:
         return {}
+def load_formal_artifact(path, artifact_type):
+    data=load_optional_json(path)
+    if isinstance(data,dict) and data.get('artifact_type')==artifact_type and data.get('is_example') is False:
+        txt=stable(data)
+        for p in SECRET:
+            if p.search(txt):
+                raise SystemExit(f'secret-like pattern found in {path}')
+        return data
+    return None
 def ensure_audit():
     if AUDIT_BUILDER.exists():
         subprocess.run([sys.executable,str(AUDIT_BUILDER),'--pretty'],check=True,cwd=ROOT,stdout=subprocess.DEVNULL)
@@ -42,10 +53,12 @@ def source_quality(export):
     return [{'source_family':r.get('source_family'),'label':r.get('label'),'quality':r.get('credibility'),'allowed_usage':r.get('allowed_usage'),'freshness_status':r.get('freshness_status')} for r in export.get('source_credibility',[]) if isinstance(r,dict)]
 def build():
     e=ensure_export(); missing=list(e.get('missing_data',[])); stale=list(e.get('stale_data',[]))
+    formal_prediction=load_formal_artifact(FORMAL_PREDICTION,'formal_prediction_runtime')
+    formal_review=load_formal_artifact(FORMAL_REVIEW,'formal_prediction_review_runtime')
     for cat,rows in [('prediction_fields',e.get('prediction_fields',[])),('actual_outcome_fields',e.get('actual_outcome_fields',[])),('prediction_review_fields',e.get('prediction_review_fields',[]))]:
         for r in rows:
             if isinstance(r,dict) and r.get('freshness_status')=='missing': missing.append({'category':cat,'id':r.get('field'),'message':r.get('message')})
-    return {'schema_version':'four_window_dashboard_runtime_data_v1','task_id':'AI-DEV-148','generated_at':NOW.isoformat(),'data_binding_mode':'production_runtime_export_normalized_for_dashboard','production_runtime_export_ref':'templates/four_window_dashboard_production_runtime_export.example.json','global_freshness_status':e.get('global_freshness_status'),'latest_data_timestamp':e.get('latest_runtime_timestamp'),'latest_runtime_window':e.get('latest_runtime_window'),'dashboard_public_url':PUBLIC_URL,'stock_universe':e.get('stock_universe',[]),'latest_reports':e.get('latest_reports',[]),'per_stock_summaries':e.get('per_stock_summaries',[]),'four_windows':e.get('four_windows',[]),'prediction_fields':e.get('prediction_fields',[]),'actual_outcome_fields':e.get('actual_outcome_fields',[]),'prediction_review_fields':e.get('prediction_review_fields',[]),'source_quality':source_quality(e),'source_credibility':e.get('source_credibility',[]),'freshness_policy':e.get('freshness_policy',{}),'freshness_checks':e.get('freshness_checks',[]),'missing_data':missing,'stale_data':stale,'inspected_sources':e.get('inspected_sources',[]),'bound_categories':['production_runtime_export','stock_universe','latest_report_summary','per_stock_summary','prediction_fields_status','actual_outcome_fields_status','prediction_review_fields_status','source_credibility_policy','four_window_status','delivery_audit_summary','strategy_v2_content_contract'],'delivery_audit_summary':audit_summary(),'four_batch_content_contract':contract_summary(),'strategy_v2_alignment':{'four_batch_consolidated':True,'line_email_dashboard_differentiated':True,'missing_prediction_data_explicit':True,'fabricated_forecast_values':False},'daily_prediction_content_fields':[{'label':p.get('label'),'value':'資料待接','reason':p.get('message'),'fabricated':False} for p in e.get('prediction_fields',[])],'safety':e.get('safety',{})}
+    return {'schema_version':'four_window_dashboard_runtime_data_v1','task_id':'AI-DEV-148','generated_at':NOW.isoformat(),'data_binding_mode':'production_runtime_export_normalized_for_dashboard','production_runtime_export_ref':'templates/four_window_dashboard_production_runtime_export.example.json','formal_prediction_artifact_ref':str(FORMAL_PREDICTION.relative_to(ROOT)) if formal_prediction else None,'formal_prediction_artifact':formal_prediction,'formal_prediction_binding_status':'contract_backed_null_safe' if formal_prediction else 'missing','formal_review_artifact_ref':str(FORMAL_REVIEW.relative_to(ROOT)) if formal_review else None,'formal_review_artifact':formal_review,'formal_review_binding_status':'contract_backed_null_safe' if formal_review else 'missing','global_freshness_status':e.get('global_freshness_status'),'latest_data_timestamp':e.get('latest_runtime_timestamp'),'latest_runtime_window':e.get('latest_runtime_window'),'dashboard_public_url':PUBLIC_URL,'stock_universe':e.get('stock_universe',[]),'latest_reports':e.get('latest_reports',[]),'per_stock_summaries':e.get('per_stock_summaries',[]),'four_windows':e.get('four_windows',[]),'prediction_fields':e.get('prediction_fields',[]),'actual_outcome_fields':e.get('actual_outcome_fields',[]),'prediction_review_fields':e.get('prediction_review_fields',[]),'source_quality':source_quality(e),'source_credibility':e.get('source_credibility',[]),'freshness_policy':e.get('freshness_policy',{}),'freshness_checks':e.get('freshness_checks',[]),'missing_data':missing,'stale_data':stale,'inspected_sources':e.get('inspected_sources',[]),'bound_categories':['production_runtime_export','stock_universe','latest_report_summary','per_stock_summary','prediction_fields_status','actual_outcome_fields_status','prediction_review_fields_status','source_credibility_policy','four_window_status','delivery_audit_summary','strategy_v2_content_contract'],'delivery_audit_summary':audit_summary(),'four_batch_content_contract':contract_summary(),'strategy_v2_alignment':{'four_batch_consolidated':True,'line_email_dashboard_differentiated':True,'missing_prediction_data_explicit':True,'fabricated_forecast_values':False},'daily_prediction_content_fields':[{'label':p.get('label'),'value':'資料待接','reason':p.get('message'),'fabricated':False} for p in e.get('prediction_fields',[])],'formal_artifact_binding':{'formal_prediction_runtime':bool(formal_prediction),'formal_prediction_null_fields_remain_waiting':True,'formal_review_runtime':bool(formal_review),'formal_review_null_fields_remain_waiting':True,'example_artifacts_main_ui_allowed':False},'safety':e.get('safety',{})}
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument('--output',type=Path,default=OUT); ap.add_argument('--write-input',action='store_true'); ap.add_argument('--pretty',action='store_true'); args=ap.parse_args(); data=build(); args.output.write_text(stable(data),encoding='utf-8')
     if args.write_input: INP.write_text(stable({'schema_version':'four_window_dashboard_runtime_data_input_v1','task_id':'AI-DEV-148','production_runtime_export_ref':'templates/four_window_dashboard_production_runtime_export.example.json','dashboard_public_url':PUBLIC_URL}),encoding='utf-8')

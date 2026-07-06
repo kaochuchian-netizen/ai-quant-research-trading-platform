@@ -1,0 +1,65 @@
+{
+  "artifact_type": "formal_prediction_runtime",
+  "data_cutoff_at": "2026-07-06T07:00:00+08:00",
+  "generated_at": "2026-07-06T07:01:00+08:00",
+  "is_example": true,
+  "market": "TW",
+  "producer_name": "build_formal_prediction_runtime_artifact.py",
+  "producer_version": "formal_prediction_runtime_v1",
+  "runtime_window": "pre_open_0700",
+  "schema_version": "formal_prediction_runtime_v1",
+  "source_mode": "deterministic_example_non_production",
+  "stock_universe_count": 1,
+  "stocks": [
+    {
+      "confidence_level": null,
+      "confidence_score": null,
+      "created_at": "2026-07-06T07:01:00+08:00",
+      "data_quality": {
+        "blocking_missing_fields": [
+          "same_day_high_prediction",
+          "same_day_low_prediction",
+          "next_day_high_prediction",
+          "next_day_low_prediction"
+        ],
+        "completeness": "insufficient_data",
+        "confidence_basis": "example artifact only; not production evidence",
+        "freshness": "example_static"
+      },
+      "evidence_summary": "insufficient_data: example artifact is not allowed in the production dashboard main view.",
+      "insufficient_data_reasons": [
+        "example_artifact_not_production",
+        "no_contract_backed_prediction_model_output"
+      ],
+      "key_factors": [],
+      "missing_fields": [
+        "same_day_high_prediction",
+        "same_day_low_prediction",
+        "next_day_high_prediction",
+        "next_day_low_prediction",
+        "one_month_trend",
+        "three_month_trend",
+        "confidence_score"
+      ],
+      "model_version": "safe_null_v1",
+      "next_day_high_prediction": null,
+      "next_day_low_prediction": null,
+      "next_trading_date": "2026-07-07",
+      "one_month_trend": null,
+      "prediction_date": "2026-07-06",
+      "risk_notes": ["資料待接"],
+      "same_day_high_prediction": null,
+      "same_day_low_prediction": null,
+      "source_evidence": [
+        {"source_type": "local_summary", "status": "example_only"},
+        {"source_type": "historical_price", "status": "insufficient_data"},
+        {"source_type": "technical_snapshot", "status": "insufficient_data"},
+        {"source_type": "chip_summary", "status": "insufficient_data"},
+        {"source_type": "news_summary", "status": "insufficient_data"}
+      ],
+      "stock_id": "2330",
+      "stock_name": "台積電",
+      "three_month_trend": null
+    }
+  ]
+}

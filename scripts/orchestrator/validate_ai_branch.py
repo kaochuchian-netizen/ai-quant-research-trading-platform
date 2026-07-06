@@ -63,6 +63,7 @@ DEFAULT_ALLOWED_PATHS = [
     "orchestrator/queue/",
     "orchestrator/templates/",
     "templates/",
+    "artifacts/runtime/",
     "requirements.txt",
     "test_shioaji.py",
 ]
