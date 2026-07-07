@@ -37,7 +37,7 @@ if [ "${STOCK_AI_APPROVED_DELIVERY:-0}" = "1" ]; then
   "$PYTHON_BIN" scripts/orchestrator/approved_pre_open_delivery.py \
     --window "$WINDOW" \
     --dashboard-publish-dir "${STOCK_AI_DASHBOARD_PUBLISH_DIR:-/var/www/stock-ai-dashboard}" \
-    --dashboard-url "${STOCK_AI_DASHBOARD_URL:-http://35.201.242.167/stock-ai-dashboard/index.html}" \
+    --dashboard-url "${STOCK_AI_DASHBOARD_URL:-http://35.201.242.167/stock-ai-dashboard/dashboard/decision-intelligence/four-window-preview/index.html}" \
     --output "$APPROVED_OUTPUT" \
     >> "$LOG_PATH" 2>&1
   exit $?
