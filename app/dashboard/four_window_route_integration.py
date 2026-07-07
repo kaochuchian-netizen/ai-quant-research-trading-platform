@@ -134,6 +134,7 @@ def calibration_cards() -> str:
         '<div class="source-item"><h3>Forecast Calibration / 回測校準狀態</h3>'
         '<p><strong>方法：</strong>' + escape(str(data.get('method_under_test') or 'deterministic_baseline_v1')) + '</p>'
         '<p><strong>樣本數：</strong>' + escape(str(sample if sample is not None else '資料待接')) + '</p>'
+        '<span class="badge warn">樣本數：' + escape(str(sample if sample is not None else '資料待接')) + '</span>'
         '<p><strong>今日高低價區間命中率：</strong>' + escape(same_day_text) + '</p>'
         '<p><strong>隔日高低價區間命中率：</strong>' + escape(next_day_text) + '</p>'
         '<p><strong>校準狀態：</strong>' + escape(gate) + '</p>'
