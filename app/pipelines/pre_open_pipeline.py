@@ -25,6 +25,7 @@ from reports.report_formatter_v2 import (
     format_multi_stock_report_v2,
 )
 from reports.line_report_sender import send_line_report
+from reports.line_short_formatter import format_line_short
 
 from scripts.update_historical_csv import main as update_historical_csv
 
@@ -38,17 +39,17 @@ def send_reports_in_batches(reports, batch_size=LINE_BATCH_SIZE, dry_run=False):
         return
 
     for index in range(0, len(reports), batch_size):
-        batch = reports[index:index + batch_size]
-        message = format_multi_stock_report_v2(batch)
+        message = format_line_short({"scheduler_window": "pre_open_0700"})
 
-        print(f"推播第 {index // batch_size + 1} 批，共 {len(batch)} 檔")
+        print("LINE link-only reminder prepared; per-stock details are available on Dashboard only")
 
         if dry_run:
-            print("dry-run 模式：略過 LINE 推播，批次內容如下")
+            print("dry-run 模式：略過 LINE 推播，短提醒內容如下")
             print(message)
-            continue
+            break
 
         send_line_report(message)
+        break
 
 
 def run_pre_open_pipeline(dry_run=False, limit=None):
