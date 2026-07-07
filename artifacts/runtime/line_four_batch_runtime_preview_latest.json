@@ -1,0 +1,79 @@
+{
+  "artifact_type": "line_four_batch_runtime_preview",
+  "created_at": "2026-07-07T15:25:30+08:00",
+  "dashboard_url": "http://35.201.242.167/stock-ai-dashboard/dashboard/decision-intelligence/four-window-preview/index.html",
+  "is_actual_send": false,
+  "runtime_trace_report": "artifacts/runtime/line_runtime_activation_trace_latest.md",
+  "safety_mode": "dry_run_preview_only",
+  "safety_policy": {
+    "db_write": false,
+    "email_sent": false,
+    "line_sent": false,
+    "main_py_executed": false,
+    "notification_sent": false,
+    "production_pipeline_executed": false,
+    "scheduler_modified": false,
+    "secrets_read": false,
+    "trading_order_action": false
+  },
+  "schema_version": "line_four_batch_runtime_preview_v1",
+  "task_id": "AI-DEV-158",
+  "windows": [
+    {
+      "created_at": "2026-07-07T15:25:30+08:00",
+      "dashboard_url": "http://35.201.242.167/stock-ai-dashboard/dashboard/decision-intelligence/four-window-preview/index.html",
+      "forbidden_content_check": {
+        "hits": [],
+        "ok": true
+      },
+      "formatter_source": "app.pipelines.pre_open_pipeline.send_reports_in_batches -> reports.line_short_formatter.format_line_short",
+      "is_actual_send": false,
+      "message_body": "【Stock AI】07:00 盤前決策摘要已更新\n今日盤前報告、baseline 預測、資料品質與風險提示請看 Dashboard。\nDashboard：\nhttp://35.201.242.167/stock-ai-dashboard/dashboard/decision-intelligence/four-window-preview/index.html\n僅供研究參考，非交易指令。",
+      "safety_mode": "dry_run_preview_only",
+      "scheduled_time": "07:00",
+      "window": "pre_open_0700"
+    },
+    {
+      "created_at": "2026-07-07T15:25:30+08:00",
+      "dashboard_url": "http://35.201.242.167/stock-ai-dashboard/dashboard/decision-intelligence/four-window-preview/index.html",
+      "forbidden_content_check": {
+        "hits": [],
+        "ok": true
+      },
+      "formatter_source": "scripts.orchestrator.approved_pre_open_delivery.build_line_message -> app.reports.multi_window_formatter.line_notification_text",
+      "is_actual_send": false,
+      "message_body": "【Stock AI】13:05 盤中追蹤已更新\n盤中狀態、風險變化與資料完整度請看 Dashboard。\nDashboard：\nhttp://35.201.242.167/stock-ai-dashboard/dashboard/decision-intelligence/four-window-preview/index.html\n僅供研究參考，非交易指令。",
+      "safety_mode": "dry_run_preview_only",
+      "scheduled_time": "13:05",
+      "window": "intraday_1305"
+    },
+    {
+      "created_at": "2026-07-07T15:25:30+08:00",
+      "dashboard_url": "http://35.201.242.167/stock-ai-dashboard/dashboard/decision-intelligence/four-window-preview/index.html",
+      "forbidden_content_check": {
+        "hits": [],
+        "ok": true
+      },
+      "formatter_source": "scripts.orchestrator.approved_pre_open_delivery.build_line_message -> app.reports.multi_window_formatter.line_notification_text",
+      "is_actual_send": false,
+      "message_body": "【Stock AI】13:35 收盤快照已更新\n收盤快照、當日狀態與後續檢討進度請看 Dashboard。\nDashboard：\nhttp://35.201.242.167/stock-ai-dashboard/dashboard/decision-intelligence/four-window-preview/index.html\n僅供研究參考，非交易指令。",
+      "safety_mode": "dry_run_preview_only",
+      "scheduled_time": "13:35",
+      "window": "pre_close_1335"
+    },
+    {
+      "created_at": "2026-07-07T15:25:30+08:00",
+      "dashboard_url": "http://35.201.242.167/stock-ai-dashboard/dashboard/decision-intelligence/four-window-preview/index.html",
+      "forbidden_content_check": {
+        "hits": [],
+        "ok": true
+      },
+      "formatter_source": "scripts.orchestrator.approved_pre_open_delivery.build_line_message -> app.reports.multi_window_formatter.line_notification_text",
+      "is_actual_send": false,
+      "message_body": "【Stock AI】15:00 盤後檢討已更新\n單日檢討、7 天滾動檢討、樣本累積與校準狀態請看 Dashboard。\nDashboard：\nhttp://35.201.242.167/stock-ai-dashboard/dashboard/decision-intelligence/four-window-preview/index.html\n僅供研究參考，非交易指令。",
+      "safety_mode": "dry_run_preview_only",
+      "scheduled_time": "15:00",
+      "window": "post_close_1500"
+    }
+  ]
+}

@@ -25,7 +25,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from app.reports.multi_window_formatter import line_notification_text  # noqa: E402
 from app.reports.report_content_contract import build_report_content_artifact  # noqa: E402
+from app.reports.window_context import get_window_context  # noqa: E402
 from app.runtime.production_run_guard import evaluate_pre_open_run_guard  # noqa: E402
 from app.runtime.runtime_diagnostics import build_guard_result, write_json  # noqa: E402
 from app.runtime.timeout_policy import TimeoutPolicy, timeout_policy_from_env  # noqa: E402
@@ -41,6 +43,7 @@ SCHEMA_VERSION = "approved_scheduler_delivery_v1"
 TASK_ID = "AI-DEV-112"
 DEFAULT_DASHBOARD_DIR = Path("/var/www/stock-ai-dashboard")
 DEFAULT_MAIL_ENV_FILE = Path("~/.config/stock-ai-orchestrator/mail.env")
+DEFAULT_DECISION_INTELLIGENCE_DASHBOARD_URL = "http://35.201.242.167/stock-ai-dashboard/dashboard/decision-intelligence/four-window-preview/index.html"
 EMAIL_BODY_LIMIT = 14000
 LINE_BODY_LIMIT = 520
 TRACEBACK_MARKERS = (
@@ -53,7 +56,7 @@ WINDOWS = {
         "label": "07:00 pre-open",
         "local_time": "07:00",
         "pipeline_type": "pre_open",
-        "line_policy": "full report handled by production pre_open pipeline",
+        "line_policy": "link-only notification handled by production pre_open pipeline",
         "line_mode": "handled_by_pipeline",
         "email_policy": "full scheduled delivery summary",
         "dashboard_policy": "publish latest full scheduler snapshot",
@@ -63,7 +66,7 @@ WINDOWS = {
         "label": "13:05 intraday",
         "local_time": "13:05",
         "pipeline_type": "intraday",
-        "line_policy": "concise reminder only with key status and dashboard URL",
+        "line_policy": "link-only notification with dashboard URL only",
         "line_mode": "concise_reminder",
         "email_policy": "full report from validated pipeline output when available",
         "dashboard_policy": "publish latest intraday scheduler snapshot",
@@ -73,7 +76,7 @@ WINDOWS = {
         "label": "13:35 pre-close",
         "local_time": "13:35",
         "pipeline_type": "pre_close",
-        "line_policy": "concise risk / market status reminder only; no trading instruction",
+        "line_policy": "link-only close snapshot notification with dashboard URL only",
         "line_mode": "concise_reminder",
         "email_policy": "full report from validated pipeline output when available",
         "dashboard_policy": "publish latest pre-close scheduler snapshot",
@@ -83,7 +86,7 @@ WINDOWS = {
         "label": "15:00 post-close / prediction review",
         "local_time": "15:00",
         "pipeline_type": "post_close",
-        "line_policy": "one concise summary reminder with dashboard URL",
+        "line_policy": "link-only post-close review notification with dashboard URL only",
         "line_mode": "concise_reminder",
         "email_policy": "full post-close / prediction review report, including pending state",
         "dashboard_policy": "publish latest post-close / prediction review snapshot",
@@ -296,15 +299,13 @@ def send_delivery_email(env_file: Path, window_id: str, run_id: str, generated_a
 
 
 def build_line_message(window_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str) -> str:
-    cfg = window_config(window_id)
-    message = (
-        f"[Stock AI] {cfg['label']} update\n"
-        f"status: {pipeline_status}\n"
-        f"state: {content_state(window_id, output_tail, pipeline_status)}\n"
-        f"dashboard: {dashboard_url}\n"
-        "advisory only; no trading instruction."
-    )
-    return tail_text(message, LINE_BODY_LIMIT)
+    """Build the approved AI-DEV-157 link-only LINE notification.
+
+    Runtime diagnostics, pipeline state, stock details, and raw artifact keys stay out
+    of LINE. The full decision content belongs on the Dashboard.
+    """
+    context = get_window_context(window_id)
+    return tail_text(line_notification_text(context, dashboard_url or DEFAULT_DECISION_INTELLIGENCE_DASHBOARD_URL), LINE_BODY_LIMIT)
 
 
 def send_concise_line(window_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str) -> dict[str, Any]:
@@ -440,7 +441,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run approved scheduler delivery.")
     parser.add_argument("--window", required=True, choices=sorted(WINDOWS))
     parser.add_argument("--dashboard-publish-dir", default=str(DEFAULT_DASHBOARD_DIR))
-    parser.add_argument("--dashboard-url", default="http://35.201.242.167/stock-ai-dashboard/index.html")
+    parser.add_argument("--dashboard-url", default=DEFAULT_DECISION_INTELLIGENCE_DASHBOARD_URL)
     parser.add_argument("--mail-env-file", default=str(DEFAULT_MAIL_ENV_FILE))
     parser.add_argument("--output", default="/tmp/approved_pre_open_delivery_result.json")
     parser.add_argument("--dry-run", action="store_true")
