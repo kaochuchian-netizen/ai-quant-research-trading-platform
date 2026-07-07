@@ -1,0 +1,213 @@
+{
+  "actual_outcome_date": "2026-07-06",
+  "artifact_type": "formal_prediction_review_snapshot",
+  "db_write": false,
+  "external_api_called": false,
+  "fake_hit_rate_generated": false,
+  "generated_at": "2026-07-07T02:00:29Z",
+  "market": "TW",
+  "method_version": "deterministic_baseline_v1",
+  "prediction_snapshot_date": "2026-07-06",
+  "review_mode": "null_safe_file_archive_evaluation",
+  "schema_version": "formal_prediction_review_snapshot_v1",
+  "stocks": [
+    {
+      "actual_direction": "bullish",
+      "actual_outcome_date": "2026-07-06",
+      "created_at": "2026-07-07T02:00:29Z",
+      "direction_result": "correct",
+      "high_error_abs": -0.28,
+      "high_error_pct": -0.008218,
+      "hit_miss_status": "hit",
+      "insufficient_data_reasons": [
+        "next_day_actual_outcome_unavailable"
+      ],
+      "low_error_abs": 0.3,
+      "low_error_pct": 0.009074,
+      "method_version": "deterministic_baseline_v1",
+      "next_day_interval_result": null,
+      "predicted_direction": "bullish",
+      "prediction_snapshot_date": "2026-07-06",
+      "same_day_interval_result": "hit",
+      "schema_version": "formal_prediction_review_snapshot_stock_v1",
+      "stock_id": "00878",
+      "stock_name": "國泰永續高股息"
+    },
+    {
+      "actual_direction": "bearish",
+      "actual_outcome_date": "2026-07-06",
+      "created_at": "2026-07-07T02:00:29Z",
+      "direction_result": "incorrect",
+      "high_error_abs": -0.12,
+      "high_error_pct": -0.007481,
+      "hit_miss_status": "hit",
+      "insufficient_data_reasons": [
+        "next_day_actual_outcome_unavailable"
+      ],
+      "low_error_abs": 0.22,
+      "low_error_pct": 0.014323,
+      "method_version": "deterministic_baseline_v1",
+      "next_day_interval_result": null,
+      "predicted_direction": "bullish",
+      "prediction_snapshot_date": "2026-07-06",
+      "same_day_interval_result": "hit",
+      "schema_version": "formal_prediction_review_snapshot_stock_v1",
+      "stock_id": "009816",
+      "stock_name": "凱基台灣TOP50"
+    },
+    {
+      "actual_direction": "bearish",
+      "actual_outcome_date": "2026-07-06",
+      "created_at": "2026-07-07T02:00:29Z",
+      "direction_result": "incorrect",
+      "high_error_abs": 1.81,
+      "high_error_pct": 0.056055,
+      "hit_miss_status": "partial_hit",
+      "insufficient_data_reasons": [
+        "next_day_actual_outcome_unavailable"
+      ],
+      "low_error_abs": 0.76,
+      "low_error_pct": 0.026444,
+      "method_version": "deterministic_baseline_v1",
+      "next_day_interval_result": null,
+      "predicted_direction": "bullish",
+      "prediction_snapshot_date": "2026-07-06",
+      "same_day_interval_result": "partial_hit",
+      "schema_version": "formal_prediction_review_snapshot_stock_v1",
+      "stock_id": "1409",
+      "stock_name": "新纖"
+    },
+    {
+      "actual_direction": "bullish",
+      "actual_outcome_date": "2026-07-06",
+      "created_at": "2026-07-07T02:00:29Z",
+      "direction_result": "correct",
+      "high_error_abs": -3.08,
+      "high_error_pct": -0.067352,
+      "hit_miss_status": "hit",
+      "insufficient_data_reasons": [
+        "next_day_actual_outcome_unavailable"
+      ],
+      "low_error_abs": 0.12,
+      "low_error_pct": 0.002972,
+      "method_version": "deterministic_baseline_v1",
+      "next_day_interval_result": null,
+      "predicted_direction": "bullish",
+      "prediction_snapshot_date": "2026-07-06",
+      "same_day_interval_result": "hit",
+      "schema_version": "formal_prediction_review_snapshot_stock_v1",
+      "stock_id": "2305",
+      "stock_name": "全友"
+    },
+    {
+      "actual_direction": "bullish",
+      "actual_outcome_date": "2026-07-06",
+      "created_at": "2026-07-07T02:00:29Z",
+      "direction_result": "correct",
+      "high_error_abs": -18.0,
+      "high_error_pct": -0.007149,
+      "hit_miss_status": "hit",
+      "insufficient_data_reasons": [
+        "next_day_actual_outcome_unavailable"
+      ],
+      "low_error_abs": 38.0,
+      "low_error_pct": 0.015722,
+      "method_version": "deterministic_baseline_v1",
+      "next_day_interval_result": null,
+      "predicted_direction": "bullish",
+      "prediction_snapshot_date": "2026-07-06",
+      "same_day_interval_result": "hit",
+      "schema_version": "formal_prediction_review_snapshot_stock_v1",
+      "stock_id": "2330",
+      "stock_name": "台積電"
+    },
+    {
+      "actual_direction": "bullish",
+      "actual_outcome_date": "2026-07-06",
+      "created_at": "2026-07-07T02:00:29Z",
+      "direction_result": "incorrect",
+      "high_error_abs": 0.4,
+      "high_error_pct": 0.002639,
+      "hit_miss_status": "partial_hit",
+      "insufficient_data_reasons": [
+        "next_day_actual_outcome_unavailable"
+      ],
+      "low_error_abs": 9.1,
+      "low_error_pct": 0.067457,
+      "method_version": "deterministic_baseline_v1",
+      "next_day_interval_result": null,
+      "predicted_direction": "bearish",
+      "prediction_snapshot_date": "2026-07-06",
+      "same_day_interval_result": "partial_hit",
+      "schema_version": "formal_prediction_review_snapshot_stock_v1",
+      "stock_id": "2337",
+      "stock_name": "旺宏"
+    },
+    {
+      "actual_direction": "bearish",
+      "actual_outcome_date": "2026-07-06",
+      "created_at": "2026-07-07T02:00:29Z",
+      "direction_result": "correct",
+      "high_error_abs": -0.3,
+      "high_error_pct": -0.008837,
+      "hit_miss_status": "hit",
+      "insufficient_data_reasons": [
+        "next_day_actual_outcome_unavailable"
+      ],
+      "low_error_abs": 1.25,
+      "low_error_pct": 0.04,
+      "method_version": "deterministic_baseline_v1",
+      "next_day_interval_result": null,
+      "predicted_direction": "bearish",
+      "prediction_snapshot_date": "2026-07-06",
+      "same_day_interval_result": "hit",
+      "schema_version": "formal_prediction_review_snapshot_stock_v1",
+      "stock_id": "2353",
+      "stock_name": "宏碁"
+    },
+    {
+      "actual_direction": "bullish",
+      "actual_outcome_date": "2026-07-06",
+      "created_at": "2026-07-07T02:00:29Z",
+      "direction_result": "correct",
+      "high_error_abs": 0.91,
+      "high_error_pct": 0.014656,
+      "hit_miss_status": "partial_hit",
+      "insufficient_data_reasons": [
+        "next_day_actual_outcome_unavailable"
+      ],
+      "low_error_abs": 0.86,
+      "low_error_pct": 0.014843,
+      "method_version": "deterministic_baseline_v1",
+      "next_day_interval_result": null,
+      "predicted_direction": "bullish",
+      "prediction_snapshot_date": "2026-07-06",
+      "same_day_interval_result": "partial_hit",
+      "schema_version": "formal_prediction_review_snapshot_stock_v1",
+      "stock_id": "4743",
+      "stock_name": "合一"
+    },
+    {
+      "actual_direction": "bullish",
+      "actual_outcome_date": "2026-07-06",
+      "created_at": "2026-07-07T02:00:29Z",
+      "direction_result": "correct",
+      "high_error_abs": -0.53,
+      "high_error_pct": -0.005747,
+      "hit_miss_status": "partial_hit",
+      "insufficient_data_reasons": [
+        "next_day_actual_outcome_unavailable"
+      ],
+      "low_error_abs": -1.68,
+      "low_error_pct": -0.019204,
+      "method_version": "deterministic_baseline_v1",
+      "next_day_interval_result": null,
+      "predicted_direction": "bullish",
+      "prediction_snapshot_date": "2026-07-06",
+      "same_day_interval_result": "partial_hit",
+      "schema_version": "formal_prediction_review_snapshot_stock_v1",
+      "stock_id": "6873",
+      "stock_name": "泓德能源"
+    }
+  ]
+}

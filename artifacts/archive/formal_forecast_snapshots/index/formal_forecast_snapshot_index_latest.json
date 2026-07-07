@@ -1,0 +1,51 @@
+{
+  "actual_outcome_snapshot_count": 1,
+  "artifact_type": "formal_forecast_snapshot_index",
+  "calibration_gate_progress": {
+    "current_eligible_sample_count": 9,
+    "current_gate_status": "blocked_insufficient_sample",
+    "ready_for_formula_change_threshold": 100,
+    "ready_for_shadow_tuning_threshold": 30,
+    "remaining_samples_to_formula_change": 91,
+    "remaining_samples_to_shadow_tuning": 21
+  },
+  "eligible_next_day_sample_count": 0,
+  "eligible_same_day_sample_count": 9,
+  "generated_at": "2026-07-07T02:01:54Z",
+  "latest_actual_outcome_snapshot_date": "2026-07-06",
+  "latest_prediction_snapshot_date": "2026-07-06",
+  "latest_review_snapshot_date": "2026-07-06",
+  "limitations": [
+    "prediction snapshots are archived only from real formal runtime artifacts; fake historical prediction backfill is forbidden",
+    "actual outcome snapshots may use read-only historical OHLCV and must be explicitly marked",
+    "next-day outcomes remain insufficient_data until a later trading-day actual is available",
+    "snapshot count is sample accumulation, not model performance"
+  ],
+  "method_versions": [
+    "deterministic_baseline_v1"
+  ],
+  "missing_dates": [],
+  "prediction_snapshot_count": 1,
+  "review_snapshot_count": 1,
+  "safety_policy": {
+    "db_write": false,
+    "deterministic_baseline_formula_mutated": false,
+    "external_notification_sent": false,
+    "production_pipeline_executed": false,
+    "production_rating_action_confidence_weight_mutated": false,
+    "python_main_executed": false,
+    "scheduler_modified": false,
+    "trading_or_order_executed": false
+  },
+  "schema_version": "formal_forecast_snapshot_accumulation_v1",
+  "snapshot_count": 3,
+  "snapshots": [
+    {
+      "actual_outcome_snapshot_path": "artifacts/archive/formal_forecast_snapshots/actual_outcome/formal_actual_outcome_2026-07-06.json",
+      "method_version": "deterministic_baseline_v1",
+      "prediction_snapshot_path": "artifacts/archive/formal_forecast_snapshots/prediction/formal_prediction_runtime_2026-07-06.json",
+      "review_snapshot_path": "artifacts/archive/formal_forecast_snapshots/review/formal_prediction_review_2026-07-06.json",
+      "snapshot_date": "2026-07-06"
+    }
+  ]
+}
