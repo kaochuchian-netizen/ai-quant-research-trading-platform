@@ -19,7 +19,7 @@ SNAPSHOT_INDEX = 'artifacts/archive/formal_forecast_snapshots/index/formal_forec
 SAFETY_POLICY = {'controlled_static_route': True, 'repo_side_preview_only': True, 'external_api_called': False, 'secrets_read': False, 'db_write': False, 'scheduler_modified': False, 'external_notification_sent': False, 'line_email_notification_sent': False, 'production_pipeline_executed': False, 'python_main_executed': False, 'trading_or_order_executed': False, 'production_dashboard_publish_executed': False, 'dashboard_published': False, 'formal_delivery_behavior_changed': False, 'direct_rating_action_confidence_impact': False, 'production_rating_action_confidence_weight_mutated': False}
 ROLLBACK_INSTRUCTIONS = ['Remove the controlled dashboard route mapping from the future dashboard router.', 'Restore the previous dashboard preview route configuration.', 'Keep scheduler, notification delivery, production pipeline, and DB state untouched.', 'Re-run route integration and post-merge validators after rollback.']
 FIELD_LABELS = {'actual_high': '今日實際最高價', 'actual_low': '今日實際最低價', 'actual_close': '今日收盤價', 'direction_result': '方向判斷結果', 'high_low_forecast_error': '高低價預測誤差', 'hit_miss_status': '命中 / 未命中', 'review_timestamp': '檢討時間', 'review_window': '檢討區間', 'seven_day_hit_rate': '過去 7 天命中率', 'confidence_calibration': '信心校準', 'factor_effectiveness': '因子有效性', 'error_reasons': '錯誤原因', 'recommendation_for_improvement': '明日改善建議'}
-PREDICTION_FIELD_LABELS = [('今日最高價預測', 'same_day_high_prediction'), ('今日最低價預測', 'same_day_low_prediction'), ('隔天最高價預測', 'next_day_high_prediction'), ('隔天最低價預測', 'next_day_low_prediction'), ('未來 1 個月走勢', 'one_month_trend'), ('未來 3 個月走勢', 'three_month_trend'), ('信心分數', 'confidence_score'), ('信心水準', 'confidence_level'), ('主要依據', 'evidence_summary'), ('風險提醒', 'risk_notes'), ('資料品質', 'data_quality'), ('模型版本', 'model_version'), ('方法說明', 'method_metadata'), ('資料證據', 'source_evidence')]
+PREDICTION_FIELD_LABELS = [('今日最高價預測', 'same_day_high_prediction'), ('今日最低價預測', 'same_day_low_prediction'), ('隔天最高價預測', 'next_day_high_prediction'), ('隔天最低價預測', 'next_day_low_prediction'), ('未來 1 個月走勢', 'one_month_trend'), ('未來 3 個月走勢', 'three_month_trend'), ('信心分數', 'confidence_score'), ('信心水準', 'confidence_level'), ('主要依據', 'evidence_summary'), ('風險提醒', 'risk_notes'), ('資料品質摘要', 'data_quality'), ('模型版本', 'model_version'), ('方法說明', 'method_metadata'), ('資料證據', 'source_evidence')]
 PREDICTION_LABELS = [('今日最高價預測 / 今日最低價預測', 'same_day_high_low'), ('隔天最高價預測 / 隔天最低價預測', 'next_day_high_low'), ('未來 1 個月走勢', 'one_month_trend'), ('未來 3 個月走勢', 'three_month_trend'), ('信心分數', 'confidence'), ('主要依據', 'rationale')]
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -45,6 +45,14 @@ def badge(status: str) -> str:
 
 def humanize_status(value: Any) -> str:
     mapping = {
+        'correct': '正確',
+        'incorrect': '錯誤',
+        'hit': '命中',
+        'partial_hit': '部分命中',
+        'miss': '未命中',
+        'insufficient_data': '資料不足',
+        'reviewable_single_day': '單日資料可檢討',
+        'single-day deterministic evaluation; seven-day review requires accumulated artifacts': '單日 deterministic baseline 評估；7 天檢討需累積更多正式 prediction / actual outcome artifact',
         'fresh': '資料新鮮',
         'stale': '資料過期',
         'missing': '資料待接',
@@ -92,8 +100,8 @@ def prediction_cards(runtime: dict[str, Any]) -> str:
             rows = []
             for label, key in PREDICTION_FIELD_LABELS:
                 rows.append('<p><strong>' + escape(label) + '：</strong>' + display_value(stock.get(key)) + '</p>')
-            rows.append('<p><strong>data_cutoff_at：</strong>' + escape(str(artifact.get('data_cutoff_at') or '資料待接')) + '</p>')
-            rows.append('<p><strong>generated_at：</strong>' + escape(str(artifact.get('generated_at') or '資料待接')) + '</p>')
+            rows.append('<p><strong>資料截止時間：</strong>' + escape(str(artifact.get('data_cutoff_at') or '資料待接')) + '</p>')
+            rows.append('<p><strong>產生時間：</strong>' + escape(str(artifact.get('generated_at') or '資料待接')) + '</p>')
             cards.append('<div class="source-item"><h3>' + escape(str(stock.get('stock_id'))) + ' ' + escape(str(stock.get('stock_name') or '')) + '</h3>' + ''.join(rows) + '<span class="badge warn">deterministic baseline V1；null 欄位仍為資料待接</span></div>')
         note = '<p class="preview-note">正式 prediction runtime artifact 已接線；deterministic_baseline_v1 為第一版可解釋 baseline，供決策參考，待回測校準。今日最高 / 最低價預測、隔天最高 / 最低價預測若為 null，代表資料待接。</p>'
         return note + '<div class="source-grid">' + ''.join(cards) + '</div>'
@@ -174,32 +182,78 @@ def snapshot_accumulation_cards() -> str:
         '<p class="preview-note">目前仍為 deterministic baseline V1 樣本累積階段；樣本數不足時不可直接調整公式。不可把 snapshot count 當成績效，不可把 next-day null 顯示為 0%。</p>'
     )
 
+def _review_status(value: Any) -> str:
+    return humanize_status(value) if value is not None else '資料待接'
+
+
+def _review_error_detail(stock: dict[str, Any]) -> str:
+    error = stock.get('high_low_forecast_error')
+    hit_status = stock.get('hit_miss_status')
+    if isinstance(error, dict) and error:
+        return (
+            '<p><strong>高低價預測誤差：</strong>明細如下。</p>'
+            '<p><strong>最高價誤差：</strong>' + display_value(error.get('high_error_abs')) + '</p>'
+            '<p><strong>最低價誤差：</strong>' + display_value(error.get('low_error_abs')) + '</p>'
+            '<p><strong>最高價誤差百分比：</strong>' + display_value(error.get('high_error_pct')) + '</p>'
+            '<p><strong>最低價誤差百分比：</strong>' + display_value(error.get('low_error_pct')) + '</p>'
+        )
+    if hit_status:
+        return '<p><strong>高低價預測誤差：</strong>命中狀態可用；誤差明細欄位待接。</p>'
+    return '<p><strong>高低價預測誤差：</strong>資料待接</p>'
+
+
+def _review_data_quality(stock: dict[str, Any]) -> str:
+    quality = stock.get('data_quality') if isinstance(stock.get('data_quality'), dict) else {}
+    parts = []
+    if quality.get('completeness'):
+        parts.append('完整度：' + humanize_status(quality.get('completeness')))
+    if quality.get('freshness'):
+        parts.append('資料狀態：' + humanize_status(quality.get('freshness')))
+    if quality.get('confidence_basis'):
+        parts.append('評估方式：' + humanize_status(quality.get('confidence_basis')))
+    if quality.get('blocking_missing_fields'):
+        parts.append('待接欄位數：' + str(len(quality.get('blocking_missing_fields', []))))
+    return escape('；'.join(parts) or '資料待接')
+
+
 def review_cards(runtime: dict[str, Any]) -> str:
     artifact = runtime.get('formal_review_artifact') if isinstance(runtime.get('formal_review_artifact'), dict) else None
     if artifact and artifact.get('artifact_type') == 'formal_prediction_review_runtime' and artifact.get('is_example') is False:
         cards = []
-        keys = ['actual_high', 'actual_low', 'actual_close', 'direction_result', 'high_low_forecast_error', 'hit_miss_status', 'review_window', 'seven_day_hit_rate', 'confidence_calibration', 'factor_effectiveness', 'error_reasons', 'recommendation_for_improvement']
         for stock in artifact.get('stocks', []):
             if not isinstance(stock, dict):
                 continue
-            rows = []
-            for key in keys:
-                if key == 'review_window':
-                    value = str(stock.get('review_window_start') or '資料待接') + ' ~ ' + str(stock.get('review_window_end') or '資料待接')
-                else:
-                    value = stock.get(key)
-                rows.append('<p><strong>' + escape(FIELD_LABELS.get(key, key)) + '：</strong>' + display_value(value) + '</p>')
-            rows.append('<p><strong>generated_at：</strong>' + escape(str(artifact.get('generated_at') or '資料待接')) + '</p>')
-            rows.append('<p><strong>data_quality：</strong>' + display_value(stock.get('data_quality')) + '</p>')
-            cards.append('<div class="source-item"><h3>' + escape(str(stock.get('stock_id'))) + ' ' + escape(str(stock.get('stock_name') or '')) + '</h3>' + ''.join(rows) + '<span class="badge warn">contract-backed；null review 欄位仍為資料待接</span></div>')
-        note = '<p class="preview-note">正式 prediction review runtime artifact 已接線；若未找到正式盤後檢討 runtime artifact，仍顯示資料待接。不得產生假命中率或假檢討。</p>'
+            single_day = (
+                '<div class="review-block"><h4>單日檢討</h4>'
+                '<p><strong>今日實際最高價：</strong>' + display_value(stock.get('actual_high')) + '</p>'
+                '<p><strong>今日實際最低價：</strong>' + display_value(stock.get('actual_low')) + '</p>'
+                '<p><strong>今日收盤價：</strong>' + display_value(stock.get('actual_close')) + '</p>'
+                '<p><strong>方向判斷結果：</strong>' + escape(_review_status(stock.get('direction_result'))) + '</p>'
+                '<p><strong>命中 / 未命中：</strong>' + escape(_review_status(stock.get('hit_miss_status'))) + '</p>'
+                + _review_error_detail(stock) +
+                '<p><strong>檢討區間：</strong>' + escape(str(stock.get('review_window_start') or '資料待接')) + ' ~ ' + escape(str(stock.get('review_window_end') or '資料待接')) + '</p>'
+                '<p><strong>產生時間：</strong>' + escape(str(artifact.get('generated_at') or stock.get('created_at') or '資料待接')) + '</p>'
+                '<p><strong>資料品質摘要：</strong>' + _review_data_quality(stock) + '</p>'
+                '</div>'
+            )
+            rolling_values_missing = stock.get('seven_day_hit_rate') is None or stock.get('confidence_calibration') == 'insufficient_data' or stock.get('factor_effectiveness') == 'insufficient_data'
+            rolling_note = '<p class="preview-note">7 天滾動檢討：資料不足，需累積更多正式 prediction / actual outcome artifact。</p>' if rolling_values_missing else ''
+            rolling = (
+                '<div class="review-block"><h4>7 天滾動檢討</h4>'
+                '<p><strong>過去 7 天命中率：</strong>' + display_value(stock.get('seven_day_hit_rate')) + '</p>'
+                '<p><strong>信心校準：</strong>' + escape(_review_status(stock.get('confidence_calibration'))) + '</p>'
+                '<p><strong>因子有效性：</strong>' + escape(_review_status(stock.get('factor_effectiveness'))) + '</p>'
+                '<p><strong>錯誤原因：</strong>' + display_value(stock.get('error_reasons')) + '</p>'
+                '<p><strong>明日改善建議：</strong>' + display_value(stock.get('recommendation_for_improvement')) + '</p>'
+                + rolling_note +
+                '</div>'
+            )
+            cards.append('<div class="source-item"><h3>' + escape(str(stock.get('stock_id'))) + ' ' + escape(str(stock.get('stock_name') or '')) + '</h3>' + single_day + rolling + '<span class="badge warn">正式檢討資料已接線；缺資料維持資料待接</span></div>')
+        note = '<p class="preview-note">正式 prediction review runtime artifact 已接線；主畫面已轉為 PM 可讀狀態，不產生假命中率或假檢討；不得產生假命中率。</p>'
         return note + '<div class="source-grid">' + ''.join(cards) + '</div>'
     rows = []
-    for item in [*runtime.get('actual_outcome_fields', []), *runtime.get('prediction_review_fields', [])]:
-        if not isinstance(item, dict):
-            continue
-        key = str(item.get('field') or '')
-        rows.append('<div class="source-item"><h3>' + escape(FIELD_LABELS.get(key, key or '檢討欄位')) + '</h3><p>資料待接</p><p>' + escape(str(item.get('message') or '尚未找到正式盤後檢討 runtime artifact。')) + '</p><span class="badge warn">盤後檢討資料待接</span></div>')
+    rows.append('<div class="source-item"><h3>單日檢討</h3><p>資料待接</p><p>尚未找到正式盤後檢討 runtime artifact。</p><span class="badge warn">盤後檢討資料待接</span></div>')
+    rows.append('<div class="source-item"><h3>7 天滾動檢討</h3><p>7 天滾動檢討：資料不足，需累積更多正式 prediction / actual outcome artifact。</p><span class="badge warn">資料不足</span></div>')
     return '<div class="source-grid">' + ''.join(rows) + '</div>'
 
 def freshness_cards(runtime: dict[str, Any]) -> str:
@@ -239,7 +293,7 @@ def render_route_html(artifact: dict[str, Any], preview_html: str) -> str:
     missing = len(runtime.get('missing_data', [])) if isinstance(runtime.get('missing_data'), list) else 0
     stale = len(runtime.get('stale_data', [])) if isinstance(runtime.get('stale_data'), list) else 0
     delivery_html = '<div class="source-grid"><div class="source-item"><h3>LINE</h3><p>本次僅做 read-only contract audit，未重送，也未驗證實際送達內容。</p></div><div class="source-item"><h3>Email</h3><p>本次僅做 read-only contract audit，未重送，也未驗證實際送達內容。</p></div><div class="source-item"><h3>Dashboard</h3><p>已發布並可驗證。</p></div></div>'
-    style = ":root{--ink:#132227;--line:#d8e2e6;--ok:#e8f5ee;--warn:#fff7e5;--blue:#e9f3fb}*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f4f7f8;color:var(--ink);line-height:1.55}header{background:linear-gradient(135deg,#103640,#1d5a63);color:#fff;padding:26px 16px 22px}main{max-width:1120px;margin:0 auto;padding:16px}h1{font-size:clamp(28px,4vw,44px);margin:0 0 8px}h2{font-size:22px;margin:0 0 12px}h3{font-size:18px;margin:0 0 8px}p{margin:0 0 10px}.badge-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.badge{display:inline-flex;border-radius:999px;padding:6px 10px;background:#e9f3fb;color:#123b44;font-weight:700;font-size:14px;border:1px solid rgba(18,59,68,.18)}.badge.warn{background:var(--warn);color:#6e4d00}.badge.safe{background:var(--ok);color:#23533b}.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;margin:14px 0;box-shadow:0 1px 0 rgba(14,39,46,.04)}.hero{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:-12px;box-shadow:0 8px 24px rgba(14,39,46,.08)}.grid,.source-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.window-card{display:flex;flex-direction:column;gap:8px;min-height:230px}.window-time{font-size:28px;font-weight:800;color:#123b44}.window-title{font-size:24px;font-weight:800}.preview-note{background:var(--blue);border:1px solid #c8dcea;border-radius:10px;padding:12px;color:#244f64}.source-item{border:1px solid var(--line);border-radius:10px;padding:12px;background:#fbfdfe}details{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin:14px 0}summary{font-weight:800;cursor:pointer}.debug-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}.debug-list span{background:#f6f8f9;border:1px solid #e0e7ea;border-radius:8px;padding:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}@media (max-width:760px){main{padding:12px}.grid,.source-grid,.debug-list{grid-template-columns:1fr}.window-time{font-size:24px}.window-title{font-size:21px}.hero,.card{border-radius:10px;padding:14px}}"
+    style = ":root{--ink:#132227;--line:#d8e2e6;--ok:#e8f5ee;--warn:#fff7e5;--blue:#e9f3fb}*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f4f7f8;color:var(--ink);line-height:1.55}header{background:linear-gradient(135deg,#103640,#1d5a63);color:#fff;padding:26px 16px 22px}main{max-width:1120px;margin:0 auto;padding:16px}h1{font-size:clamp(28px,4vw,44px);margin:0 0 8px}h2{font-size:22px;margin:0 0 12px}h3{font-size:18px;margin:0 0 8px}p{margin:0 0 10px}.badge-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.badge{display:inline-flex;border-radius:999px;padding:6px 10px;background:#e9f3fb;color:#123b44;font-weight:700;font-size:14px;border:1px solid rgba(18,59,68,.18)}.badge.warn{background:var(--warn);color:#6e4d00}.badge.safe{background:var(--ok);color:#23533b}.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;margin:14px 0;box-shadow:0 1px 0 rgba(14,39,46,.04)}.hero{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:-12px;box-shadow:0 8px 24px rgba(14,39,46,.08)}.grid,.source-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.window-card{display:flex;flex-direction:column;gap:8px;min-height:230px}.window-time{font-size:28px;font-weight:800;color:#123b44}.window-title{font-size:24px;font-weight:800}.preview-note{background:var(--blue);border:1px solid #c8dcea;border-radius:10px;padding:12px;color:#244f64}.source-item{border:1px solid var(--line);border-radius:10px;padding:12px;background:#fbfdfe}.review-block{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}.review-block h4{margin:0 0 8px;font-size:16px;color:#123b44}details{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin:14px 0}summary{font-weight:800;cursor:pointer}.debug-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}.debug-list span{background:#f6f8f9;border:1px solid #e0e7ea;border-radius:8px;padding:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}@media (max-width:760px){main{padding:12px}.grid,.source-grid,.debug-list{grid-template-columns:1fr}.window-time{font-size:24px}.window-title{font-size:21px}.hero,.card{border-radius:10px;padding:14px}}"
     return '<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>四時段 AI 決策儀表板</title><style>' + style + '</style></head><body><header><h1>四時段 AI 決策儀表板</h1><p>盤前、盤中、收盤快照、盤後檢討</p><div class="badge-row"><span class="badge warn">預覽版 / 尚未接正式即時資料</span><span class="badge warn">部分資料可用；正式預測與檢討資料待接</span><span class="badge">最新本機摘要：' + latest_ts + '</span><span class="badge safe">不通知、不下單、不改策略</span></div></header><main><section class="hero"><h2>今日決策摘要</h2><p>目前可用於初步參考：追蹤名單有效、盤前本機摘要可用；正式 formal prediction/review artifacts 已具備接線能力，但 null 欄位仍顯示資料待接。</p><p class="preview-note">目前為預覽資料，尚未接完整正式 runtime data；不可用於正式決策：尚未找到正式 prediction runtime artifact，不產生假預測；資料過期或缺漏會明確標示。不會觸發通知或下單。</p><div class="badge-row"><span class="badge safe">追蹤名單 ' + str(len(stocks)) + ' 檔有效</span><span class="badge warn">正式預測資料待接</span><span class="badge warn">盤後檢討資料待接</span><span class="badge warn">缺失區塊 ' + str(missing) + '</span><span class="badge warn">過期區塊 ' + str(stale) + '</span></div></section><section class="card"><h2>四個時段怎麼看</h2><div class="grid">' + window_cards(runtime) + '</div></section><section class="card"><h2>目前追蹤標的</h2>' + stock_cards(runtime) + '</section><section class="card"><h2>最新報告摘要</h2>' + latest_report_cards(runtime) + '</section><section class="card"><h2>每日股價預測資料狀態</h2><p>今日最高 / 最低價預測、隔天最高 / 最低價預測若為 null，代表資料待接；下方保留完整欄位名稱。</p>' + prediction_cards(runtime) + '</section><section class="card"><h2>Forecast Calibration / 回測校準狀態</h2>' + calibration_cards() + '</section><section class="card"><h2>Forecast Snapshot Accumulation / 預測樣本累積進度</h2>' + snapshot_accumulation_cards() + '</section><section class="card"><h2>實際結果 / 預測檢討狀態</h2>' + review_cards(runtime) + '</section><section class="card"><h2>資料新鮮度</h2>' + freshness_cards(runtime) + '</section><section class="card"><h2>資料可信度與證據來源 / 資料來源可信度</h2><div class="source-grid">' + source_cards(runtime.get('source_quality', [])) + '</div></section><section class="card"><h2>LINE / Email / Dashboard delivery audit summary</h2>' + delivery_html + '</section><details><summary>技術檢查 / Debug</summary><p>以下資訊保留給維運檢查，不是主要使用者閱讀區。Artifact inventory: 範例 artifact，不是正式最新報告。</p><div class="debug-list"><span>route=' + route_path + '</span><span>formal_prediction=' + escape(str(runtime.get('formal_prediction_artifact_ref') or 'missing')) + '</span><span>formal_review=' + escape(str(runtime.get('formal_review_artifact_ref') or 'missing')) + '</span><span>runtime export=' + escape(str(runtime.get('production_runtime_export_ref') or 'missing')) + '</span><span>runtime keys: pre_open_0700 / intraday_1305 / pre_close_1335 / post_close_1500</span><span>ui concept: close_snapshot_1335 / prediction_review_1500</span><span>raw fields: actual_high / hit_miss_status / factor_effectiveness</span><span>production_dashboard_publish_executed=false</span><span>no notification</span><span>no scheduler change</span><span>no DB write</span><span>no production pipeline</span><span>no trading</span><span>no rating/action/confidence/weight mutation</span></div></details></main></body></html>'
 
 def write_json(path: Path, payload: dict[str, Any]) -> None:
