@@ -131,31 +131,44 @@ def backup_existing(root: Path, target_dir: Path, timestamp: str) -> Path:
 
 
 def index_link_block(public_url: str) -> str:
-    return f"""
+    return f"""<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stock AI Legacy Dashboard Landing</title>
+  <style>
+    body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;background:#f4f7f8;color:#132227;line-height:1.6}}
+    main{{max-width:880px;margin:0 auto;padding:24px}}
+    .card{{background:#fff;border:1px solid #d8e2e6;border-radius:12px;padding:18px;margin:14px 0}}
+    a{{font-weight:800;color:#175d76}}
+    .badge{{display:inline-block;border-radius:999px;padding:6px 10px;background:#fff7e5;color:#6e4d00;font-weight:700}}
+  </style>
+</head>
+<body>
+<main>
   <!-- {INDEX_MARKER} -->
-  <section style=\"margin-top:24px;padding:16px;border:1px solid #d6dbdf;border-radius:8px;background:#f8fbff\">
-    <h2 style=\"font-size:20px;margin:0 0 8px\">Four-Window Decision Intelligence Preview</h2>
-    <p style=\"margin:0 0 10px;color:#566573\">Controlled static preview route for 07:00 / 13:05 / 13:35 Close Snapshot / 15:00 Prediction Review. No delivery or production pipeline was executed.</p>
-    <a href=\"{public_url}\" style=\"font-weight:700;color:#1f618d\">Open four-window preview</a>
+  <section class="card">
+    <span class="badge">Legacy / Debug Landing</span>
+    <h1>Stock AI 舊 Scheduler Dashboard 已改為 Legacy 入口</h1>
+    <p>此頁不再作為正式投資決策主畫面。正式決策內容、四時段狀態、預測、回測校準、樣本累積與 review card 請看新版 Dashboard。</p>
+    <p><a href="{public_url}">開啟四時段 Decision Intelligence Dashboard</a></p>
   </section>
+  <section class="card">
+    <h2>Legacy / Debug 說明</h2>
+    <p>舊 Report Content、pipeline_type、pipeline_run_id、個股完整文字報告與 raw pipeline details 不應再作為正式決策入口。若未來需要保留，應放在 Debug / Legacy 區塊，不放主畫面。</p>
+    <p>本頁不發 LINE / Email，不執行 production pipeline，不修改 scheduler。</p>
+  </section>
+</main>
+</body>
+</html>
 """
 
 
 def update_index(root: Path, relative_url: str) -> bool:
     index = root / "index.html"
-    if not index.exists():
-        return False
-    text = index.read_text(encoding="utf-8")
-    if INDEX_MARKER in text:
-        return False
-    block = index_link_block(relative_url)
-    if "</main>" in text:
-        text = text.replace("</main>", block + "</main>", 1)
-    else:
-        text += block
-    index.write_text(text, encoding="utf-8")
+    index.write_text(index_link_block(relative_url), encoding="utf-8")
     return True
-
 
 def write_publish_files(root: Path, source_html: Path, public_base_url: str, route_path: str, timestamp: str, add_index_link: bool) -> dict[str, Any]:
     normalized_route = route_path.strip("/")

@@ -40,6 +40,7 @@ DEFAULT_ALLOWED_PATHS = [
     "app/decision_feedback/",
     "app/official_sources/",
     "app/reports/",
+    "reports/line_short_formatter.py",
     "app/report_assembly/",
     "app/runtime/",
     "app/market_regime/",

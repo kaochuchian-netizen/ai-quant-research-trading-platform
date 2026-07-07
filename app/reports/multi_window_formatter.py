@@ -32,6 +32,18 @@ def strategy_v2_sections(context: ReportWindowContext) -> list[dict[str, str]]:
     if context.scheduler_window in {"post_close_1500", "prediction_review_1500"}:
         return [{"heading": "盤後檢討 / Prediction Review", "body": "過去 7 天預測命中率、forecast vs actual、誤差來源、confidence calibration、factor effectiveness 與隔日改善建議。"}]
     return []
+
+def line_notification_text(context: ReportWindowContext, dashboard_url: str) -> str:
+    templates = {
+        "pre_open_0700": ("【Stock AI】07:00 盤前決策摘要已更新", "今日盤前報告、baseline 預測、資料品質與風險提示請看 Dashboard。"),
+        "intraday_1305": ("【Stock AI】13:05 盤中追蹤已更新", "盤中狀態、風險變化與資料完整度請看 Dashboard。"),
+        "pre_close_1335": ("【Stock AI】13:35 收盤快照已更新", "收盤快照、當日狀態與後續檢討進度請看 Dashboard。"),
+        "post_close_1500": ("【Stock AI】15:00 盤後檢討已更新", "單日檢討、7 天滾動檢討、樣本累積與校準狀態請看 Dashboard。"),
+        "prediction_review_1500": ("【Stock AI】15:00 盤後檢討已更新", "單日檢討、7 天滾動檢討、樣本累積與校準狀態請看 Dashboard。"),
+    }
+    title, body = templates.get(context.scheduler_window, templates["pre_open_0700"])
+    return "\n".join([title, body, "Dashboard：", dashboard_url, "僅供研究參考，非交易指令。"])
+
 def render_markdown_report(user_report: dict[str, Any]) -> str:
     lines = [f"# {user_report['title']}", "", str(user_report.get("subtitle", "")), "", str(user_report.get("summary", "")), ""]
     for section in user_report.get("sections", []):
@@ -53,11 +65,9 @@ def render_markdown_report(user_report: dict[str, Any]) -> str:
     return "\n".join(lines).strip() + "\n"
 def build_channel_reports(context: ReportWindowContext, user_report: dict[str, Any], dashboard_url: str | None) -> dict[str, Any]:
     url = dashboard_url or DASHBOARD_URL_FALLBACK
-    prediction_status = PREDICTION_PENDING_REASON if context.scheduler_window == "pre_open_0700" else "依本時段契約顯示資料狀態。"
-    line_parts = [context.display_label, str(user_report.get("summary", context.primary_purpose))[:120], f"預測欄位狀態：{prediction_status}", f"Dashboard: {url}"]
     email_sections = [s.get("heading") for s in user_report.get("sections", [])]
     return {
-        "line": {"channel": "line", "mode": "concise_summary", "line_summary_required": True, "full_report": False, "dashboard_url": url, "text": "\n".join(line_parts), "raw_logs_included": False, "notification_sent": False},
+        "line": {"channel": "line", "mode": "link_only_notification", "line_summary_required": True, "full_report": False, "dashboard_url": url, "text": line_notification_text(context, url), "raw_logs_included": False, "notification_sent": False},
         "email": {"channel": "email", "mode": "full_report", "email_full_report_required": True, "dashboard_url": url, "sections": email_sections, "text": user_report.get("rendered_text", ""), "notification_sent": False},
         "dashboard": {"channel": "dashboard", "mode": "full_state_freshness_missing_data", "dashboard_full_state_required": True, "dashboard_url": url, "sections": ["今日決策摘要", "四批次內容狀態", "預測資料狀態", "LINE / Email / Dashboard delivery audit summary", "資料新鮮度", "技術檢查 / Debug"], "published_by_formatter": False},
     }

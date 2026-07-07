@@ -1,69 +1,20 @@
+DASHBOARD_URL = "http://35.201.242.167/stock-ai-dashboard/dashboard/decision-intelligence/four-window-preview/index.html"
+
+
 def format_line_short(result):
-
-    indicator = result["indicator"]
-
-    total_score = result["total_score"]
-
-    news_score = result["news_score"]
-
-    adr_score = result["adr_score"]
-
-    stock_id = indicator["stock_id"]
-
-    stock_name = result.get(
-        "stock_name",
-        ""
-    )
-
-    score = total_score["total_score"]
-
-    rating = total_score["rating"]
-
-    action = total_score["action"]
-
-    action_mapping = {
-        "Strong Buy": "強力買進",
-        "Buy": "偏多布局",
-        "Watch": "持續觀察",
-        "Neutral": "中性觀望",
-        "Avoid": "避免進場"
-    }
-
-    action = action_mapping.get(
-        action,
-        action
-    )
-
-    trend = indicator["signals"]["trend_signal"]
-
-    if trend == "strong_uptrend":
-        icon = "🟢"
-        summary = "多頭趨勢延續"
-
-    elif trend == "uptrend":
-        icon = "🟡"
-        summary = "偏多整理"
-
-    elif trend == "sideways":
-        icon = "⚪"
-        summary = "區間震盪"
-
+    """Return the approved link-only LINE notification."""
+    payload = result or {}
+    window = str(payload.get("scheduler_window") or payload.get("pipeline_type") or "pre_open_0700")
+    if window in {"intraday", "intraday_1305"}:
+        title = "【Stock AI】13:05 盤中追蹤已更新"
+        body = "盤中狀態、風險變化與資料完整度請看 Dashboard。"
+    elif window in {"pre_close", "pre_close_1335", "close_snapshot_1335"}:
+        title = "【Stock AI】13:35 收盤快照已更新"
+        body = "收盤快照、當日狀態與後續檢討進度請看 Dashboard。"
+    elif window in {"post_close", "post_close_1500", "prediction_review", "prediction_review_1500"}:
+        title = "【Stock AI】15:00 盤後檢討已更新"
+        body = "單日檢討、7 天滾動檢討、樣本累積與校準狀態請看 Dashboard。"
     else:
-        icon = "🔴"
-        summary = "空頭趨勢"
-
-    report = f"""
-【{stock_id} {stock_name}】{icon}
-
-{rating}級｜{score}分
-
-技術：{indicator['score']['bullish_score']}
-新聞：{news_score['score']}
-ADR：{adr_score}
-
-策略：{action}
-
-{summary}
-"""
-
-    return report.strip()
+        title = "【Stock AI】07:00 盤前決策摘要已更新"
+        body = "今日盤前報告、baseline 預測、資料品質與風險提示請看 Dashboard。"
+    return "\n".join([title, body, "Dashboard：", DASHBOARD_URL, "僅供研究參考，非交易指令。"])

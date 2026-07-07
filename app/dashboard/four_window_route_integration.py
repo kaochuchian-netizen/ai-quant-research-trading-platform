@@ -60,6 +60,13 @@ def humanize_status(value: Any) -> str:
         'insufficient_data': '資料不足',
         'sufficient_for_baseline_range': '足夠產生 baseline 區間',
         'artifact-level deterministic baseline formula capped at 75': 'artifact 層 deterministic baseline 公式，信心上限 75',
+        'bullish': '偏多',
+        'neutral': '中性',
+        'bearish': '偏空',
+        'uncertain': '不明朗',
+        'low': '低',
+        'medium': '中',
+        'medium_high': '中高',
     }
     text = str(value)
     return mapping.get(text, text.replace('_', ' '))
@@ -90,6 +97,82 @@ def source_cards(items: list[dict[str, Any]]) -> str:
         out.append('<div class="source-item"><h3>' + escape(str(item.get('label') or item.get('source_family') or 'source')) + '</h3><p>可信度：' + escape(str(item.get('quality') or item.get('credibility'))) + '</p><p>用途：' + escape(str(item.get('allowed_usage'))) + '</p></div>')
     return ''.join(out) or '<div class="source-item"><h3>資料來源政策</h3><p>資料待接。</p></div>'
 
+def _price_range(low: Any, high: Any) -> str:
+    if low is None or high is None:
+        return '資料待接'
+    return escape(str(low)) + ' ～ ' + escape(str(high))
+
+
+def _confidence_text(stock: dict[str, Any]) -> str:
+    score = stock.get('confidence_score')
+    level = humanize_status(stock.get('confidence_level')) if stock.get('confidence_level') is not None else '資料待接'
+    if score is None:
+        return '資料待接'
+    return escape(str(score)) + ' / 75，' + escape(level)
+
+
+def _method_text(stock: dict[str, Any]) -> str:
+    if stock.get('model_version') == 'deterministic_baseline_v1' or stock.get('method_metadata'):
+        return 'deterministic baseline V1'
+    return '資料待接'
+
+
+def _method_note(stock: dict[str, Any]) -> str:
+    if stock.get('method_metadata') or stock.get('evidence_summary'):
+        return '以近 20 日高低價區間、報酬波動、ATR-like range 與均線/報酬率趨勢偏差估算。'
+    return '方法資料待接。'
+
+
+def _risk_items(stock: dict[str, Any]) -> list[str]:
+    risks = [str(item) for item in stock.get('risk_notes', []) if item]
+    cleaned = []
+    for item in risks:
+        text = item.replace('deterministic baseline V1', 'baseline V1')
+        text = text.replace('production rating/action/confidence/weight', '正式評等 / 動作 / 信心 / 權重')
+        text = text.replace('uncertainty / missing_fields', '不明朗狀態與待接欄位')
+        cleaned.append(text)
+    defaults = [
+        'baseline V1 尚在回測校準階段。',
+        '不修改正式評等 / 動作 / 信心 / 權重。',
+    ]
+    if stock.get('missing_fields'):
+        defaults.append('部分長週期資料不足，3 個月趨勢維持不明朗。')
+    return (cleaned or defaults)[:3]
+
+
+def _quality_items(stock: dict[str, Any]) -> list[str]:
+    quality = stock.get('data_quality') if isinstance(stock.get('data_quality'), dict) else {}
+    source_rows = 0
+    latest = quality.get('latest_ohlcv_date') or '資料待接'
+    for source in stock.get('source_evidence', []):
+        if isinstance(source, dict) and source.get('source_type') == 'historical_ohlcv_csv':
+            source_rows = int(source.get('row_count') or source_rows or 0)
+            latest = source.get('latest_ohlcv_date') or latest
+    rows_text = str(source_rows) if source_rows else '資料待接'
+    context_text = '待接' if stock.get('missing_fields') else '可用'
+    return [
+        '歷史 OHLCV：可用，' + rows_text + ' 筆。',
+        '資料時效：' + str(latest) + '。',
+        '補充分析脈絡：' + context_text + '。',
+    ]
+
+
+def _news_block(stock: dict[str, Any]) -> str:
+    news_items = stock.get('major_news') or stock.get('news_headlines') or []
+    if isinstance(news_items, list) and news_items:
+        rows = []
+        for index, item in enumerate(news_items[:3], start=1):
+            if isinstance(item, dict):
+                title = item.get('title') or '新聞標題待接'
+                source = item.get('source') or '來源待接'
+                time = item.get('published_at') or item.get('time') or '時間待接'
+                impact = humanize_status(item.get('impact') or item.get('sentiment') or '中性')
+                rows.append('<p>' + str(index) + '. ' + escape(str(title)) + ' — ' + escape(str(source)) + ' / ' + escape(str(time)) + ' / 影響：' + escape(str(impact)) + '</p>')
+            else:
+                rows.append('<p>' + str(index) + '. ' + escape(str(item)) + '</p>')
+        return '<div class="review-block"><h4>重大新聞</h4>' + ''.join(rows) + '</div>'
+    return '<div class="review-block"><h4>重大新聞</h4><p>重大新聞資料待接</p><p>說明：尚未找到可安全引用的新聞標題 artifact。</p></div>'
+
 def prediction_cards(runtime: dict[str, Any]) -> str:
     artifact = runtime.get('formal_prediction_artifact') if isinstance(runtime.get('formal_prediction_artifact'), dict) else None
     if artifact and artifact.get('artifact_type') == 'formal_prediction_runtime' and artifact.get('is_example') is False:
@@ -97,13 +180,29 @@ def prediction_cards(runtime: dict[str, Any]) -> str:
         for stock in artifact.get('stocks', []):
             if not isinstance(stock, dict):
                 continue
-            rows = []
-            for label, key in PREDICTION_FIELD_LABELS:
-                rows.append('<p><strong>' + escape(label) + '：</strong>' + display_value(stock.get(key)) + '</p>')
-            rows.append('<p><strong>資料截止時間：</strong>' + escape(str(artifact.get('data_cutoff_at') or '資料待接')) + '</p>')
-            rows.append('<p><strong>產生時間：</strong>' + escape(str(artifact.get('generated_at') or '資料待接')) + '</p>')
-            cards.append('<div class="source-item"><h3>' + escape(str(stock.get('stock_id'))) + ' ' + escape(str(stock.get('stock_name') or '')) + '</h3>' + ''.join(rows) + '<span class="badge warn">deterministic baseline V1；null 欄位仍為資料待接</span></div>')
-        note = '<p class="preview-note">正式 prediction runtime artifact 已接線；deterministic_baseline_v1 為第一版可解釋 baseline，供決策參考，待回測校準。今日最高 / 最低價預測、隔天最高 / 最低價預測若為 null，代表資料待接。</p>'
+            title = escape(str(stock.get('stock_id'))) + ' ' + escape(str(stock.get('stock_name') or ''))
+            summary = (
+                '<div class="review-block"><h4>預測摘要</h4>'
+                '<p><strong>今日預測區間：</strong>' + _price_range(stock.get('same_day_low_prediction'), stock.get('same_day_high_prediction')) + '</p>'
+                '<p><strong>隔日預測區間：</strong>' + _price_range(stock.get('next_day_low_prediction'), stock.get('next_day_high_prediction')) + '</p>'
+                '<p><strong>1 個月趨勢：</strong>' + escape(humanize_status(stock.get('one_month_trend'))) + '</p>'
+                '<p><strong>3 個月趨勢：</strong>' + escape(humanize_status(stock.get('three_month_trend'))) + '</p>'
+                '<p><strong>信心分數：</strong>' + _confidence_text(stock) + '</p>'
+                '<p><strong>方法：</strong>' + escape(_method_text(stock)) + '</p>'
+                '<p><strong>說明：</strong>' + escape(_method_note(stock)) + '</p>'
+                '<p><strong>狀態：</strong>供研究參考，待回測校準。</p>'
+                '</div>'
+            )
+            risks = ''.join('<li>' + escape(item) + '</li>' for item in _risk_items(stock))
+            quality = ''.join('<li>' + escape(item) + '</li>' for item in _quality_items(stock))
+            detail = (
+                '<div class="review-block"><h4>風險與資料品質</h4>'
+                '<p><strong>風險提醒：</strong></p><ul>' + risks + '</ul>'
+                '<p><strong>資料品質：</strong></p><ul>' + quality + '</ul>'
+                '</div>'
+            )
+            cards.append('<div class="source-item"><h3>' + title + '</h3>' + summary + detail + _news_block(stock) + '<span class="badge warn">deterministic baseline V1｜待回測校準｜不自動交易</span></div>')
+        note = '<p class="preview-note">正式 prediction runtime artifact 已接線；Dashboard 主畫面只顯示 PM-readable 決策摘要。今日最高價預測、今日最低價預測、隔天最高價預測、隔天最低價預測已整合為今日 / 隔日預測區間；未來 1 個月走勢、未來 3 個月走勢與主要依據已整合為趨勢、方法與說明；工程欄位僅保留於 Debug/validator 使用。</p>'
         return note + '<div class="source-grid">' + ''.join(cards) + '</div>'
     out = []
     for label, _key in PREDICTION_LABELS:
