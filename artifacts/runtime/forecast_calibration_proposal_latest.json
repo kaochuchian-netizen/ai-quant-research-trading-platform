@@ -1,0 +1,62 @@
+{
+  "allowed_next_actions": [
+    "accumulate_more_formal_forecast_actual_pairs",
+    "continue_dashboard_visibility_of_sample_limitations",
+    "prepare_shadow_tuning_only_after_minimum_sample_gate"
+  ],
+  "artifact_type": "forecast_calibration_proposal",
+  "blocked_actions": [
+    "direct_deterministic_baseline_v1_formula_mutation",
+    "production_rating_action_confidence_weight_mutation",
+    "treat_55_5556_percent_as_validated_model_performance",
+    "display_next_day_null_as_zero_or_failure"
+  ],
+  "calibration_recommendations": [
+    {
+      "production_formula_changed": false,
+      "proposal": "暫不調整 deterministic_baseline_v1，持續累積正式 artifact 與 actual outcome。",
+      "rationale": "Current backtest did not trigger a severe width warning.",
+      "recommendation_id": "retain_formula_pending_longer_backtest",
+      "recommendation_type": "monitoring_proposal"
+    }
+  ],
+  "dashboard_wording_policy": {
+    "must_not_claim_model_validated": true,
+    "must_not_display_next_day_null_as_zero": true,
+    "must_not_hide_sample_count": true,
+    "must_show_insufficient_sample_warning": true,
+    "must_show_sample_count": true
+  },
+  "eligible_sample_count": 9,
+  "generated_at": "2026-07-07T09:45:00+08:00",
+  "method_under_test": "deterministic_baseline_v1",
+  "next_day_interval_hit_rate": null,
+  "safety_policy": {
+    "db_write": false,
+    "deterministic_baseline_v1_formula_mutated": false,
+    "external_credentialed_api_called": false,
+    "no_fake_metrics": true,
+    "notification_sent": false,
+    "production_pipeline_executed": false,
+    "production_rating_action_confidence_weight_mutated": false,
+    "python_main_executed": false,
+    "scheduler_modified": false,
+    "secrets_read": false,
+    "trading_or_order_executed": false
+  },
+  "same_day_interval_hit_rate": 55.5556,
+  "sample_limitations": [
+    "目前 eligible sample count 低於 30，只能作初步 proposal visibility，不能進入 shadow tuning。",
+    "隔日高低價區間命中率為 null，因 selected window 沒有 usable next-day actual outcome。"
+  ],
+  "schema_version": "forecast_calibration_proposal_v1",
+  "source_backtest_artifact": "artifacts/runtime/formal_forecast_backtest_report_latest.json",
+  "stock_universe_count": 9,
+  "task_id": "AI-DEV-154",
+  "tuning_gate_reasons": [
+    "eligible_sample_count_less_than_30",
+    "next_day_actual_outcome_insufficient",
+    "confidence_bucket_sample_size_insufficient"
+  ],
+  "tuning_gate_status": "blocked_insufficient_sample"
+}
