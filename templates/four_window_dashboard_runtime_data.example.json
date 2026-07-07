@@ -120,665 +120,858 @@
   "formal_prediction_artifact": {
     "artifact_type": "formal_prediction_runtime",
     "data_cutoff_at": "2026-07-06T07:00:00+08:00",
+    "forecast_value_count": 36,
     "generated_at": "2026-07-06T07:01:00+08:00",
     "is_example": false,
     "market": "TW",
+    "model_version": "deterministic_baseline_v1",
     "producer_name": "build_formal_prediction_runtime_artifact.py",
     "producer_version": "formal_prediction_runtime_v1",
     "runtime_window": "pre_open_0700",
     "safety": {
       "db_write": false,
       "external_api_called": false,
+      "external_credentialed_api_called": false,
       "fabricated_forecast_values": false,
       "notification_sent": false,
       "production_pipeline_executed": false,
+      "production_rating_action_confidence_weight_mutated": false,
       "python_main_executed": false,
       "secrets_read": false,
       "sqlite_opened_read_only": true,
       "trading_or_order_executed": false
     },
     "schema_version": "formal_prediction_runtime_v1",
-    "source_mode": "safe_local_read_only_existing_artifacts",
+    "source_mode": "deterministic_local_read_only_historical_ohlcv",
     "stock_universe_count": 9,
     "stocks": [
       {
-        "confidence_level": null,
-        "confidence_score": null,
+        "confidence_level": "medium_high",
+        "confidence_score": 67,
         "created_at": "2026-07-06T07:01:00+08:00",
         "data_quality": {
           "blocking_missing_fields": [
-            "same_day_high_prediction",
-            "same_day_low_prediction",
-            "next_day_high_prediction",
-            "next_day_low_prediction",
-            "one_month_trend",
-            "three_month_trend",
-            "confidence_score"
+            "three_month_trend"
           ],
-          "completeness": "insufficient_data",
-          "confidence_basis": "no formal prediction model output; local summary is context only",
-          "freshness": "missing_context"
+          "completeness": "sufficient_for_baseline_range",
+          "confidence_basis": "artifact-level deterministic baseline formula capped at 75",
+          "freshness": "fresh",
+          "history_row_count": 20,
+          "latest_ohlcv_date": "2026-07-06"
         },
-        "evidence_summary": "insufficient_data: no contract-backed high/low prediction model output is available.",
+        "evidence_summary": "deterministic_baseline_v1: 20D median range, log-return volatility, ATR-like range, MA/return trend bias from read-only historical OHLCV.",
         "insufficient_data_reasons": [
-          "no_contract_backed_high_low_prediction_output",
-          "no_safe_formal_forecast_model_result",
-          "local_summary_must_not_be_recast_as_prediction"
+          "insufficient_120d_history"
         ],
-        "key_factors": [],
+        "key_factors": [
+          {
+            "allowed_usage": "baseline_range",
+            "factor": "20d_median_daily_range_pct",
+            "value": 0.015056
+          },
+          {
+            "allowed_usage": "baseline_range",
+            "factor": "20d_log_return_volatility_pct",
+            "value": 0.014844
+          },
+          {
+            "allowed_usage": "baseline_range",
+            "factor": "20d_median_atr_like_range_pct",
+            "value": 0.018464
+          },
+          {
+            "allowed_usage": "range_bias",
+            "factor": "one_month_trend_bias",
+            "value": "bullish"
+          }
+        ],
+        "method_metadata": {
+          "confidence_cap": 75,
+          "external_api_called": false,
+          "method": "deterministic_baseline_v1",
+          "price_rounding": "round >=1000 to integer, >=100 to 1 decimal, else 2 decimals",
+          "range_components": {
+            "atr_like_range_pct_median_20d": 0.018464,
+            "base_range_pct": 0.015056,
+            "daily_range_pct_median_20d": 0.015056,
+            "return_volatility_pct_20d": 0.014844
+          },
+          "trend_bias": {
+            "downside_multiplier": 0.85,
+            "next_day_multiplier": 1.15,
+            "one_month_trend": "bullish",
+            "upside_multiplier": 1.15
+          }
+        },
         "missing_fields": [
-          "same_day_high_prediction",
-          "same_day_low_prediction",
-          "next_day_high_prediction",
-          "next_day_low_prediction",
-          "one_month_trend",
-          "three_month_trend",
-          "confidence_score"
+          "three_month_trend"
         ],
-        "model_version": "safe_null_formal_prediction_v1",
-        "next_day_high_prediction": null,
-        "next_day_low_prediction": null,
-        "next_trading_date": "2026-07-07",
-        "one_month_trend": null,
+        "model_version": "deterministic_baseline_v1",
+        "next_day_high_prediction": 34.16,
+        "next_day_low_prediction": 33.0,
+        "next_trading_date": null,
+        "one_month_trend": "bullish",
         "prediction_date": "2026-07-06",
         "risk_notes": [
-          "資料待接: formal prediction values remain null until a safe model output exists."
+          "deterministic baseline V1，供決策參考，待回測校準。",
+          "不修改 production rating/action/confidence/weight。",
+          "部分長週期欄位資料不足，保留 uncertainty / missing_fields。"
         ],
-        "same_day_high_prediction": null,
-        "same_day_low_prediction": null,
+        "same_day_high_prediction": 34.07,
+        "same_day_low_prediction": 33.06,
         "source_evidence": [
           {
-            "source_type": "local_summary",
-            "status": "insufficient_data"
+            "latest_ohlcv_date": "2026-07-06",
+            "path": "data/historical/00878_daily.csv",
+            "read_mode": "read_only",
+            "row_count": 20,
+            "source_type": "historical_ohlcv_csv",
+            "status": "available"
           },
           {
-            "source_type": "historical_price",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "technical_snapshot",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "chip_summary",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "news_summary",
-            "status": "insufficient_data"
+            "source_type": "local_analysis_context",
+            "status": "missing"
           }
         ],
         "stock_id": "00878",
         "stock_name": "國泰永續高股息",
-        "three_month_trend": null
+        "three_month_trend": "uncertain"
       },
       {
-        "confidence_level": null,
-        "confidence_score": null,
+        "confidence_level": "medium_high",
+        "confidence_score": 66,
         "created_at": "2026-07-06T07:01:00+08:00",
         "data_quality": {
           "blocking_missing_fields": [
-            "same_day_high_prediction",
-            "same_day_low_prediction",
-            "next_day_high_prediction",
-            "next_day_low_prediction",
-            "one_month_trend",
-            "three_month_trend",
-            "confidence_score"
+            "three_month_trend"
           ],
-          "completeness": "insufficient_data",
-          "confidence_basis": "no formal prediction model output; local summary is context only",
-          "freshness": "missing_context"
+          "completeness": "sufficient_for_baseline_range",
+          "confidence_basis": "artifact-level deterministic baseline formula capped at 75",
+          "freshness": "fresh",
+          "history_row_count": 20,
+          "latest_ohlcv_date": "2026-07-06"
         },
-        "evidence_summary": "insufficient_data: no contract-backed high/low prediction model output is available.",
+        "evidence_summary": "deterministic_baseline_v1: 20D median range, log-return volatility, ATR-like range, MA/return trend bias from read-only historical OHLCV.",
         "insufficient_data_reasons": [
-          "no_contract_backed_high_low_prediction_output",
-          "no_safe_formal_forecast_model_result",
-          "local_summary_must_not_be_recast_as_prediction"
+          "insufficient_120d_history"
         ],
-        "key_factors": [],
+        "key_factors": [
+          {
+            "allowed_usage": "baseline_range",
+            "factor": "20d_median_daily_range_pct",
+            "value": 0.020413
+          },
+          {
+            "allowed_usage": "baseline_range",
+            "factor": "20d_log_return_volatility_pct",
+            "value": 0.021525
+          },
+          {
+            "allowed_usage": "baseline_range",
+            "factor": "20d_median_atr_like_range_pct",
+            "value": 0.026032
+          },
+          {
+            "allowed_usage": "range_bias",
+            "factor": "one_month_trend_bias",
+            "value": "bullish"
+          }
+        ],
+        "method_metadata": {
+          "confidence_cap": 75,
+          "external_api_called": false,
+          "method": "deterministic_baseline_v1",
+          "price_rounding": "round >=1000 to integer, >=100 to 1 decimal, else 2 decimals",
+          "range_components": {
+            "atr_like_range_pct_median_20d": 0.026032,
+            "base_range_pct": 0.021525,
+            "daily_range_pct_median_20d": 0.020413,
+            "return_volatility_pct_20d": 0.021525
+          },
+          "trend_bias": {
+            "downside_multiplier": 0.85,
+            "next_day_multiplier": 1.15,
+            "one_month_trend": "bullish",
+            "upside_multiplier": 1.15
+          }
+        },
         "missing_fields": [
-          "same_day_high_prediction",
-          "same_day_low_prediction",
-          "next_day_high_prediction",
-          "next_day_low_prediction",
-          "one_month_trend",
-          "three_month_trend",
-          "confidence_score"
+          "three_month_trend"
         ],
-        "model_version": "safe_null_formal_prediction_v1",
-        "next_day_high_prediction": null,
-        "next_day_low_prediction": null,
-        "next_trading_date": "2026-07-07",
-        "one_month_trend": null,
+        "model_version": "deterministic_baseline_v1",
+        "next_day_high_prediction": 16.1,
+        "next_day_low_prediction": 15.32,
+        "next_trading_date": null,
+        "one_month_trend": "bullish",
         "prediction_date": "2026-07-06",
         "risk_notes": [
-          "資料待接: formal prediction values remain null until a safe model output exists."
+          "deterministic baseline V1，供決策參考，待回測校準。",
+          "不修改 production rating/action/confidence/weight。",
+          "部分長週期欄位資料不足，保留 uncertainty / missing_fields。"
         ],
-        "same_day_high_prediction": null,
-        "same_day_low_prediction": null,
+        "same_day_high_prediction": 16.04,
+        "same_day_low_prediction": 15.36,
         "source_evidence": [
           {
-            "source_type": "local_summary",
-            "status": "insufficient_data"
+            "latest_ohlcv_date": "2026-07-06",
+            "path": "data/historical/009816_daily.csv",
+            "read_mode": "read_only",
+            "row_count": 20,
+            "source_type": "historical_ohlcv_csv",
+            "status": "available"
           },
           {
-            "source_type": "historical_price",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "technical_snapshot",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "chip_summary",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "news_summary",
-            "status": "insufficient_data"
+            "source_type": "local_analysis_context",
+            "status": "missing"
           }
         ],
         "stock_id": "009816",
         "stock_name": "凱基台灣TOP50",
-        "three_month_trend": null
+        "three_month_trend": "uncertain"
       },
       {
-        "confidence_level": null,
-        "confidence_score": null,
+        "confidence_level": "medium",
+        "confidence_score": 58,
         "created_at": "2026-07-06T07:01:00+08:00",
         "data_quality": {
           "blocking_missing_fields": [
-            "same_day_high_prediction",
-            "same_day_low_prediction",
-            "next_day_high_prediction",
-            "next_day_low_prediction",
-            "one_month_trend",
-            "three_month_trend",
-            "confidence_score"
+            "three_month_trend"
           ],
-          "completeness": "insufficient_data",
-          "confidence_basis": "no formal prediction model output; local summary is context only",
-          "freshness": "context_available"
+          "completeness": "sufficient_for_baseline_range",
+          "confidence_basis": "artifact-level deterministic baseline formula capped at 75",
+          "freshness": "fresh",
+          "history_row_count": 20,
+          "latest_ohlcv_date": "2026-07-06"
         },
-        "evidence_summary": "insufficient_data: no contract-backed high/low prediction model output is available.",
+        "evidence_summary": "deterministic_baseline_v1: 20D median range, log-return volatility, ATR-like range, MA/return trend bias from read-only historical OHLCV.",
         "insufficient_data_reasons": [
-          "no_contract_backed_high_low_prediction_output",
-          "no_safe_formal_forecast_model_result",
-          "local_summary_must_not_be_recast_as_prediction"
+          "insufficient_120d_history"
         ],
-        "key_factors": [],
+        "key_factors": [
+          {
+            "allowed_usage": "baseline_range",
+            "factor": "20d_median_daily_range_pct",
+            "value": 0.058703
+          },
+          {
+            "allowed_usage": "baseline_range",
+            "factor": "20d_log_return_volatility_pct",
+            "value": 0.047976
+          },
+          {
+            "allowed_usage": "baseline_range",
+            "factor": "20d_median_atr_like_range_pct",
+            "value": 0.059545
+          },
+          {
+            "allowed_usage": "range_bias",
+            "factor": "one_month_trend_bias",
+            "value": "bullish"
+          }
+        ],
+        "method_metadata": {
+          "confidence_cap": 75,
+          "external_api_called": false,
+          "method": "deterministic_baseline_v1",
+          "price_rounding": "round >=1000 to integer, >=100 to 1 decimal, else 2 decimals",
+          "range_components": {
+            "atr_like_range_pct_median_20d": 0.059545,
+            "base_range_pct": 0.058703,
+            "daily_range_pct_median_20d": 0.058703,
+            "return_volatility_pct_20d": 0.047976
+          },
+          "trend_bias": {
+            "downside_multiplier": 0.85,
+            "next_day_multiplier": 1.15,
+            "one_month_trend": "bullish",
+            "upside_multiplier": 1.15
+          }
+        },
         "missing_fields": [
-          "same_day_high_prediction",
-          "same_day_low_prediction",
-          "next_day_high_prediction",
-          "next_day_low_prediction",
-          "one_month_trend",
-          "three_month_trend",
-          "confidence_score"
+          "three_month_trend"
         ],
-        "model_version": "safe_null_formal_prediction_v1",
-        "next_day_high_prediction": null,
-        "next_day_low_prediction": null,
-        "next_trading_date": "2026-07-07",
-        "one_month_trend": null,
+        "model_version": "deterministic_baseline_v1",
+        "next_day_high_prediction": 32.6,
+        "next_day_low_prediction": 28.51,
+        "next_trading_date": null,
+        "one_month_trend": "bullish",
         "prediction_date": "2026-07-06",
         "risk_notes": [
-          "資料待接: formal prediction values remain null until a safe model output exists."
+          "deterministic baseline V1，供決策參考，待回測校準。",
+          "不修改 production rating/action/confidence/weight。",
+          "部分長週期欄位資料不足，保留 uncertainty / missing_fields。"
         ],
-        "same_day_high_prediction": null,
-        "same_day_low_prediction": null,
+        "same_day_high_prediction": 32.29,
+        "same_day_low_prediction": 28.74,
         "source_evidence": [
           {
-            "source_type": "local_summary",
+            "latest_ohlcv_date": "2026-07-06",
+            "path": "data/historical/1409_daily.csv",
+            "read_mode": "read_only",
+            "row_count": 20,
+            "source_type": "historical_ohlcv_csv",
+            "status": "available"
+          },
+          {
+            "source_type": "local_analysis_context",
             "status": "available_for_context_only"
-          },
-          {
-            "source_type": "historical_price",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "technical_snapshot",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "chip_summary",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "news_summary",
-            "status": "insufficient_data"
           }
         ],
         "stock_id": "1409",
         "stock_name": "新纖",
-        "three_month_trend": null
+        "three_month_trend": "uncertain"
       },
       {
-        "confidence_level": null,
-        "confidence_score": null,
+        "confidence_level": "medium",
+        "confidence_score": 57,
         "created_at": "2026-07-06T07:01:00+08:00",
         "data_quality": {
           "blocking_missing_fields": [
-            "same_day_high_prediction",
-            "same_day_low_prediction",
-            "next_day_high_prediction",
-            "next_day_low_prediction",
-            "one_month_trend",
-            "three_month_trend",
-            "confidence_score"
+            "three_month_trend"
           ],
-          "completeness": "insufficient_data",
-          "confidence_basis": "no formal prediction model output; local summary is context only",
-          "freshness": "missing_context"
+          "completeness": "sufficient_for_baseline_range",
+          "confidence_basis": "artifact-level deterministic baseline formula capped at 75",
+          "freshness": "fresh",
+          "history_row_count": 20,
+          "latest_ohlcv_date": "2026-07-06"
         },
-        "evidence_summary": "insufficient_data: no contract-backed high/low prediction model output is available.",
+        "evidence_summary": "deterministic_baseline_v1: 20D median range, log-return volatility, ATR-like range, MA/return trend bias from read-only historical OHLCV.",
         "insufficient_data_reasons": [
-          "no_contract_backed_high_low_prediction_output",
-          "no_safe_formal_forecast_model_result",
-          "local_summary_must_not_be_recast_as_prediction"
+          "insufficient_120d_history"
         ],
-        "key_factors": [],
+        "key_factors": [
+          {
+            "allowed_usage": "baseline_range",
+            "factor": "20d_median_daily_range_pct",
+            "value": 0.062706
+          },
+          {
+            "allowed_usage": "baseline_range",
+            "factor": "20d_log_return_volatility_pct",
+            "value": 0.050249
+          },
+          {
+            "allowed_usage": "baseline_range",
+            "factor": "20d_median_atr_like_range_pct",
+            "value": 0.089641
+          },
+          {
+            "allowed_usage": "range_bias",
+            "factor": "one_month_trend_bias",
+            "value": "bullish"
+          }
+        ],
+        "method_metadata": {
+          "confidence_cap": 75,
+          "external_api_called": false,
+          "method": "deterministic_baseline_v1",
+          "price_rounding": "round >=1000 to integer, >=100 to 1 decimal, else 2 decimals",
+          "range_components": {
+            "atr_like_range_pct_median_20d": 0.089641,
+            "base_range_pct": 0.062706,
+            "daily_range_pct_median_20d": 0.062706,
+            "return_volatility_pct_20d": 0.050249
+          },
+          "trend_bias": {
+            "downside_multiplier": 0.85,
+            "next_day_multiplier": 1.15,
+            "one_month_trend": "bullish",
+            "upside_multiplier": 1.15
+          }
+        },
         "missing_fields": [
-          "same_day_high_prediction",
-          "same_day_low_prediction",
-          "next_day_high_prediction",
-          "next_day_low_prediction",
-          "one_month_trend",
-          "three_month_trend",
-          "confidence_score"
+          "three_month_trend"
         ],
-        "model_version": "safe_null_formal_prediction_v1",
-        "next_day_high_prediction": null,
-        "next_day_low_prediction": null,
-        "next_trading_date": "2026-07-07",
-        "one_month_trend": null,
+        "model_version": "deterministic_baseline_v1",
+        "next_day_high_prediction": 46.19,
+        "next_day_low_prediction": 40.04,
+        "next_trading_date": null,
+        "one_month_trend": "bullish",
         "prediction_date": "2026-07-06",
         "risk_notes": [
-          "資料待接: formal prediction values remain null until a safe model output exists."
+          "deterministic baseline V1，供決策參考，待回測校準。",
+          "不修改 production rating/action/confidence/weight。",
+          "部分長週期欄位資料不足，保留 uncertainty / missing_fields。"
         ],
-        "same_day_high_prediction": null,
-        "same_day_low_prediction": null,
+        "same_day_high_prediction": 45.73,
+        "same_day_low_prediction": 40.38,
         "source_evidence": [
           {
-            "source_type": "local_summary",
-            "status": "insufficient_data"
+            "latest_ohlcv_date": "2026-07-06",
+            "path": "data/historical/2305_daily.csv",
+            "read_mode": "read_only",
+            "row_count": 20,
+            "source_type": "historical_ohlcv_csv",
+            "status": "available"
           },
           {
-            "source_type": "historical_price",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "technical_snapshot",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "chip_summary",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "news_summary",
-            "status": "insufficient_data"
+            "source_type": "local_analysis_context",
+            "status": "missing"
           }
         ],
         "stock_id": "2305",
         "stock_name": "全友",
-        "three_month_trend": null
+        "three_month_trend": "uncertain"
       },
       {
-        "confidence_level": null,
-        "confidence_score": null,
+        "confidence_level": "medium_high",
+        "confidence_score": 66,
         "created_at": "2026-07-06T07:01:00+08:00",
         "data_quality": {
           "blocking_missing_fields": [
-            "same_day_high_prediction",
-            "same_day_low_prediction",
-            "next_day_high_prediction",
-            "next_day_low_prediction",
-            "one_month_trend",
-            "three_month_trend",
-            "confidence_score"
+            "three_month_trend"
           ],
-          "completeness": "insufficient_data",
-          "confidence_basis": "no formal prediction model output; local summary is context only",
-          "freshness": "missing_context"
+          "completeness": "sufficient_for_baseline_range",
+          "confidence_basis": "artifact-level deterministic baseline formula capped at 75",
+          "freshness": "fresh",
+          "history_row_count": 20,
+          "latest_ohlcv_date": "2026-07-06"
         },
-        "evidence_summary": "insufficient_data: no contract-backed high/low prediction model output is available.",
+        "evidence_summary": "deterministic_baseline_v1: 20D median range, log-return volatility, ATR-like range, MA/return trend bias from read-only historical OHLCV.",
         "insufficient_data_reasons": [
-          "no_contract_backed_high_low_prediction_output",
-          "no_safe_formal_forecast_model_result",
-          "local_summary_must_not_be_recast_as_prediction"
+          "insufficient_120d_history"
         ],
-        "key_factors": [],
+        "key_factors": [
+          {
+            "allowed_usage": "baseline_range",
+            "factor": "20d_median_daily_range_pct",
+            "value": 0.018762
+          },
+          {
+            "allowed_usage": "baseline_range",
+            "factor": "20d_log_return_volatility_pct",
+            "value": 0.020667
+          },
+          {
+            "allowed_usage": "baseline_range",
+            "factor": "20d_median_atr_like_range_pct",
+            "value": 0.022358
+          },
+          {
+            "allowed_usage": "range_bias",
+            "factor": "one_month_trend_bias",
+            "value": "bullish"
+          }
+        ],
+        "method_metadata": {
+          "confidence_cap": 75,
+          "external_api_called": false,
+          "method": "deterministic_baseline_v1",
+          "price_rounding": "round >=1000 to integer, >=100 to 1 decimal, else 2 decimals",
+          "range_components": {
+            "atr_like_range_pct_median_20d": 0.022358,
+            "base_range_pct": 0.020667,
+            "daily_range_pct_median_20d": 0.018762,
+            "return_volatility_pct_20d": 0.020667
+          },
+          "trend_bias": {
+            "downside_multiplier": 0.85,
+            "next_day_multiplier": 1.15,
+            "one_month_trend": "bullish",
+            "upside_multiplier": 1.15
+          }
+        },
         "missing_fields": [
-          "same_day_high_prediction",
-          "same_day_low_prediction",
-          "next_day_high_prediction",
-          "next_day_low_prediction",
-          "one_month_trend",
-          "three_month_trend",
-          "confidence_score"
+          "three_month_trend"
         ],
-        "model_version": "safe_null_formal_prediction_v1",
-        "next_day_high_prediction": null,
-        "next_day_low_prediction": null,
-        "next_trading_date": "2026-07-07",
-        "one_month_trend": null,
+        "model_version": "deterministic_baseline_v1",
+        "next_day_high_prediction": 2527.0,
+        "next_day_low_prediction": 2410.0,
+        "next_trading_date": null,
+        "one_month_trend": "bullish",
         "prediction_date": "2026-07-06",
         "risk_notes": [
-          "資料待接: formal prediction values remain null until a safe model output exists."
+          "deterministic baseline V1，供決策參考，待回測校準。",
+          "不修改 production rating/action/confidence/weight。",
+          "部分長週期欄位資料不足，保留 uncertainty / missing_fields。"
         ],
-        "same_day_high_prediction": null,
-        "same_day_low_prediction": null,
+        "same_day_high_prediction": 2518.0,
+        "same_day_low_prediction": 2417.0,
         "source_evidence": [
           {
-            "source_type": "local_summary",
-            "status": "insufficient_data"
+            "latest_ohlcv_date": "2026-07-06",
+            "path": "data/historical/2330_daily.csv",
+            "read_mode": "read_only",
+            "row_count": 20,
+            "source_type": "historical_ohlcv_csv",
+            "status": "available"
           },
           {
-            "source_type": "historical_price",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "technical_snapshot",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "chip_summary",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "news_summary",
-            "status": "insufficient_data"
+            "source_type": "local_analysis_context",
+            "status": "missing"
           }
         ],
         "stock_id": "2330",
         "stock_name": "台積電",
-        "three_month_trend": null
+        "three_month_trend": "uncertain"
       },
       {
-        "confidence_level": null,
-        "confidence_score": null,
+        "confidence_level": "medium",
+        "confidence_score": 58,
         "created_at": "2026-07-06T07:01:00+08:00",
         "data_quality": {
           "blocking_missing_fields": [
-            "same_day_high_prediction",
-            "same_day_low_prediction",
-            "next_day_high_prediction",
-            "next_day_low_prediction",
-            "one_month_trend",
-            "three_month_trend",
-            "confidence_score"
+            "three_month_trend"
           ],
-          "completeness": "insufficient_data",
-          "confidence_basis": "no formal prediction model output; local summary is context only",
-          "freshness": "missing_context"
+          "completeness": "sufficient_for_baseline_range",
+          "confidence_basis": "artifact-level deterministic baseline formula capped at 75",
+          "freshness": "fresh",
+          "history_row_count": 20,
+          "latest_ohlcv_date": "2026-07-06"
         },
-        "evidence_summary": "insufficient_data: no contract-backed high/low prediction model output is available.",
+        "evidence_summary": "deterministic_baseline_v1: 20D median range, log-return volatility, ATR-like range, MA/return trend bias from read-only historical OHLCV.",
         "insufficient_data_reasons": [
-          "no_contract_backed_high_low_prediction_output",
-          "no_safe_formal_forecast_model_result",
-          "local_summary_must_not_be_recast_as_prediction"
+          "insufficient_120d_history"
         ],
-        "key_factors": [],
+        "key_factors": [
+          {
+            "allowed_usage": "baseline_range",
+            "factor": "20d_median_daily_range_pct",
+            "value": 0.05751
+          },
+          {
+            "allowed_usage": "baseline_range",
+            "factor": "20d_log_return_volatility_pct",
+            "value": 0.050079
+          },
+          {
+            "allowed_usage": "baseline_range",
+            "factor": "20d_median_atr_like_range_pct",
+            "value": 0.059937
+          },
+          {
+            "allowed_usage": "range_bias",
+            "factor": "one_month_trend_bias",
+            "value": "bearish"
+          }
+        ],
+        "method_metadata": {
+          "confidence_cap": 75,
+          "external_api_called": false,
+          "method": "deterministic_baseline_v1",
+          "price_rounding": "round >=1000 to integer, >=100 to 1 decimal, else 2 decimals",
+          "range_components": {
+            "atr_like_range_pct_median_20d": 0.059937,
+            "base_range_pct": 0.05751,
+            "daily_range_pct_median_20d": 0.05751,
+            "return_volatility_pct_20d": 0.050079
+          },
+          "trend_bias": {
+            "downside_multiplier": 1.15,
+            "next_day_multiplier": 1.15,
+            "one_month_trend": "bearish",
+            "upside_multiplier": 0.85
+          }
+        },
         "missing_fields": [
-          "same_day_high_prediction",
-          "same_day_low_prediction",
-          "next_day_high_prediction",
-          "next_day_low_prediction",
-          "one_month_trend",
-          "three_month_trend",
-          "confidence_score"
+          "three_month_trend"
         ],
-        "model_version": "safe_null_formal_prediction_v1",
-        "next_day_high_prediction": null,
-        "next_day_low_prediction": null,
-        "next_trading_date": "2026-07-07",
-        "one_month_trend": null,
+        "model_version": "deterministic_baseline_v1",
+        "next_day_high_prediction": 152.6,
+        "next_day_low_prediction": 133.5,
+        "next_trading_date": null,
+        "one_month_trend": "bearish",
         "prediction_date": "2026-07-06",
         "risk_notes": [
-          "資料待接: formal prediction values remain null until a safe model output exists."
+          "deterministic baseline V1，供決策參考，待回測校準。",
+          "不修改 production rating/action/confidence/weight。",
+          "部分長週期欄位資料不足，保留 uncertainty / missing_fields。"
         ],
-        "same_day_high_prediction": null,
-        "same_day_low_prediction": null,
+        "same_day_high_prediction": 151.6,
+        "same_day_low_prediction": 134.9,
         "source_evidence": [
           {
-            "source_type": "local_summary",
-            "status": "insufficient_data"
+            "latest_ohlcv_date": "2026-07-06",
+            "path": "data/historical/2337_daily.csv",
+            "read_mode": "read_only",
+            "row_count": 20,
+            "source_type": "historical_ohlcv_csv",
+            "status": "available"
           },
           {
-            "source_type": "historical_price",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "technical_snapshot",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "chip_summary",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "news_summary",
-            "status": "insufficient_data"
+            "source_type": "local_analysis_context",
+            "status": "missing"
           }
         ],
         "stock_id": "2337",
         "stock_name": "旺宏",
-        "three_month_trend": null
+        "three_month_trend": "uncertain"
       },
       {
-        "confidence_level": null,
-        "confidence_score": null,
+        "confidence_level": "medium_high",
+        "confidence_score": 62,
         "created_at": "2026-07-06T07:01:00+08:00",
         "data_quality": {
           "blocking_missing_fields": [
-            "same_day_high_prediction",
-            "same_day_low_prediction",
-            "next_day_high_prediction",
-            "next_day_low_prediction",
-            "one_month_trend",
-            "three_month_trend",
-            "confidence_score"
+            "three_month_trend"
           ],
-          "completeness": "insufficient_data",
-          "confidence_basis": "no formal prediction model output; local summary is context only",
-          "freshness": "missing_context"
+          "completeness": "sufficient_for_baseline_range",
+          "confidence_basis": "artifact-level deterministic baseline formula capped at 75",
+          "freshness": "fresh",
+          "history_row_count": 20,
+          "latest_ohlcv_date": "2026-07-06"
         },
-        "evidence_summary": "insufficient_data: no contract-backed high/low prediction model output is available.",
+        "evidence_summary": "deterministic_baseline_v1: 20D median range, log-return volatility, ATR-like range, MA/return trend bias from read-only historical OHLCV.",
         "insufficient_data_reasons": [
-          "no_contract_backed_high_low_prediction_output",
-          "no_safe_formal_forecast_model_result",
-          "local_summary_must_not_be_recast_as_prediction"
+          "insufficient_120d_history"
         ],
-        "key_factors": [],
+        "key_factors": [
+          {
+            "allowed_usage": "baseline_range",
+            "factor": "20d_median_daily_range_pct",
+            "value": 0.041169
+          },
+          {
+            "allowed_usage": "baseline_range",
+            "factor": "20d_log_return_volatility_pct",
+            "value": 0.03514
+          },
+          {
+            "allowed_usage": "baseline_range",
+            "factor": "20d_median_atr_like_range_pct",
+            "value": 0.042398
+          },
+          {
+            "allowed_usage": "range_bias",
+            "factor": "one_month_trend_bias",
+            "value": "bearish"
+          }
+        ],
+        "method_metadata": {
+          "confidence_cap": 75,
+          "external_api_called": false,
+          "method": "deterministic_baseline_v1",
+          "price_rounding": "round >=1000 to integer, >=100 to 1 decimal, else 2 decimals",
+          "range_components": {
+            "atr_like_range_pct_median_20d": 0.042398,
+            "base_range_pct": 0.041169,
+            "daily_range_pct_median_20d": 0.041169,
+            "return_volatility_pct_20d": 0.03514
+          },
+          "trend_bias": {
+            "downside_multiplier": 1.15,
+            "next_day_multiplier": 1.15,
+            "one_month_trend": "bearish",
+            "upside_multiplier": 0.85
+          }
+        },
         "missing_fields": [
-          "same_day_high_prediction",
-          "same_day_low_prediction",
-          "next_day_high_prediction",
-          "next_day_low_prediction",
-          "one_month_trend",
-          "three_month_trend",
-          "confidence_score"
+          "three_month_trend"
         ],
-        "model_version": "safe_null_formal_prediction_v1",
-        "next_day_high_prediction": null,
-        "next_day_low_prediction": null,
-        "next_trading_date": "2026-07-07",
-        "one_month_trend": null,
+        "model_version": "deterministic_baseline_v1",
+        "next_day_high_prediction": 34.12,
+        "next_day_low_prediction": 31.01,
+        "next_trading_date": null,
+        "one_month_trend": "bearish",
         "prediction_date": "2026-07-06",
         "risk_notes": [
-          "資料待接: formal prediction values remain null until a safe model output exists."
+          "deterministic baseline V1，供決策參考，待回測校準。",
+          "不修改 production rating/action/confidence/weight。",
+          "部分長週期欄位資料不足，保留 uncertainty / missing_fields。"
         ],
-        "same_day_high_prediction": null,
-        "same_day_low_prediction": null,
+        "same_day_high_prediction": 33.95,
+        "same_day_low_prediction": 31.25,
         "source_evidence": [
           {
-            "source_type": "local_summary",
-            "status": "insufficient_data"
+            "latest_ohlcv_date": "2026-07-06",
+            "path": "data/historical/2353_daily.csv",
+            "read_mode": "read_only",
+            "row_count": 20,
+            "source_type": "historical_ohlcv_csv",
+            "status": "available"
           },
           {
-            "source_type": "historical_price",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "technical_snapshot",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "chip_summary",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "news_summary",
-            "status": "insufficient_data"
+            "source_type": "local_analysis_context",
+            "status": "missing"
           }
         ],
         "stock_id": "2353",
         "stock_name": "宏碁",
-        "three_month_trend": null
+        "three_month_trend": "uncertain"
       },
       {
-        "confidence_level": null,
-        "confidence_score": null,
+        "confidence_level": "medium_high",
+        "confidence_score": 63,
         "created_at": "2026-07-06T07:01:00+08:00",
         "data_quality": {
           "blocking_missing_fields": [
-            "same_day_high_prediction",
-            "same_day_low_prediction",
-            "next_day_high_prediction",
-            "next_day_low_prediction",
-            "one_month_trend",
-            "three_month_trend",
-            "confidence_score"
+            "three_month_trend"
           ],
-          "completeness": "insufficient_data",
-          "confidence_basis": "no formal prediction model output; local summary is context only",
-          "freshness": "missing_context"
+          "completeness": "sufficient_for_baseline_range",
+          "confidence_basis": "artifact-level deterministic baseline formula capped at 75",
+          "freshness": "fresh",
+          "history_row_count": 20,
+          "latest_ohlcv_date": "2026-07-06"
         },
-        "evidence_summary": "insufficient_data: no contract-backed high/low prediction model output is available.",
+        "evidence_summary": "deterministic_baseline_v1: 20D median range, log-return volatility, ATR-like range, MA/return trend bias from read-only historical OHLCV.",
         "insufficient_data_reasons": [
-          "no_contract_backed_high_low_prediction_output",
-          "no_safe_formal_forecast_model_result",
-          "local_summary_must_not_be_recast_as_prediction"
+          "insufficient_120d_history"
         ],
-        "key_factors": [],
+        "key_factors": [
+          {
+            "allowed_usage": "baseline_range",
+            "factor": "20d_median_daily_range_pct",
+            "value": 0.035138
+          },
+          {
+            "allowed_usage": "baseline_range",
+            "factor": "20d_log_return_volatility_pct",
+            "value": 0.030052
+          },
+          {
+            "allowed_usage": "baseline_range",
+            "factor": "20d_median_atr_like_range_pct",
+            "value": 0.034749
+          },
+          {
+            "allowed_usage": "range_bias",
+            "factor": "one_month_trend_bias",
+            "value": "bullish"
+          }
+        ],
+        "method_metadata": {
+          "confidence_cap": 75,
+          "external_api_called": false,
+          "method": "deterministic_baseline_v1",
+          "price_rounding": "round >=1000 to integer, >=100 to 1 decimal, else 2 decimals",
+          "range_components": {
+            "atr_like_range_pct_median_20d": 0.034749,
+            "base_range_pct": 0.034749,
+            "daily_range_pct_median_20d": 0.035138,
+            "return_volatility_pct_20d": 0.030052
+          },
+          "trend_bias": {
+            "downside_multiplier": 0.85,
+            "next_day_multiplier": 1.15,
+            "one_month_trend": "bullish",
+            "upside_multiplier": 1.15
+          }
+        },
         "missing_fields": [
-          "same_day_high_prediction",
-          "same_day_low_prediction",
-          "next_day_high_prediction",
-          "next_day_low_prediction",
-          "one_month_trend",
-          "three_month_trend",
-          "confidence_score"
+          "three_month_trend"
         ],
-        "model_version": "safe_null_formal_prediction_v1",
-        "next_day_high_prediction": null,
-        "next_day_low_prediction": null,
-        "next_trading_date": "2026-07-07",
-        "one_month_trend": null,
+        "model_version": "deterministic_baseline_v1",
+        "next_day_high_prediction": 62.44,
+        "next_day_low_prediction": 57.67,
+        "next_trading_date": null,
+        "one_month_trend": "bullish",
         "prediction_date": "2026-07-06",
         "risk_notes": [
-          "資料待接: formal prediction values remain null until a safe model output exists."
+          "deterministic baseline V1，供決策參考，待回測校準。",
+          "不修改 production rating/action/confidence/weight。",
+          "部分長週期欄位資料不足，保留 uncertainty / missing_fields。"
         ],
-        "same_day_high_prediction": null,
-        "same_day_low_prediction": null,
+        "same_day_high_prediction": 62.09,
+        "same_day_low_prediction": 57.94,
         "source_evidence": [
           {
-            "source_type": "local_summary",
-            "status": "insufficient_data"
+            "latest_ohlcv_date": "2026-07-06",
+            "path": "data/historical/4743_daily.csv",
+            "read_mode": "read_only",
+            "row_count": 20,
+            "source_type": "historical_ohlcv_csv",
+            "status": "available"
           },
           {
-            "source_type": "historical_price",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "technical_snapshot",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "chip_summary",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "news_summary",
-            "status": "insufficient_data"
+            "source_type": "local_analysis_context",
+            "status": "missing"
           }
         ],
         "stock_id": "4743",
         "stock_name": "合一",
-        "three_month_trend": null
+        "three_month_trend": "uncertain"
       },
       {
-        "confidence_level": null,
-        "confidence_score": null,
+        "confidence_level": "medium_high",
+        "confidence_score": 65,
         "created_at": "2026-07-06T07:01:00+08:00",
         "data_quality": {
           "blocking_missing_fields": [
-            "same_day_high_prediction",
-            "same_day_low_prediction",
-            "next_day_high_prediction",
-            "next_day_low_prediction",
-            "one_month_trend",
-            "three_month_trend",
-            "confidence_score"
+            "three_month_trend"
           ],
-          "completeness": "insufficient_data",
-          "confidence_basis": "no formal prediction model output; local summary is context only",
-          "freshness": "missing_context"
+          "completeness": "sufficient_for_baseline_range",
+          "confidence_basis": "artifact-level deterministic baseline formula capped at 75",
+          "freshness": "fresh",
+          "history_row_count": 20,
+          "latest_ohlcv_date": "2026-07-06"
         },
-        "evidence_summary": "insufficient_data: no contract-backed high/low prediction model output is available.",
+        "evidence_summary": "deterministic_baseline_v1: 20D median range, log-return volatility, ATR-like range, MA/return trend bias from read-only historical OHLCV.",
         "insufficient_data_reasons": [
-          "no_contract_backed_high_low_prediction_output",
-          "no_safe_formal_forecast_model_result",
-          "local_summary_must_not_be_recast_as_prediction"
+          "insufficient_120d_history"
         ],
-        "key_factors": [],
+        "key_factors": [
+          {
+            "allowed_usage": "baseline_range",
+            "factor": "20d_median_daily_range_pct",
+            "value": 0.026518
+          },
+          {
+            "allowed_usage": "baseline_range",
+            "factor": "20d_log_return_volatility_pct",
+            "value": 0.027856
+          },
+          {
+            "allowed_usage": "baseline_range",
+            "factor": "20d_median_atr_like_range_pct",
+            "value": 0.025672
+          },
+          {
+            "allowed_usage": "range_bias",
+            "factor": "one_month_trend_bias",
+            "value": "bullish"
+          }
+        ],
+        "method_metadata": {
+          "confidence_cap": 75,
+          "external_api_called": false,
+          "method": "deterministic_baseline_v1",
+          "price_rounding": "round >=1000 to integer, >=100 to 1 decimal, else 2 decimals",
+          "range_components": {
+            "atr_like_range_pct_median_20d": 0.025672,
+            "base_range_pct": 0.026518,
+            "daily_range_pct_median_20d": 0.026518,
+            "return_volatility_pct_20d": 0.027856
+          },
+          "trend_bias": {
+            "downside_multiplier": 0.85,
+            "next_day_multiplier": 1.15,
+            "one_month_trend": "bullish",
+            "upside_multiplier": 1.15
+          }
+        },
         "missing_fields": [
-          "same_day_high_prediction",
-          "same_day_low_prediction",
-          "next_day_high_prediction",
-          "next_day_low_prediction",
-          "one_month_trend",
-          "three_month_trend",
-          "confidence_score"
+          "three_month_trend"
         ],
-        "model_version": "safe_null_formal_prediction_v1",
-        "next_day_high_prediction": null,
-        "next_day_low_prediction": null,
-        "next_trading_date": "2026-07-07",
-        "one_month_trend": null,
+        "model_version": "deterministic_baseline_v1",
+        "next_day_high_prediction": 92.64,
+        "next_day_low_prediction": 87.18,
+        "next_trading_date": null,
+        "one_month_trend": "bullish",
         "prediction_date": "2026-07-06",
         "risk_notes": [
-          "資料待接: formal prediction values remain null until a safe model output exists."
+          "deterministic baseline V1，供決策參考，待回測校準。",
+          "不修改 production rating/action/confidence/weight。",
+          "部分長週期欄位資料不足，保留 uncertainty / missing_fields。"
         ],
-        "same_day_high_prediction": null,
-        "same_day_low_prediction": null,
+        "same_day_high_prediction": 92.23,
+        "same_day_low_prediction": 87.48,
         "source_evidence": [
           {
-            "source_type": "local_summary",
-            "status": "insufficient_data"
+            "latest_ohlcv_date": "2026-07-06",
+            "path": "data/historical/6873_daily.csv",
+            "read_mode": "read_only",
+            "row_count": 20,
+            "source_type": "historical_ohlcv_csv",
+            "status": "available"
           },
           {
-            "source_type": "historical_price",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "technical_snapshot",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "chip_summary",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "news_summary",
-            "status": "insufficient_data"
+            "source_type": "local_analysis_context",
+            "status": "missing"
           }
         ],
         "stock_id": "6873",
         "stock_name": "泓德能源",
-        "three_month_trend": null
+        "three_month_trend": "uncertain"
       }
     ]
   },
@@ -793,637 +986,532 @@
     "producer_version": "formal_prediction_review_runtime_v1",
     "review_date": "2026-07-06",
     "review_window_days": 7,
+    "reviewable_stock_count": 9,
     "runtime_window": "prediction_review_1500",
     "safety": {
       "db_write": false,
       "external_api_called": false,
+      "external_credentialed_api_called": false,
       "fabricated_review_metrics": false,
       "notification_sent": false,
       "production_pipeline_executed": false,
+      "production_rating_action_confidence_weight_mutated": false,
       "python_main_executed": false,
       "secrets_read": false,
       "trading_or_order_executed": false
     },
     "schema_version": "formal_prediction_review_runtime_v1",
-    "source_mode": "safe_local_read_only_existing_artifacts",
+    "source_mode": "deterministic_local_read_only_prediction_actual_evaluation",
     "stock_universe_count": 9,
     "stocks": [
       {
-        "actual_close": null,
-        "actual_high": null,
-        "actual_low": null,
-        "confidence_calibration": null,
+        "actual_close": 33.49,
+        "actual_direction": "bullish",
+        "actual_high": 33.79,
+        "actual_low": 33.36,
+        "confidence_calibration": "insufficient_data",
         "created_at": "2026-07-06T15:01:00+08:00",
         "data_quality": {
           "blocking_missing_fields": [
-            "actual_high",
-            "actual_low",
-            "actual_close",
-            "direction_result",
-            "high_low_forecast_error",
-            "hit_miss_status",
-            "seven_day_hit_rate",
             "confidence_calibration",
             "factor_effectiveness",
-            "error_reasons",
-            "recommendation_for_improvement"
+            "seven_day_hit_rate"
           ],
-          "completeness": "insufficient_data",
-          "confidence_basis": "no comparable prediction and actual outcome pair",
-          "freshness": "missing_actual_outcome"
+          "completeness": "reviewable_single_day",
+          "confidence_basis": "single-day deterministic evaluation; seven-day review requires accumulated artifacts",
+          "freshness": "actual_available"
         },
-        "direction_result": null,
+        "direction_result": "correct",
         "error_reasons": [],
-        "factor_effectiveness": null,
-        "high_low_forecast_error": null,
-        "hit_miss_status": null,
+        "factor_effectiveness": "insufficient_data",
+        "high_low_forecast_error": {
+          "high_error_abs": -0.28,
+          "high_error_pct": -0.008218,
+          "low_error_abs": 0.3,
+          "low_error_pct": 0.009074
+        },
+        "hit_miss_status": "hit",
         "insufficient_data_reasons": [
-          "no_comparable_formal_prediction_and_actual_outcome",
-          "no_safe_actual_outcome_artifact_available_for_review",
-          "review_metrics_must_not_be_fabricated"
+          "insufficient_formal_prediction_actual_pairs_for_7d_review"
         ],
         "missing_fields": [
-          "actual_high",
-          "actual_low",
-          "actual_close",
-          "direction_result",
-          "high_low_forecast_error",
-          "hit_miss_status",
-          "seven_day_hit_rate",
           "confidence_calibration",
           "factor_effectiveness",
-          "error_reasons",
-          "recommendation_for_improvement"
+          "seven_day_hit_rate"
         ],
-        "recommendation_for_improvement": null,
+        "predicted_direction": "bullish",
+        "recommendation_for_improvement": "資料不足，需累積更多正式 prediction / actual outcome artifact",
         "review_date": "2026-07-06",
         "review_window_end": "2026-07-06",
-        "review_window_start": "2026-06-30",
+        "review_window_start": "2026-07-06",
         "seven_day_hit_rate": null,
         "source_evidence": [
           {
+            "model_version": "deterministic_baseline_v1",
             "source_type": "formal_prediction_runtime",
             "status": "available"
           },
           {
-            "source_type": "actual_outcome",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "historical_price",
-            "status": "not_compared_in_safe_stub"
+            "read_mode": "read_only",
+            "row_count": 20,
+            "source_type": "historical_ohlcv_csv_actual",
+            "status": "available"
           }
         ],
         "stock_id": "00878",
         "stock_name": "國泰永續高股息"
       },
       {
-        "actual_close": null,
-        "actual_high": null,
-        "actual_low": null,
-        "confidence_calibration": null,
+        "actual_close": 15.65,
+        "actual_direction": "bearish",
+        "actual_high": 15.92,
+        "actual_low": 15.58,
+        "confidence_calibration": "insufficient_data",
         "created_at": "2026-07-06T15:01:00+08:00",
         "data_quality": {
           "blocking_missing_fields": [
-            "actual_high",
-            "actual_low",
-            "actual_close",
-            "direction_result",
-            "high_low_forecast_error",
-            "hit_miss_status",
-            "seven_day_hit_rate",
             "confidence_calibration",
             "factor_effectiveness",
-            "error_reasons",
-            "recommendation_for_improvement"
+            "seven_day_hit_rate"
           ],
-          "completeness": "insufficient_data",
-          "confidence_basis": "no comparable prediction and actual outcome pair",
-          "freshness": "missing_actual_outcome"
+          "completeness": "reviewable_single_day",
+          "confidence_basis": "single-day deterministic evaluation; seven-day review requires accumulated artifacts",
+          "freshness": "actual_available"
         },
-        "direction_result": null,
+        "direction_result": "incorrect",
         "error_reasons": [],
-        "factor_effectiveness": null,
-        "high_low_forecast_error": null,
-        "hit_miss_status": null,
+        "factor_effectiveness": "insufficient_data",
+        "high_low_forecast_error": {
+          "high_error_abs": -0.12,
+          "high_error_pct": -0.007481,
+          "low_error_abs": 0.22,
+          "low_error_pct": 0.014323
+        },
+        "hit_miss_status": "hit",
         "insufficient_data_reasons": [
-          "no_comparable_formal_prediction_and_actual_outcome",
-          "no_safe_actual_outcome_artifact_available_for_review",
-          "review_metrics_must_not_be_fabricated"
+          "insufficient_formal_prediction_actual_pairs_for_7d_review"
         ],
         "missing_fields": [
-          "actual_high",
-          "actual_low",
-          "actual_close",
-          "direction_result",
-          "high_low_forecast_error",
-          "hit_miss_status",
-          "seven_day_hit_rate",
           "confidence_calibration",
           "factor_effectiveness",
-          "error_reasons",
-          "recommendation_for_improvement"
+          "seven_day_hit_rate"
         ],
-        "recommendation_for_improvement": null,
+        "predicted_direction": "bullish",
+        "recommendation_for_improvement": "資料不足，需累積更多正式 prediction / actual outcome artifact",
         "review_date": "2026-07-06",
         "review_window_end": "2026-07-06",
-        "review_window_start": "2026-06-30",
+        "review_window_start": "2026-07-06",
         "seven_day_hit_rate": null,
         "source_evidence": [
           {
+            "model_version": "deterministic_baseline_v1",
             "source_type": "formal_prediction_runtime",
             "status": "available"
           },
           {
-            "source_type": "actual_outcome",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "historical_price",
-            "status": "not_compared_in_safe_stub"
+            "read_mode": "read_only",
+            "row_count": 20,
+            "source_type": "historical_ohlcv_csv_actual",
+            "status": "available"
           }
         ],
         "stock_id": "009816",
         "stock_name": "凱基台灣TOP50"
       },
       {
-        "actual_close": null,
-        "actual_high": null,
-        "actual_low": null,
-        "confidence_calibration": null,
+        "actual_close": 30.25,
+        "actual_direction": "bearish",
+        "actual_high": 34.1,
+        "actual_low": 29.5,
+        "confidence_calibration": "insufficient_data",
         "created_at": "2026-07-06T15:01:00+08:00",
         "data_quality": {
           "blocking_missing_fields": [
-            "actual_high",
-            "actual_low",
-            "actual_close",
-            "direction_result",
-            "high_low_forecast_error",
-            "hit_miss_status",
-            "seven_day_hit_rate",
             "confidence_calibration",
             "factor_effectiveness",
-            "error_reasons",
-            "recommendation_for_improvement"
+            "seven_day_hit_rate"
           ],
-          "completeness": "insufficient_data",
-          "confidence_basis": "no comparable prediction and actual outcome pair",
-          "freshness": "missing_actual_outcome"
+          "completeness": "reviewable_single_day",
+          "confidence_basis": "single-day deterministic evaluation; seven-day review requires accumulated artifacts",
+          "freshness": "actual_available"
         },
-        "direction_result": null,
+        "direction_result": "incorrect",
         "error_reasons": [],
-        "factor_effectiveness": null,
-        "high_low_forecast_error": null,
-        "hit_miss_status": null,
+        "factor_effectiveness": "insufficient_data",
+        "high_low_forecast_error": {
+          "high_error_abs": 1.81,
+          "high_error_pct": 0.056055,
+          "low_error_abs": 0.76,
+          "low_error_pct": 0.026444
+        },
+        "hit_miss_status": "partial_hit",
         "insufficient_data_reasons": [
-          "no_comparable_formal_prediction_and_actual_outcome",
-          "no_safe_actual_outcome_artifact_available_for_review",
-          "review_metrics_must_not_be_fabricated"
+          "insufficient_formal_prediction_actual_pairs_for_7d_review"
         ],
         "missing_fields": [
-          "actual_high",
-          "actual_low",
-          "actual_close",
-          "direction_result",
-          "high_low_forecast_error",
-          "hit_miss_status",
-          "seven_day_hit_rate",
           "confidence_calibration",
           "factor_effectiveness",
-          "error_reasons",
-          "recommendation_for_improvement"
+          "seven_day_hit_rate"
         ],
-        "recommendation_for_improvement": null,
+        "predicted_direction": "bullish",
+        "recommendation_for_improvement": "資料不足，需累積更多正式 prediction / actual outcome artifact",
         "review_date": "2026-07-06",
         "review_window_end": "2026-07-06",
-        "review_window_start": "2026-06-30",
+        "review_window_start": "2026-07-06",
         "seven_day_hit_rate": null,
         "source_evidence": [
           {
+            "model_version": "deterministic_baseline_v1",
             "source_type": "formal_prediction_runtime",
             "status": "available"
           },
           {
-            "source_type": "actual_outcome",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "historical_price",
-            "status": "not_compared_in_safe_stub"
+            "read_mode": "read_only",
+            "row_count": 20,
+            "source_type": "historical_ohlcv_csv_actual",
+            "status": "available"
           }
         ],
         "stock_id": "1409",
         "stock_name": "新纖"
       },
       {
-        "actual_close": null,
-        "actual_high": null,
-        "actual_low": null,
-        "confidence_calibration": null,
+        "actual_close": 42.65,
+        "actual_direction": "bullish",
+        "actual_high": 42.65,
+        "actual_low": 40.5,
+        "confidence_calibration": "insufficient_data",
         "created_at": "2026-07-06T15:01:00+08:00",
         "data_quality": {
           "blocking_missing_fields": [
-            "actual_high",
-            "actual_low",
-            "actual_close",
-            "direction_result",
-            "high_low_forecast_error",
-            "hit_miss_status",
-            "seven_day_hit_rate",
             "confidence_calibration",
             "factor_effectiveness",
-            "error_reasons",
-            "recommendation_for_improvement"
+            "seven_day_hit_rate"
           ],
-          "completeness": "insufficient_data",
-          "confidence_basis": "no comparable prediction and actual outcome pair",
-          "freshness": "missing_actual_outcome"
+          "completeness": "reviewable_single_day",
+          "confidence_basis": "single-day deterministic evaluation; seven-day review requires accumulated artifacts",
+          "freshness": "actual_available"
         },
-        "direction_result": null,
+        "direction_result": "correct",
         "error_reasons": [],
-        "factor_effectiveness": null,
-        "high_low_forecast_error": null,
-        "hit_miss_status": null,
+        "factor_effectiveness": "insufficient_data",
+        "high_low_forecast_error": {
+          "high_error_abs": -3.08,
+          "high_error_pct": -0.067352,
+          "low_error_abs": 0.12,
+          "low_error_pct": 0.002972
+        },
+        "hit_miss_status": "hit",
         "insufficient_data_reasons": [
-          "no_comparable_formal_prediction_and_actual_outcome",
-          "no_safe_actual_outcome_artifact_available_for_review",
-          "review_metrics_must_not_be_fabricated"
+          "insufficient_formal_prediction_actual_pairs_for_7d_review"
         ],
         "missing_fields": [
-          "actual_high",
-          "actual_low",
-          "actual_close",
-          "direction_result",
-          "high_low_forecast_error",
-          "hit_miss_status",
-          "seven_day_hit_rate",
           "confidence_calibration",
           "factor_effectiveness",
-          "error_reasons",
-          "recommendation_for_improvement"
+          "seven_day_hit_rate"
         ],
-        "recommendation_for_improvement": null,
+        "predicted_direction": "bullish",
+        "recommendation_for_improvement": "資料不足，需累積更多正式 prediction / actual outcome artifact",
         "review_date": "2026-07-06",
         "review_window_end": "2026-07-06",
-        "review_window_start": "2026-06-30",
+        "review_window_start": "2026-07-06",
         "seven_day_hit_rate": null,
         "source_evidence": [
           {
+            "model_version": "deterministic_baseline_v1",
             "source_type": "formal_prediction_runtime",
             "status": "available"
           },
           {
-            "source_type": "actual_outcome",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "historical_price",
-            "status": "not_compared_in_safe_stub"
+            "read_mode": "read_only",
+            "row_count": 20,
+            "source_type": "historical_ohlcv_csv_actual",
+            "status": "available"
           }
         ],
         "stock_id": "2305",
         "stock_name": "全友"
       },
       {
-        "actual_close": null,
-        "actual_high": null,
-        "actual_low": null,
-        "confidence_calibration": null,
+        "actual_close": 2460.0,
+        "actual_direction": "bullish",
+        "actual_high": 2500.0,
+        "actual_low": 2455.0,
+        "confidence_calibration": "insufficient_data",
         "created_at": "2026-07-06T15:01:00+08:00",
         "data_quality": {
           "blocking_missing_fields": [
-            "actual_high",
-            "actual_low",
-            "actual_close",
-            "direction_result",
-            "high_low_forecast_error",
-            "hit_miss_status",
-            "seven_day_hit_rate",
             "confidence_calibration",
             "factor_effectiveness",
-            "error_reasons",
-            "recommendation_for_improvement"
+            "seven_day_hit_rate"
           ],
-          "completeness": "insufficient_data",
-          "confidence_basis": "no comparable prediction and actual outcome pair",
-          "freshness": "missing_actual_outcome"
+          "completeness": "reviewable_single_day",
+          "confidence_basis": "single-day deterministic evaluation; seven-day review requires accumulated artifacts",
+          "freshness": "actual_available"
         },
-        "direction_result": null,
+        "direction_result": "correct",
         "error_reasons": [],
-        "factor_effectiveness": null,
-        "high_low_forecast_error": null,
-        "hit_miss_status": null,
+        "factor_effectiveness": "insufficient_data",
+        "high_low_forecast_error": {
+          "high_error_abs": -18.0,
+          "high_error_pct": -0.007149,
+          "low_error_abs": 38.0,
+          "low_error_pct": 0.015722
+        },
+        "hit_miss_status": "hit",
         "insufficient_data_reasons": [
-          "no_comparable_formal_prediction_and_actual_outcome",
-          "no_safe_actual_outcome_artifact_available_for_review",
-          "review_metrics_must_not_be_fabricated"
+          "insufficient_formal_prediction_actual_pairs_for_7d_review"
         ],
         "missing_fields": [
-          "actual_high",
-          "actual_low",
-          "actual_close",
-          "direction_result",
-          "high_low_forecast_error",
-          "hit_miss_status",
-          "seven_day_hit_rate",
           "confidence_calibration",
           "factor_effectiveness",
-          "error_reasons",
-          "recommendation_for_improvement"
+          "seven_day_hit_rate"
         ],
-        "recommendation_for_improvement": null,
+        "predicted_direction": "bullish",
+        "recommendation_for_improvement": "資料不足，需累積更多正式 prediction / actual outcome artifact",
         "review_date": "2026-07-06",
         "review_window_end": "2026-07-06",
-        "review_window_start": "2026-06-30",
+        "review_window_start": "2026-07-06",
         "seven_day_hit_rate": null,
         "source_evidence": [
           {
+            "model_version": "deterministic_baseline_v1",
             "source_type": "formal_prediction_runtime",
             "status": "available"
           },
           {
-            "source_type": "actual_outcome",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "historical_price",
-            "status": "not_compared_in_safe_stub"
+            "read_mode": "read_only",
+            "row_count": 20,
+            "source_type": "historical_ohlcv_csv_actual",
+            "status": "available"
           }
         ],
         "stock_id": "2330",
         "stock_name": "台積電"
       },
       {
-        "actual_close": null,
-        "actual_high": null,
-        "actual_low": null,
-        "confidence_calibration": null,
+        "actual_close": 144.5,
+        "actual_direction": "bullish",
+        "actual_high": 152.0,
+        "actual_low": 144.0,
+        "confidence_calibration": "insufficient_data",
         "created_at": "2026-07-06T15:01:00+08:00",
         "data_quality": {
           "blocking_missing_fields": [
-            "actual_high",
-            "actual_low",
-            "actual_close",
-            "direction_result",
-            "high_low_forecast_error",
-            "hit_miss_status",
-            "seven_day_hit_rate",
             "confidence_calibration",
             "factor_effectiveness",
-            "error_reasons",
-            "recommendation_for_improvement"
+            "seven_day_hit_rate"
           ],
-          "completeness": "insufficient_data",
-          "confidence_basis": "no comparable prediction and actual outcome pair",
-          "freshness": "missing_actual_outcome"
+          "completeness": "reviewable_single_day",
+          "confidence_basis": "single-day deterministic evaluation; seven-day review requires accumulated artifacts",
+          "freshness": "actual_available"
         },
-        "direction_result": null,
+        "direction_result": "incorrect",
         "error_reasons": [],
-        "factor_effectiveness": null,
-        "high_low_forecast_error": null,
-        "hit_miss_status": null,
+        "factor_effectiveness": "insufficient_data",
+        "high_low_forecast_error": {
+          "high_error_abs": 0.4,
+          "high_error_pct": 0.002639,
+          "low_error_abs": 9.1,
+          "low_error_pct": 0.067457
+        },
+        "hit_miss_status": "partial_hit",
         "insufficient_data_reasons": [
-          "no_comparable_formal_prediction_and_actual_outcome",
-          "no_safe_actual_outcome_artifact_available_for_review",
-          "review_metrics_must_not_be_fabricated"
+          "insufficient_formal_prediction_actual_pairs_for_7d_review"
         ],
         "missing_fields": [
-          "actual_high",
-          "actual_low",
-          "actual_close",
-          "direction_result",
-          "high_low_forecast_error",
-          "hit_miss_status",
-          "seven_day_hit_rate",
           "confidence_calibration",
           "factor_effectiveness",
-          "error_reasons",
-          "recommendation_for_improvement"
+          "seven_day_hit_rate"
         ],
-        "recommendation_for_improvement": null,
+        "predicted_direction": "bearish",
+        "recommendation_for_improvement": "資料不足，需累積更多正式 prediction / actual outcome artifact",
         "review_date": "2026-07-06",
         "review_window_end": "2026-07-06",
-        "review_window_start": "2026-06-30",
+        "review_window_start": "2026-07-06",
         "seven_day_hit_rate": null,
         "source_evidence": [
           {
+            "model_version": "deterministic_baseline_v1",
             "source_type": "formal_prediction_runtime",
             "status": "available"
           },
           {
-            "source_type": "actual_outcome",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "historical_price",
-            "status": "not_compared_in_safe_stub"
+            "read_mode": "read_only",
+            "row_count": 20,
+            "source_type": "historical_ohlcv_csv_actual",
+            "status": "available"
           }
         ],
         "stock_id": "2337",
         "stock_name": "旺宏"
       },
       {
-        "actual_close": null,
-        "actual_high": null,
-        "actual_low": null,
-        "confidence_calibration": null,
+        "actual_close": 32.8,
+        "actual_direction": "bearish",
+        "actual_high": 33.65,
+        "actual_low": 32.5,
+        "confidence_calibration": "insufficient_data",
         "created_at": "2026-07-06T15:01:00+08:00",
         "data_quality": {
           "blocking_missing_fields": [
-            "actual_high",
-            "actual_low",
-            "actual_close",
-            "direction_result",
-            "high_low_forecast_error",
-            "hit_miss_status",
-            "seven_day_hit_rate",
             "confidence_calibration",
             "factor_effectiveness",
-            "error_reasons",
-            "recommendation_for_improvement"
+            "seven_day_hit_rate"
           ],
-          "completeness": "insufficient_data",
-          "confidence_basis": "no comparable prediction and actual outcome pair",
-          "freshness": "missing_actual_outcome"
+          "completeness": "reviewable_single_day",
+          "confidence_basis": "single-day deterministic evaluation; seven-day review requires accumulated artifacts",
+          "freshness": "actual_available"
         },
-        "direction_result": null,
+        "direction_result": "correct",
         "error_reasons": [],
-        "factor_effectiveness": null,
-        "high_low_forecast_error": null,
-        "hit_miss_status": null,
+        "factor_effectiveness": "insufficient_data",
+        "high_low_forecast_error": {
+          "high_error_abs": -0.3,
+          "high_error_pct": -0.008837,
+          "low_error_abs": 1.25,
+          "low_error_pct": 0.04
+        },
+        "hit_miss_status": "hit",
         "insufficient_data_reasons": [
-          "no_comparable_formal_prediction_and_actual_outcome",
-          "no_safe_actual_outcome_artifact_available_for_review",
-          "review_metrics_must_not_be_fabricated"
+          "insufficient_formal_prediction_actual_pairs_for_7d_review"
         ],
         "missing_fields": [
-          "actual_high",
-          "actual_low",
-          "actual_close",
-          "direction_result",
-          "high_low_forecast_error",
-          "hit_miss_status",
-          "seven_day_hit_rate",
           "confidence_calibration",
           "factor_effectiveness",
-          "error_reasons",
-          "recommendation_for_improvement"
+          "seven_day_hit_rate"
         ],
-        "recommendation_for_improvement": null,
+        "predicted_direction": "bearish",
+        "recommendation_for_improvement": "資料不足，需累積更多正式 prediction / actual outcome artifact",
         "review_date": "2026-07-06",
         "review_window_end": "2026-07-06",
-        "review_window_start": "2026-06-30",
+        "review_window_start": "2026-07-06",
         "seven_day_hit_rate": null,
         "source_evidence": [
           {
+            "model_version": "deterministic_baseline_v1",
             "source_type": "formal_prediction_runtime",
             "status": "available"
           },
           {
-            "source_type": "actual_outcome",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "historical_price",
-            "status": "not_compared_in_safe_stub"
+            "read_mode": "read_only",
+            "row_count": 20,
+            "source_type": "historical_ohlcv_csv_actual",
+            "status": "available"
           }
         ],
         "stock_id": "2353",
         "stock_name": "宏碁"
       },
       {
-        "actual_close": null,
-        "actual_high": null,
-        "actual_low": null,
-        "confidence_calibration": null,
+        "actual_close": 59.7,
+        "actual_direction": "bullish",
+        "actual_high": 63.0,
+        "actual_low": 58.8,
+        "confidence_calibration": "insufficient_data",
         "created_at": "2026-07-06T15:01:00+08:00",
         "data_quality": {
           "blocking_missing_fields": [
-            "actual_high",
-            "actual_low",
-            "actual_close",
-            "direction_result",
-            "high_low_forecast_error",
-            "hit_miss_status",
-            "seven_day_hit_rate",
             "confidence_calibration",
             "factor_effectiveness",
-            "error_reasons",
-            "recommendation_for_improvement"
+            "seven_day_hit_rate"
           ],
-          "completeness": "insufficient_data",
-          "confidence_basis": "no comparable prediction and actual outcome pair",
-          "freshness": "missing_actual_outcome"
+          "completeness": "reviewable_single_day",
+          "confidence_basis": "single-day deterministic evaluation; seven-day review requires accumulated artifacts",
+          "freshness": "actual_available"
         },
-        "direction_result": null,
+        "direction_result": "correct",
         "error_reasons": [],
-        "factor_effectiveness": null,
-        "high_low_forecast_error": null,
-        "hit_miss_status": null,
+        "factor_effectiveness": "insufficient_data",
+        "high_low_forecast_error": {
+          "high_error_abs": 0.91,
+          "high_error_pct": 0.014656,
+          "low_error_abs": 0.86,
+          "low_error_pct": 0.014843
+        },
+        "hit_miss_status": "partial_hit",
         "insufficient_data_reasons": [
-          "no_comparable_formal_prediction_and_actual_outcome",
-          "no_safe_actual_outcome_artifact_available_for_review",
-          "review_metrics_must_not_be_fabricated"
+          "insufficient_formal_prediction_actual_pairs_for_7d_review"
         ],
         "missing_fields": [
-          "actual_high",
-          "actual_low",
-          "actual_close",
-          "direction_result",
-          "high_low_forecast_error",
-          "hit_miss_status",
-          "seven_day_hit_rate",
           "confidence_calibration",
           "factor_effectiveness",
-          "error_reasons",
-          "recommendation_for_improvement"
+          "seven_day_hit_rate"
         ],
-        "recommendation_for_improvement": null,
+        "predicted_direction": "bullish",
+        "recommendation_for_improvement": "資料不足，需累積更多正式 prediction / actual outcome artifact",
         "review_date": "2026-07-06",
         "review_window_end": "2026-07-06",
-        "review_window_start": "2026-06-30",
+        "review_window_start": "2026-07-06",
         "seven_day_hit_rate": null,
         "source_evidence": [
           {
+            "model_version": "deterministic_baseline_v1",
             "source_type": "formal_prediction_runtime",
             "status": "available"
           },
           {
-            "source_type": "actual_outcome",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "historical_price",
-            "status": "not_compared_in_safe_stub"
+            "read_mode": "read_only",
+            "row_count": 20,
+            "source_type": "historical_ohlcv_csv_actual",
+            "status": "available"
           }
         ],
         "stock_id": "4743",
         "stock_name": "合一"
       },
       {
-        "actual_close": null,
-        "actual_high": null,
-        "actual_low": null,
-        "confidence_calibration": null,
+        "actual_close": 89.5,
+        "actual_direction": "bullish",
+        "actual_high": 91.7,
+        "actual_low": 85.8,
+        "confidence_calibration": "insufficient_data",
         "created_at": "2026-07-06T15:01:00+08:00",
         "data_quality": {
           "blocking_missing_fields": [
-            "actual_high",
-            "actual_low",
-            "actual_close",
-            "direction_result",
-            "high_low_forecast_error",
-            "hit_miss_status",
-            "seven_day_hit_rate",
             "confidence_calibration",
             "factor_effectiveness",
-            "error_reasons",
-            "recommendation_for_improvement"
+            "seven_day_hit_rate"
           ],
-          "completeness": "insufficient_data",
-          "confidence_basis": "no comparable prediction and actual outcome pair",
-          "freshness": "missing_actual_outcome"
+          "completeness": "reviewable_single_day",
+          "confidence_basis": "single-day deterministic evaluation; seven-day review requires accumulated artifacts",
+          "freshness": "actual_available"
         },
-        "direction_result": null,
+        "direction_result": "correct",
         "error_reasons": [],
-        "factor_effectiveness": null,
-        "high_low_forecast_error": null,
-        "hit_miss_status": null,
+        "factor_effectiveness": "insufficient_data",
+        "high_low_forecast_error": {
+          "high_error_abs": -0.53,
+          "high_error_pct": -0.005747,
+          "low_error_abs": -1.68,
+          "low_error_pct": -0.019204
+        },
+        "hit_miss_status": "partial_hit",
         "insufficient_data_reasons": [
-          "no_comparable_formal_prediction_and_actual_outcome",
-          "no_safe_actual_outcome_artifact_available_for_review",
-          "review_metrics_must_not_be_fabricated"
+          "insufficient_formal_prediction_actual_pairs_for_7d_review"
         ],
         "missing_fields": [
-          "actual_high",
-          "actual_low",
-          "actual_close",
-          "direction_result",
-          "high_low_forecast_error",
-          "hit_miss_status",
-          "seven_day_hit_rate",
           "confidence_calibration",
           "factor_effectiveness",
-          "error_reasons",
-          "recommendation_for_improvement"
+          "seven_day_hit_rate"
         ],
-        "recommendation_for_improvement": null,
+        "predicted_direction": "bullish",
+        "recommendation_for_improvement": "資料不足，需累積更多正式 prediction / actual outcome artifact",
         "review_date": "2026-07-06",
         "review_window_end": "2026-07-06",
-        "review_window_start": "2026-06-30",
+        "review_window_start": "2026-07-06",
         "seven_day_hit_rate": null,
         "source_evidence": [
           {
+            "model_version": "deterministic_baseline_v1",
             "source_type": "formal_prediction_runtime",
             "status": "available"
           },
           {
-            "source_type": "actual_outcome",
-            "status": "insufficient_data"
-          },
-          {
-            "source_type": "historical_price",
-            "status": "not_compared_in_safe_stub"
+            "read_mode": "read_only",
+            "row_count": 20,
+            "source_type": "historical_ohlcv_csv_actual",
+            "status": "available"
           }
         ],
         "stock_id": "6873",
@@ -1472,7 +1560,7 @@
       "freshness_label": "資料正常",
       "freshness_status": "fresh",
       "full_prediction_review": false,
-      "latest_available_data_timestamp": "2026-07-06 07:08:09",
+      "latest_available_data_timestamp": "2026-07-06 23:05:39",
       "missing_sections": [],
       "pm_readable_action": "可參考既有本機分析摘要；仍需正式 runtime data 接線",
       "window_key": "pre_open_0700"
@@ -1520,7 +1608,7 @@
       "freshness_label": "資料正常",
       "freshness_status": "fresh",
       "full_prediction_review": true,
-      "latest_available_data_timestamp": "2026-07-06 07:08:09",
+      "latest_available_data_timestamp": "2026-07-06 23:05:39",
       "missing_sections": [],
       "pm_readable_action": "可參考既有本機分析摘要；仍需正式 runtime data 接線",
       "window_key": "post_close_1500"
@@ -1532,7 +1620,7 @@
       "id": "pre_open_0700",
       "max_age_hours": 18,
       "status": "fresh",
-      "timestamp": "2026-07-06 07:08:09"
+      "timestamp": "2026-07-06 23:05:39"
     },
     {
       "category": "runtime_window",
@@ -1553,77 +1641,77 @@
       "id": "post_close_1500",
       "max_age_hours": 36,
       "status": "fresh",
-      "timestamp": "2026-07-06 07:08:09"
+      "timestamp": "2026-07-06 23:05:39"
     },
     {
       "category": "stock_universe",
       "id": "00878",
       "max_age_hours": 168,
       "status": "fresh",
-      "timestamp": "2026-07-06 07:07:31"
+      "timestamp": "2026-07-06 23:05:02"
     },
     {
       "category": "stock_universe",
       "id": "009816",
       "max_age_hours": 168,
       "status": "fresh",
-      "timestamp": "2026-07-06 07:03:53"
+      "timestamp": "2026-07-06 23:01:36"
     },
     {
       "category": "stock_universe",
       "id": "1409",
       "max_age_hours": 168,
       "status": "fresh",
-      "timestamp": "2026-07-06 07:08:09"
+      "timestamp": "2026-07-06 23:05:39"
     },
     {
       "category": "stock_universe",
       "id": "2305",
       "max_age_hours": 168,
       "status": "fresh",
-      "timestamp": "2026-07-06 07:06:59"
+      "timestamp": "2026-07-06 23:04:27"
     },
     {
       "category": "stock_universe",
       "id": "2330",
       "max_age_hours": 168,
       "status": "fresh",
-      "timestamp": "2026-07-06 07:02:45"
+      "timestamp": "2026-07-06 23:00:59"
     },
     {
       "category": "stock_universe",
       "id": "2337",
       "max_age_hours": 168,
       "status": "fresh",
-      "timestamp": "2026-07-06 07:04:32"
+      "timestamp": "2026-07-06 23:02:07"
     },
     {
       "category": "stock_universe",
       "id": "2353",
       "max_age_hours": 168,
       "status": "fresh",
-      "timestamp": "2026-07-06 07:05:05"
+      "timestamp": "2026-07-06 23:02:37"
     },
     {
       "category": "stock_universe",
       "id": "4743",
       "max_age_hours": 168,
       "status": "fresh",
-      "timestamp": "2026-07-06 07:06:29"
+      "timestamp": "2026-07-06 23:03:54"
     },
     {
       "category": "stock_universe",
       "id": "6873",
       "max_age_hours": 168,
       "status": "fresh",
-      "timestamp": "2026-07-06 07:05:40"
+      "timestamp": "2026-07-06 23:03:07"
     },
     {
       "category": "latest_report",
       "id": "0",
       "max_age_hours": 36,
       "status": "fresh",
-      "timestamp": "2026-07-06 07:08:09"
+      "timestamp": "2026-07-06 23:05:39"
     },
     {
       "category": "latest_report",
@@ -1955,7 +2043,7 @@
       "reason": "used",
       "secret_pattern_hits": 0,
       "sections": [],
-      "timestamp": "2026-07-06T23:41:27+08:00",
+      "timestamp": "2026-07-07T00:13:45+08:00",
       "type": "json",
       "used": true
     },
@@ -1967,17 +2055,17 @@
       "reason": "used_read_only",
       "secret_pattern_hits": 0,
       "sqlite_opened_read_only": true,
-      "timestamp": "2026-07-06 07:08:09",
+      "timestamp": "2026-07-06 23:05:39",
       "type": "sqlite",
       "used": true
     }
   ],
-  "latest_data_timestamp": "2026-07-06 07:08:09",
+  "latest_data_timestamp": "2026-07-06 23:05:39",
   "latest_reports": [
     {
       "freshness_label": "資料正常",
       "freshness_status": "fresh",
-      "generated_timestamp": "2026-07-06 07:08:09",
+      "generated_timestamp": "2026-07-06 23:05:39",
       "missing_sections": [
         "formal_prediction_fields",
         "actual_outcome_review_fields"
@@ -2259,22 +2347,22 @@
   ],
   "per_stock_summaries": [
     {
-      "action": "中性觀察",
+      "action": "偏多續抱",
       "adr_summary": null,
       "chip_summary": null,
       "data_state": "existing_runtime_record",
       "freshness_label": "資料正常",
       "freshness_status": "fresh",
-      "generated_at": "2026-07-06 07:08:09",
+      "generated_at": "2026-07-06 23:05:39",
       "latest_close": null,
       "news_summary": null,
-      "rating": "C級",
+      "rating": "B級",
       "risk_summary": null,
       "source": "data/stock_analysis.db:analysis_results",
       "stock_id": "1409",
       "stock_name": "新纖",
       "technical_summary": null,
-      "total_score": 51.0,
+      "total_score": 69.0,
       "window": "latest_local_analysis_results"
     }
   ],
@@ -2517,8 +2605,8 @@
       "data_state": "usable",
       "freshness_label": "資料正常",
       "freshness_status": "fresh",
-      "latest_report_timestamp": "2026-07-06 07:07:31",
-      "record_count": 17,
+      "latest_report_timestamp": "2026-07-06 23:05:02",
+      "record_count": 18,
       "source": "data/stock_analysis.db:analysis_results",
       "stock_id": "00878",
       "stock_name": "國泰永續高股息"
@@ -2527,8 +2615,8 @@
       "data_state": "usable",
       "freshness_label": "資料正常",
       "freshness_status": "fresh",
-      "latest_report_timestamp": "2026-07-06 07:03:53",
-      "record_count": 22,
+      "latest_report_timestamp": "2026-07-06 23:01:36",
+      "record_count": 23,
       "source": "data/stock_analysis.db:analysis_results",
       "stock_id": "009816",
       "stock_name": "凱基台灣TOP50"
@@ -2537,8 +2625,8 @@
       "data_state": "usable",
       "freshness_label": "資料正常",
       "freshness_status": "fresh",
-      "latest_report_timestamp": "2026-07-06 07:08:09",
-      "record_count": 17,
+      "latest_report_timestamp": "2026-07-06 23:05:39",
+      "record_count": 18,
       "source": "data/stock_analysis.db:analysis_results",
       "stock_id": "1409",
       "stock_name": "新纖"
@@ -2547,8 +2635,8 @@
       "data_state": "usable",
       "freshness_label": "資料正常",
       "freshness_status": "fresh",
-      "latest_report_timestamp": "2026-07-06 07:06:59",
-      "record_count": 17,
+      "latest_report_timestamp": "2026-07-06 23:04:27",
+      "record_count": 18,
       "source": "data/stock_analysis.db:analysis_results",
       "stock_id": "2305",
       "stock_name": "全友"
@@ -2557,8 +2645,8 @@
       "data_state": "usable",
       "freshness_label": "資料正常",
       "freshness_status": "fresh",
-      "latest_report_timestamp": "2026-07-06 07:02:45",
-      "record_count": 22,
+      "latest_report_timestamp": "2026-07-06 23:00:59",
+      "record_count": 23,
       "source": "data/stock_analysis.db:analysis_results",
       "stock_id": "2330",
       "stock_name": "台積電"
@@ -2567,8 +2655,8 @@
       "data_state": "usable",
       "freshness_label": "資料正常",
       "freshness_status": "fresh",
-      "latest_report_timestamp": "2026-07-06 07:04:32",
-      "record_count": 22,
+      "latest_report_timestamp": "2026-07-06 23:02:07",
+      "record_count": 23,
       "source": "data/stock_analysis.db:analysis_results",
       "stock_id": "2337",
       "stock_name": "旺宏"
@@ -2577,8 +2665,8 @@
       "data_state": "usable",
       "freshness_label": "資料正常",
       "freshness_status": "fresh",
-      "latest_report_timestamp": "2026-07-06 07:05:05",
-      "record_count": 21,
+      "latest_report_timestamp": "2026-07-06 23:02:37",
+      "record_count": 22,
       "source": "data/stock_analysis.db:analysis_results",
       "stock_id": "2353",
       "stock_name": "宏碁"
@@ -2587,8 +2675,8 @@
       "data_state": "usable",
       "freshness_label": "資料正常",
       "freshness_status": "fresh",
-      "latest_report_timestamp": "2026-07-06 07:06:29",
-      "record_count": 19,
+      "latest_report_timestamp": "2026-07-06 23:03:54",
+      "record_count": 20,
       "source": "data/stock_analysis.db:analysis_results",
       "stock_id": "4743",
       "stock_name": "合一"
@@ -2597,8 +2685,8 @@
       "data_state": "usable",
       "freshness_label": "資料正常",
       "freshness_status": "fresh",
-      "latest_report_timestamp": "2026-07-06 07:05:40",
-      "record_count": 20,
+      "latest_report_timestamp": "2026-07-06 23:03:07",
+      "record_count": 21,
       "source": "data/stock_analysis.db:analysis_results",
       "stock_id": "6873",
       "stock_name": "泓德能源"

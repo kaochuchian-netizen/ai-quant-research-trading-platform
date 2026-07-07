@@ -1,6 +1,6 @@
 {
   "audit_scope": "read-only local artifacts; no LINE/Email resend; no DB write",
-  "generated_at": "2026-07-06T22:57:06",
+  "generated_at": "2026-07-07T08:43:24",
   "public_dashboard_url": "http://35.201.242.167/stock-ai-dashboard/dashboard/decision-intelligence/four-window-preview/index.html",
   "records": [
     {
@@ -85,7 +85,7 @@
       "contains_raw_logs": false,
       "contains_same_day_high_low": true,
       "contains_secret_like_text": false,
-      "content_hash": "c7a2a149be0eaab7ad2c25e085542cb2776c196303d540b7c78c2c1cebf55146",
+      "content_hash": "882daa059aeaec188588b33c9ddf5faac134471b104b888e0e1143006f798c40",
       "delivery_state": "published",
       "detected_sections": [
         "今日最高價預測",
@@ -95,11 +95,11 @@
         "未來 1 個月走勢",
         "未來 3 個月走勢",
         "信心分數",
-        "主要依據"
+        "主要依據",
+        "風險提醒"
       ],
       "missing_sections": [
         "台股盤前預測",
-        "風險提醒",
         "台指期夜盤觀察",
         "美股盤後摘要狀態",
         "Dashboard URL"
@@ -107,7 +107,7 @@
       "notes": [],
       "sent_or_published": true,
       "source_artifact": "templates/four_window_dashboard_route_preview.example.html",
-      "timestamp": "2026-07-06T00:41:59+08:00",
+      "timestamp": "2026-07-07T00:13:45+08:00",
       "window": "pre_open_0700"
     },
     {
@@ -180,22 +180,23 @@
       "contains_raw_logs": false,
       "contains_same_day_high_low": true,
       "contains_secret_like_text": false,
-      "content_hash": "c7a2a149be0eaab7ad2c25e085542cb2776c196303d540b7c78c2c1cebf55146",
+      "content_hash": "882daa059aeaec188588b33c9ddf5faac134471b104b888e0e1143006f798c40",
       "delivery_state": "published",
-      "detected_sections": [],
+      "detected_sections": [
+        "風險提醒"
+      ],
       "missing_sections": [
         "盤中分析",
         "目前價格狀態",
         "是否接近今日預測高低區間",
         "成交量",
         "盤前假設是否仍有效",
-        "風險提醒",
         "Dashboard URL"
       ],
       "notes": [],
       "sent_or_published": true,
       "source_artifact": "templates/four_window_dashboard_route_preview.example.html",
-      "timestamp": "2026-07-06T00:41:59+08:00",
+      "timestamp": "2026-07-07T00:13:45+08:00",
       "window": "intraday_1305"
     },
     {
@@ -264,7 +265,7 @@
       "contains_raw_logs": false,
       "contains_same_day_high_low": true,
       "contains_secret_like_text": false,
-      "content_hash": "c7a2a149be0eaab7ad2c25e085542cb2776c196303d540b7c78c2c1cebf55146",
+      "content_hash": "882daa059aeaec188588b33c9ddf5faac134471b104b888e0e1143006f798c40",
       "delivery_state": "published",
       "detected_sections": [
         "收盤快照",
@@ -278,7 +279,7 @@
       "notes": [],
       "sent_or_published": true,
       "source_artifact": "templates/four_window_dashboard_route_preview.example.html",
-      "timestamp": "2026-07-06T00:41:59+08:00",
+      "timestamp": "2026-07-07T00:13:45+08:00",
       "window": "pre_close_1335"
     },
     {
@@ -353,15 +354,15 @@
       "contains_raw_logs": false,
       "contains_same_day_high_low": true,
       "contains_secret_like_text": false,
-      "content_hash": "c7a2a149be0eaab7ad2c25e085542cb2776c196303d540b7c78c2c1cebf55146",
+      "content_hash": "882daa059aeaec188588b33c9ddf5faac134471b104b888e0e1143006f798c40",
       "delivery_state": "published",
       "detected_sections": [
-        "盤後檢討"
+        "盤後檢討",
+        "高低價預測誤差"
       ],
       "missing_sections": [
         "過去 7 天預測命中率",
         "今日 forecast vs actual",
-        "高低價預測誤差",
         "方向判斷命中",
         "confidence calibration",
         "factor effectiveness",
@@ -370,7 +371,7 @@
       "notes": [],
       "sent_or_published": true,
       "source_artifact": "templates/four_window_dashboard_route_preview.example.html",
-      "timestamp": "2026-07-06T00:41:59+08:00",
+      "timestamp": "2026-07-07T00:13:45+08:00",
       "window": "post_close_1500"
     }
   ],

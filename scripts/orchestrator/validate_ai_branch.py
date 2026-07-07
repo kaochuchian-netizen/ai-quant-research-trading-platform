@@ -22,6 +22,7 @@ from typing import Any
 
 DEFAULT_ALLOWED_PATHS = [
     "docs/",
+    "analysis/forecast/",
     "tests/",
     "scripts/orchestrator/",
     ".github/workflows/ai_dev_validation.yml",

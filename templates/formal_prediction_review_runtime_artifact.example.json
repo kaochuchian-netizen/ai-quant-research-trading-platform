@@ -7,66 +7,536 @@
   "producer_version": "formal_prediction_review_runtime_v1",
   "review_date": "2026-07-06",
   "review_window_days": 7,
+  "reviewable_stock_count": 9,
   "runtime_window": "prediction_review_1500",
+  "safety": {
+    "db_write": false,
+    "external_api_called": false,
+    "external_credentialed_api_called": false,
+    "fabricated_review_metrics": false,
+    "notification_sent": false,
+    "production_pipeline_executed": false,
+    "production_rating_action_confidence_weight_mutated": false,
+    "python_main_executed": false,
+    "secrets_read": false,
+    "trading_or_order_executed": false
+  },
   "schema_version": "formal_prediction_review_runtime_v1",
-  "source_mode": "deterministic_example_non_production",
-  "stock_universe_count": 1,
+  "source_mode": "deterministic_example_from_local_read_only_fixture",
+  "stock_universe_count": 9,
   "stocks": [
     {
-      "actual_close": null,
-      "actual_high": null,
-      "actual_low": null,
-      "confidence_calibration": null,
+      "actual_close": 33.49,
+      "actual_direction": "bullish",
+      "actual_high": 33.79,
+      "actual_low": 33.36,
+      "confidence_calibration": "insufficient_data",
       "created_at": "2026-07-06T15:01:00+08:00",
       "data_quality": {
         "blocking_missing_fields": [
-          "actual_high",
-          "actual_low",
-          "actual_close",
+          "confidence_calibration",
+          "factor_effectiveness",
           "seven_day_hit_rate"
         ],
-        "completeness": "insufficient_data",
-        "confidence_basis": "example artifact only; not production review evidence",
-        "freshness": "example_static"
+        "completeness": "reviewable_single_day",
+        "confidence_basis": "single-day deterministic evaluation; seven-day review requires accumulated artifacts",
+        "freshness": "actual_available"
       },
-      "direction_result": null,
+      "direction_result": "correct",
       "error_reasons": [],
-      "factor_effectiveness": null,
-      "high_low_forecast_error": null,
-      "hit_miss_status": null,
+      "factor_effectiveness": "insufficient_data",
+      "high_low_forecast_error": {
+        "high_error_abs": -0.28,
+        "high_error_pct": -0.008218,
+        "low_error_abs": 0.3,
+        "low_error_pct": 0.009074
+      },
+      "hit_miss_status": "hit",
       "insufficient_data_reasons": [
-        "example_artifact_not_production",
-        "no_comparable_prediction_and_actual_outcome"
+        "insufficient_formal_prediction_actual_pairs_for_7d_review"
       ],
       "missing_fields": [
-        "actual_high",
-        "actual_low",
-        "actual_close",
-        "direction_result",
-        "high_low_forecast_error",
-        "hit_miss_status",
-        "seven_day_hit_rate",
         "confidence_calibration",
         "factor_effectiveness",
-        "recommendation_for_improvement"
+        "seven_day_hit_rate"
       ],
-      "recommendation_for_improvement": null,
+      "predicted_direction": "bullish",
+      "recommendation_for_improvement": "資料不足，需累積更多正式 prediction / actual outcome artifact",
       "review_date": "2026-07-06",
       "review_window_end": "2026-07-06",
-      "review_window_start": "2026-06-30",
+      "review_window_start": "2026-07-06",
       "seven_day_hit_rate": null,
       "source_evidence": [
         {
+          "model_version": "deterministic_baseline_v1",
           "source_type": "formal_prediction_runtime",
-          "status": "example_only"
+          "status": "available"
         },
         {
-          "source_type": "actual_outcome",
-          "status": "insufficient_data"
+          "read_mode": "read_only",
+          "row_count": 20,
+          "source_type": "historical_ohlcv_csv_actual",
+          "status": "available"
+        }
+      ],
+      "stock_id": "00878",
+      "stock_name": "國泰永續高股息"
+    },
+    {
+      "actual_close": 15.65,
+      "actual_direction": "bearish",
+      "actual_high": 15.92,
+      "actual_low": 15.58,
+      "confidence_calibration": "insufficient_data",
+      "created_at": "2026-07-06T15:01:00+08:00",
+      "data_quality": {
+        "blocking_missing_fields": [
+          "confidence_calibration",
+          "factor_effectiveness",
+          "seven_day_hit_rate"
+        ],
+        "completeness": "reviewable_single_day",
+        "confidence_basis": "single-day deterministic evaluation; seven-day review requires accumulated artifacts",
+        "freshness": "actual_available"
+      },
+      "direction_result": "incorrect",
+      "error_reasons": [],
+      "factor_effectiveness": "insufficient_data",
+      "high_low_forecast_error": {
+        "high_error_abs": -0.12,
+        "high_error_pct": -0.007481,
+        "low_error_abs": 0.22,
+        "low_error_pct": 0.014323
+      },
+      "hit_miss_status": "hit",
+      "insufficient_data_reasons": [
+        "insufficient_formal_prediction_actual_pairs_for_7d_review"
+      ],
+      "missing_fields": [
+        "confidence_calibration",
+        "factor_effectiveness",
+        "seven_day_hit_rate"
+      ],
+      "predicted_direction": "bullish",
+      "recommendation_for_improvement": "資料不足，需累積更多正式 prediction / actual outcome artifact",
+      "review_date": "2026-07-06",
+      "review_window_end": "2026-07-06",
+      "review_window_start": "2026-07-06",
+      "seven_day_hit_rate": null,
+      "source_evidence": [
+        {
+          "model_version": "deterministic_baseline_v1",
+          "source_type": "formal_prediction_runtime",
+          "status": "available"
+        },
+        {
+          "read_mode": "read_only",
+          "row_count": 20,
+          "source_type": "historical_ohlcv_csv_actual",
+          "status": "available"
+        }
+      ],
+      "stock_id": "009816",
+      "stock_name": "凱基台灣TOP50"
+    },
+    {
+      "actual_close": 30.25,
+      "actual_direction": "bearish",
+      "actual_high": 34.1,
+      "actual_low": 29.5,
+      "confidence_calibration": "insufficient_data",
+      "created_at": "2026-07-06T15:01:00+08:00",
+      "data_quality": {
+        "blocking_missing_fields": [
+          "confidence_calibration",
+          "factor_effectiveness",
+          "seven_day_hit_rate"
+        ],
+        "completeness": "reviewable_single_day",
+        "confidence_basis": "single-day deterministic evaluation; seven-day review requires accumulated artifacts",
+        "freshness": "actual_available"
+      },
+      "direction_result": "incorrect",
+      "error_reasons": [],
+      "factor_effectiveness": "insufficient_data",
+      "high_low_forecast_error": {
+        "high_error_abs": 1.81,
+        "high_error_pct": 0.056055,
+        "low_error_abs": 0.76,
+        "low_error_pct": 0.026444
+      },
+      "hit_miss_status": "partial_hit",
+      "insufficient_data_reasons": [
+        "insufficient_formal_prediction_actual_pairs_for_7d_review"
+      ],
+      "missing_fields": [
+        "confidence_calibration",
+        "factor_effectiveness",
+        "seven_day_hit_rate"
+      ],
+      "predicted_direction": "bullish",
+      "recommendation_for_improvement": "資料不足，需累積更多正式 prediction / actual outcome artifact",
+      "review_date": "2026-07-06",
+      "review_window_end": "2026-07-06",
+      "review_window_start": "2026-07-06",
+      "seven_day_hit_rate": null,
+      "source_evidence": [
+        {
+          "model_version": "deterministic_baseline_v1",
+          "source_type": "formal_prediction_runtime",
+          "status": "available"
+        },
+        {
+          "read_mode": "read_only",
+          "row_count": 20,
+          "source_type": "historical_ohlcv_csv_actual",
+          "status": "available"
+        }
+      ],
+      "stock_id": "1409",
+      "stock_name": "新纖"
+    },
+    {
+      "actual_close": 42.65,
+      "actual_direction": "bullish",
+      "actual_high": 42.65,
+      "actual_low": 40.5,
+      "confidence_calibration": "insufficient_data",
+      "created_at": "2026-07-06T15:01:00+08:00",
+      "data_quality": {
+        "blocking_missing_fields": [
+          "confidence_calibration",
+          "factor_effectiveness",
+          "seven_day_hit_rate"
+        ],
+        "completeness": "reviewable_single_day",
+        "confidence_basis": "single-day deterministic evaluation; seven-day review requires accumulated artifacts",
+        "freshness": "actual_available"
+      },
+      "direction_result": "correct",
+      "error_reasons": [],
+      "factor_effectiveness": "insufficient_data",
+      "high_low_forecast_error": {
+        "high_error_abs": -3.08,
+        "high_error_pct": -0.067352,
+        "low_error_abs": 0.12,
+        "low_error_pct": 0.002972
+      },
+      "hit_miss_status": "hit",
+      "insufficient_data_reasons": [
+        "insufficient_formal_prediction_actual_pairs_for_7d_review"
+      ],
+      "missing_fields": [
+        "confidence_calibration",
+        "factor_effectiveness",
+        "seven_day_hit_rate"
+      ],
+      "predicted_direction": "bullish",
+      "recommendation_for_improvement": "資料不足，需累積更多正式 prediction / actual outcome artifact",
+      "review_date": "2026-07-06",
+      "review_window_end": "2026-07-06",
+      "review_window_start": "2026-07-06",
+      "seven_day_hit_rate": null,
+      "source_evidence": [
+        {
+          "model_version": "deterministic_baseline_v1",
+          "source_type": "formal_prediction_runtime",
+          "status": "available"
+        },
+        {
+          "read_mode": "read_only",
+          "row_count": 20,
+          "source_type": "historical_ohlcv_csv_actual",
+          "status": "available"
+        }
+      ],
+      "stock_id": "2305",
+      "stock_name": "全友"
+    },
+    {
+      "actual_close": 2460.0,
+      "actual_direction": "bullish",
+      "actual_high": 2500.0,
+      "actual_low": 2455.0,
+      "confidence_calibration": "insufficient_data",
+      "created_at": "2026-07-06T15:01:00+08:00",
+      "data_quality": {
+        "blocking_missing_fields": [
+          "confidence_calibration",
+          "factor_effectiveness",
+          "seven_day_hit_rate"
+        ],
+        "completeness": "reviewable_single_day",
+        "confidence_basis": "single-day deterministic evaluation; seven-day review requires accumulated artifacts",
+        "freshness": "actual_available"
+      },
+      "direction_result": "correct",
+      "error_reasons": [],
+      "factor_effectiveness": "insufficient_data",
+      "high_low_forecast_error": {
+        "high_error_abs": -18.0,
+        "high_error_pct": -0.007149,
+        "low_error_abs": 38.0,
+        "low_error_pct": 0.015722
+      },
+      "hit_miss_status": "hit",
+      "insufficient_data_reasons": [
+        "insufficient_formal_prediction_actual_pairs_for_7d_review"
+      ],
+      "missing_fields": [
+        "confidence_calibration",
+        "factor_effectiveness",
+        "seven_day_hit_rate"
+      ],
+      "predicted_direction": "bullish",
+      "recommendation_for_improvement": "資料不足，需累積更多正式 prediction / actual outcome artifact",
+      "review_date": "2026-07-06",
+      "review_window_end": "2026-07-06",
+      "review_window_start": "2026-07-06",
+      "seven_day_hit_rate": null,
+      "source_evidence": [
+        {
+          "model_version": "deterministic_baseline_v1",
+          "source_type": "formal_prediction_runtime",
+          "status": "available"
+        },
+        {
+          "read_mode": "read_only",
+          "row_count": 20,
+          "source_type": "historical_ohlcv_csv_actual",
+          "status": "available"
         }
       ],
       "stock_id": "2330",
       "stock_name": "台積電"
+    },
+    {
+      "actual_close": 144.5,
+      "actual_direction": "bullish",
+      "actual_high": 152.0,
+      "actual_low": 144.0,
+      "confidence_calibration": "insufficient_data",
+      "created_at": "2026-07-06T15:01:00+08:00",
+      "data_quality": {
+        "blocking_missing_fields": [
+          "confidence_calibration",
+          "factor_effectiveness",
+          "seven_day_hit_rate"
+        ],
+        "completeness": "reviewable_single_day",
+        "confidence_basis": "single-day deterministic evaluation; seven-day review requires accumulated artifacts",
+        "freshness": "actual_available"
+      },
+      "direction_result": "incorrect",
+      "error_reasons": [],
+      "factor_effectiveness": "insufficient_data",
+      "high_low_forecast_error": {
+        "high_error_abs": 0.4,
+        "high_error_pct": 0.002639,
+        "low_error_abs": 9.1,
+        "low_error_pct": 0.067457
+      },
+      "hit_miss_status": "partial_hit",
+      "insufficient_data_reasons": [
+        "insufficient_formal_prediction_actual_pairs_for_7d_review"
+      ],
+      "missing_fields": [
+        "confidence_calibration",
+        "factor_effectiveness",
+        "seven_day_hit_rate"
+      ],
+      "predicted_direction": "bearish",
+      "recommendation_for_improvement": "資料不足，需累積更多正式 prediction / actual outcome artifact",
+      "review_date": "2026-07-06",
+      "review_window_end": "2026-07-06",
+      "review_window_start": "2026-07-06",
+      "seven_day_hit_rate": null,
+      "source_evidence": [
+        {
+          "model_version": "deterministic_baseline_v1",
+          "source_type": "formal_prediction_runtime",
+          "status": "available"
+        },
+        {
+          "read_mode": "read_only",
+          "row_count": 20,
+          "source_type": "historical_ohlcv_csv_actual",
+          "status": "available"
+        }
+      ],
+      "stock_id": "2337",
+      "stock_name": "旺宏"
+    },
+    {
+      "actual_close": 32.8,
+      "actual_direction": "bearish",
+      "actual_high": 33.65,
+      "actual_low": 32.5,
+      "confidence_calibration": "insufficient_data",
+      "created_at": "2026-07-06T15:01:00+08:00",
+      "data_quality": {
+        "blocking_missing_fields": [
+          "confidence_calibration",
+          "factor_effectiveness",
+          "seven_day_hit_rate"
+        ],
+        "completeness": "reviewable_single_day",
+        "confidence_basis": "single-day deterministic evaluation; seven-day review requires accumulated artifacts",
+        "freshness": "actual_available"
+      },
+      "direction_result": "correct",
+      "error_reasons": [],
+      "factor_effectiveness": "insufficient_data",
+      "high_low_forecast_error": {
+        "high_error_abs": -0.3,
+        "high_error_pct": -0.008837,
+        "low_error_abs": 1.25,
+        "low_error_pct": 0.04
+      },
+      "hit_miss_status": "hit",
+      "insufficient_data_reasons": [
+        "insufficient_formal_prediction_actual_pairs_for_7d_review"
+      ],
+      "missing_fields": [
+        "confidence_calibration",
+        "factor_effectiveness",
+        "seven_day_hit_rate"
+      ],
+      "predicted_direction": "bearish",
+      "recommendation_for_improvement": "資料不足，需累積更多正式 prediction / actual outcome artifact",
+      "review_date": "2026-07-06",
+      "review_window_end": "2026-07-06",
+      "review_window_start": "2026-07-06",
+      "seven_day_hit_rate": null,
+      "source_evidence": [
+        {
+          "model_version": "deterministic_baseline_v1",
+          "source_type": "formal_prediction_runtime",
+          "status": "available"
+        },
+        {
+          "read_mode": "read_only",
+          "row_count": 20,
+          "source_type": "historical_ohlcv_csv_actual",
+          "status": "available"
+        }
+      ],
+      "stock_id": "2353",
+      "stock_name": "宏碁"
+    },
+    {
+      "actual_close": 59.7,
+      "actual_direction": "bullish",
+      "actual_high": 63.0,
+      "actual_low": 58.8,
+      "confidence_calibration": "insufficient_data",
+      "created_at": "2026-07-06T15:01:00+08:00",
+      "data_quality": {
+        "blocking_missing_fields": [
+          "confidence_calibration",
+          "factor_effectiveness",
+          "seven_day_hit_rate"
+        ],
+        "completeness": "reviewable_single_day",
+        "confidence_basis": "single-day deterministic evaluation; seven-day review requires accumulated artifacts",
+        "freshness": "actual_available"
+      },
+      "direction_result": "correct",
+      "error_reasons": [],
+      "factor_effectiveness": "insufficient_data",
+      "high_low_forecast_error": {
+        "high_error_abs": 0.91,
+        "high_error_pct": 0.014656,
+        "low_error_abs": 0.86,
+        "low_error_pct": 0.014843
+      },
+      "hit_miss_status": "partial_hit",
+      "insufficient_data_reasons": [
+        "insufficient_formal_prediction_actual_pairs_for_7d_review"
+      ],
+      "missing_fields": [
+        "confidence_calibration",
+        "factor_effectiveness",
+        "seven_day_hit_rate"
+      ],
+      "predicted_direction": "bullish",
+      "recommendation_for_improvement": "資料不足，需累積更多正式 prediction / actual outcome artifact",
+      "review_date": "2026-07-06",
+      "review_window_end": "2026-07-06",
+      "review_window_start": "2026-07-06",
+      "seven_day_hit_rate": null,
+      "source_evidence": [
+        {
+          "model_version": "deterministic_baseline_v1",
+          "source_type": "formal_prediction_runtime",
+          "status": "available"
+        },
+        {
+          "read_mode": "read_only",
+          "row_count": 20,
+          "source_type": "historical_ohlcv_csv_actual",
+          "status": "available"
+        }
+      ],
+      "stock_id": "4743",
+      "stock_name": "合一"
+    },
+    {
+      "actual_close": 89.5,
+      "actual_direction": "bullish",
+      "actual_high": 91.7,
+      "actual_low": 85.8,
+      "confidence_calibration": "insufficient_data",
+      "created_at": "2026-07-06T15:01:00+08:00",
+      "data_quality": {
+        "blocking_missing_fields": [
+          "confidence_calibration",
+          "factor_effectiveness",
+          "seven_day_hit_rate"
+        ],
+        "completeness": "reviewable_single_day",
+        "confidence_basis": "single-day deterministic evaluation; seven-day review requires accumulated artifacts",
+        "freshness": "actual_available"
+      },
+      "direction_result": "correct",
+      "error_reasons": [],
+      "factor_effectiveness": "insufficient_data",
+      "high_low_forecast_error": {
+        "high_error_abs": -0.53,
+        "high_error_pct": -0.005747,
+        "low_error_abs": -1.68,
+        "low_error_pct": -0.019204
+      },
+      "hit_miss_status": "partial_hit",
+      "insufficient_data_reasons": [
+        "insufficient_formal_prediction_actual_pairs_for_7d_review"
+      ],
+      "missing_fields": [
+        "confidence_calibration",
+        "factor_effectiveness",
+        "seven_day_hit_rate"
+      ],
+      "predicted_direction": "bullish",
+      "recommendation_for_improvement": "資料不足，需累積更多正式 prediction / actual outcome artifact",
+      "review_date": "2026-07-06",
+      "review_window_end": "2026-07-06",
+      "review_window_start": "2026-07-06",
+      "seven_day_hit_rate": null,
+      "source_evidence": [
+        {
+          "model_version": "deterministic_baseline_v1",
+          "source_type": "formal_prediction_runtime",
+          "status": "available"
+        },
+        {
+          "read_mode": "read_only",
+          "row_count": 20,
+          "source_type": "historical_ohlcv_csv_actual",
+          "status": "available"
+        }
+      ],
+      "stock_id": "6873",
+      "stock_name": "泓德能源"
     }
   ]
 }
