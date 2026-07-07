@@ -17,7 +17,7 @@ RUNTIME_DATA = 'templates/four_window_dashboard_runtime_data.example.json'
 SAFETY_POLICY = {'controlled_static_route': True, 'repo_side_preview_only': True, 'external_api_called': False, 'secrets_read': False, 'db_write': False, 'scheduler_modified': False, 'external_notification_sent': False, 'line_email_notification_sent': False, 'production_pipeline_executed': False, 'python_main_executed': False, 'trading_or_order_executed': False, 'production_dashboard_publish_executed': False, 'dashboard_published': False, 'formal_delivery_behavior_changed': False, 'direct_rating_action_confidence_impact': False, 'production_rating_action_confidence_weight_mutated': False}
 ROLLBACK_INSTRUCTIONS = ['Remove the controlled dashboard route mapping from the future dashboard router.', 'Restore the previous dashboard preview route configuration.', 'Keep scheduler, notification delivery, production pipeline, and DB state untouched.', 'Re-run route integration and post-merge validators after rollback.']
 FIELD_LABELS = {'actual_high': '今日實際最高價', 'actual_low': '今日實際最低價', 'actual_close': '今日收盤價', 'direction_result': '方向判斷結果', 'high_low_forecast_error': '高低價預測誤差', 'hit_miss_status': '命中 / 未命中', 'review_timestamp': '檢討時間', 'review_window': '檢討區間', 'seven_day_hit_rate': '過去 7 天命中率', 'confidence_calibration': '信心校準', 'factor_effectiveness': '因子有效性', 'error_reasons': '錯誤原因', 'recommendation_for_improvement': '明日改善建議'}
-PREDICTION_FIELD_LABELS = [('今日最高價預測', 'same_day_high_prediction'), ('今日最低價預測', 'same_day_low_prediction'), ('隔天最高價預測', 'next_day_high_prediction'), ('隔天最低價預測', 'next_day_low_prediction'), ('未來 1 個月走勢', 'one_month_trend'), ('未來 3 個月走勢', 'three_month_trend'), ('信心分數', 'confidence_score'), ('信心水準', 'confidence_level'), ('主要依據', 'evidence_summary'), ('風險提醒', 'risk_notes'), ('資料品質', 'data_quality')]
+PREDICTION_FIELD_LABELS = [('今日最高價預測', 'same_day_high_prediction'), ('今日最低價預測', 'same_day_low_prediction'), ('隔天最高價預測', 'next_day_high_prediction'), ('隔天最低價預測', 'next_day_low_prediction'), ('未來 1 個月走勢', 'one_month_trend'), ('未來 3 個月走勢', 'three_month_trend'), ('信心分數', 'confidence_score'), ('信心水準', 'confidence_level'), ('主要依據', 'evidence_summary'), ('風險提醒', 'risk_notes'), ('資料品質', 'data_quality'), ('模型版本', 'model_version'), ('方法說明', 'method_metadata'), ('資料證據', 'source_evidence')]
 PREDICTION_LABELS = [('今日最高價預測 / 今日最低價預測', 'same_day_high_low'), ('隔天最高價預測 / 隔天最低價預測', 'next_day_high_low'), ('未來 1 個月走勢', 'one_month_trend'), ('未來 3 個月走勢', 'three_month_trend'), ('信心分數', 'confidence'), ('主要依據', 'rationale')]
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -40,6 +40,20 @@ def build_artifact(payload: dict[str, Any] | None = None, repo_root: Path | None
 def badge(status: str) -> str:
     return 'safe' if status in {'available', 'watchlist_valid', 'contract_backed'} else 'warn' if status in {'partial', 'missing', 'stale', 'not_for_formal_decision', 'insufficient_data'} else ''
 
+
+def humanize_status(value: Any) -> str:
+    mapping = {
+        'fresh': '資料新鮮',
+        'stale': '資料過期',
+        'missing': '資料待接',
+        'partial': '部分資料可用',
+        'insufficient_data': '資料不足',
+        'sufficient_for_baseline_range': '足夠產生 baseline 區間',
+        'artifact-level deterministic baseline formula capped at 75': 'artifact 層 deterministic baseline 公式，信心上限 75',
+    }
+    text = str(value)
+    return mapping.get(text, text.replace('_', ' '))
+
 def display_value(value: Any) -> str:
     if value is None or value == [] or value == {}:
         return '資料待接'
@@ -48,11 +62,11 @@ def display_value(value: Any) -> str:
     if isinstance(value, dict):
         parts = []
         if value.get('completeness'):
-            parts.append('完整度：' + str(value.get('completeness')).replace('_', ' '))
+            parts.append('完整度：' + humanize_status(value.get('completeness')))
         if value.get('freshness'):
-            parts.append('資料時效：' + str(value.get('freshness')).replace('_', ' '))
+            parts.append('資料時效：' + humanize_status(value.get('freshness')))
         if value.get('confidence_basis'):
-            parts.append('信心依據：' + str(value.get('confidence_basis')).replace('_', ' '))
+            parts.append('信心依據：' + humanize_status(value.get('confidence_basis')))
         if value.get('blocking_missing_fields'):
             parts.append('待接欄位數：' + str(len(value.get('blocking_missing_fields', []))))
         return escape('；'.join(parts) or '資料待接')
@@ -78,8 +92,8 @@ def prediction_cards(runtime: dict[str, Any]) -> str:
                 rows.append('<p><strong>' + escape(label) + '：</strong>' + display_value(stock.get(key)) + '</p>')
             rows.append('<p><strong>data_cutoff_at：</strong>' + escape(str(artifact.get('data_cutoff_at') or '資料待接')) + '</p>')
             rows.append('<p><strong>generated_at：</strong>' + escape(str(artifact.get('generated_at') or '資料待接')) + '</p>')
-            cards.append('<div class="source-item"><h3>' + escape(str(stock.get('stock_id'))) + ' ' + escape(str(stock.get('stock_name') or '')) + '</h3>' + ''.join(rows) + '<span class="badge warn">contract-backed；null 欄位仍為資料待接</span></div>')
-        note = '<p class="preview-note">正式 prediction runtime artifact 已接線；若未找到正式 prediction runtime artifact，不產生假預測。今日最高 / 最低價預測、隔天最高 / 最低價預測若為 null，代表資料待接。</p>'
+            cards.append('<div class="source-item"><h3>' + escape(str(stock.get('stock_id'))) + ' ' + escape(str(stock.get('stock_name') or '')) + '</h3>' + ''.join(rows) + '<span class="badge warn">deterministic baseline V1；null 欄位仍為資料待接</span></div>')
+        note = '<p class="preview-note">正式 prediction runtime artifact 已接線；deterministic_baseline_v1 為第一版可解釋 baseline，供決策參考，待回測校準。今日最高 / 最低價預測、隔天最高 / 最低價預測若為 null，代表資料待接。</p>'
         return note + '<div class="source-grid">' + ''.join(cards) + '</div>'
     out = []
     for label, _key in PREDICTION_LABELS:
@@ -115,7 +129,7 @@ def review_cards(runtime: dict[str, Any]) -> str:
     return '<div class="source-grid">' + ''.join(rows) + '</div>'
 
 def freshness_cards(runtime: dict[str, Any]) -> str:
-    labels = [('07:00 盤前資料', 'partial', '盤前摘要可用；正式預測資料待接'), ('13:05 盤中資料', 'missing', '尚未找到正式盤中 runtime artifact'), ('13:35 收盤快照資料', 'missing', '尚未找到正式收盤快照 runtime artifact'), ('15:00 盤後檢討資料', 'missing', '目前僅找到盤前本機摘要，不能代表盤後檢討資料'), ('追蹤名單', 'watchlist_valid', '名單有效，預測資料另見下方'), ('正式預測資料', 'contract_backed' if runtime.get('formal_prediction_artifact') else 'missing', 'formal prediction artifact 已接線；null 欄位為資料待接' if runtime.get('formal_prediction_artifact') else '正式預測資料待接'), ('正式檢討資料', 'contract_backed' if runtime.get('formal_review_artifact') else 'missing', 'formal review artifact 已接線；null 欄位為資料待接' if runtime.get('formal_review_artifact') else '盤後檢討資料待接'), ('最新本機分析摘要', 'available', '盤前摘要可用於初步參考')]
+    labels = [('07:00 盤前資料', 'partial', '盤前摘要可用；正式預測資料待接'), ('13:05 盤中資料', 'missing', '尚未找到正式盤中 runtime artifact'), ('13:35 收盤快照資料', 'missing', '尚未找到正式收盤快照 runtime artifact'), ('15:00 盤後檢討資料', 'missing', '目前僅找到盤前本機摘要，不能代表盤後檢討資料'), ('追蹤名單', 'watchlist_valid', '名單有效，預測資料另見下方'), ('正式預測資料', 'contract_backed' if runtime.get('formal_prediction_artifact') else 'missing', 'formal prediction artifact 已接線；deterministic_baseline_v1；null 欄位為資料待接' if runtime.get('formal_prediction_artifact') else '正式預測資料待接'), ('正式檢討資料', 'contract_backed' if runtime.get('formal_review_artifact') else 'missing', 'formal review artifact 已接線；null 欄位為資料待接' if runtime.get('formal_review_artifact') else '盤後檢討資料待接'), ('最新本機分析摘要', 'available', '盤前摘要可用於初步參考')]
     return '<div class="source-grid">' + ''.join('<div class="source-item"><h3>' + escape(n) + '</h3><p>' + escape(msg) + '</p><span class="badge ' + badge(st) + '">' + escape(msg.split('；')[0]) + '</span></div>' for n, st, msg in labels) + '</div>'
 
 def stock_cards(runtime: dict[str, Any]) -> str:
@@ -138,7 +152,7 @@ def latest_report_cards(runtime: dict[str, Any]) -> str:
     return '<div class="source-grid">' + ''.join(out) + '</div>'
 
 def window_cards(runtime: dict[str, Any]) -> str:
-    pred_state = '每日股價預測：資料待接（formal prediction artifact 已接線；null 欄位為資料待接）' if runtime.get('formal_prediction_artifact') else '每日股價預測：資料待接'
+    pred_state = '每日股價預測：資料待接（formal prediction artifact 已接線；deterministic_baseline_v1；null 欄位為資料待接）' if runtime.get('formal_prediction_artifact') else '每日股價預測：資料待接'
     review_state = '盤後檢討：資料待接（formal review artifact 已接線；null 欄位為資料待接）' if runtime.get('formal_review_artifact') else '盤後檢討：資料待接'
     defs = [('07:00', '盤前預測 / Pre-open Forecast', '盤前摘要：可用', pred_state, '整體狀態：部分缺資料', 'partial'), ('13:05', '盤中追蹤 / Intraday Tracking', '盤中追蹤：資料待接', '尚未找到正式盤中 runtime artifact', '整體狀態：資料待接', 'missing'), ('13:35', '收盤快照 / Close Snapshot', '收盤快照：資料待接', '尚未找到正式收盤快照 runtime artifact', '完整檢討待 15:00', 'missing'), ('15:00', '盤後檢討 / Prediction Review', review_state, '7 天滾動檢討：資料待接', '目前僅找到盤前本機摘要，不能代表盤後檢討資料', 'partial' if runtime.get('formal_review_artifact') else 'missing')]
     return ''.join('<article class="card window-card"><div class="window-time">' + t + '</div><div class="window-title">' + escape(title) + '</div><p><strong>' + escape(a) + '</strong></p><p>' + escape(b) + '</p><p>' + escape(c) + '</p><p>' + ('Full prediction review：資料待接' if 'Prediction Review' in title else '') + '</p><span class="badge ' + badge(st) + '">' + ('部分缺資料' if st == 'partial' else '資料待接') + '</span></article>' for t, title, a, b, c, st in defs)

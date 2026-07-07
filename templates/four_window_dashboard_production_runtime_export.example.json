@@ -54,7 +54,7 @@
       "freshness_label": "資料正常",
       "freshness_status": "fresh",
       "full_prediction_review": false,
-      "latest_available_data_timestamp": "2026-07-06 07:08:09",
+      "latest_available_data_timestamp": "2026-07-06 23:05:39",
       "missing_sections": [],
       "pm_readable_action": "可參考既有本機分析摘要；仍需正式 runtime data 接線",
       "window_key": "pre_open_0700"
@@ -102,7 +102,7 @@
       "freshness_label": "資料正常",
       "freshness_status": "fresh",
       "full_prediction_review": true,
-      "latest_available_data_timestamp": "2026-07-06 07:08:09",
+      "latest_available_data_timestamp": "2026-07-06 23:05:39",
       "missing_sections": [],
       "pm_readable_action": "可參考既有本機分析摘要；仍需正式 runtime data 接線",
       "window_key": "post_close_1500"
@@ -114,7 +114,7 @@
       "id": "pre_open_0700",
       "max_age_hours": 18,
       "status": "fresh",
-      "timestamp": "2026-07-06 07:08:09"
+      "timestamp": "2026-07-06 23:05:39"
     },
     {
       "category": "runtime_window",
@@ -135,77 +135,77 @@
       "id": "post_close_1500",
       "max_age_hours": 36,
       "status": "fresh",
-      "timestamp": "2026-07-06 07:08:09"
+      "timestamp": "2026-07-06 23:05:39"
     },
     {
       "category": "stock_universe",
       "id": "00878",
       "max_age_hours": 168,
       "status": "fresh",
-      "timestamp": "2026-07-06 07:07:31"
+      "timestamp": "2026-07-06 23:05:02"
     },
     {
       "category": "stock_universe",
       "id": "009816",
       "max_age_hours": 168,
       "status": "fresh",
-      "timestamp": "2026-07-06 07:03:53"
+      "timestamp": "2026-07-06 23:01:36"
     },
     {
       "category": "stock_universe",
       "id": "1409",
       "max_age_hours": 168,
       "status": "fresh",
-      "timestamp": "2026-07-06 07:08:09"
+      "timestamp": "2026-07-06 23:05:39"
     },
     {
       "category": "stock_universe",
       "id": "2305",
       "max_age_hours": 168,
       "status": "fresh",
-      "timestamp": "2026-07-06 07:06:59"
+      "timestamp": "2026-07-06 23:04:27"
     },
     {
       "category": "stock_universe",
       "id": "2330",
       "max_age_hours": 168,
       "status": "fresh",
-      "timestamp": "2026-07-06 07:02:45"
+      "timestamp": "2026-07-06 23:00:59"
     },
     {
       "category": "stock_universe",
       "id": "2337",
       "max_age_hours": 168,
       "status": "fresh",
-      "timestamp": "2026-07-06 07:04:32"
+      "timestamp": "2026-07-06 23:02:07"
     },
     {
       "category": "stock_universe",
       "id": "2353",
       "max_age_hours": 168,
       "status": "fresh",
-      "timestamp": "2026-07-06 07:05:05"
+      "timestamp": "2026-07-06 23:02:37"
     },
     {
       "category": "stock_universe",
       "id": "4743",
       "max_age_hours": 168,
       "status": "fresh",
-      "timestamp": "2026-07-06 07:06:29"
+      "timestamp": "2026-07-06 23:03:54"
     },
     {
       "category": "stock_universe",
       "id": "6873",
       "max_age_hours": 168,
       "status": "fresh",
-      "timestamp": "2026-07-06 07:05:40"
+      "timestamp": "2026-07-06 23:03:07"
     },
     {
       "category": "latest_report",
       "id": "0",
       "max_age_hours": 36,
       "status": "fresh",
-      "timestamp": "2026-07-06 07:08:09"
+      "timestamp": "2026-07-06 23:05:39"
     },
     {
       "category": "latest_report",
@@ -537,7 +537,7 @@
       "reason": "used",
       "secret_pattern_hits": 0,
       "sections": [],
-      "timestamp": "2026-07-06T22:59:54+08:00",
+      "timestamp": "2026-07-07T00:13:45+08:00",
       "type": "json",
       "used": true
     },
@@ -549,7 +549,7 @@
       "reason": "used_read_only",
       "secret_pattern_hits": 0,
       "sqlite_opened_read_only": true,
-      "timestamp": "2026-07-06 07:08:09",
+      "timestamp": "2026-07-06 23:05:39",
       "type": "sqlite",
       "used": true
     }
@@ -558,7 +558,7 @@
     {
       "freshness_label": "資料正常",
       "freshness_status": "fresh",
-      "generated_timestamp": "2026-07-06 07:08:09",
+      "generated_timestamp": "2026-07-06 23:05:39",
       "missing_sections": [
         "formal_prediction_fields",
         "actual_outcome_review_fields"
@@ -625,7 +625,7 @@
       "summary": "Existing sanitized structured artifact discovered for dashboard context."
     }
   ],
-  "latest_runtime_timestamp": "2026-07-06 07:08:09",
+  "latest_runtime_timestamp": "2026-07-06 23:05:39",
   "latest_runtime_window": "latest_local_analysis_results",
   "missing_data": [
     {
@@ -741,22 +741,22 @@
   ],
   "per_stock_summaries": [
     {
-      "action": "中性觀察",
+      "action": "偏多續抱",
       "adr_summary": null,
       "chip_summary": null,
       "data_state": "existing_runtime_record",
       "freshness_label": "資料正常",
       "freshness_status": "fresh",
-      "generated_at": "2026-07-06 07:08:09",
+      "generated_at": "2026-07-06 23:05:39",
       "latest_close": null,
       "news_summary": null,
-      "rating": "C級",
+      "rating": "B級",
       "risk_summary": null,
       "source": "data/stock_analysis.db:analysis_results",
       "stock_id": "1409",
       "stock_name": "新纖",
       "technical_summary": null,
-      "total_score": 51.0,
+      "total_score": 69.0,
       "window": "latest_local_analysis_results"
     }
   ],
@@ -951,8 +951,8 @@
       "data_state": "usable",
       "freshness_label": "資料正常",
       "freshness_status": "fresh",
-      "latest_report_timestamp": "2026-07-06 07:07:31",
-      "record_count": 17,
+      "latest_report_timestamp": "2026-07-06 23:05:02",
+      "record_count": 18,
       "source": "data/stock_analysis.db:analysis_results",
       "stock_id": "00878",
       "stock_name": "國泰永續高股息"
@@ -961,8 +961,8 @@
       "data_state": "usable",
       "freshness_label": "資料正常",
       "freshness_status": "fresh",
-      "latest_report_timestamp": "2026-07-06 07:03:53",
-      "record_count": 22,
+      "latest_report_timestamp": "2026-07-06 23:01:36",
+      "record_count": 23,
       "source": "data/stock_analysis.db:analysis_results",
       "stock_id": "009816",
       "stock_name": "凱基台灣TOP50"
@@ -971,8 +971,8 @@
       "data_state": "usable",
       "freshness_label": "資料正常",
       "freshness_status": "fresh",
-      "latest_report_timestamp": "2026-07-06 07:08:09",
-      "record_count": 17,
+      "latest_report_timestamp": "2026-07-06 23:05:39",
+      "record_count": 18,
       "source": "data/stock_analysis.db:analysis_results",
       "stock_id": "1409",
       "stock_name": "新纖"
@@ -981,8 +981,8 @@
       "data_state": "usable",
       "freshness_label": "資料正常",
       "freshness_status": "fresh",
-      "latest_report_timestamp": "2026-07-06 07:06:59",
-      "record_count": 17,
+      "latest_report_timestamp": "2026-07-06 23:04:27",
+      "record_count": 18,
       "source": "data/stock_analysis.db:analysis_results",
       "stock_id": "2305",
       "stock_name": "全友"
@@ -991,8 +991,8 @@
       "data_state": "usable",
       "freshness_label": "資料正常",
       "freshness_status": "fresh",
-      "latest_report_timestamp": "2026-07-06 07:02:45",
-      "record_count": 22,
+      "latest_report_timestamp": "2026-07-06 23:00:59",
+      "record_count": 23,
       "source": "data/stock_analysis.db:analysis_results",
       "stock_id": "2330",
       "stock_name": "台積電"
@@ -1001,8 +1001,8 @@
       "data_state": "usable",
       "freshness_label": "資料正常",
       "freshness_status": "fresh",
-      "latest_report_timestamp": "2026-07-06 07:04:32",
-      "record_count": 22,
+      "latest_report_timestamp": "2026-07-06 23:02:07",
+      "record_count": 23,
       "source": "data/stock_analysis.db:analysis_results",
       "stock_id": "2337",
       "stock_name": "旺宏"
@@ -1011,8 +1011,8 @@
       "data_state": "usable",
       "freshness_label": "資料正常",
       "freshness_status": "fresh",
-      "latest_report_timestamp": "2026-07-06 07:05:05",
-      "record_count": 21,
+      "latest_report_timestamp": "2026-07-06 23:02:37",
+      "record_count": 22,
       "source": "data/stock_analysis.db:analysis_results",
       "stock_id": "2353",
       "stock_name": "宏碁"
@@ -1021,8 +1021,8 @@
       "data_state": "usable",
       "freshness_label": "資料正常",
       "freshness_status": "fresh",
-      "latest_report_timestamp": "2026-07-06 07:06:29",
-      "record_count": 19,
+      "latest_report_timestamp": "2026-07-06 23:03:54",
+      "record_count": 20,
       "source": "data/stock_analysis.db:analysis_results",
       "stock_id": "4743",
       "stock_name": "合一"
@@ -1031,8 +1031,8 @@
       "data_state": "usable",
       "freshness_label": "資料正常",
       "freshness_status": "fresh",
-      "latest_report_timestamp": "2026-07-06 07:05:40",
-      "record_count": 20,
+      "latest_report_timestamp": "2026-07-06 23:03:07",
+      "record_count": 21,
       "source": "data/stock_analysis.db:analysis_results",
       "stock_id": "6873",
       "stock_name": "泓德能源"
