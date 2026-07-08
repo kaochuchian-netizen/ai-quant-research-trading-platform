@@ -51,6 +51,26 @@ TRACEBACK_MARKERS = (
     "ShioajiClientError:",
     "Exception:",
 )
+
+WINDOW_TIMEOUT_SECONDS = {
+    "pre_open_0700": 30 * 60,
+    "intraday_1305": 10 * 60,
+    "pre_close_1335": 10 * 60,
+    "post_close_1500": 15 * 60,
+}
+WINDOW_GRACE_PERIOD_SECONDS = {
+    "pre_open_0700": 30 * 60,
+    "intraday_1305": 15 * 60,
+    "pre_close_1335": 15 * 60,
+    "post_close_1500": 20 * 60,
+}
+PROGRESS_ARTIFACTS = {
+    "intraday_1305": Path("artifacts/runtime/delivery_progress_intraday_1305_latest.json"),
+    "pre_close_1335": Path("artifacts/runtime/delivery_progress_pre_close_1335_latest.json"),
+    "post_close_1500": Path("artifacts/runtime/delivery_progress_prediction_review_1500_latest.json"),
+    "pre_open_0700": Path("artifacts/runtime/delivery_progress_pre_open_0700_latest.json"),
+}
+
 WINDOWS = {
     "pre_open_0700": {
         "label": "07:00 pre-open",
@@ -93,6 +113,99 @@ WINDOWS = {
         "fallback_state": "prediction review pending / insufficient data when review records are unavailable",
     },
 }
+
+
+
+def window_timeout_seconds(window_id: str) -> int:
+    return WINDOW_TIMEOUT_SECONDS.get(window_id, 30 * 60)
+
+
+def window_grace_period_seconds(window_id: str) -> int:
+    return WINDOW_GRACE_PERIOD_SECONDS.get(window_id, 15 * 60)
+
+
+def scheduled_datetime_taipei(window_id: str, reference: datetime) -> datetime:
+    local_time = window_config(window_id)["local_time"]
+    hour, minute = (int(part) for part in local_time.split(":", 1))
+    return reference.replace(hour=hour, minute=minute, second=0, microsecond=0)
+
+
+def delivery_lateness(window_id: str, reference: datetime | None = None) -> dict[str, Any]:
+    current = reference or now_taipei()
+    scheduled = scheduled_datetime_taipei(window_id, current)
+    late_by = max(0, int((current - scheduled).total_seconds()))
+    grace = window_grace_period_seconds(window_id)
+    return {
+        "late": late_by > grace,
+        "late_by_seconds": late_by,
+        "grace_period_seconds": grace,
+        "scheduled_at": scheduled.isoformat(),
+        "checked_at": current.isoformat(),
+    }
+
+
+def progress_artifact_path(window_id: str) -> Path:
+    return REPO_ROOT / PROGRESS_ARTIFACTS[window_id]
+
+
+def write_progress_artifact(
+    window_id: str,
+    started_at: str,
+    current_stage: str,
+    status: str,
+    timeout_seconds: int,
+    elapsed_seconds: int = 0,
+) -> dict[str, Any]:
+    payload = {
+        "schema_version": "delivery_progress_artifact_v1",
+        "window": window_id,
+        "started_at": started_at,
+        "last_heartbeat_at": now_taipei().isoformat(),
+        "current_stage": current_stage,
+        "elapsed_seconds": elapsed_seconds,
+        "timeout_seconds": timeout_seconds,
+        "status": status,
+        "events": ["wrapper_started", current_stage],
+    }
+    path = progress_artifact_path(window_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return {"path": str(path), "payload": payload}
+
+
+def timeout_delivery_artifact(window_id: str, timeout_seconds: int, created_at: str) -> dict[str, Any]:
+    return {
+        "schema_version": "delivery_timeout_artifact_v1",
+        "window": window_id,
+        "status": "timed_out",
+        "pipeline_completed": False,
+        "delivery_attempted": False,
+        "line_attempted": False,
+        "email_attempted": False,
+        "dashboard_publish_attempted": False,
+        "timeout_seconds": timeout_seconds,
+        "reason": "child_pipeline_timeout",
+        "safe_to_retry": True,
+        "created_at": created_at,
+    }
+
+
+def late_delivery_artifact(window_id: str, late: dict[str, Any], created_at: str) -> dict[str, Any]:
+    return {
+        "schema_version": "delivery_late_suppression_artifact_v1",
+        "window": window_id,
+        "status": "completed_late_delivery_suppressed",
+        "pipeline_completed": True,
+        "delivery_attempted": False,
+        "line_attempted": False,
+        "email_attempted": False,
+        "dashboard_publish_attempted": False,
+        "late_delivery_suppressed": True,
+        "late_by_seconds": late["late_by_seconds"],
+        "grace_period_seconds": late["grace_period_seconds"],
+        "reason": "window_grace_period_exceeded",
+        "created_at": created_at,
+    }
 
 
 def now_taipei() -> datetime:
@@ -469,7 +582,7 @@ def main() -> int:
 
     base_policy = timeout_policy_from_env()
     policy = TimeoutPolicy(
-        production_pipeline_timeout_seconds=args.timeout_seconds or base_policy.production_pipeline_timeout_seconds,
+        production_pipeline_timeout_seconds=args.timeout_seconds or window_timeout_seconds(args.window),
         production_pipeline_warning_seconds=base_policy.production_pipeline_warning_seconds,
         stale_process_threshold_seconds=args.stale_threshold_seconds or base_policy.stale_process_threshold_seconds,
         external_http_source_timeout_seconds=base_policy.external_http_source_timeout_seconds,
@@ -493,6 +606,7 @@ def main() -> int:
         return 1
 
     python_bin = os.environ.get("PYTHON_BIN", sys.executable)
+    progress = write_progress_artifact(args.window, generated_at, "pipeline_launched", "running", policy.production_pipeline_timeout_seconds)
     pipeline_run = run_pipeline(python_bin, args.window, policy)
     completed = pipeline_run["completed"]
     output = completed.stdout or ""
@@ -503,6 +617,8 @@ def main() -> int:
     pipeline_diagnostics = build_pipeline_diagnostics(completed, output)
     pipeline_diagnostics.update({"pipeline_pid": pipeline_run["pipeline_pid"], "started_at": pipeline_run["started_at"], "ended_at": pipeline_run["ended_at"], "elapsed_seconds": pipeline_run["elapsed_seconds"], "termination": pipeline_run["termination"], "timeout_seconds": policy.production_pipeline_timeout_seconds})
     if pipeline_run["timed_out"]:
+        progress = write_progress_artifact(args.window, generated_at, "pipeline_timed_out", "timed_out", policy.production_pipeline_timeout_seconds, pipeline_run["elapsed_seconds"])
+        timeout_artifact = timeout_delivery_artifact(args.window, policy.production_pipeline_timeout_seconds, now_taipei().isoformat())
         result = build_guard_result(
             "timed_out",
             args.window,
@@ -516,12 +632,48 @@ def main() -> int:
             log_path="logs/daily.log",
             diagnostics={"pipeline": pipeline_diagnostics, "reason": "production pipeline exceeded hard timeout; delivery was not attempted"},
         )
-        result.update({"task_id": TASK_ID, "run_id": run_id, "mode": "approved_delivery_timeout", "pipeline_type": cfg["pipeline_type"], "pipeline_status": "timed_out", "content_state": "pipeline timed out; diagnostics available", "line_delivery_status": "not_sent", "email_delivery_status": "not_sent", "dashboard_delivery_status": "not_published", "secret_values_printed": False, "trading_order_portfolio_action": False, "decision": "approved_scheduler_delivery_timed_out_no_delivery"})
+        result.update({"task_id": TASK_ID, "run_id": run_id, "mode": "approved_delivery_timeout", "pipeline_type": cfg["pipeline_type"], "pipeline_status": "timed_out", "pipeline_completed": False, "content_state": "pipeline timed out; diagnostics available", "delivery_attempted": False, "line_delivery_status": "not_sent", "email_delivery_status": "not_sent", "dashboard_delivery_status": "not_published", "dashboard_publish_attempted": False, "late_delivery_suppressed": False, "timeout_artifact": timeout_artifact, "progress_artifact": progress, "reason": "child_pipeline_timeout", "safe_to_retry": True, "secret_values_printed": False, "trading_order_portfolio_action": False, "decision": "approved_scheduler_delivery_timed_out_no_delivery"})
         write_json(args.output, result)
         print(stable_json({key: result[key] for key in ["schema_version", "task_id", "run_id", "window", "status", "line_attempted", "email_attempted", "dashboard_attempted", "ok", "decision"]}))
         return 1
 
     pipeline_status = "completed" if completed.returncode == 0 else "failed"
+    progress = write_progress_artifact(args.window, generated_at, "pipeline_completed", pipeline_status, policy.production_pipeline_timeout_seconds, pipeline_run["elapsed_seconds"])
+    late = delivery_lateness(args.window)
+    if pipeline_status == "completed" and late["late"]:
+        progress = write_progress_artifact(args.window, generated_at, "late_delivery_suppressed", "completed_late_delivery_suppressed", policy.production_pipeline_timeout_seconds, pipeline_run["elapsed_seconds"])
+        late_artifact = late_delivery_artifact(args.window, late, now_taipei().isoformat())
+        result = {
+            "schema_version": SCHEMA_VERSION,
+            "task_id": TASK_ID,
+            "run_id": run_id,
+            "generated_at": generated_at,
+            "mode": "approved_delivery_late_suppressed",
+            "scheduler_window": args.window,
+            "schedule_time_taiwan": cfg["local_time"],
+            "pipeline_type": cfg["pipeline_type"],
+            "pipeline_returncode": completed.returncode,
+            "pipeline_status": pipeline_status,
+            "pipeline_completed": True,
+            "delivery_attempted": False,
+            "line_delivery_status": "not_sent",
+            "email_delivery_status": "not_sent",
+            "dashboard_delivery_status": "not_published",
+            "line_attempted": False,
+            "email_attempted": False,
+            "dashboard_publish_attempted": False,
+            "late_delivery_suppressed": True,
+            "late_artifact": late_artifact,
+            "progress_artifact": progress,
+            "diagnostics": {"pipeline": pipeline_diagnostics, "lateness": late},
+            "secret_values_printed": False,
+            "trading_order_portfolio_action": False,
+            "ok": True,
+            "decision": "approved_scheduler_delivery_completed_late_delivery_suppressed",
+        }
+        Path(args.output).write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(stable_json({key: result[key] for key in ["schema_version", "task_id", "run_id", "scheduler_window", "pipeline_status", "late_delivery_suppressed", "line_attempted", "email_attempted", "ok", "decision"]}))
+        return 0
     dashboard = publish_dashboard(Path(args.dashboard_publish_dir), args.window, run_id, generated_at, pipeline_status, output_tail)
     try:
         email = send_delivery_email(Path(args.mail_env_file), args.window, run_id, generated_at, pipeline_status, args.dashboard_url, output_tail)
@@ -572,6 +724,10 @@ def main() -> int:
         "dashboard_delivery": dashboard,
         "dashboard_delivery_status": dashboard.get("publish_status"),
         "dashboard_url": args.dashboard_url,
+        "pipeline_completed": pipeline_status == "completed",
+        "delivery_attempted": True,
+        "late_delivery_suppressed": False,
+        "progress_artifact": progress,
         "diagnostics": {
             "pipeline": pipeline_diagnostics,
             "user_facing_report_contains_traceback": contains_traceback(
