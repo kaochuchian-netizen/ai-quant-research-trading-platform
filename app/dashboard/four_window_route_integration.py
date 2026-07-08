@@ -279,7 +279,7 @@ def snapshot_accumulation_cards() -> str:
         '<p><strong>距離 formula change 還差：</strong>' + escape(str(remaining_formula)) + ' samples</p>'
         '<span class="badge warn">blocked_insufficient_sample</span></div>'
         '</div>'
-        '<p class="preview-note">目前仍為 deterministic baseline V1 樣本累積階段；樣本數不足時不可直接調整公式。不可把 snapshot count 當成績效，不可把 next-day null 顯示為 0%。</p>'
+        '<p class="preview-note">目前仍為基準模型樣本累積階段；樣本數不足時不可直接調整公式。不可把 snapshot count 當成績效，不可把 next-day null 顯示為 0%。</p>'
     )
 
 def _review_status(value: Any) -> str:
@@ -399,3 +399,117 @@ def render_route_html(artifact: dict[str, Any], preview_html: str) -> str:
 def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+
+# AI-DEV-160 mobile decision cleanup overrides. These functions intentionally
+# replace the earlier preview-oriented helpers without changing upstream data.
+
+def _dev160_safe_news_block(stock: dict[str, Any]) -> str:
+    news_items = stock.get('major_news') or stock.get('news_headlines') or []
+    if isinstance(news_items, list) and news_items:
+        rows = []
+        for index, item in enumerate(news_items[:3], start=1):
+            if not isinstance(item, dict) or not item.get('title'):
+                continue
+            source = item.get('source') or '來源待接'
+            time = item.get('published_at') or item.get('time') or '時間待接'
+            impact = humanize_status(item.get('impact') or item.get('sentiment') or '中性')
+            rows.append('<p>' + str(index) + '. ' + escape(str(item['title'])) + ' — ' + escape(str(source)) + ' / ' + escape(str(time)) + ' / ' + escape(str(impact)) + '</p>')
+        if rows:
+            return '<div class="review-block"><h4>重大新聞</h4>' + ''.join(rows) + '</div>'
+        return '<div class="review-block"><h4>重大新聞</h4><p>新聞情緒可用，重大標題待接。</p></div>'
+    return '<div class="review-block"><h4>重大新聞</h4><p>重大新聞資料待接</p><p>說明：尚未找到可安全引用的新聞標題 artifact。</p></div>'
+
+
+def _dev160_data_status(stock: dict[str, Any]) -> str:
+    quality = stock.get('data_quality') if isinstance(stock.get('data_quality'), dict) else {}
+    missing = stock.get('missing_fields') if isinstance(stock.get('missing_fields'), list) else []
+    if quality or not missing:
+        return '歷史 OHLCV 可用；部分長週期資料待接'
+    return '歷史 OHLCV 可用；部分長週期資料待接'
+
+
+def _dev160_prediction_method_card() -> str:
+    return (
+        '<section class="card method-card"><h2>預測方法說明</h2>'
+        '<p>目前使用 deterministic baseline V1。</p>'
+        '<p>此方法以近 20 日高低價區間、報酬波動、ATR-like range 與均線 / 報酬率趨勢偏差估算。</p>'
+        '<p>用途：供研究參考，待回測校準。</p>'
+        '<p>限制：部分長週期資料不足時，3 個月趨勢可能維持不明朗。</p>'
+        '<h3>風險提醒</h3>'
+        '<ul><li>baseline V1 尚在回測校準階段。</li><li>預測值僅供研究參考，非交易指令。</li><li>不修改正式評等 / 動作 / 信心 / 權重。</li><li>樣本數仍不足，尚不可直接調整公式。</li></ul>'
+        '</section>'
+    )
+
+
+def prediction_cards(runtime: dict[str, Any]) -> str:
+    artifact = runtime.get('formal_prediction_artifact') if isinstance(runtime.get('formal_prediction_artifact'), dict) else None
+    if artifact and artifact.get('artifact_type') == 'formal_prediction_runtime' and artifact.get('is_example') is False:
+        cards = []
+        for stock in artifact.get('stocks', []):
+            if not isinstance(stock, dict):
+                continue
+            title = escape(str(stock.get('stock_id'))) + ' ' + escape(str(stock.get('stock_name') or ''))
+            card = (
+                '<div class="source-item stock-forecast-card"><h3>' + title + '</h3>'
+                '<div class="review-block"><h4>預測摘要</h4>'
+                '<p><strong>今日預測區間：</strong>' + _price_range(stock.get('same_day_low_prediction'), stock.get('same_day_high_prediction')) + '</p>'
+                '<p><strong>隔日預測區間：</strong>' + _price_range(stock.get('next_day_low_prediction'), stock.get('next_day_high_prediction')) + '</p>'
+                '<p><strong>1 個月趨勢：</strong>' + escape(humanize_status(stock.get('one_month_trend'))) + '</p>'
+                '<p><strong>3 個月趨勢：</strong>' + escape(humanize_status(stock.get('three_month_trend'))) + '</p>'
+                '<p><strong>信心分數：</strong>' + _confidence_text(stock) + '</p>'
+                '</div>'
+                + _dev160_safe_news_block(stock) +
+                '<div class="review-block"><h4>資料狀態</h4><p>' + escape(_dev160_data_status(stock)) + '</p></div>'
+                '</div>'
+            )
+            cards.append(card)
+        return '<div class="source-grid">' + ''.join(cards) + '</div>'
+    return '<div class="source-grid"><div class="source-item"><h3>每日股價預測資料</h3><p>資料尚未完成，不產生假預測。</p><p>重大新聞資料待接</p><span class="badge warn">正式預測資料待接</span></div></div>'
+
+
+def freshness_cards(runtime: dict[str, Any]) -> str:
+    labels = [
+        ('07:00 盤前資料', 'partial', '盤前摘要可用；正式預測資料請看每日股價預測區。'),
+        ('13:05 盤中追蹤：今日資料尚未完成', 'missing', '狀態：盤中分析尚未產生正式資料。可能原因：pipeline 仍在處理或已逾時。處理方式：請以 Dashboard 其他已完成區塊為準，等待下次更新。'),
+        ('13:35 收盤快照：資料尚未產生', 'missing', '說明：收盤快照資料待接；完整檢討以 15:00 盤後檢討為主。'),
+        ('15:00 盤後檢討資料', 'missing', '盤後檢討資料待接；單日檢討與 7 天滾動檢討分區顯示。'),
+        ('追蹤名單', 'watchlist_valid', '追蹤名單有效。'),
+        ('Debug / 範例資料隔離', 'partial', 'Debug / 範例 artifact 已隔離，不作為正式最新報告。'),
+    ]
+    return '<div class="source-grid">' + ''.join('<div class="source-item"><h3>' + escape(n) + '</h3><p>' + escape(msg) + '</p><span class="badge ' + badge(st) + '">' + escape(msg.split('。')[0]) + '</span></div>' for n, st, msg in labels) + '</div>'
+
+
+def stock_cards(runtime: dict[str, Any]) -> str:
+    stocks = [s for s in runtime.get('stock_universe', []) if isinstance(s, dict) and s.get('stock_id')]
+    per = [s for s in runtime.get('per_stock_summaries', []) if isinstance(s, dict) and s.get('stock_id')]
+    by_id = {str(s.get('stock_id')): s for s in per}
+    cards = []
+    for s in stocks:
+        detail = by_id.get(str(s.get('stock_id')), {})
+        body = '<p>追蹤名單有效</p><p>正式評等資料：待接</p><p>預測資料：請看每日股價預測區</p>'
+        if detail.get('rating') or detail.get('action') or detail.get('total_score') is not None:
+            body = '<p>評等：' + escape(str(detail.get('rating') or '待接')) + '</p><p>動作：' + escape(str(detail.get('action') or '待接')) + '</p><p>分數：' + escape(str(detail.get('total_score') if detail.get('total_score') is not None else '待接')) + '</p>'
+        cards.append('<div class="source-item"><h3>' + escape(str(s.get('stock_id'))) + ' ' + escape(str(s.get('stock_name') or '')) + '</h3>' + body + '<span class="badge safe">追蹤名單有效</span></div>')
+    return '<div class="source-grid">' + (''.join(cards) if cards else '<div class="source-item"><h3>追蹤名單</h3><p>資料尚未完成</p></div>') + '</div>'
+
+
+def latest_report_cards(runtime: dict[str, Any]) -> str:
+    return '<div class="source-grid"><div class="source-item"><h3>Debug / Legacy</h3><p>Debug / 範例 artifact 已隔離，不作為正式最新報告。</p></div></div>'
+
+
+def window_cards(runtime: dict[str, Any]) -> str:
+    defs = [
+        ('07:00', '盤前決策摘要', '盤前摘要可用', 'LINE 為短提醒 + Dashboard URL', 'partial'),
+        ('13:05', '盤中追蹤', '13:05 盤中追蹤：今日資料尚未完成', 'timeout 時不發 LINE / Email，避免過時通知。', 'missing'),
+        ('13:35', '收盤快照', '13:35 收盤快照：資料尚未產生', '完整檢討以 15:00 盤後檢討為主。', 'missing'),
+        ('15:00', '盤後檢討', '盤後檢討 / prediction review', '單日檢討與 7 天滾動檢討分區顯示。', 'partial'),
+    ]
+    return ''.join('<article class="card window-card"><div class="window-time">' + t + '</div><div class="window-title">' + escape(title) + '</div><p><strong>' + escape(a) + '</strong></p><p>' + escape(b) + '</p><span class="badge ' + badge(st) + '">' + ('部分缺資料' if st == 'partial' else '資料尚未完成') + '</span></article>' for t, title, a, b, st in defs)
+
+
+def render_route_html(artifact: dict[str, Any], preview_html: str) -> str:
+    runtime = load_json(REPO_ROOT / RUNTIME_DATA) if (REPO_ROOT / RUNTIME_DATA).exists() else {}
+    latest_ts = escape(str(runtime.get('latest_data_timestamp') or '資料待接'))
+    stocks = [s for s in runtime.get('stock_universe', []) if isinstance(s, dict) and s.get('stock_id')]
+    style = ":root{--ink:#132227;--line:#d8e2e6;--ok:#e8f5ee;--warn:#fff7e5;--blue:#e9f3fb}*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f4f7f8;color:var(--ink);line-height:1.55}header{background:#17424b;color:#fff;padding:24px 16px}main{max-width:1120px;margin:0 auto;padding:16px}h1{font-size:clamp(26px,4vw,40px);margin:0 0 8px}h2{font-size:22px;margin:0 0 12px}h3{font-size:18px;margin:0 0 8px}p{margin:0 0 10px}.badge-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.badge{display:inline-flex;border-radius:999px;padding:6px 10px;background:#e9f3fb;color:#123b44;font-weight:700;font-size:14px;border:1px solid rgba(18,59,68,.18)}.badge.warn{background:var(--warn);color:#6e4d00}.badge.safe{background:var(--ok);color:#23533b}.card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;margin:14px 0}.hero{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px;margin-top:-10px}.grid,.source-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.window-card{display:flex;flex-direction:column;gap:8px}.window-time{font-size:28px;font-weight:800;color:#123b44}.window-title{font-size:24px;font-weight:800}.preview-note{background:var(--blue);border:1px solid #c8dcea;border-radius:10px;padding:12px;color:#244f64}.source-item{border:1px solid var(--line);border-radius:10px;padding:12px;background:#fbfdfe}.review-block{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}.review-block h4{margin:0 0 8px;font-size:16px;color:#123b44}details{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin:14px 0}summary{font-weight:800;cursor:pointer}@media (max-width:760px){main{padding:12px}.grid,.source-grid{grid-template-columns:1fr}.window-time{font-size:24px}.window-title{font-size:21px}.hero,.card{border-radius:10px;padding:14px}}"
+    return '<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>四時段 AI 決策儀表板</title><style>' + style + '</style></head><body><header><h1>四時段 AI 決策儀表板</h1><p>盤前、盤中、收盤快照、盤後檢討</p><div class="badge-row"><span class="badge warn">部分資料可用；缺資料不造假</span><span class="badge">最新本機摘要：' + latest_ts + '</span><span class="badge safe">不通知、不下單、不改策略</span></div></header><main><section class="hero"><h2>今日決策摘要</h2><p>目前可用於初步參考：追蹤名單有效、盤前本機摘要可用；正式預測與檢討若尚未完成，會以人話標示資料尚未完成。</p><p class="preview-note">沒有 runtime 資料就不產生假預測；沒有新聞標題就顯示重大新聞資料待接。</p><div class="badge-row"><span class="badge safe">追蹤名單 ' + str(len(stocks)) + ' 檔有效</span><span class="badge warn">今日資料尚未完成</span><span class="badge warn">重大新聞資料待接</span></div></section><section class="card"><h2>四個時段怎麼看</h2><div class="grid">' + window_cards(runtime) + '</div></section><section class="card"><h2>目前追蹤標的</h2>' + stock_cards(runtime) + '</section>' + _dev160_prediction_method_card() + '<section class="card"><h2>每日股價預測資料狀態</h2>' + prediction_cards(runtime) + '</section><section class="card"><h2>Forecast Calibration / 回測校準狀態</h2>' + calibration_cards() + '</section><section class="card"><h2>Forecast Snapshot Accumulation / 預測樣本累積進度</h2>' + snapshot_accumulation_cards() + '</section><section class="card"><h2>實際結果 / 預測檢討狀態</h2>' + review_cards(runtime) + '</section><section class="card"><h2>資料新鮮度</h2>' + freshness_cards(runtime) + '</section><details><summary>Debug / Legacy</summary><p>Debug / 範例 artifact 已隔離，不作為正式最新報告。</p></details></main></body></html>'
