@@ -602,13 +602,33 @@ def render_route_html(*_args: Any, **_kwargs: Any) -> str:
         <button type=\"button\" class=\"manual-rerun-button\" data-window=\"pre_close_1335\">重跑 13:35 收盤快照</button>
         <button type=\"button\" class=\"manual-rerun-button\" data-window=\"post_close_1500\">重跑 15:00 盤後檢討</button>
       </div>
-      <form id=\"manual-rerun-form\" data-endpoint=\"/stock-ai-dashboard/api/manual-rerun\">
+      <form id=\"manual-rerun-form\" data-endpoint=\"/stock-ai-dashboard/api/manual-rerun\" data-status-endpoint=\"/stock-ai-dashboard/api/manual-rerun/status\">
         <p id=\"manual-rerun-selected\">尚未選擇批次。</p>
         <label>6 位數字重跑密碼 <input id=\"manual-rerun-pin\" name=\"pin\" inputmode=\"numeric\" autocomplete=\"off\" pattern=\"[0-9]{6}\" minlength=\"6\" maxlength=\"6\" placeholder=\"請輸入 6 位數字\"></label>
         <input type=\"hidden\" id=\"manual-rerun-window\" name=\"window\" value=\"\">
         <button type=\"submit\">確認執行單一批次重跑</button>
+        <button type=\"button\" id=\"manual-rerun-refresh\">重新整理重跑狀態</button>
       </form>
       <div id=\"manual-rerun-status\">手動重跑功能若尚未設定 runtime PIN hash，後端會回覆「尚未啟用」。</div>
+      <section class=\"manual-rerun-status-card\" aria-live=\"polite\">
+        <h3>手動重跑狀態</h3>
+        <p class=\"muted\">完成判斷：狀態進入已完成、已拒絕、PIN 格式錯誤、PIN 錯誤或未授權、執行失敗後，輪詢會停止。可按「重新整理重跑狀態」再次查詢。</p>
+        <div class=\"grid\">
+          <div><strong>目前狀態</strong><p id=\"manual-rerun-state-label\">尚未執行 / 目前沒有手動重跑任務</p></div>
+          <div><strong>批次</strong><p id=\"manual-rerun-window-label\">資料待接</p></div>
+          <div><strong>模式</strong><p id=\"manual-rerun-mode-label\">dashboard_refresh_only</p></div>
+          <div><strong>任務 ID</strong><p id=\"manual-rerun-job-label\">資料待接</p></div>
+          <div><strong>送出時間</strong><p id=\"manual-rerun-requested-label\">資料待接</p></div>
+          <div><strong>開始時間</strong><p id=\"manual-rerun-started-label\">資料待接</p></div>
+          <div><strong>完成時間</strong><p id=\"manual-rerun-finished-label\">資料待接</p></div>
+          <div><strong>LINE 是否觸發</strong><p id=\"manual-rerun-line-label\">否</p></div>
+          <div><strong>Email 是否觸發</strong><p id=\"manual-rerun-email-label\">否</p></div>
+          <div><strong>交易/下單是否發生</strong><p id=\"manual-rerun-trading-label\">否</p></div>
+          <div><strong>錯誤/拒絕原因</strong><p id=\"manual-rerun-reason-label\">資料待接</p></div>
+          <div><strong>最後更新時間</strong><p id=\"manual-rerun-updated-label\">尚未查詢</p></div>
+        </div>
+        <p id=\"manual-rerun-completion-label\" class=\"preview-note\">目前沒有手動重跑任務。按下任一批次並通過驗證後，這裡會顯示執行中與完成結果。</p>
+      </section>
       <p class=\"muted\">確認文案：你即將手動重跑所選批次；此操作只會重跑這一個批次並刷新 Dashboard。不會重送 LINE / Email。不會執行交易。不會一次重跑四個批次。請輸入 6 位數字重跑密碼。</p>
     </section>
     <script>
@@ -619,44 +639,115 @@ def render_route_html(*_args: Any, **_kwargs: Any) -> str:
         pre_close_1335: '13:35 收盤快照',
         post_close_1500: '15:00 盤後檢討'
       };
+      const statusText = {
+        ready: '尚未執行 / 目前沒有手動重跑任務',
+        idle: '尚未執行 / 目前沒有手動重跑任務',
+        manual_rerun_disabled: '尚未執行 / 目前沒有手動重跑任務',
+        accepted: '已送出，等待執行',
+        queued: '已送出，等待執行',
+        running: '執行中',
+        completed: '已完成',
+        success: '已完成',
+        succeeded: '已完成',
+        rejected: '已拒絕',
+        invalid_pin_format: 'PIN 格式錯誤',
+        unauthorized: 'PIN 錯誤或未授權',
+        invalid_pin: 'PIN 錯誤或未授權',
+        pin_mismatch: 'PIN 錯誤或未授權',
+        failed: '執行失敗',
+        error: '執行失敗',
+        unknown: '狀態未知，請檢查 runtime'
+      };
+      const terminalStates = new Set(['completed','success','succeeded','failed','error','rejected','invalid_pin_format','unauthorized','invalid_pin','pin_mismatch','manual_rerun_disabled']);
       let selectedWindow = '';
+      let pollTimer = null;
+      const form = document.getElementById('manual-rerun-form');
+      const status = document.getElementById('manual-rerun-status');
+      const pinInput = document.getElementById('manual-rerun-pin');
+      const setText = (id, value) => { const el = document.getElementById(id); if (el) { el.textContent = value ?? '資料待接'; } };
+      const yesNo = (value) => value === true ? '是' : '否';
+      const normalizeStatus = (value) => String(value || 'idle');
+      const showStatus = (payload, sourceLabel = 'runtime') => {
+        const current = normalizeStatus(payload.status || (payload.accepted ? 'accepted' : 'idle'));
+        setText('manual-rerun-state-label', statusText[current] || statusText.unknown);
+        setText('manual-rerun-window-label', labels[payload.requested_window || payload.window] || payload.requested_window || payload.window || '資料待接');
+        setText('manual-rerun-mode-label', payload.mode || 'dashboard_refresh_only');
+        setText('manual-rerun-job-label', payload.job_id || '資料待接');
+        setText('manual-rerun-requested-label', payload.requested_at || '資料待接');
+        setText('manual-rerun-started-label', payload.started_at || '資料待接');
+        setText('manual-rerun-finished-label', payload.finished_at || '資料待接');
+        setText('manual-rerun-line-label', yesNo(payload.line_attempted));
+        setText('manual-rerun-email-label', yesNo(payload.email_attempted));
+        setText('manual-rerun-trading-label', yesNo(payload.trading_or_order_executed));
+        setText('manual-rerun-reason-label', payload.reason || payload.error_message || '資料待接');
+        setText('manual-rerun-updated-label', new Date().toLocaleString('zh-TW'));
+        let completion = '狀態已更新。';
+        if (['completed','success','succeeded'].includes(current)) { completion = '重跑已完成。Dashboard / artifacts 已刷新；LINE / Email 未觸發；未執行交易。'; }
+        else if (['failed','error'].includes(current)) { completion = '重跑失敗，請查看錯誤/拒絕原因與 runtime 記錄。'; }
+        else if (['rejected','invalid_pin_format','unauthorized','invalid_pin','pin_mismatch','manual_rerun_disabled'].includes(current)) { completion = '重跑被拒絕，未執行批次。'; }
+        else if (['accepted','queued','running'].includes(current)) { completion = '重跑已送出 / 執行中，系統會每 4 秒自動更新狀態。'; }
+        else { completion = '目前沒有手動重跑任務，或狀態未知。'; }
+        setText('manual-rerun-completion-label', completion);
+        status.textContent = `${sourceLabel}：${statusText[current] || statusText.unknown}`;
+        return current;
+      };
+      const stopPolling = () => { if (pollTimer) { window.clearInterval(pollTimer); pollTimer = null; } };
+      const fetchStatus = async (sourceLabel = '狀態查詢') => {
+        try {
+          const response = await fetch(form.dataset.statusEndpoint, {headers: {'Accept': 'application/json'}, cache: 'no-store'});
+          const contentType = response.headers.get('content-type') || '';
+          if (!contentType.includes('application/json')) { throw new Error('status endpoint returned non-JSON'); }
+          const data = await response.json();
+          const current = showStatus(data, sourceLabel);
+          if (terminalStates.has(current)) { stopPolling(); }
+          return data;
+        } catch (error) {
+          stopPolling();
+          showStatus({status: 'error', reason: '手動重跑後端或 nginx route 暫時無法連線'}, '狀態查詢失敗');
+          return null;
+        }
+      };
+      const startPolling = () => {
+        stopPolling();
+        pollTimer = window.setInterval(() => { fetchStatus('自動更新'); }, 4000);
+      };
       document.querySelectorAll('.manual-rerun-button').forEach((button) => {
         button.addEventListener('click', () => {
           selectedWindow = button.dataset.window || '';
           document.getElementById('manual-rerun-window').value = selectedWindow;
           document.getElementById('manual-rerun-selected').textContent = `你即將手動重跑：${labels[selectedWindow] || selectedWindow}`;
+          showStatus({status: 'idle', window: selectedWindow, mode: 'dashboard_refresh_only'}, '已選擇批次');
         });
       });
-      const form = document.getElementById('manual-rerun-form');
+      document.getElementById('manual-rerun-refresh').addEventListener('click', () => { fetchStatus('手動重新整理'); });
       form.addEventListener('submit', async (event) => {
         event.preventDefault();
-        const pin = document.getElementById('manual-rerun-pin').value;
-        const status = document.getElementById('manual-rerun-status');
+        const pin = pinInput.value;
         if (!selectedWindow) { status.textContent = '請先選擇一個批次。'; return; }
-        if (!/^\d{6}$/.test(pin)) { status.textContent = '請輸入 6 位數字重跑密碼。'; return; }
+        if (!/^\d{6}$/.test(pin)) { showStatus({status: 'invalid_pin_format', window: selectedWindow, reason: '請輸入 6 位數字重跑密碼。'}, '表單檢查'); return; }
         const confirmed = window.confirm(`你即將手動重跑：${labels[selectedWindow]}\n此操作只會重跑這一個批次並刷新 Dashboard。\n不會重送 LINE / Email。\n不會執行交易。\n不會一次重跑四個批次。\n確認執行？`);
         if (!confirmed) { return; }
-        status.textContent = '已送出手動重跑請求，等待後端回應...';
+        showStatus({status: 'accepted', window: selectedWindow, mode: 'dashboard_refresh_only'}, '送出中');
         try {
           const response = await fetch(form.dataset.endpoint, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({window: selectedWindow, mode: 'dashboard_re\\u0066resh_only', pin, confirm_single_window_only: true, reason: 'manual dashboard rerun', idempotency_key: `${selectedWindow}-${Date.now()}`})
+            headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+            body: JSON.stringify({window: selectedWindow, mode: 'dashboard_re\u0066resh_only', pin, confirm_single_window_only: true, reason: 'manual dashboard rerun', idempotency_key: `${selectedWindow}-${Date.now()}`})
           });
+          pinInput.value = '';
+          const contentType = response.headers.get('content-type') || '';
+          if (!contentType.includes('application/json')) { throw new Error('manual rerun endpoint returned non-JSON'); }
           const data = await response.json();
-          if (data.accepted) {
-            status.textContent = `已接受手動重跑：${labels[selectedWindow]}；模式：只刷新 Dashboard，不重送 LINE / Email；Job ID：${data.job_id || '待接'}`;
-          } else if (data.status === 'manual_rerun_disabled') {
-            status.textContent = '手動重跑功能尚未啟用；請先設定 6 位數字重跑密碼。';
-          } else if (data.status === 'unauthorized') {
-            status.textContent = '密碼驗證失敗，未執行重跑。';
-          } else {
-            status.textContent = `未執行重跑：${data.status || 'rejected'}`;
-          }
+          const current = showStatus(data, response.ok ? '送出結果' : '拒絕結果');
+          if (data.accepted && !terminalStates.has(current)) { startPolling(); }
+          else { stopPolling(); }
         } catch (error) {
-          status.textContent = '手動重跑後端尚未部署或暫時無法連線；未執行重跑。';
+          pinInput.value = '';
+          stopPolling();
+          showStatus({status: 'error', window: selectedWindow, reason: '手動重跑後端尚未部署或暫時無法連線；未執行重跑。'}, '送出失敗');
         }
       });
+      fetchStatus('初始狀態');
     })();
     </script>
     """
