@@ -78,7 +78,7 @@ WINDOWS = {
         "pipeline_type": "pre_open",
         "line_policy": "link-only notification handled by production pre_open pipeline",
         "line_mode": "handled_by_pipeline",
-        "email_policy": "full scheduled delivery summary",
+        "email_policy": "PM-readable scheduled summary with Dashboard link",
         "dashboard_policy": "publish latest full scheduler snapshot",
         "fallback_state": "pipeline output tail is included if report content is partial",
     },
@@ -88,7 +88,7 @@ WINDOWS = {
         "pipeline_type": "intraday",
         "line_policy": "link-only notification with dashboard URL only",
         "line_mode": "concise_reminder",
-        "email_policy": "full report from validated pipeline output when available",
+        "email_policy": "PM-readable window summary with Dashboard link",
         "dashboard_policy": "publish latest intraday scheduler snapshot",
         "fallback_state": "report content pending / insufficient data if pipeline only returns context summary",
     },
@@ -98,7 +98,7 @@ WINDOWS = {
         "pipeline_type": "pre_close",
         "line_policy": "link-only close snapshot notification with dashboard URL only",
         "line_mode": "concise_reminder",
-        "email_policy": "full report from validated pipeline output when available",
+        "email_policy": "PM-readable window summary with Dashboard link",
         "dashboard_policy": "publish latest pre-close scheduler snapshot",
         "fallback_state": "report content pending / insufficient data if pipeline only returns context summary",
     },
@@ -108,7 +108,7 @@ WINDOWS = {
         "pipeline_type": "post_close",
         "line_policy": "link-only post-close review notification with dashboard URL only",
         "line_mode": "concise_reminder",
-        "email_policy": "full post-close / prediction review report, including pending state",
+        "email_policy": "PM-readable post-close review summary with Dashboard link",
         "dashboard_policy": "publish latest post-close / prediction review snapshot",
         "fallback_state": "prediction review pending / insufficient data when review records are unavailable",
     },
@@ -288,55 +288,20 @@ def build_pipeline_diagnostics(completed: subprocess.CompletedProcess[str], outp
 
 def render_dashboard(window_id: str, run_id: str, generated_at: str, pipeline_status: str, output_tail: str) -> str:
     cfg = window_config(window_id)
-    report_content = user_facing_report_content(window_id, pipeline_status, output_tail)
-    escaped_report_content = html.escape(report_content)
+    dashboard_url = DEFAULT_DECISION_INTELLIGENCE_DASHBOARD_URL
     rows = [
-        ("Generated At", generated_at),
-        ("Run ID", run_id),
-        ("Scheduler Window", window_id),
-        ("Local Time", cfg["local_time"]),
-        ("Pipeline", cfg["pipeline_type"]),
-        ("Pipeline Status", pipeline_status),
-        ("Content State", content_state(window_id, output_tail, pipeline_status)),
-        ("LINE", cfg["line_policy"]),
-        ("Email", cfg["email_policy"]),
-        ("Dashboard", cfg["dashboard_policy"]),
-        ("Diagnostics", "stored in delivery artifact; not rendered as the main report"),
-        ("Trading", "disabled"),
+        ("批次", cfg["label"]),
+        ("產生時間", generated_at),
+        ("狀態", pipeline_status),
+        ("內容定位", "Legacy / Debug landing；正式決策內容請看四時段 Dashboard"),
+        ("正式入口", dashboard_url),
     ]
-    body = "\n".join(
-        f"<tr><th>{html.escape(label)}</th><td>{html.escape(value)}</td></tr>"
-        for label, value in rows
-    )
+    body = "\n".join(f"<tr><th>{html.escape(label)}</th><td>{html.escape(str(value))}</td></tr>" for label, value in rows)
     return f"""<!doctype html>
-<html lang="zh-Hant">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Stock AI Scheduler Dashboard</title>
-  <style>
-    body {{ font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 28px; color: #17202a; }}
-    main {{ max-width: 1040px; margin: 0 auto; }}
-    h1 {{ font-size: 28px; margin: 0 0 8px; }}
-    .status {{ margin: 0 0 22px; color: #566573; }}
-    table {{ border-collapse: collapse; width: 100%; margin-bottom: 24px; }}
-    th, td {{ border-bottom: 1px solid #d6dbdf; padding: 12px; text-align: left; vertical-align: top; }}
-    th {{ width: 230px; background: #f8f9f9; }}
-    pre {{ white-space: pre-wrap; overflow-wrap: anywhere; background: #f8f9f9; border: 1px solid #d6dbdf; padding: 14px; }}
-  </style>
-</head>
-<body>
-<main>
-  <h1>Stock AI {html.escape(cfg["label"])} Dashboard</h1>
-  <p class="status">Approved scheduler delivery snapshot. Advisory only; no trading action is authorized.</p>
-  <table>{body}</table>
-  <h2>Report Content</h2>
-  <pre>{escaped_report_content}</pre>
-</main>
-</body>
-</html>
-"""
-
+<html lang=\"zh-Hant\">
+<head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>Stock AI Legacy / Debug Landing</title>
+<style>body{{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;background:#f6f7fb;color:#17202a}}main{{max-width:920px;margin:0 auto;padding:32px 20px}}section{{background:#fff;border:1px solid #d6dbdf;border-radius:8px;padding:20px;margin-bottom:16px}}th,td{{border-bottom:1px solid #e5e7eb;padding:10px;text-align:left}}th{{width:180px;color:#667085}}a{{color:#075985;font-weight:700}}</style></head>
+<body><main><section><h1>Stock AI Legacy / Debug Landing</h1><p>正式決策入口已移至四時段 Decision Intelligence Dashboard。此頁只保留 legacy/debug 狀態入口，不再呈現 raw pipeline report content。</p><p><a href=\"{html.escape(dashboard_url)}\">前往正式四時段 Decision Intelligence Dashboard</a></p></section><section><h2>本次批次狀態</h2><table>{body}</table><p>Raw logs / pipeline details stay in artifacts and diagnostics only.</p></section></main></body></html>"""
 
 def publish_dashboard(publish_dir: Path, window_id: str, run_id: str, generated_at: str, pipeline_status: str, output_tail: str) -> dict[str, Any]:
     publish_dir.mkdir(parents=True, exist_ok=True)
@@ -368,26 +333,75 @@ def publish_dashboard(publish_dir: Path, window_id: str, run_id: str, generated_
     }
 
 
-def build_email_body(window_id: str, run_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str) -> str:
-    cfg = window_config(window_id)
-    report_content = user_facing_report_content(window_id, pipeline_status, output_tail)
-    return (
-        f"Stock AI approved {cfg['label']} delivery completed.\n\n"
-        f"run_id: {run_id}\n"
-        f"generated_at: {generated_at}\n"
-        f"scheduler_window: {window_id}\n"
-        f"pipeline_type: {cfg['pipeline_type']}\n"
-        f"pipeline_status: {pipeline_status}\n"
-        f"content_state: {content_state(window_id, output_tail, pipeline_status)}\n"
-        f"dashboard_url: {dashboard_url}\n"
-        f"line_policy: {cfg['line_policy']}\n"
-        f"email_policy: {cfg['email_policy']}\n"
-        f"dashboard_policy: {cfg['dashboard_policy']}\n"
-        "trading/order/portfolio action: no\n\n"
-        "Report content:\n"
-        f"{tail_text(report_content, EMAIL_BODY_LIMIT)}"
-    )
+def _load_json(path: Path) -> dict[str, Any]:
+    try:
+        return json.loads(path.read_text())
+    except Exception:
+        return {}
 
+
+def _production_email_summary() -> dict[str, Any]:
+    export = _load_json(REPO_ROOT / "templates/four_window_dashboard_production_runtime_export.example.json")
+    prediction = _load_json(REPO_ROOT / "artifacts/runtime/formal_prediction_runtime_latest.json")
+    snapshot = _load_json(REPO_ROOT / "artifacts/archive/formal_forecast_snapshots/index/formal_forecast_snapshot_index_latest.json")
+    calibration = _load_json(REPO_ROOT / "artifacts/runtime/forecast_calibration_proposal_latest.json")
+    stocks = export.get("per_stock_summaries") or []
+    rating_available = sum(1 for item in stocks if item.get("rating") not in (None, "", "資料待接") and item.get("total_score") not in (None, "", "資料待接"))
+    pred_stocks = prediction.get("stocks") or []
+    prediction_available = 0
+    for item in pred_stocks:
+        vals = [item.get("same_day_high_prediction"), item.get("same_day_low_prediction"), item.get("next_day_high_prediction"), item.get("next_day_low_prediction")]
+        if all(isinstance(v, (int, float)) and v > 0 for v in vals):
+            prediction_available += 1
+    stock_count = export.get("stock_universe_count") or len(stocks) or len(pred_stocks) or 0
+    return {
+        "stock_count": stock_count,
+        "rating_available": rating_available,
+        "prediction_count": len(pred_stocks) or stock_count,
+        "prediction_available": prediction_available,
+        "prediction_snapshots": snapshot.get("prediction_snapshot_count", 0),
+        "actual_snapshots": snapshot.get("actual_outcome_snapshot_count", 0),
+        "review_snapshots": snapshot.get("review_snapshot_count", 0),
+        "calibration_gate": calibration.get("tuning_gate_status") or (snapshot.get("calibration_gate_progress") or {}).get("current_gate_status") or "blocked_insufficient_sample",
+        "latest_data_timestamp": export.get("latest_runtime_timestamp") or export.get("generated_at") or "資料待接",
+        "top_signals": stocks[:3],
+    }
+
+
+def build_email_body(window_id: str, run_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str) -> str:
+    summary = _production_email_summary()
+    titles = {
+        "pre_open_0700": "【Stock AI】07:00 盤前決策摘要已更新",
+        "intraday_1305": "【Stock AI】13:05 盤中追蹤已更新",
+        "pre_close_1335": "【Stock AI】13:35 收盤快照已更新",
+        "post_close_1500": "【Stock AI】15:00 盤後檢討已更新",
+    }
+    status_label = {
+        "pre_open_0700": "盤前評等資料",
+        "intraday_1305": "盤中追蹤資料",
+        "pre_close_1335": "收盤快照資料",
+        "post_close_1500": "盤後檢討資料",
+    }.get(window_id, "批次資料")
+    lines = [
+        titles.get(window_id, "【Stock AI】排程摘要已更新"),
+        "Dashboard：",
+        dashboard_url,
+        "",
+        "今日狀態：",
+        f"- 最新資料時間：{summary['latest_data_timestamp']}",
+        f"- 追蹤標的：{summary['stock_count']} 檔",
+        f"- {status_label}：{summary['rating_available']} / {summary['stock_count']} 檔可用",
+        f"- 今日/隔日預測資料：{summary['prediction_available']} / {summary['prediction_count']} 檔可用",
+        f"- Snapshot 累積：prediction {summary['prediction_snapshots']}、actual outcome {summary['actual_snapshots']}、review {summary['review_snapshots']}",
+        f"- Calibration gate：{summary['calibration_gate']}",
+    ]
+    top = [s for s in summary["top_signals"] if s.get("rating") and s.get("total_score")]
+    if top:
+        lines += ["", "今日摘要 Top Signals："]
+        for item in top[:3]:
+            lines.append(f"- {item.get('stock_id','')} {item.get('stock_name','')}：{item.get('rating','資料待接')} / {item.get('action','資料待接')} / 分數 {item.get('total_score','資料待接')}")
+    lines += ["", "重點提醒：", "- baseline V1 仍在回測校準。", "- 預測僅供研究參考，非交易指令。", "- 詳細個股、預測、風險與檢討請看 Dashboard。", "本信不包含下單建議。"]
+    return "\n".join(lines)
 
 def send_delivery_email(env_file: Path, window_id: str, run_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str) -> dict[str, Any]:
     cfg = window_config(window_id)
@@ -510,6 +524,30 @@ def run_pipeline(python_bin: str, window_id: str, policy: TimeoutPolicy) -> dict
             "timed_out": True,
             "termination": termination,
         }
+
+
+def _run_internal_artifact_command(args: list[str]) -> dict[str, Any]:
+    started = datetime.now(timezone.utc).isoformat()
+    proc = subprocess.run([sys.executable, *args], cwd=REPO_ROOT, text=True, capture_output=True, timeout=180, check=False)
+    return {"command": "python " + " ".join(args), "returncode": proc.returncode, "ok": proc.returncode == 0, "started_at": started, "stdout_tail": tail_text(proc.stdout, 3000), "stderr_tail": tail_text(proc.stderr, 3000)}
+
+
+def post_delivery_artifact_wiring(*, window_id: str, generated_at: str) -> dict[str, Any]:
+    run_date = generated_at[:10]
+    commands: list[list[str]] = []
+    if window_id == "pre_open_0700":
+        commands.append(["scripts/orchestrator/build_formal_prediction_runtime_artifact.py", "--date", run_date, "--pretty"])
+        commands.append(["scripts/orchestrator/archive_formal_forecast_daily_snapshot.py", "--date", run_date, "--pretty"])
+    elif window_id == "post_close_1500":
+        commands.append(["scripts/orchestrator/build_formal_prediction_review_runtime_artifact.py", "--date", run_date, "--pretty"])
+        commands.append(["scripts/orchestrator/archive_formal_forecast_daily_snapshot.py", "--date", run_date, "--pretty"])
+    commands.extend([
+        ["scripts/orchestrator/build_four_window_dashboard_production_runtime_export_v1.py", "--pretty"],
+        ["scripts/orchestrator/build_four_window_dashboard_route_preview.py", "--pretty"],
+        ["scripts/orchestrator/publish_four_window_dashboard_preview_v1.py", "--pretty"],
+    ])
+    results = [_run_internal_artifact_command(cmd) for cmd in commands]
+    return {"ok": all(item["ok"] for item in results), "window_id": window_id, "run_date": run_date, "actual_send_performed": False, "scheduler_modified": False, "commands": results}
 
 
 def dry_run_result(args: argparse.Namespace, generated_at: str, run_id: str) -> dict[str, Any]:
@@ -674,6 +712,7 @@ def main() -> int:
         Path(args.output).write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         print(stable_json({key: result[key] for key in ["schema_version", "task_id", "run_id", "scheduler_window", "pipeline_status", "late_delivery_suppressed", "line_attempted", "email_attempted", "ok", "decision"]}))
         return 0
+    post_run_artifacts = post_delivery_artifact_wiring(window_id=args.window, generated_at=generated_at)
     dashboard = publish_dashboard(Path(args.dashboard_publish_dir), args.window, run_id, generated_at, pipeline_status, output_tail)
     try:
         email = send_delivery_email(Path(args.mail_env_file), args.window, run_id, generated_at, pipeline_status, args.dashboard_url, output_tail)
@@ -716,6 +755,7 @@ def main() -> int:
             "dashboard": cfg["dashboard_policy"],
         },
         "fallback_state": cfg["fallback_state"],
+        "post_run_artifact_wiring": post_run_artifacts,
         "line_delivery": line,
         "line_delivery_status": line.get("send_status"),
         "line_delivery_reason": line.get("reason"),

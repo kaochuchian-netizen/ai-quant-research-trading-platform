@@ -1,11 +1,11 @@
 # Formal Forecast Snapshot Index
 
-Generated at: 2026-07-07T02:01:54Z
+Generated at: 2026-07-09T02:36:04Z
 
 ## Counts
-- Prediction snapshots: 1
-- Actual outcome snapshots: 1
-- Review snapshots: 1
+- Prediction snapshots: 2
+- Actual outcome snapshots: 2
+- Review snapshots: 2
 - Eligible same-day samples: 9
 - Eligible next-day samples: 0
 

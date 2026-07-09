@@ -15,7 +15,7 @@ DEFAULT_OUTPUT = ROOT / "artifacts/runtime/formal_prediction_runtime_latest.json
 RUNTIME_DATA = ROOT / "templates/four_window_dashboard_runtime_data.example.json"
 DB = ROOT / "data/stock_analysis.db"
 TAIPEI = ZoneInfo("Asia/Taipei")
-NOW = datetime(2026, 7, 6, 7, 1, tzinfo=TAIPEI)
+NOW = datetime.now(TAIPEI).replace(microsecond=0)
 
 def load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}

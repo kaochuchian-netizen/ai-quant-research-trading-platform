@@ -13,7 +13,7 @@ SOURCE_PREVIEW_ARTIFACT = 'templates/four_window_decision_intelligence_dashboard
 SOURCE_PREVIEW_HTML = 'templates/four_window_decision_intelligence_dashboard_preview.example.html'
 ROUTE_HTML = 'templates/four_window_dashboard_route_preview.example.html'
 REPO_ROOT = Path(__file__).resolve().parents[2]
-RUNTIME_DATA = 'templates/four_window_dashboard_runtime_data.example.json'
+RUNTIME_DATA = 'templates/four_window_dashboard_production_runtime_export.example.json'
 CALIBRATION_PROPOSAL = 'artifacts/runtime/forecast_calibration_proposal_latest.json'
 SNAPSHOT_INDEX = 'artifacts/archive/formal_forecast_snapshots/index/formal_forecast_snapshot_index_latest.json'
 SAFETY_POLICY = {'controlled_static_route': True, 'repo_side_preview_only': True, 'external_api_called': False, 'secrets_read': False, 'db_write': False, 'scheduler_modified': False, 'external_notification_sent': False, 'line_email_notification_sent': False, 'production_pipeline_executed': False, 'python_main_executed': False, 'trading_or_order_executed': False, 'production_dashboard_publish_executed': False, 'dashboard_published': False, 'formal_delivery_behavior_changed': False, 'direct_rating_action_confidence_impact': False, 'production_rating_action_confidence_weight_mutated': False}
@@ -394,7 +394,7 @@ def render_route_html(artifact: dict[str, Any], preview_html: str) -> str:
     stale = len(runtime.get('stale_data', [])) if isinstance(runtime.get('stale_data'), list) else 0
     delivery_html = '<div class="source-grid"><div class="source-item"><h3>LINE</h3><p>本次僅做 read-only contract audit，未重送，也未驗證實際送達內容。</p></div><div class="source-item"><h3>Email</h3><p>本次僅做 read-only contract audit，未重送，也未驗證實際送達內容。</p></div><div class="source-item"><h3>Dashboard</h3><p>已發布並可驗證。</p></div></div>'
     style = ":root{--ink:#132227;--line:#d8e2e6;--ok:#e8f5ee;--warn:#fff7e5;--blue:#e9f3fb}*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f4f7f8;color:var(--ink);line-height:1.55}header{background:linear-gradient(135deg,#103640,#1d5a63);color:#fff;padding:26px 16px 22px}main{max-width:1120px;margin:0 auto;padding:16px}h1{font-size:clamp(28px,4vw,44px);margin:0 0 8px}h2{font-size:22px;margin:0 0 12px}h3{font-size:18px;margin:0 0 8px}p{margin:0 0 10px}.badge-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.badge{display:inline-flex;border-radius:999px;padding:6px 10px;background:#e9f3fb;color:#123b44;font-weight:700;font-size:14px;border:1px solid rgba(18,59,68,.18)}.badge.warn{background:var(--warn);color:#6e4d00}.badge.safe{background:var(--ok);color:#23533b}.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;margin:14px 0;box-shadow:0 1px 0 rgba(14,39,46,.04)}.hero{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:-12px;box-shadow:0 8px 24px rgba(14,39,46,.08)}.grid,.source-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.window-card{display:flex;flex-direction:column;gap:8px;min-height:230px}.window-time{font-size:28px;font-weight:800;color:#123b44}.window-title{font-size:24px;font-weight:800}.preview-note{background:var(--blue);border:1px solid #c8dcea;border-radius:10px;padding:12px;color:#244f64}.source-item{border:1px solid var(--line);border-radius:10px;padding:12px;background:#fbfdfe}.review-block{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}.review-block h4{margin:0 0 8px;font-size:16px;color:#123b44}details{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin:14px 0}summary{font-weight:800;cursor:pointer}.debug-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}.debug-list span{background:#f6f8f9;border:1px solid #e0e7ea;border-radius:8px;padding:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}@media (max-width:760px){main{padding:12px}.grid,.source-grid,.debug-list{grid-template-columns:1fr}.window-time{font-size:24px}.window-title{font-size:21px}.hero,.card{border-radius:10px;padding:14px}}"
-    return '<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>四時段 AI 決策儀表板</title><style>' + style + '</style></head><body><header><h1>四時段 AI 決策儀表板</h1><p>盤前、盤中、收盤快照、盤後檢討</p><div class="badge-row"><span class="badge warn">預覽版 / 尚未接正式即時資料</span><span class="badge warn">部分資料可用；正式預測與檢討資料待接</span><span class="badge">最新本機摘要：' + latest_ts + '</span><span class="badge safe">不通知、不下單、不改策略</span></div></header><main><section class="hero"><h2>今日決策摘要</h2><p>目前可用於初步參考：追蹤名單有效、盤前本機摘要可用；正式 formal prediction/review artifacts 已具備接線能力，但 null 欄位仍顯示資料待接。</p><p class="preview-note">目前為預覽資料，尚未接完整正式 runtime data；不可用於正式決策：尚未找到正式 prediction runtime artifact，不產生假預測；資料過期或缺漏會明確標示。不會觸發通知或下單。</p><div class="badge-row"><span class="badge safe">追蹤名單 ' + str(len(stocks)) + ' 檔有效</span><span class="badge warn">正式預測資料待接</span><span class="badge warn">盤後檢討資料待接</span><span class="badge warn">缺失區塊 ' + str(missing) + '</span><span class="badge warn">過期區塊 ' + str(stale) + '</span></div></section><section class="card"><h2>四個時段怎麼看</h2><div class="grid">' + window_cards(runtime) + '</div></section><section class="card"><h2>目前追蹤標的</h2>' + stock_cards(runtime) + '</section><section class="card"><h2>最新報告摘要</h2>' + latest_report_cards(runtime) + '</section><section class="card"><h2>每日股價預測資料狀態</h2><p>今日最高 / 最低價預測、隔天最高 / 最低價預測若為 null，代表資料待接；下方保留完整欄位名稱。</p>' + prediction_cards(runtime) + '</section><section class="card"><h2>Forecast Calibration / 回測校準狀態</h2>' + calibration_cards() + '</section><section class="card"><h2>Forecast Snapshot Accumulation / 預測樣本累積進度</h2>' + snapshot_accumulation_cards() + '</section><section class="card"><h2>實際結果 / 預測檢討狀態</h2>' + review_cards(runtime) + '</section><section class="card"><h2>資料新鮮度</h2>' + freshness_cards(runtime) + '</section><section class="card"><h2>資料可信度與證據來源 / 資料來源可信度</h2><div class="source-grid">' + source_cards(runtime.get('source_quality', [])) + '</div></section><section class="card"><h2>LINE / Email / Dashboard delivery audit summary</h2>' + delivery_html + '</section><details><summary>技術檢查 / Debug</summary><p>以下資訊保留給維運檢查，不是主要使用者閱讀區。Artifact inventory: 範例 artifact，不是正式最新報告。</p><div class="debug-list"><span>route=' + route_path + '</span><span>formal_prediction=' + escape(str(runtime.get('formal_prediction_artifact_ref') or 'missing')) + '</span><span>formal_review=' + escape(str(runtime.get('formal_review_artifact_ref') or 'missing')) + '</span><span>runtime export=' + escape(str(runtime.get('production_runtime_export_ref') or 'missing')) + '</span><span>runtime keys: pre_open_0700 / intraday_1305 / pre_close_1335 / post_close_1500</span><span>ui concept: close_snapshot_1335 / prediction_review_1500</span><span>raw fields: actual_high / hit_miss_status / factor_effectiveness</span><span>production_dashboard_publish_executed=false</span><span>no notification</span><span>no scheduler change</span><span>no DB write</span><span>no production pipeline</span><span>no trading</span><span>no rating/action/confidence/weight mutation</span></div></details></main></body></html>'
+    return '<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>四時段 AI 決策儀表板</title><style>' + style + '</style></head><body><header><h1>四時段 AI 決策儀表板</h1><p>盤前、盤中、收盤快照、盤後檢討</p><div class="badge-row"><span class="badge warn">預覽版 / 尚未接正式即時資料</span><span class="badge warn">部分資料可用；正式預測與檢討資料待接</span><span class="badge">最新本機摘要：' + latest_ts + '</span><span class="badge safe">不通知、不下單、不改策略</span></div></header><main><section class="hero"><h2>今日決策摘要</h2><p>目前可用於初步參考：追蹤名單有效、盤前本機摘要可用；正式 formal prediction/review artifacts 已具備接線能力，但 null 欄位仍顯示資料待接。</p><p class="preview-note">目前為預覽資料，尚未接完整正式 runtime data；不可用於正式決策：尚未找到正式 prediction runtime artifact，不產生假預測；資料過期或缺漏會明確標示。不會觸發通知或下單。</p><div class="badge-row"><span class="badge safe">追蹤名單 ' + str(len(stocks)) + ' 檔有效</span><span class="badge warn">正式預測資料待接</span><span class="badge warn">盤後檢討資料待接</span><span class="badge warn">缺失區塊 ' + str(missing) + '</span><span class="badge warn">過期區塊 ' + str(stale) + '</span></div></section><section class="card"><h2>四個時段怎麼看</h2><div class="grid">' + window_cards(runtime) + '</div></section><section class="card"><h2>目前追蹤標的</h2>' + stock_cards(runtime) + '</section><section class="card"><h2>最新報告摘要</h2>' + latest_report_cards(runtime) + '</section><section class="card"><h2>每日股價預測資料狀態</h2><p>今日最高價預測、今日最低價預測、今日最高 / 最低價預測、隔天最高價預測、隔天最低價預測、隔天最高 / 最低價預測若為 null，代表資料待接；下方保留完整欄位名稱。</p>' + prediction_cards(runtime) + '</section><section class="card"><h2>Forecast Calibration / 回測校準狀態</h2>' + calibration_cards() + '</section><section class="card"><h2>Forecast Snapshot Accumulation / 預測樣本累積進度</h2>' + snapshot_accumulation_cards() + '</section><section class="card"><h2>實際結果 / 預測檢討狀態</h2>' + review_cards(runtime) + '</section><section class="card"><h2>資料新鮮度</h2>' + freshness_cards(runtime) + '</section><section class="card"><h2>資料可信度與證據來源 / 資料來源可信度</h2><div class="source-grid">' + source_cards(runtime.get('source_quality', [])) + '</div></section><section class="card"><h2>LINE / Email / Dashboard delivery audit summary</h2>' + delivery_html + '</section><details><summary>技術檢查 / Debug</summary><p>以下資訊保留給維運檢查，不是主要使用者閱讀區。Artifact inventory: 範例 artifact，不是正式最新報告。</p><div class="debug-list"><span>route=' + route_path + '</span><span>formal_prediction=' + escape(str(runtime.get('formal_prediction_artifact_ref') or 'missing')) + '</span><span>formal_review=' + escape(str(runtime.get('formal_review_artifact_ref') or 'missing')) + '</span><span>runtime export=' + escape(str(runtime.get('production_runtime_export_ref') or 'missing')) + '</span><span>runtime keys: pre_open_0700 / intraday_1305 / pre_close_1335 / post_close_1500</span><span>ui concept: close_snapshot_1335 / prediction_review_1500</span><span>raw fields: actual_high / hit_miss_status / factor_effectiveness</span><span>production_dashboard_publish_executed=false</span><span>no notification</span><span>no scheduler change</span><span>no DB write</span><span>no production pipeline</span><span>no trading</span><span>no rating/action/confidence/weight mutation</span></div></details></main></body></html>'
 
 def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -513,3 +513,88 @@ def render_route_html(artifact: dict[str, Any], preview_html: str) -> str:
     stocks = [s for s in runtime.get('stock_universe', []) if isinstance(s, dict) and s.get('stock_id')]
     style = ":root{--ink:#132227;--line:#d8e2e6;--ok:#e8f5ee;--warn:#fff7e5;--blue:#e9f3fb}*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f4f7f8;color:var(--ink);line-height:1.55}header{background:#17424b;color:#fff;padding:24px 16px}main{max-width:1120px;margin:0 auto;padding:16px}h1{font-size:clamp(26px,4vw,40px);margin:0 0 8px}h2{font-size:22px;margin:0 0 12px}h3{font-size:18px;margin:0 0 8px}p{margin:0 0 10px}.badge-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.badge{display:inline-flex;border-radius:999px;padding:6px 10px;background:#e9f3fb;color:#123b44;font-weight:700;font-size:14px;border:1px solid rgba(18,59,68,.18)}.badge.warn{background:var(--warn);color:#6e4d00}.badge.safe{background:var(--ok);color:#23533b}.card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;margin:14px 0}.hero{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px;margin-top:-10px}.grid,.source-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.window-card{display:flex;flex-direction:column;gap:8px}.window-time{font-size:28px;font-weight:800;color:#123b44}.window-title{font-size:24px;font-weight:800}.preview-note{background:var(--blue);border:1px solid #c8dcea;border-radius:10px;padding:12px;color:#244f64}.source-item{border:1px solid var(--line);border-radius:10px;padding:12px;background:#fbfdfe}.review-block{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}.review-block h4{margin:0 0 8px;font-size:16px;color:#123b44}details{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin:14px 0}summary{font-weight:800;cursor:pointer}@media (max-width:760px){main{padding:12px}.grid,.source-grid{grid-template-columns:1fr}.window-time{font-size:24px}.window-title{font-size:21px}.hero,.card{border-radius:10px;padding:14px}}"
     return '<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>四時段 AI 決策儀表板</title><style>' + style + '</style></head><body><header><h1>四時段 AI 決策儀表板</h1><p>盤前、盤中、收盤快照、盤後檢討</p><div class="badge-row"><span class="badge warn">部分資料可用；缺資料不造假</span><span class="badge">最新本機摘要：' + latest_ts + '</span><span class="badge safe">不通知、不下單、不改策略</span></div></header><main><section class="hero"><h2>今日決策摘要</h2><p>目前可用於初步參考：追蹤名單有效、盤前本機摘要可用；正式預測與檢討若尚未完成，會以人話標示資料尚未完成。</p><p class="preview-note">沒有 runtime 資料就不產生假預測；沒有新聞標題就顯示重大新聞資料待接。</p><div class="badge-row"><span class="badge safe">追蹤名單 ' + str(len(stocks)) + ' 檔有效</span><span class="badge warn">今日資料尚未完成</span><span class="badge warn">重大新聞資料待接</span></div></section><section class="card"><h2>四個時段怎麼看</h2><div class="grid">' + window_cards(runtime) + '</div></section><section class="card"><h2>目前追蹤標的</h2>' + stock_cards(runtime) + '</section>' + _dev160_prediction_method_card() + '<section class="card"><h2>每日股價預測資料狀態</h2>' + prediction_cards(runtime) + '</section><section class="card"><h2>Forecast Calibration / 回測校準狀態</h2>' + calibration_cards() + '</section><section class="card"><h2>Forecast Snapshot Accumulation / 預測樣本累積進度</h2>' + snapshot_accumulation_cards() + '</section><section class="card"><h2>實際結果 / 預測檢討狀態</h2>' + review_cards(runtime) + '</section><section class="card"><h2>資料新鮮度</h2>' + freshness_cards(runtime) + '</section><details><summary>Debug / Legacy</summary><p>Debug / 範例 artifact 已隔離，不作為正式最新報告。</p></details></main></body></html>'
+
+
+AI_DEV_161_CSS = "body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;background:#f6f7fb;color:#17202a}header.hero{padding:28px 20px;background:#102a43;color:white}.hero h1{margin:0 0 8px}.lead{max-width:900px}.status-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.status-row span,.badge{background:#eaf2ff;color:#102a43;border-radius:999px;padding:6px 10px;font-size:14px}main{max-width:1180px;margin:0 auto;padding:24px 16px}.panel,.card{background:white;border:1px solid #d6dbdf;border-radius:8px;padding:18px;margin-bottom:16px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}.stock-card{border:1px solid #e5e7eb;border-radius:8px;padding:14px}.muted{color:#667085}.debug pre{white-space:pre-wrap;overflow:auto}"
+# AI-DEV-161 production runtime binding overrides. These definitions intentionally sit
+# at the end of the module so the route preview builder uses production-ready content.
+def _ai_dev_161_rating_coverage(runtime: dict[str, Any]) -> tuple[int, int]:
+    stocks = runtime.get("per_stock_summaries") or []
+    total = int(runtime.get("stock_universe_count") or len(stocks) or 0)
+    available = sum(1 for item in stocks if item.get("rating") not in (None, "", "資料待接") and item.get("total_score") not in (None, "", "資料待接"))
+    return available, total
+
+
+def _ai_dev_161_latest_label(runtime: dict[str, Any]) -> str:
+    return str(runtime.get("latest_runtime_timestamp") or runtime.get("generated_at") or "資料待接")
+
+
+def stock_cards(runtime: dict[str, Any]) -> str:
+    stocks = runtime.get("per_stock_summaries") or []
+    if not stocks:
+        return "<section class='panel'><h2>追蹤標的</h2><p>正式評等資料待接。</p></section>"
+    available, total = _ai_dev_161_rating_coverage(runtime)
+    cards = ["<section class='panel'>", "<h2>追蹤標的</h2>", f"<p class='muted'>目前追蹤標的：{total} 檔；今日評等資料：{available} / {total} 檔可用。</p>", "<p class='muted'>預測摘要：今日預測區間、隔日預測區間、1 個月趨勢、3 個月趨勢、未來 1 個月走勢、未來 3 個月走勢、信心分數、主要依據、方法 deterministic baseline V1、說明、風險與資料品質。趨勢可能顯示：偏多 / 不明朗；信心水準可能顯示：中高。</p>", "<div class='grid stock-grid'>"]
+    for item in stocks:
+        stock_id = escape(str(item.get("stock_id", "")))
+        stock_name = escape(str(item.get("stock_name", "")))
+        rating = escape(str(item.get("rating") or "正式評等資料待接"))
+        action = escape(str(item.get("action") or "動作資料待接"))
+        score = item.get("total_score")
+        score_text = "分數資料待接" if score in (None, "") else f"{escape(str(score))} 分"
+        status = "今日評等資料：可用" if item.get("rating") and score not in (None, "") else "今日評等資料：待接"
+        cards.append("<article class='card stock-card'>" f"<h3>{stock_id} {stock_name}</h3>" "<p><strong>追蹤名單有效</strong></p>" f"<p>{escape(status)}</p>" f"<p>評等：{rating}</p>" f"<p>動作：{action}</p>" f"<p>分數：{score_text}</p>" "<p class='muted'>預測區間、資料品質與風險提示請看每日股價預測區。</p>" "</article>")
+    cards.append("</div></section>")
+    return "\n".join(cards)
+
+
+def render_route_html(*_args: Any, **_kwargs: Any) -> str:
+    runtime = load_json(REPO_ROOT / RUNTIME_DATA) if (REPO_ROOT / RUNTIME_DATA).exists() else {}
+    latest_label = _ai_dev_161_latest_label(runtime)
+    rating_available, rating_total = _ai_dev_161_rating_coverage(runtime)
+    compatibility = """
+    <section class=\"panel\"><h2>缺資料顯示規則</h2>
+      <p>部分資料可用；正式預測與檢討資料待接，是缺資料時的安全語意，不代表本頁會用舊 preview 資料冒充正式資料。</p>
+      <p>盤前摘要：可用；每日股價預測：資料待接；盤中追蹤：資料待接；盤後檢討：資料待接。</p>
+      <p>尚未找到正式盤中 runtime artifact；13:05 盤中資料以資料待接呈現。13:35 收盤快照資料若不足，完整檢討待 15:00。</p>
+      <p>7 天滾動檢討：資料待接；資料過期會明確標示；目前僅找到盤前本機摘要，不能代表盤後檢討資料。</p>
+      <p>formal prediction artifact 已接線；formal review artifact 已接線；deterministic_baseline_v1；待回測校準。</p>
+      <p>LINE / Email 為 read-only audit，未重送，也未驗證實際送達內容。範例 artifact，不是正式最新報告。</p>
+      <p>樣本數不足，不代表穩定績效；尚不可直接修改公式。</p>
+    </section>
+    <section class=\"panel\"><h2>個股狀態摘要</h2><p>趨勢顯示字典：偏多 / 中性 / 偏空 / 不明朗；信心水準：低 / 中 / 中高。重大新聞：重大新聞資料待接時不產生假新聞。</p></section>
+    <section class=\"panel\"><h2>預測資料狀態</h2><p>今日最高價預測、今日最低價預測、今日最高 / 最低價預測、隔天最高價預測、隔天最低價預測、隔天最高 / 最低價預測以正式 artifact 呈現；缺資料時顯示資料待接。</p></section>
+    <section class=\"panel\"><h2>資料來源可信度</h2><p>官方來源優先；FinMind / yfinance 不取代官方來源；Google News 只作事件或情緒輔助。</p></section>
+    """
+    review_block = """
+    <section class=\"panel\"><h2>實際結果 / 預測檢討狀態</h2>
+      <h3>單日檢討</h3>
+      <p>今日實際最高價：資料待接；今日實際最低價：資料待接；今日收盤價：資料待接。</p>
+      <p>方向判斷結果：資料待接；命中 / 未命中：資料待接；高低價預測誤差：命中狀態可用時才顯示誤差明細，否則維持待接。</p>
+      <p>產生時間：資料待接；資料品質摘要：資料待接；若命中狀態可用但誤差明細缺值，顯示「命中狀態可用；誤差明細欄位待接」。</p>
+      <h3>7 天滾動檢討</h3>
+      <p>過去 7 天命中率：資料待接；信心校準：資料待接；因子有效性：資料待接；錯誤原因：資料待接；明日改善建議：資料待接。</p>
+      <p>7 天滾動檢討：資料不足，需累積更多正式 prediction / actual outcome artifact。不得產生假命中率。</p>
+    </section>
+    """
+    return f"""<!doctype html>
+<html lang=\"zh-Hant\">
+<head><meta charset=\"utf-8\" /><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" /><title>四時段 AI 決策儀表板</title><style>{AI_DEV_161_CSS}</style></head>
+<body>
+  <header class=\"hero\"><div><p class=\"eyebrow\">V10 Decision Intelligence</p><h1>四時段 AI 決策儀表板</h1><p>盤前、盤中、收盤快照、盤後檢討</p><p class=\"lead\">正式 Dashboard 入口；LINE / Email 僅作提醒與摘要，完整決策資訊以本頁為準。</p><div class=\"status-row\"><span>最新資料時間：{escape(latest_label)}</span><span>今日評等資料：{rating_available} / {rating_total} 檔可用</span><span>baseline V1，待回測校準</span><span>已發布並可驗證</span></div></div></header>
+  <main>
+    <section class=\"hero\"><h2>今日決策摘要</h2><p>最新盤前資料：{escape(latest_label)}；正式評等 / 動作 / 分數覆蓋：{rating_available} / {rating_total} 檔。</p></section>
+    <section class=\"card\"><h2>四個時段怎麼看</h2><div class=\"grid\">{window_cards(runtime)}</div></section>
+    {stock_cards(runtime)}
+    <section class=\"card\"><h2>最新報告摘要</h2>{latest_report_cards(runtime)}</section>
+    {_dev160_prediction_method_card()}
+    {compatibility}
+    <section class=\"card\"><h2>每日股價預測資料狀態</h2><p>預測摘要：今日預測區間、隔日預測區間、1 個月趨勢、3 個月趨勢、未來 1 個月走勢、未來 3 個月走勢、信心分數、主要依據、方法 deterministic baseline V1、說明、風險與資料品質。重大新聞：重大新聞資料待接。趨勢可能顯示：偏多 / 不明朗；信心水準可能顯示：中高。</p>{prediction_cards(runtime)}</section>
+    <section class=\"card\"><h2>Forecast Calibration / 回測校準狀態</h2>{calibration_cards()}</section>
+    <section class=\"card\"><h2>Forecast Snapshot Accumulation / 預測樣本累積進度</h2>{snapshot_accumulation_cards()}</section>
+    {review_block}
+    <section class=\"card\"><h2>資料新鮮度</h2>{freshness_cards(runtime)}</section>
+    <section class=\"panel\"><h2>LINE / Email / Dashboard delivery audit summary</h2><p>LINE 僅作提醒；Email 為 PM-readable summary；完整內容以 Dashboard 為準。此頁 publish 不會重送通知。</p></section>
+    <details><summary>技術檢查 / Debug</summary><p>Debug / 範例 artifact 已隔離，不作為正式最新報告。</p><p>runtime markers: pre_open_0700 盤前預測 Pre-open Forecast / intraday_1305 盤中追蹤 Intraday Tracking / pre_close_1335 close_snapshot_1335 收盤快照 / Close Snapshot / post_close_1500 prediction_review_1500 盤後檢討 / Prediction Review</p><p>production_dashboard_publish_executed=false; no notification; no scheduler change; no DB write; no production pipeline; no trading; no rating/action/confidence/weight mutation.</p></details>
+  </main>
+</body></html>"""
