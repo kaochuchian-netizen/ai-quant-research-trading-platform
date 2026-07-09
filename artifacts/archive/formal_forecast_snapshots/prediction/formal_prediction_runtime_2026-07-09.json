@@ -23,6 +23,17 @@
     "trading_or_order_executed": false
   },
   "schema_version": "formal_prediction_runtime_v1",
+  "snapshot_metadata": {
+    "db_write": false,
+    "is_fake_backfilled_forecast": false,
+    "notification_sent": false,
+    "overwrite_policy": "skip_existing_unless_overwrite_flag",
+    "production_pipeline_executed": false,
+    "schema_version": "formal_forecast_snapshot_accumulation_v1",
+    "snapshot_date": "2026-07-09",
+    "snapshot_type": "prediction",
+    "source_runtime_artifact": "artifacts/runtime/formal_prediction_runtime_latest.json"
+  },
   "source_mode": "deterministic_local_read_only_historical_ohlcv",
   "stock_universe_count": 9,
   "stocks": [

@@ -59,12 +59,24 @@ def validate_art(data,errors):
     for k in ['external_api_called','secrets_read','db_write','scheduler_modified','external_notification_sent','production_pipeline_executed','python_main_executed','trading_or_order_executed','production_rating_action_confidence_weight_mutated','formal_delivery_behavior_changed','fabricated_market_data']:
         if safety.get(k) is not False: errors.append(f'safety.{k} must be false')
     if safety.get('sqlite_opened_read_only') not in (True,False): errors.append('sqlite_opened_read_only flag required')
+
+def validate_production_export(data,errors):
+    if data.get('schema_version')!='four_window_dashboard_production_runtime_export_v1': errors.append('production export schema mismatch')
+    for key in ['stock_universe','per_stock_summaries','four_windows','freshness_checks','safety']:
+        if key not in data: errors.append(f'missing production export field: {key}')
+    if len([s for s in data.get('per_stock_summaries',[]) if isinstance(s,dict) and s.get('stock_id')]) < 1: errors.append('production export per_stock_summaries missing')
+    safety=data.get('safety',{}) if isinstance(data.get('safety'),dict) else {}
+    for k in ['external_api_called','secrets_read','db_write','scheduler_modified','external_notification_sent','production_pipeline_executed','python_main_executed','trading_or_order_executed','production_rating_action_confidence_weight_mutated','formal_delivery_behavior_changed','fabricated_market_data']:
+        if safety.get(k) is not False: errors.append(f'safety.{k} must be false')
+
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument('--published',action='store_true'); ap.add_argument('--pretty',action='store_true'); args=ap.parse_args(); errors=[]
     for p in [ART,EXPORT,HTML,*DOCS]:
         if not p.exists(): errors.append(f'missing file: {p.relative_to(ROOT)}')
-    data=load(ART) if ART.exists() else {}; html=HTML.read_text(encoding='utf-8') if HTML.exists() else ''
-    if data: validate_art(data,errors)
+    data=load(EXPORT) if EXPORT.exists() else (load(ART) if ART.exists() else {}); html=HTML.read_text(encoding='utf-8') if HTML.exists() else ''
+    if data:
+        if data.get('schema_version')=='four_window_dashboard_production_runtime_export_v1': validate_production_export(data,errors)
+        else: validate_art(data,errors)
     if html: validate_html(html,errors)
     pub={'checked':False}
     if args.published:

@@ -1,0 +1,30 @@
+{
+  "actual_email_sent": false,
+  "actual_line_sent": false,
+  "artifact_type": "email_scheduled_delivery_preview",
+  "dashboard_url": "http://35.201.242.167/stock-ai-dashboard/dashboard/decision-intelligence/four-window-preview/index.html",
+  "forbidden_content_check": {
+    "checked_terms": [
+      "pipeline_type",
+      "pipeline_run_id",
+      "analysis/output",
+      "Strategy Ranking",
+      "historical CSV",
+      "advisory_only",
+      "sample artifact",
+      "Report content:",
+      "stock_analysis_reports_available"
+    ],
+    "hits": [],
+    "ok": true
+  },
+  "generated_at": "2026-07-09T10:56:41+08:00",
+  "is_actual_send": false,
+  "message_body": "【Stock AI】07:00 盤前決策摘要已更新\nDashboard：\nhttp://35.201.242.167/stock-ai-dashboard/dashboard/decision-intelligence/four-window-preview/index.html\n\n今日狀態：\n- 最新資料時間：2026-07-08 23:05:56\n- 追蹤標的：9 檔\n- 盤前評等資料：9 / 9 檔可用\n- 今日/隔日預測資料：9 / 9 檔可用\n- Snapshot 累積：prediction 2、actual outcome 2、review 2\n- Calibration gate：blocked_insufficient_sample\n\n今日摘要 Top Signals：\n- 00878 國泰永續高股息：D級 / 降低追價 / 分數 43.0\n- 009816 凱基台灣TOP50：D級 / 降低追價 / 分數 35.0\n- 1409 新纖：C級 / 中性觀察 / 分數 53.0\n\n重點提醒：\n- baseline V1 仍在回測校準。\n- 預測僅供研究參考，非交易指令。\n- 詳細個股、預測、風險與檢討請看 Dashboard。\n本信不包含下單建議。",
+  "production_pipeline_executed": false,
+  "safety_mode": "dry_run_preview_only",
+  "scheduler_modified": false,
+  "schema_version": "email_scheduled_delivery_preview_v1",
+  "task_id": "AI-DEV-161",
+  "window": "pre_open_0700"
+}

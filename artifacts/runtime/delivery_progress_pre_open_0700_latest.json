@@ -1,0 +1,14 @@
+{
+  "current_stage": "pipeline_completed",
+  "elapsed_seconds": 355,
+  "events": [
+    "wrapper_started",
+    "pipeline_completed"
+  ],
+  "last_heartbeat_at": "2026-07-09T07:05:57+08:00",
+  "schema_version": "delivery_progress_artifact_v1",
+  "started_at": "2026-07-09T07:00:01+08:00",
+  "status": "completed",
+  "timeout_seconds": 1800,
+  "window": "pre_open_0700"
+}

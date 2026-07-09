@@ -37,6 +37,7 @@ def main() -> int:
     artifact = build_artifact(payload, ROOT)
     preview_html = (ROOT / artifact["source_preview_html"]).read_text(encoding="utf-8")
     route_html = render_route_html(artifact, preview_html)
+    route_html = "\n".join(line.rstrip() for line in route_html.splitlines()) + "\n"
     check_output(args.output)
     check_output(args.html_output)
     write_json(args.output, artifact)

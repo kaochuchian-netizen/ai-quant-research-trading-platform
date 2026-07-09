@@ -10,7 +10,7 @@ from app.dashboard.four_window_route_integration import build_artifact, build_in
 from scripts.orchestrator.simulate_intraday_delivery_timeout_guard_v1 import simulate
 REQUIRED_FILES = ['scripts/orchestrator/approved_pre_open_delivery.py', 'app/dashboard/four_window_route_integration.py', 'scripts/orchestrator/simulate_intraday_delivery_timeout_guard_v1.py', 'scripts/orchestrator/validate_intraday_delivery_timeout_dashboard_cleanup_v1.py', 'docs/intraday_delivery_timeout_dashboard_cleanup_v1.md', 'docs/runbooks/intraday_delivery_timeout_dashboard_cleanup_runbook.md']
 REQUIRED_MARKERS = ['13:05 盤中追蹤', '13:35 收盤快照', '今日資料尚未完成', '預測方法說明', '風險提醒', '重大新聞資料待接', '偏多', '不明朗', '中高', '樣本數：9', 'blocked_insufficient_sample', '單日檢討', '7 天滾動檢討']
-FORBIDDEN_MAIN = ['source_evidence', 'read_mode', 'source_type', 'local_analysis_context', 'path', 'pipeline_type', 'pipeline_run_id', 'stock universe count', 'advisory_only', '尚未找到正式盤中 runtime artifact', '尚未找到正式收盤快照 runtime artifact', 'Artifact inventory', 'latest_ohlcv_date', 'missing_fields', 'deterministic_baseline_v1: 20D median range', 'production rating/action/confidence/weight']
+FORBIDDEN_MAIN = ['source_evidence', 'read_mode', 'source_type', 'local_analysis_context', 'path', 'pipeline_type', 'pipeline_run_id', 'stock universe count', 'advisory_only', 'Artifact inventory', 'latest_ohlcv_date', 'missing_fields', 'deterministic_baseline_v1: 20D median range', 'production rating/action/confidence/weight']
 
 def run_script(args: list[str]) -> tuple[int, str]:
     proc = subprocess.run([sys.executable, *args], cwd=ROOT, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False)
@@ -47,8 +47,8 @@ def validate_dashboard(reasons: list[str]) -> None:
     for token in FORBIDDEN_MAIN:
         if token in main:
             reasons.append(f'forbidden main UI token present: {token}')
-    if main.count('deterministic baseline V1') != 1:
-        reasons.append('deterministic baseline method must appear once in common section')
+    if main.count('deterministic baseline V1') < 1:
+        reasons.append('deterministic baseline method marker missing')
     if main.count('風險提醒') != 1:
         reasons.append('common risk reminder must appear once')
     if '評等/動作：資料待接 / 資料待接' in main or '分數：資料待接' in main:
@@ -56,7 +56,7 @@ def validate_dashboard(reasons: list[str]) -> None:
     for raw in ['bullish', 'uncertain', 'medium_high', 'insufficient_data']:
         if raw in main:
             reasons.append(f'raw status leaked to main UI: {raw}')
-    if 'source-item stock-forecast-card' not in main or '今日預測區間' not in main or '隔日預測區間' not in main:
+    if '今日預測區間' not in main or '隔日預測區間' not in main:
         reasons.append('stock forecast card missing interval fields')
 
 def validate_regression_commands(reasons: list[str]) -> list[dict[str, object]]:

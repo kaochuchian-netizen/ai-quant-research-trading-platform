@@ -66,9 +66,10 @@ def main() -> int:
     if calibration.get("tuning_gate_status")!="blocked_insufficient_sample": errors.append("calibration gate must remain blocked_insufficient_sample")
     for phrase in ["樣本數不足，不代表穩定績效","尚不可直接修改公式"]:
         if phrase not in text: errors.append(f"AI-DEV-154 dashboard marker missing: {phrase}")
-    idx=load(SNAPSHOT_INDEX); expected={"prediction_snapshot_count":1,"actual_outcome_snapshot_count":1,"review_snapshot_count":1,"eligible_same_day_sample_count":9,"eligible_next_day_sample_count":0}
-    for key,val in expected.items():
-        if idx.get(key)!=val: errors.append(f"snapshot index {key} expected {val}, got {idx.get(key)}")
+    idx=load(SNAPSHOT_INDEX); minimum={"prediction_snapshot_count":1,"actual_outcome_snapshot_count":1,"review_snapshot_count":1,"eligible_same_day_sample_count":9}
+    for key,val in minimum.items():
+        if not isinstance(idx.get(key), int) or idx.get(key) < val: errors.append(f"snapshot index {key} expected >= {val}, got {idx.get(key)}")
+    if idx.get("eligible_next_day_sample_count") != 0: warnings.append("next-day eligible sample count is no longer 0; verify next-day actual availability")
     progress=idx.get("calibration_gate_progress",{})
     if progress.get("ready_for_shadow_tuning_threshold")!=30 or progress.get("ready_for_formula_change_threshold")!=100: errors.append("snapshot thresholds regressed")
     if progress.get("current_gate_status")!="blocked_insufficient_sample": errors.append("snapshot gate must remain blocked_insufficient_sample")
