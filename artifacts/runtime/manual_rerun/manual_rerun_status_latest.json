@@ -1,0 +1,11 @@
+{
+  "email_attempted": false,
+  "finished_at": "2026-07-09T12:29:40+08:00",
+  "job_id": "manual-simulation",
+  "line_attempted": false,
+  "pin_recorded": false,
+  "requested_at": "2026-07-09T12:29:40+08:00",
+  "requested_window": "intraday_1305",
+  "schema_version": "manual_rerun_status_v1",
+  "status": "completed"
+}
