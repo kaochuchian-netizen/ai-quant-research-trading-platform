@@ -1,29 +1,24 @@
 {
   "cooldown_checked": true,
-  "dashboard_publish_attempted": true,
-  "dashboard_publish_status": "simulated",
+  "dashboard_publish_attempted": false,
+  "dashboard_publish_status": "not_attempted",
   "email_attempted": false,
   "executed_window": "intraday_1305",
-  "finished_at": "2026-07-09T12:29:40+08:00",
-  "job_id": "manual-simulation",
+  "job_id": null,
   "line_attempted": false,
-  "lock_acquired": true,
+  "lock_acquired": false,
   "mode": "dashboard_refresh_only",
-  "notification_policy": "manual_rerun_dashboard_refresh_only",
-  "operator_auth": "verified",
+  "operator_auth": "manual_rerun_disabled",
   "pin_recorded": false,
-  "pipeline_status": "not_executed_in_repo_validation",
-  "requested_at": "2026-07-09T12:29:40+08:00",
+  "pipeline_status": "not_executed",
   "requested_window": "intraday_1305",
   "safety_notes": [
     "single_window_only",
-    "six_digit_pin_verified",
     "no_line_email",
-    "no_trading"
+    "no_trading",
+    "no_pin_recorded"
   ],
-  "schema_version": "manual_single_window_rerun_audit_v1",
-  "started_at": "2026-07-09T12:29:40+08:00",
-  "status": "completed",
-  "task_id": "AI-DEV-162",
-  "timeout_seconds": 600
+  "schema_version": "manual_rerun_runtime_bridge_audit_v1",
+  "status": "manual_rerun_disabled",
+  "task_id": "AI-DEV-163"
 }

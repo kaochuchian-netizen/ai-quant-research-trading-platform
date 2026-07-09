@@ -1,0 +1,210 @@
+{
+  "actual_email_sent": false,
+  "actual_line_sent": false,
+  "audit_path": "artifacts/runtime/manual_rerun/manual_rerun_latest.json",
+  "bridge_path": "scripts/orchestrator/manual_rerun_runtime_bridge.py",
+  "cases": {
+    "all_windows_rejected": {
+      "accepted": false,
+      "email_attempted": false,
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "reason": "all_windows_rejected",
+      "status": "all_windows_rejected",
+      "trading_or_order_executed": false,
+      "window": null
+    },
+    "array_windows_rejected": {
+      "accepted": false,
+      "email_attempted": false,
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "reason": "array_windows_rejected",
+      "status": "array_windows_rejected",
+      "trading_or_order_executed": false,
+      "window": null
+    },
+    "full_delivery_mode_rejected": {
+      "accepted": false,
+      "email_attempted": false,
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "reason": "mode_rejected",
+      "status": "rejected",
+      "trading_or_order_executed": false,
+      "window": "intraday_1305"
+    },
+    "long_pin_rejected": {
+      "accepted": false,
+      "email_attempted": false,
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "reason": "invalid_pin_format",
+      "status": "invalid_pin_format",
+      "trading_or_order_executed": false,
+      "window": "intraday_1305"
+    },
+    "missing_pin_config_disabled": {
+      "accepted": false,
+      "email_attempted": false,
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "reason": "pin_not_configured",
+      "status": "manual_rerun_disabled",
+      "trading_or_order_executed": false,
+      "window": "intraday_1305"
+    },
+    "mock_correct_pin_intraday": {
+      "accepted": true,
+      "email_attempted": false,
+      "job_id": "mock-job-redacted",
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "status": "accepted",
+      "status_url": "/stock-ai-dashboard/api/manual-rerun/status?job_id=mock-job-redacted",
+      "trading_or_order_executed": false,
+      "window": "intraday_1305"
+    },
+    "mock_correct_pin_post_close": {
+      "accepted": true,
+      "email_attempted": false,
+      "job_id": "mock-job-redacted",
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "status": "accepted",
+      "status_url": "/stock-ai-dashboard/api/manual-rerun/status?job_id=mock-job-redacted",
+      "trading_or_order_executed": false,
+      "window": "post_close_1500"
+    },
+    "mock_correct_pin_pre_close": {
+      "accepted": true,
+      "email_attempted": false,
+      "job_id": "mock-job-redacted",
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "status": "accepted",
+      "status_url": "/stock-ai-dashboard/api/manual-rerun/status?job_id=mock-job-redacted",
+      "trading_or_order_executed": false,
+      "window": "pre_close_1335"
+    },
+    "mock_correct_pin_pre_open": {
+      "accepted": true,
+      "email_attempted": false,
+      "job_id": "mock-job-redacted",
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "status": "accepted",
+      "status_url": "/stock-ai-dashboard/api/manual-rerun/status?job_id=mock-job-redacted",
+      "trading_or_order_executed": false,
+      "window": "pre_open_0700"
+    },
+    "non_digit_pin_rejected": {
+      "accepted": false,
+      "email_attempted": false,
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "reason": "invalid_pin_format",
+      "status": "invalid_pin_format",
+      "trading_or_order_executed": false,
+      "window": "intraday_1305"
+    },
+    "send_email_mode_rejected": {
+      "accepted": false,
+      "email_attempted": false,
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "reason": "mode_rejected",
+      "status": "rejected",
+      "trading_or_order_executed": false,
+      "window": "intraday_1305"
+    },
+    "send_line_mode_rejected": {
+      "accepted": false,
+      "email_attempted": false,
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "reason": "mode_rejected",
+      "status": "rejected",
+      "trading_or_order_executed": false,
+      "window": "intraday_1305"
+    },
+    "short_pin_rejected": {
+      "accepted": false,
+      "email_attempted": false,
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "reason": "invalid_pin_format",
+      "status": "invalid_pin_format",
+      "trading_or_order_executed": false,
+      "window": "intraday_1305"
+    },
+    "star_window_rejected": {
+      "accepted": false,
+      "email_attempted": false,
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "reason": "all_windows_rejected",
+      "status": "all_windows_rejected",
+      "trading_or_order_executed": false,
+      "window": null
+    },
+    "status_endpoint": {
+      "email_attempted": false,
+      "finished_at": null,
+      "job_id": null,
+      "line_attempted": false,
+      "pin_recorded": false,
+      "requested_at": null,
+      "requested_window": "intraday_1305",
+      "schema_version": "manual_rerun_status_v1",
+      "status": "manual_rerun_disabled"
+    },
+    "trade_mode_rejected": {
+      "accepted": false,
+      "email_attempted": false,
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "reason": "mode_rejected",
+      "status": "rejected",
+      "trading_or_order_executed": false,
+      "window": "intraday_1305"
+    },
+    "unknown_window_rejected": {
+      "accepted": false,
+      "email_attempted": false,
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "reason": "invalid_window",
+      "status": "invalid_window",
+      "trading_or_order_executed": false,
+      "window": null
+    },
+    "wrong_pin_rejected": {
+      "accepted": false,
+      "email_attempted": false,
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "reason": "unauthorized",
+      "status": "unauthorized",
+      "trading_or_order_executed": false,
+      "window": "intraday_1305"
+    }
+  },
+  "db_write": false,
+  "health_route": "/stock-ai-dashboard/api/manual-rerun/healthz",
+  "notification_sent": false,
+  "pin_config_env": "STOCK_AI_MANUAL_RERUN_PIN_HASH",
+  "pin_config_file_path": "runtime-only config file path",
+  "pin_or_hash_recorded": false,
+  "post_route": "/stock-ai-dashboard/api/manual-rerun",
+  "production_pipeline_executed": false,
+  "python_main_executed": false,
+  "runtime_deployment_enabled": false,
+  "runtime_pin_configured_for_validation": false,
+  "scheduler_modified": false,
+  "schema_version": "manual_rerun_runtime_activation_v1",
+  "status_path": "artifacts/runtime/manual_rerun/manual_rerun_status_latest.json",
+  "status_route": "/stock-ai-dashboard/api/manual-rerun/status",
+  "task_id": "AI-DEV-163",
+  "trading_or_order_executed": false
+}
