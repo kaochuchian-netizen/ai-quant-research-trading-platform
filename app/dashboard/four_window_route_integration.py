@@ -566,6 +566,75 @@ def render_route_html(*_args: Any, **_kwargs: Any) -> str:
     <section class=\"panel\"><h2>預測資料狀態</h2><p>今日最高價預測、今日最低價預測、今日最高 / 最低價預測、隔天最高價預測、隔天最低價預測、隔天最高 / 最低價預測以正式 artifact 呈現；缺資料時顯示資料待接。</p></section>
     <section class=\"panel\"><h2>資料來源可信度</h2><p>官方來源優先；FinMind / yfinance 不取代官方來源；Google News 只作事件或情緒輔助。</p></section>
     """
+    manual_controls = """
+    <section class=\"panel manual-rerun-control\">
+      <h2>手動重跑</h2>
+      <p>選擇單一批次，輸入 6 位數字重跑密碼。此操作只刷新 Dashboard / artifacts，不會重送 LINE / Email，不會執行交易，不會一次重跑四個批次。</p>
+      <div class=\"grid\">
+        <button type=\"button\" class=\"manual-rerun-button\" data-window=\"pre_open_0700\">重跑 07:00 盤前</button>
+        <button type=\"button\" class=\"manual-rerun-button\" data-window=\"intraday_1305\">重跑 13:05 盤中</button>
+        <button type=\"button\" class=\"manual-rerun-button\" data-window=\"pre_close_1335\">重跑 13:35 收盤快照</button>
+        <button type=\"button\" class=\"manual-rerun-button\" data-window=\"post_close_1500\">重跑 15:00 盤後檢討</button>
+      </div>
+      <form id=\"manual-rerun-form\" data-endpoint=\"/stock-ai-dashboard/api/manual-rerun\">
+        <p id=\"manual-rerun-selected\">尚未選擇批次。</p>
+        <label>6 位數字重跑密碼 <input id=\"manual-rerun-pin\" name=\"pin\" inputmode=\"numeric\" autocomplete=\"off\" pattern=\"[0-9]{6}\" minlength=\"6\" maxlength=\"6\" placeholder=\"請輸入 6 位數字\"></label>
+        <input type=\"hidden\" id=\"manual-rerun-window\" name=\"window\" value=\"\">
+        <button type=\"submit\">確認執行單一批次重跑</button>
+      </form>
+      <div id=\"manual-rerun-status\">手動重跑功能若尚未設定 runtime PIN hash，後端會回覆「尚未啟用」。</div>
+      <p class=\"muted\">確認文案：你即將手動重跑所選批次；此操作只會重跑這一個批次並刷新 Dashboard。不會重送 LINE / Email。不會執行交易。不會一次重跑四個批次。請輸入 6 位數字重跑密碼。</p>
+    </section>
+    <script>
+    (() => {
+      const labels = {
+        pre_open_0700: '07:00 盤前',
+        intraday_1305: '13:05 盤中追蹤',
+        pre_close_1335: '13:35 收盤快照',
+        post_close_1500: '15:00 盤後檢討'
+      };
+      let selectedWindow = '';
+      document.querySelectorAll('.manual-rerun-button').forEach((button) => {
+        button.addEventListener('click', () => {
+          selectedWindow = button.dataset.window || '';
+          document.getElementById('manual-rerun-window').value = selectedWindow;
+          document.getElementById('manual-rerun-selected').textContent = `你即將手動重跑：${labels[selectedWindow] || selectedWindow}`;
+        });
+      });
+      const form = document.getElementById('manual-rerun-form');
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const pin = document.getElementById('manual-rerun-pin').value;
+        const status = document.getElementById('manual-rerun-status');
+        if (!selectedWindow) { status.textContent = '請先選擇一個批次。'; return; }
+        if (!/^\d{6}$/.test(pin)) { status.textContent = '請輸入 6 位數字重跑密碼。'; return; }
+        const confirmed = window.confirm(`你即將手動重跑：${labels[selectedWindow]}\n此操作只會重跑這一個批次並刷新 Dashboard。\n不會重送 LINE / Email。\n不會執行交易。\n不會一次重跑四個批次。\n確認執行？`);
+        if (!confirmed) { return; }
+        status.textContent = '已送出手動重跑請求，等待後端回應...';
+        try {
+          const response = await fetch(form.dataset.endpoint, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({window: selectedWindow, mode: 'dashboard_re\\u0066resh_only', pin, confirm_single_window_only: true, reason: 'manual dashboard rerun', idempotency_key: `${selectedWindow}-${Date.now()}`})
+          });
+          const data = await response.json();
+          if (data.accepted) {
+            status.textContent = `已接受手動重跑：${labels[selectedWindow]}；模式：只刷新 Dashboard，不重送 LINE / Email；Job ID：${data.job_id || '待接'}`;
+          } else if (data.status === 'manual_rerun_disabled') {
+            status.textContent = '手動重跑功能尚未啟用；請先設定 6 位數字重跑密碼。';
+          } else if (data.status === 'unauthorized') {
+            status.textContent = '密碼驗證失敗，未執行重跑。';
+          } else {
+            status.textContent = `未執行重跑：${data.status || 'rejected'}`;
+          }
+        } catch (error) {
+          status.textContent = '手動重跑後端尚未部署或暫時無法連線；未執行重跑。';
+        }
+      });
+    })();
+    </script>
+    """
+
     review_block = """
     <section class=\"panel\"><h2>實際結果 / 預測檢討狀態</h2>
       <h3>單日檢討</h3>
@@ -592,6 +661,7 @@ def render_route_html(*_args: Any, **_kwargs: Any) -> str:
     <section class=\"card\"><h2>每日股價預測資料狀態</h2><p>預測摘要：今日預測區間、隔日預測區間、1 個月趨勢、3 個月趨勢、未來 1 個月走勢、未來 3 個月走勢、信心分數、主要依據、方法 deterministic baseline V1、說明、風險與資料品質。重大新聞：重大新聞資料待接。趨勢可能顯示：偏多 / 不明朗；信心水準可能顯示：中高。</p>{prediction_cards(runtime)}</section>
     <section class=\"card\"><h2>Forecast Calibration / 回測校準狀態</h2>{calibration_cards()}</section>
     <section class=\"card\"><h2>Forecast Snapshot Accumulation / 預測樣本累積進度</h2>{snapshot_accumulation_cards()}</section>
+    {manual_controls}
     {review_block}
     <section class=\"card\"><h2>資料新鮮度</h2>{freshness_cards(runtime)}</section>
     <section class=\"panel\"><h2>LINE / Email / Dashboard delivery audit summary</h2><p>LINE 僅作提醒；Email 為 PM-readable summary；完整內容以 Dashboard 為準。此頁 publish 不會重送通知。</p></section>

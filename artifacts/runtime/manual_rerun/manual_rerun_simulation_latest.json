@@ -1,0 +1,199 @@
+{
+  "actual_email_sent": false,
+  "actual_line_sent": false,
+  "audit_path": "artifacts/runtime/manual_rerun/manual_rerun_latest.json",
+  "cases": {
+    "cooldown_active": {
+      "accepted": false,
+      "email_attempted": false,
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "retry_after_seconds": 600,
+      "status": "cooldown_active",
+      "trading_or_order_executed": false,
+      "window": "pre_open_0700"
+    },
+    "invalid_all_windows": {
+      "accepted": false,
+      "email_attempted": false,
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "reason": "all_windows_rejected",
+      "status": "all_windows_rejected",
+      "trading_or_order_executed": false,
+      "window": null
+    },
+    "invalid_array_windows": {
+      "accepted": false,
+      "email_attempted": false,
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "reason": "array_windows_rejected",
+      "status": "array_windows_rejected",
+      "trading_or_order_executed": false,
+      "window": null
+    },
+    "invalid_mode_full_delivery": {
+      "accepted": false,
+      "email_attempted": false,
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "reason": "mode_rejected",
+      "status": "rejected",
+      "trading_or_order_executed": false,
+      "window": "pre_open_0700"
+    },
+    "invalid_mode_send_line": {
+      "accepted": false,
+      "email_attempted": false,
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "reason": "mode_rejected",
+      "status": "rejected",
+      "trading_or_order_executed": false,
+      "window": "pre_open_0700"
+    },
+    "invalid_unknown_window": {
+      "accepted": false,
+      "email_attempted": false,
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "reason": "invalid_window",
+      "status": "invalid_window",
+      "trading_or_order_executed": false,
+      "window": null
+    },
+    "lock_busy": {
+      "accepted": false,
+      "email_attempted": false,
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "reason": "another_manual_rerun_in_progress",
+      "status": "lock_busy",
+      "trading_or_order_executed": false,
+      "window": "pre_open_0700"
+    },
+    "long_pin": {
+      "accepted": false,
+      "email_attempted": false,
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "reason": "invalid_pin_format",
+      "status": "invalid_pin_format",
+      "trading_or_order_executed": false,
+      "window": "pre_open_0700"
+    },
+    "missing_pin": {
+      "accepted": false,
+      "email_attempted": false,
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "reason": "invalid_pin_format",
+      "status": "invalid_pin_format",
+      "trading_or_order_executed": false,
+      "window": "pre_open_0700"
+    },
+    "missing_pin_config": {
+      "accepted": false,
+      "email_attempted": false,
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "reason": "pin_not_configured",
+      "status": "manual_rerun_disabled",
+      "trading_or_order_executed": false,
+      "window": "pre_open_0700"
+    },
+    "non_digit_pin": {
+      "accepted": false,
+      "email_attempted": false,
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "reason": "invalid_pin_format",
+      "status": "invalid_pin_format",
+      "trading_or_order_executed": false,
+      "window": "pre_open_0700"
+    },
+    "short_pin": {
+      "accepted": false,
+      "email_attempted": false,
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "reason": "invalid_pin_format",
+      "status": "invalid_pin_format",
+      "trading_or_order_executed": false,
+      "window": "pre_open_0700"
+    },
+    "timeout_model": {
+      "accepted": false,
+      "email_attempted": false,
+      "line_attempted": false,
+      "status": "timed_out",
+      "timeout_seconds": 600,
+      "trading_or_order_executed": false
+    },
+    "valid_intraday_1305": {
+      "accepted": true,
+      "email_attempted": false,
+      "job_id": "manual-32cb252c62d31ffb",
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "status": "accepted",
+      "status_url": "/stock-ai-dashboard/api/manual-rerun/status?job_id=manual-32cb252c62d31ffb",
+      "trading_or_order_executed": false,
+      "window": "intraday_1305"
+    },
+    "valid_post_close_1500": {
+      "accepted": true,
+      "email_attempted": false,
+      "job_id": "manual-8b8e1fb8d9d5f4e0",
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "status": "accepted",
+      "status_url": "/stock-ai-dashboard/api/manual-rerun/status?job_id=manual-8b8e1fb8d9d5f4e0",
+      "trading_or_order_executed": false,
+      "window": "post_close_1500"
+    },
+    "valid_pre_close_1335": {
+      "accepted": true,
+      "email_attempted": false,
+      "job_id": "manual-1b473f68ca12549b",
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "status": "accepted",
+      "status_url": "/stock-ai-dashboard/api/manual-rerun/status?job_id=manual-1b473f68ca12549b",
+      "trading_or_order_executed": false,
+      "window": "pre_close_1335"
+    },
+    "valid_pre_open_0700": {
+      "accepted": true,
+      "email_attempted": false,
+      "job_id": "manual-b26e6098d806af09",
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "status": "accepted",
+      "status_url": "/stock-ai-dashboard/api/manual-rerun/status?job_id=manual-b26e6098d806af09",
+      "trading_or_order_executed": false,
+      "window": "pre_open_0700"
+    },
+    "wrong_pin": {
+      "accepted": false,
+      "email_attempted": false,
+      "line_attempted": false,
+      "mode": "dashboard_refresh_only",
+      "reason": "unauthorized",
+      "status": "unauthorized",
+      "trading_or_order_executed": false,
+      "window": "pre_open_0700"
+    }
+  },
+  "db_write": false,
+  "mock_pin_plaintext_recorded": false,
+  "ok": true,
+  "production_pipeline_executed": false,
+  "python_main_executed": false,
+  "scheduler_modified": false,
+  "schema_version": "dashboard_manual_single_window_rerun_simulation_v1",
+  "status_path": "artifacts/runtime/manual_rerun/manual_rerun_status_latest.json",
+  "task_id": "AI-DEV-162",
+  "trading_or_order_executed": false
+}
