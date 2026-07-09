@@ -175,7 +175,20 @@ def _news_block(stock: dict[str, Any]) -> str:
 
 def prediction_cards(runtime: dict[str, Any]) -> str:
     artifact = runtime.get('formal_prediction_artifact') if isinstance(runtime.get('formal_prediction_artifact'), dict) else None
-    if artifact and artifact.get('artifact_type') == 'formal_prediction_runtime' and artifact.get('is_example') is False:
+    if not artifact:
+        try:
+            artifact_path = REPO_ROOT / 'artifacts/runtime/formal_prediction_runtime_latest.json'
+            if artifact_path.exists():
+                artifact = json.loads(artifact_path.read_text(encoding='utf-8'))
+        except Exception:
+            artifact = None
+    if (
+        artifact
+        and artifact.get('artifact_type') == 'formal_prediction_runtime'
+        and artifact.get('is_example') is False
+        and isinstance(artifact.get('stocks'), list)
+        and artifact.get('stocks')
+    ):
         cards = []
         for stock in artifact.get('stocks', []):
             if not isinstance(stock, dict):
@@ -443,7 +456,20 @@ def _dev160_prediction_method_card() -> str:
 
 def prediction_cards(runtime: dict[str, Any]) -> str:
     artifact = runtime.get('formal_prediction_artifact') if isinstance(runtime.get('formal_prediction_artifact'), dict) else None
-    if artifact and artifact.get('artifact_type') == 'formal_prediction_runtime' and artifact.get('is_example') is False:
+    if not artifact:
+        try:
+            artifact_path = REPO_ROOT / 'artifacts/runtime/formal_prediction_runtime_latest.json'
+            if artifact_path.exists():
+                artifact = json.loads(artifact_path.read_text(encoding='utf-8'))
+        except Exception:
+            artifact = None
+    if (
+        artifact
+        and artifact.get('artifact_type') == 'formal_prediction_runtime'
+        and artifact.get('is_example') is False
+        and isinstance(artifact.get('stocks'), list)
+        and artifact.get('stocks')
+    ):
         cards = []
         for stock in artifact.get('stocks', []):
             if not isinstance(stock, dict):
