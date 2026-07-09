@@ -15,7 +15,7 @@ import os
 import subprocess
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -712,7 +712,28 @@ def main() -> int:
         Path(args.output).write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         print(stable_json({key: result[key] for key in ["schema_version", "task_id", "run_id", "scheduler_window", "pipeline_status", "late_delivery_suppressed", "line_attempted", "email_attempted", "ok", "decision"]}))
         return 0
-    post_run_artifacts = post_delivery_artifact_wiring(window_id=args.window, generated_at=generated_at)
+    try:
+        post_run_artifacts = post_delivery_artifact_wiring(window_id=args.window, generated_at=generated_at)
+    except Exception as exc:
+        post_run_artifacts = {
+            "status": "failed_non_blocking",
+            "window": args.window,
+            "generated_at": generated_at,
+            "error_type": exc.__class__.__name__,
+            "error_message": str(exc),
+            "delivery_continues": True,
+            "line_email_delivery_not_blocked": True,
+        }
+        print(stable_json({
+            "schema_version": SCHEMA_VERSION,
+            "task_id": TASK_ID,
+            "run_id": run_id,
+            "scheduler_window": args.window,
+            "post_delivery_artifact_wiring_status": "failed_non_blocking",
+            "error_type": exc.__class__.__name__,
+            "delivery_continues": True,
+            "line_email_delivery_not_blocked": True,
+        }))
     dashboard = publish_dashboard(Path(args.dashboard_publish_dir), args.window, run_id, generated_at, pipeline_status, output_tail)
     try:
         email = send_delivery_email(Path(args.mail_env_file), args.window, run_id, generated_at, pipeline_status, args.dashboard_url, output_tail)

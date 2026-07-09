@@ -56,7 +56,10 @@ def main() -> int:
     pred=load(PREDICTION); rev=load(REVIEW)
     if pred.get("artifact_type")!="formal_prediction_runtime" or pred.get("forecast_value_count")!=36: errors.append("formal prediction runtime binding regressed")
     if pred.get("model_version")!="deterministic_baseline_v1": errors.append("deterministic_baseline_v1 missing from prediction artifact")
-    if rev.get("artifact_type")!="formal_prediction_review_runtime" or rev.get("reviewable_stock_count")!=9: errors.append("formal review runtime binding regressed")
+    reviewable_count = rev.get("reviewable_stock_count")
+    review_stocks = rev.get("stocks") if isinstance(rev.get("stocks"), list) else []
+    if rev.get("artifact_type")!="formal_prediction_review_runtime" or rev.get("is_example") is True or len(review_stocks)!=9 or not isinstance(reviewable_count, int) or reviewable_count < 0: errors.append("formal review runtime binding regressed")
+    if reviewable_count == 0: warnings.append("formal review runtime has 0 reviewable stocks; actual/review data is not yet available")
     backtest=load(BACKTEST)
     if backtest.get("method_under_test")!="deterministic_baseline_v1": errors.append("backtest method regressed")
     metrics=backtest.get("metrics") if isinstance(backtest.get("metrics"),dict) else {}
