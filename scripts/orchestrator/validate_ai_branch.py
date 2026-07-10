@@ -27,6 +27,8 @@ DEFAULT_ALLOWED_PATHS = [
     "scripts/orchestrator/",
     ".github/workflows/ai_dev_validation.yml",
     "app/trading/",
+    "app/us_stock/",
+    "app/loaders/",
     "app/prediction/",
     "app/prediction_context/",
     "app/evaluation/",

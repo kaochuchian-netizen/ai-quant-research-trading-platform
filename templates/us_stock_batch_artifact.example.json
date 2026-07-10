@@ -1,0 +1,660 @@
+{
+  "artifact_type": "us_stock_batch_lifecycle",
+  "currency": "USD",
+  "dashboard_ready_contract": {
+    "cards": [
+      {
+        "action": "保守觀望",
+        "bilingual_news_snippet": {
+          "chinese_translation": "重大新聞資料待接",
+          "english_headline": null,
+          "investment_reading": "無安全新聞 artifact 時不產生假新聞。"
+        },
+        "card_id": "us_stock_AAPL_us_pre_market_2000",
+        "confidence": "insufficient_data",
+        "currency": "USD",
+        "latest_status": "US batch foundation ready; market data not fetched in validation.",
+        "market_label": "美股",
+        "name": "Apple Inc.",
+        "next_session_predicted_high_low": "資料待接",
+        "one_month_trend": "不明朗",
+        "price": null,
+        "rating": "資料待接",
+        "session_predicted_high_low": "資料待接",
+        "symbol": "AAPL",
+        "three_month_trend": "不明朗",
+        "window_label": "美股盤前 20:00"
+      },
+      {
+        "action": "保守觀望",
+        "bilingual_news_snippet": {
+          "chinese_translation": "重大新聞資料待接",
+          "english_headline": null,
+          "investment_reading": "無安全新聞 artifact 時不產生假新聞。"
+        },
+        "card_id": "us_stock_MSFT_us_pre_market_2000",
+        "confidence": "insufficient_data",
+        "currency": "USD",
+        "latest_status": "US batch foundation ready; market data not fetched in validation.",
+        "market_label": "美股",
+        "name": "Microsoft Corp.",
+        "next_session_predicted_high_low": "資料待接",
+        "one_month_trend": "不明朗",
+        "price": null,
+        "rating": "資料待接",
+        "session_predicted_high_low": "資料待接",
+        "symbol": "MSFT",
+        "three_month_trend": "不明朗",
+        "window_label": "美股盤前 20:00"
+      },
+      {
+        "action": "保守觀望",
+        "bilingual_news_snippet": {
+          "chinese_translation": "重大新聞資料待接",
+          "english_headline": null,
+          "investment_reading": "無安全新聞 artifact 時不產生假新聞。"
+        },
+        "card_id": "us_stock_NVDA_us_pre_market_2000",
+        "confidence": "insufficient_data",
+        "currency": "USD",
+        "latest_status": "US batch foundation ready; market data not fetched in validation.",
+        "market_label": "美股",
+        "name": "NVIDIA Corp.",
+        "next_session_predicted_high_low": "資料待接",
+        "one_month_trend": "不明朗",
+        "price": null,
+        "rating": "資料待接",
+        "session_predicted_high_low": "資料待接",
+        "symbol": "NVDA",
+        "three_month_trend": "不明朗",
+        "window_label": "美股盤前 20:00"
+      }
+    ],
+    "market_label": "美股",
+    "sections": [
+      "美股盤前 20:00",
+      "美股盤中 23:00",
+      "美股檢討 06:30"
+    ]
+  },
+  "delivery_policy": {
+    "dashboard_delivery_allowed": true,
+    "delivery_executed": false,
+    "email_delivery_allowed": false,
+    "email_full_report_candidate": true,
+    "email_sent": false,
+    "line_delivery_allowed": false,
+    "line_sent": false,
+    "line_summary_only": true,
+    "notification_policy": "controlled_pending_pm_activation"
+  },
+  "generated_at": "2026-07-10T00:00:00+08:00",
+  "known_limitations": [
+    "V1 does not activate runtime cron/systemd scheduler.",
+    "V1 does not call yfinance/Yahoo or Google Sheet APIs during validation.",
+    "V1 does not send LINE/Email and does not publish production US reports.",
+    "US prediction values remain null when offline fixture data is insufficient."
+  ],
+  "market": "US",
+  "market_data_source_contract": {
+    "external_api_called": false,
+    "graceful_fallback": "symbol_missing_data_does_not_fail_batch",
+    "items": [
+      {
+        "close": null,
+        "currency": "USD",
+        "current_or_last_price": null,
+        "data_status": "missing_data_external_api_disabled",
+        "exchange_metadata": null,
+        "failure_mode": "pm_readable_missing_data_state",
+        "high": null,
+        "low": null,
+        "market": "US",
+        "missing_fields": [
+          "ohlcv",
+          "pre_market_price",
+          "post_market_price"
+        ],
+        "open": null,
+        "post_market_price": null,
+        "pre_market_price": null,
+        "previous_close": null,
+        "source_id": "yfinance_yahoo",
+        "source_quality_classification": "external_reference_not_official_disclosure",
+        "source_role": "market_external_reference",
+        "symbol": "AAPL",
+        "volume": null
+      },
+      {
+        "close": null,
+        "currency": "USD",
+        "current_or_last_price": null,
+        "data_status": "missing_data_external_api_disabled",
+        "exchange_metadata": null,
+        "failure_mode": "pm_readable_missing_data_state",
+        "high": null,
+        "low": null,
+        "market": "US",
+        "missing_fields": [
+          "ohlcv",
+          "pre_market_price",
+          "post_market_price"
+        ],
+        "open": null,
+        "post_market_price": null,
+        "pre_market_price": null,
+        "previous_close": null,
+        "source_id": "yfinance_yahoo",
+        "source_quality_classification": "external_reference_not_official_disclosure",
+        "source_role": "market_external_reference",
+        "symbol": "MSFT",
+        "volume": null
+      },
+      {
+        "close": null,
+        "currency": "USD",
+        "current_or_last_price": null,
+        "data_status": "missing_data_external_api_disabled",
+        "exchange_metadata": null,
+        "failure_mode": "pm_readable_missing_data_state",
+        "high": null,
+        "low": null,
+        "market": "US",
+        "missing_fields": [
+          "ohlcv",
+          "pre_market_price",
+          "post_market_price"
+        ],
+        "open": null,
+        "post_market_price": null,
+        "pre_market_price": null,
+        "previous_close": null,
+        "source_id": "yfinance_yahoo",
+        "source_quality_classification": "external_reference_not_official_disclosure",
+        "source_role": "market_external_reference",
+        "symbol": "NVDA",
+        "volume": null
+      }
+    ],
+    "not_official_disclosure_source": true,
+    "primary_source": "yfinance_yahoo",
+    "role": "market_external_reference"
+  },
+  "market_separation_policy": {
+    "tw_four_window_flows_modified": false,
+    "tw_loader_sheet": "工作表1",
+    "us_loader_sheet": "工作表2",
+    "us_symbols_to_shioaji": false,
+    "us_symbols_to_taiwan_chip_modules": false,
+    "us_symbols_to_taiwan_margin_modules": false,
+    "us_symbols_to_twse": false
+  },
+  "news_company_info_contract": [
+    {
+      "bilingual_items": [
+        {
+          "chinese_translation": "重大新聞資料待接。",
+          "copyright_policy": "headline_or_short_excerpt_only_no_full_article_copy",
+          "english_excerpt": null,
+          "english_headline": null,
+          "investment_reading": "尚未找到可安全引用的英文新聞或公司資訊 artifact。",
+          "vocabulary": []
+        }
+      ],
+      "market": "US",
+      "news_status": "not_configured",
+      "preferred_sources": [
+        "company_official_ir_sec_earnings_release_transcript",
+        "google_news_rss_us_symbol",
+        "yfinance_news",
+        "factiva_optional_placeholder"
+      ],
+      "symbol": "AAPL"
+    },
+    {
+      "bilingual_items": [
+        {
+          "chinese_translation": "重大新聞資料待接。",
+          "copyright_policy": "headline_or_short_excerpt_only_no_full_article_copy",
+          "english_excerpt": null,
+          "english_headline": null,
+          "investment_reading": "尚未找到可安全引用的英文新聞或公司資訊 artifact。",
+          "vocabulary": []
+        }
+      ],
+      "market": "US",
+      "news_status": "not_configured",
+      "preferred_sources": [
+        "company_official_ir_sec_earnings_release_transcript",
+        "google_news_rss_us_symbol",
+        "yfinance_news",
+        "factiva_optional_placeholder"
+      ],
+      "symbol": "MSFT"
+    },
+    {
+      "bilingual_items": [
+        {
+          "chinese_translation": "重大新聞資料待接。",
+          "copyright_policy": "headline_or_short_excerpt_only_no_full_article_copy",
+          "english_excerpt": null,
+          "english_headline": null,
+          "investment_reading": "尚未找到可安全引用的英文新聞或公司資訊 artifact。",
+          "vocabulary": []
+        }
+      ],
+      "market": "US",
+      "news_status": "not_configured",
+      "preferred_sources": [
+        "company_official_ir_sec_earnings_release_transcript",
+        "google_news_rss_us_symbol",
+        "yfinance_news",
+        "factiva_optional_placeholder"
+      ],
+      "symbol": "NVDA"
+    }
+  ],
+  "prediction_contract": {
+    "items": [
+      {
+        "confidence_level": "insufficient_data",
+        "confidence_score": null,
+        "currency": "USD",
+        "current_or_last_price": null,
+        "generated_at": "2026-07-10T00:00:00+08:00",
+        "intraday_adjusted": false,
+        "market": "US",
+        "missing_fields": [
+          "current_or_last_price",
+          "historical_ohlcv",
+          "session_actual"
+        ],
+        "model_version": "us_deterministic_baseline_contract_v1",
+        "one_month_trend": "uncertain",
+        "predicted_next_session_high": null,
+        "predicted_next_session_low": null,
+        "predicted_session_high": null,
+        "predicted_session_low": null,
+        "prediction_rationale": "insufficient_data: yfinance/Yahoo external API disabled in deterministic foundation validation.",
+        "prediction_status": "insufficient_data",
+        "prediction_window": "upcoming_us_regular_session",
+        "source_evidence": [
+          "yfinance_yahoo_market_external_reference_contract"
+        ],
+        "symbol": "AAPL",
+        "three_month_trend": "uncertain"
+      },
+      {
+        "confidence_level": "insufficient_data",
+        "confidence_score": null,
+        "currency": "USD",
+        "current_or_last_price": null,
+        "generated_at": "2026-07-10T00:00:00+08:00",
+        "intraday_adjusted": false,
+        "market": "US",
+        "missing_fields": [
+          "current_or_last_price",
+          "historical_ohlcv",
+          "session_actual"
+        ],
+        "model_version": "us_deterministic_baseline_contract_v1",
+        "one_month_trend": "uncertain",
+        "predicted_next_session_high": null,
+        "predicted_next_session_low": null,
+        "predicted_session_high": null,
+        "predicted_session_low": null,
+        "prediction_rationale": "insufficient_data: yfinance/Yahoo external API disabled in deterministic foundation validation.",
+        "prediction_status": "insufficient_data",
+        "prediction_window": "upcoming_us_regular_session",
+        "source_evidence": [
+          "yfinance_yahoo_market_external_reference_contract"
+        ],
+        "symbol": "MSFT",
+        "three_month_trend": "uncertain"
+      },
+      {
+        "confidence_level": "insufficient_data",
+        "confidence_score": null,
+        "currency": "USD",
+        "current_or_last_price": null,
+        "generated_at": "2026-07-10T00:00:00+08:00",
+        "intraday_adjusted": false,
+        "market": "US",
+        "missing_fields": [
+          "current_or_last_price",
+          "historical_ohlcv",
+          "session_actual"
+        ],
+        "model_version": "us_deterministic_baseline_contract_v1",
+        "one_month_trend": "uncertain",
+        "predicted_next_session_high": null,
+        "predicted_next_session_low": null,
+        "predicted_session_high": null,
+        "predicted_session_low": null,
+        "prediction_rationale": "insufficient_data: yfinance/Yahoo external API disabled in deterministic foundation validation.",
+        "prediction_status": "insufficient_data",
+        "prediction_window": "upcoming_us_regular_session",
+        "source_evidence": [
+          "yfinance_yahoo_market_external_reference_contract"
+        ],
+        "symbol": "NVDA",
+        "three_month_trend": "uncertain"
+      }
+    ],
+    "market": "US",
+    "window": "us_pre_market_2000"
+  },
+  "prediction_review_contract": {
+    "items": [
+      {
+        "actual_outcome_status": "pending_or_unavailable",
+        "confidence_calibration": "pending_insufficient_actuals",
+        "direction_hit": null,
+        "high_low_error": {
+          "high_error_abs": null,
+          "high_error_pct": null,
+          "low_error_abs": null,
+          "low_error_pct": null
+        },
+        "market": "US",
+        "pending_policy": "keep_review_pending_until_us_session_actual_available",
+        "rating_action_effectiveness": "pending_insufficient_actuals",
+        "review_status": "pending",
+        "review_window": "us_post_close_review_0630",
+        "snapshot_prediction_artifact_ref": "artifacts/runtime/us_stock_prediction_snapshot_latest.json",
+        "symbol": "AAPL"
+      },
+      {
+        "actual_outcome_status": "pending_or_unavailable",
+        "confidence_calibration": "pending_insufficient_actuals",
+        "direction_hit": null,
+        "high_low_error": {
+          "high_error_abs": null,
+          "high_error_pct": null,
+          "low_error_abs": null,
+          "low_error_pct": null
+        },
+        "market": "US",
+        "pending_policy": "keep_review_pending_until_us_session_actual_available",
+        "rating_action_effectiveness": "pending_insufficient_actuals",
+        "review_status": "pending",
+        "review_window": "us_post_close_review_0630",
+        "snapshot_prediction_artifact_ref": "artifacts/runtime/us_stock_prediction_snapshot_latest.json",
+        "symbol": "MSFT"
+      },
+      {
+        "actual_outcome_status": "pending_or_unavailable",
+        "confidence_calibration": "pending_insufficient_actuals",
+        "direction_hit": null,
+        "high_low_error": {
+          "high_error_abs": null,
+          "high_error_pct": null,
+          "low_error_abs": null,
+          "low_error_pct": null
+        },
+        "market": "US",
+        "pending_policy": "keep_review_pending_until_us_session_actual_available",
+        "rating_action_effectiveness": "pending_insufficient_actuals",
+        "review_status": "pending",
+        "review_window": "us_post_close_review_0630",
+        "snapshot_prediction_artifact_ref": "artifacts/runtime/us_stock_prediction_snapshot_latest.json",
+        "symbol": "NVDA"
+      }
+    ],
+    "market": "US",
+    "review_window": "us_post_close_review_0630",
+    "reviewable_stock_count": 0,
+    "reviewed_stock_count": 0,
+    "skipped_stock_count": 3
+  },
+  "report_ready_contract": {
+    "bilingual_news_support": true,
+    "email_summary_candidate": true,
+    "full_report_renderer_not_activated": true,
+    "line_short_reminder_candidate": true
+  },
+  "safety_policy": {
+    "db_write": false,
+    "external_api_called": false,
+    "line_email_notification_sent": false,
+    "production_pipeline_executed": false,
+    "python3_main_executed": false,
+    "scheduler_runtime_activation": false,
+    "secrets_read": false,
+    "trading_or_order_executed": false,
+    "tw_rating_action_confidence_weight_modified": false,
+    "valid_manual_rerun_triggered": false
+  },
+  "scheduler_contract": {
+    "activation_requires_pm_review": true,
+    "cron_modified": false,
+    "scheduler_runtime_activation": false,
+    "systemd_timer_modified": false,
+    "timezone": "Asia/Taipei",
+    "windows": {
+      "us_intraday_2300": {
+        "prediction_window": "same_session_intraday_adjusted",
+        "purpose": "US intraday report",
+        "scheduled_time_tw": "23:00"
+      },
+      "us_post_close_review_0630": {
+        "prediction_window": "post_close_review",
+        "purpose": "US post-close prediction review and next-day observation",
+        "scheduled_time_tw": "06:30"
+      },
+      "us_pre_market_2000": {
+        "prediction_window": "upcoming_us_regular_session",
+        "purpose": "US pre-market report",
+        "scheduled_time_tw": "20:00"
+      }
+    }
+  },
+  "schema_version": "us_stock_dedicated_batch_lifecycle_v1",
+  "scoring_contract": {
+    "items": [
+      {
+        "action": "保守觀望",
+        "confidence": "insufficient_data",
+        "excluded_taiwan_dimensions": [
+          "taiwan_chip",
+          "twse_institutional",
+          "margin_trading"
+        ],
+        "market": "US",
+        "rating": "資料待接",
+        "rationale": "US scoring V1 is isolated from Taiwan chip weights and waits for US market/news data.",
+        "symbol": "AAPL",
+        "total_score": null,
+        "weight_version": "us_scoring_v1_foundation",
+        "weights": {
+          "market_environment": 0.2,
+          "news_company_event": 0.25,
+          "technical": 0.4,
+          "volatility_risk": 0.15
+        }
+      },
+      {
+        "action": "保守觀望",
+        "confidence": "insufficient_data",
+        "excluded_taiwan_dimensions": [
+          "taiwan_chip",
+          "twse_institutional",
+          "margin_trading"
+        ],
+        "market": "US",
+        "rating": "資料待接",
+        "rationale": "US scoring V1 is isolated from Taiwan chip weights and waits for US market/news data.",
+        "symbol": "MSFT",
+        "total_score": null,
+        "weight_version": "us_scoring_v1_foundation",
+        "weights": {
+          "market_environment": 0.2,
+          "news_company_event": 0.25,
+          "technical": 0.4,
+          "volatility_risk": 0.15
+        }
+      },
+      {
+        "action": "保守觀望",
+        "confidence": "insufficient_data",
+        "excluded_taiwan_dimensions": [
+          "taiwan_chip",
+          "twse_institutional",
+          "margin_trading"
+        ],
+        "market": "US",
+        "rating": "資料待接",
+        "rationale": "US scoring V1 is isolated from Taiwan chip weights and waits for US market/news data.",
+        "symbol": "NVDA",
+        "total_score": null,
+        "weight_version": "us_scoring_v1_foundation",
+        "weights": {
+          "market_environment": 0.2,
+          "news_company_event": 0.25,
+          "technical": 0.4,
+          "volatility_risk": 0.15
+        }
+      }
+    ],
+    "market": "US",
+    "tw_scoring_formula_reused": false,
+    "weight_version": "us_scoring_v1_foundation",
+    "weights": {
+      "market_environment": 0.2,
+      "news_company_event": 0.25,
+      "technical": 0.4,
+      "volatility_risk": 0.15
+    }
+  },
+  "source_watchlist": {
+    "enabled_symbol_count": 3,
+    "same_google_sheet_file": true,
+    "source_kind": "google_sheet_us_watchlist",
+    "source_sheet": "工作表2",
+    "symbols": [
+      "AAPL",
+      "MSFT",
+      "NVDA"
+    ],
+    "tw_watchlist_sheet": "工作表1",
+    "us_watchlist_sheet": "工作表2"
+  },
+  "task_id": "AI-DEV-168",
+  "technical_analysis_contract": [
+    {
+      "excluded_taiwan_assumptions": [
+        "taiwan_price_limit",
+        "twd_formatting",
+        "twse_trading_day",
+        "chip_score"
+      ],
+      "indicators": {
+        "bollinger": null,
+        "ma20": null,
+        "ma5": null,
+        "ma60": null,
+        "macd": null,
+        "range_position": null,
+        "rsi14": null,
+        "trend_momentum_summary": "insufficient_data",
+        "volume_moving_average": null
+      },
+      "market": "US",
+      "signal_light": "insufficient_data",
+      "symbol": "AAPL",
+      "technical_score": null,
+      "technical_summary": "資料待接：V1 foundation 未呼叫外部行情，保留 MA/RSI/MACD/Bollinger/volume/range contract。"
+    },
+    {
+      "excluded_taiwan_assumptions": [
+        "taiwan_price_limit",
+        "twd_formatting",
+        "twse_trading_day",
+        "chip_score"
+      ],
+      "indicators": {
+        "bollinger": null,
+        "ma20": null,
+        "ma5": null,
+        "ma60": null,
+        "macd": null,
+        "range_position": null,
+        "rsi14": null,
+        "trend_momentum_summary": "insufficient_data",
+        "volume_moving_average": null
+      },
+      "market": "US",
+      "signal_light": "insufficient_data",
+      "symbol": "MSFT",
+      "technical_score": null,
+      "technical_summary": "資料待接：V1 foundation 未呼叫外部行情，保留 MA/RSI/MACD/Bollinger/volume/range contract。"
+    },
+    {
+      "excluded_taiwan_assumptions": [
+        "taiwan_price_limit",
+        "twd_formatting",
+        "twse_trading_day",
+        "chip_score"
+      ],
+      "indicators": {
+        "bollinger": null,
+        "ma20": null,
+        "ma5": null,
+        "ma60": null,
+        "macd": null,
+        "range_position": null,
+        "rsi14": null,
+        "trend_momentum_summary": "insufficient_data",
+        "volume_moving_average": null
+      },
+      "market": "US",
+      "signal_light": "insufficient_data",
+      "symbol": "NVDA",
+      "technical_score": null,
+      "technical_summary": "資料待接：V1 foundation 未呼叫外部行情，保留 MA/RSI/MACD/Bollinger/volume/range contract。"
+    }
+  ],
+  "us_watchlist": [
+    {
+      "currency": "USD",
+      "enabled": true,
+      "exchange": "NASDAQ",
+      "market": "US",
+      "name": "Apple Inc.",
+      "note": "large cap technology",
+      "source_kind": "google_sheet_us_watchlist",
+      "source_sheet": "工作表2",
+      "symbol": "AAPL"
+    },
+    {
+      "currency": "USD",
+      "enabled": true,
+      "exchange": "NASDAQ",
+      "market": "US",
+      "name": "Microsoft Corp.",
+      "note": null,
+      "source_kind": "google_sheet_us_watchlist",
+      "source_sheet": "工作表2",
+      "symbol": "MSFT"
+    },
+    {
+      "currency": "USD",
+      "enabled": true,
+      "exchange": "NASDAQ",
+      "market": "US",
+      "name": "NVIDIA Corp.",
+      "note": null,
+      "source_kind": "google_sheet_us_watchlist",
+      "source_sheet": "工作表2",
+      "symbol": "NVDA"
+    }
+  ],
+  "window": "us_pre_market_2000",
+  "window_metadata": {
+    "prediction_window": "upcoming_us_regular_session",
+    "purpose": "US pre-market report",
+    "scheduled_time_tw": "20:00",
+    "timezone": "Asia/Taipei",
+    "window_key": "us_pre_market_2000"
+  }
+}
