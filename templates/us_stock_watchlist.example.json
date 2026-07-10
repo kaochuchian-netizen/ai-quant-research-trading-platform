@@ -1,0 +1,40 @@
+{
+  "currency": "USD",
+  "items": [
+    {
+      "currency": "USD",
+      "enabled": true,
+      "exchange": "NASDAQ",
+      "market": "US",
+      "name": "Apple Inc.",
+      "source_kind": "google_sheet_us_watchlist",
+      "source_sheet": "工作表2",
+      "symbol": "AAPL"
+    },
+    {
+      "currency": "USD",
+      "enabled": true,
+      "exchange": "NASDAQ",
+      "market": "US",
+      "name": "Microsoft Corp.",
+      "source_kind": "google_sheet_us_watchlist",
+      "source_sheet": "工作表2",
+      "symbol": "MSFT"
+    },
+    {
+      "currency": "USD",
+      "enabled": true,
+      "exchange": "NASDAQ",
+      "market": "US",
+      "name": "NVIDIA Corp.",
+      "source_kind": "google_sheet_us_watchlist",
+      "source_sheet": "工作表2",
+      "symbol": "NVDA"
+    }
+  ],
+  "market": "US",
+  "schema_version": "us_stock_watchlist_example_v1",
+  "source_kind": "google_sheet_us_watchlist",
+  "source_sheet": "工作表2",
+  "task_id": "AI-DEV-168"
+}
