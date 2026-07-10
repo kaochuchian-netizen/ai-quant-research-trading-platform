@@ -6,8 +6,10 @@ import argparse
 import importlib.util
 import json
 import math
+import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -49,7 +51,27 @@ def run_runner_live_dry_run(window: str) -> dict[str, Any]:
         "--live-data",
         "--pretty",
     ]
-    completed = subprocess.run(cmd, cwd=REPO_ROOT, text=True, capture_output=True, timeout=90)
+    runtime_dir = REPO_ROOT / "artifacts/runtime/us_stock"
+    legacy_status = REPO_ROOT / "artifacts/runtime/us_stock_delivery_status_latest.json"
+    with tempfile.TemporaryDirectory(prefix="ai_dev_171_validator_") as tmp:
+        backup_dir = Path(tmp) / "us_stock"
+        runtime_existed = runtime_dir.exists()
+        if runtime_existed:
+            shutil.copytree(runtime_dir, backup_dir)
+        status_existed = legacy_status.exists()
+        status_bytes = legacy_status.read_bytes() if status_existed else None
+        try:
+            completed = subprocess.run(cmd, cwd=REPO_ROOT, text=True, capture_output=True, timeout=90)
+        finally:
+            if runtime_dir.exists():
+                shutil.rmtree(runtime_dir)
+            if runtime_existed:
+                shutil.copytree(backup_dir, runtime_dir)
+            if status_existed and status_bytes is not None:
+                legacy_status.parent.mkdir(parents=True, exist_ok=True)
+                legacy_status.write_bytes(status_bytes)
+            elif legacy_status.exists():
+                legacy_status.unlink()
     if completed.returncode != 0:
         return {"ok": False, "returncode": completed.returncode, "stderr": completed.stderr[-500:]}
     try:
