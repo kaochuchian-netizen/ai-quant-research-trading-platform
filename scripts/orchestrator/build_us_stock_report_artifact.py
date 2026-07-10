@@ -20,6 +20,7 @@ def main() -> int:
     parser.add_argument("--input", type=Path)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--write-input-template", type=Path)
+    parser.add_argument("--dry-run", action="store_true", help="Accepted for production validation; no side effects other than optional --output.")
     parser.add_argument("--pretty", action="store_true")
     args = parser.parse_args()
     if args.write_input_template:
@@ -27,6 +28,10 @@ def main() -> int:
         args.write_input_template.write_text(json.dumps(us_stock_batch_input_example(), ensure_ascii=False, sort_keys=True, indent=2) + "\n", encoding="utf-8")
     payload = json.loads(args.input.read_text(encoding="utf-8")) if args.input else us_stock_batch_input_example()
     artifact = build_us_stock_batch_artifact(payload, window=args.window)
+    artifact["build_mode"] = "dry_run" if args.dry_run else "deterministic_builder"
+    artifact["line_sent"] = False
+    artifact["email_sent"] = False
+    artifact["scheduler_runtime_activation"] = False
     text = json.dumps(artifact, ensure_ascii=False, sort_keys=True, indent=2 if args.pretty else None) + "\n"
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
