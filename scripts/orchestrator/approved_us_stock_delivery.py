@@ -27,6 +27,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from app.us_stock.batch import build_us_stock_batch_artifact, us_stock_batch_input_example
 from app.us_stock.constants import US_BATCH_WINDOWS
+from app.us_stock.live_pipeline import build_live_runtime_artifact
 from app.us_stock.watchlist import normalize_us_watchlist_rows
 from scripts.orchestrator.notify_stage_report import build_message, load_env_file, load_mail_config, send_message
 
@@ -38,11 +39,17 @@ RUNTIME_DIR = REPO_ROOT / "artifacts/runtime"
 US_RUNTIME_DIR = RUNTIME_DIR / "us_stock"
 IDEMPOTENCY_DIR = US_RUNTIME_DIR / "idempotency"
 STATUS_PATH = RUNTIME_DIR / "us_stock_delivery_status_latest.json"
+US_STATUS_PATH = US_RUNTIME_DIR / "delivery_status_latest.json"
 STATIC_DASHBOARD_PATH = Path("/var/www/stock-ai-dashboard/dashboard/us/index.html")
 MAIL_ENV_FILE = Path("~/.config/stock-ai-orchestrator/mail.env")
 LOCK_PATH = Path("/tmp/stock_ai_us_stock_batch.lock")
 
 WINDOW_OUTPUTS = {
+    "us_pre_market_2000": US_RUNTIME_DIR / "us_pre_market_2000_latest.json",
+    "us_intraday_2300": US_RUNTIME_DIR / "us_intraday_2300_latest.json",
+    "us_post_close_review_0630": US_RUNTIME_DIR / "us_post_close_review_0630_latest.json",
+}
+LEGACY_WINDOW_OUTPUTS = {
     "us_pre_market_2000": US_RUNTIME_DIR / "us_stock_pre_market_latest.json",
     "us_intraday_2300": US_RUNTIME_DIR / "us_stock_intraday_latest.json",
     "us_post_close_review_0630": US_RUNTIME_DIR / "us_stock_post_close_review_latest.json",
@@ -126,19 +133,39 @@ def load_runtime_watchlist(dry_run: bool) -> tuple[list[dict[str, Any]], dict[st
     }
 
 
-def build_runtime_artifact(window: str, dry_run: bool, reference: datetime) -> dict[str, Any]:
+def build_runtime_artifact(window: str, dry_run: bool, reference: datetime, *, live_data: bool = False, production_artifact: bool = False) -> dict[str, Any]:
     enabled, metadata = load_runtime_watchlist(dry_run=dry_run)
+    if live_data or production_artifact or not dry_run:
+        artifact = build_live_runtime_artifact(
+            window,
+            enabled,
+            production_runtime=production_artifact or not dry_run,
+            write_snapshots=production_artifact or not dry_run,
+            reference=reference,
+        )
+        artifact["runtime_watchlist_validation"].update(metadata)
+        artifact["market_phase_context"] = market_phase_context(window, reference)
+        artifact["delivery_policy"].update({
+            "email_delivery_allowed": not dry_run,
+            "line_delivery_allowed": not dry_run,
+            "notification_policy": "production_approved_scheduler_only" if not dry_run else "live_data_no_send_validation",
+        })
+        return artifact
     payload = us_stock_batch_input_example()
     payload["sample_us_watchlist_rows"] = enabled
     artifact = build_us_stock_batch_artifact(payload, window=window)
-    artifact["artifact_type"] = "us_stock_production_runtime_artifact"
-    artifact["runtime_mode"] = "dry_run" if dry_run else "production_approved_runtime"
+    artifact["artifact_type"] = "us_stock_validation_foundation_artifact"
+    artifact["runtime_mode"] = "dry_run_foundation_only"
+    artifact["artifact_mode"] = "foundation"
+    artifact["data_source_mode"] = "fixture"
+    artifact["fixture"] = True
+    artifact["validation_only"] = True
     artifact["runtime_watchlist_validation"] = metadata
     artifact["market_phase_context"] = market_phase_context(window, reference)
     artifact["delivery_policy"].update({
-        "email_delivery_allowed": not dry_run,
-        "line_delivery_allowed": not dry_run,
-        "notification_policy": "production_approved_scheduler_only" if not dry_run else "dry_run_no_delivery",
+        "email_delivery_allowed": False,
+        "line_delivery_allowed": False,
+        "notification_policy": "dry_run_foundation_no_delivery",
     })
     return artifact
 
@@ -260,15 +287,19 @@ def release_lock() -> None:
 def run(args: argparse.Namespace) -> dict[str, Any]:
     started = now_taipei()
     production_approved = bool(args.production_approved and not args.dry_run)
+    production_artifact = bool(args.production_artifact and not args.production_approved)
     if args.window not in WINDOWS:
         raise SystemExit(f"unsupported US stock window: {args.window}")
     if not acquire_lock():
         return {"ok": False, "status": "lock_busy", "window": args.window, "line_attempted": False, "email_attempted": False}
     try:
-        artifact = build_runtime_artifact(args.window, dry_run=not production_approved, reference=started)
+        artifact = build_runtime_artifact(args.window, dry_run=not production_approved, reference=started, live_data=args.live_data, production_artifact=production_artifact)
         artifact["generated_at"] = started.isoformat()
         out_path = WINDOW_OUTPUTS[args.window]
         write_json(out_path, artifact)
+        legacy_path = LEGACY_WINDOW_OUTPUTS.get(args.window)
+        if legacy_path and legacy_path != out_path:
+            write_json(legacy_path, artifact)
         dashboard_result = publish_dashboard(artifact) if production_approved or args.publish_dashboard else {"attempted": False, "succeeded": False, "reason": "dry_run_no_publish"}
         idem = idempotency_path(args.window, started)
         delivery_skipped_duplicate = production_approved and idem.exists()
@@ -308,10 +339,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "secret_values_printed": False,
         }
         write_json(STATUS_PATH, status)
+        write_json(US_STATUS_PATH, status)
         return {"ok": True, "status": status, "dashboard": dashboard_result, "email": email_result, "line": line_result}
     except Exception as exc:
         error = {"ok": False, "status": "failed", "window": args.window, "error_type": type(exc).__name__, "error_message": str(exc)[:240], "line_attempted": False, "email_attempted": False, "trading_or_order_executed": False, "production_pipeline_executed": False}
         write_json(STATUS_PATH, error)
+        write_json(US_STATUS_PATH, error)
         return error
     finally:
         release_lock()
@@ -322,6 +355,8 @@ def main() -> int:
     parser.add_argument("--window", required=True, choices=WINDOWS)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--production-approved", action="store_true")
+    parser.add_argument("--live-data", action="store_true", help="Fetch live public market data in no-send mode.")
+    parser.add_argument("--production-artifact", action="store_true", help="Write production-provenance live artifact without sending notifications.")
     parser.add_argument("--publish-dashboard", action="store_true")
     parser.add_argument("--pretty", action="store_true")
     parser.add_argument("--as-of")

@@ -22,6 +22,9 @@ STATIC_ROOT = Path("/var/www/stock-ai-dashboard")
 TW_TEMPLATE = REPO_ROOT / "templates/four_window_dashboard_route_preview.example.html"
 OUTPUT_DIR = REPO_ROOT / "templates/multi_market_dashboard_v2"
 US_RUNTIME_FILES = [
+    REPO_ROOT / "artifacts/runtime/us_stock/us_pre_market_2000_latest.json",
+    REPO_ROOT / "artifacts/runtime/us_stock/us_intraday_2300_latest.json",
+    REPO_ROOT / "artifacts/runtime/us_stock/us_post_close_review_0630_latest.json",
     REPO_ROOT / "artifacts/runtime/us_stock/us_stock_pre_market_latest.json",
     REPO_ROOT / "artifacts/runtime/us_stock/us_stock_intraday_latest.json",
     REPO_ROOT / "artifacts/runtime/us_stock/us_stock_post_close_review_latest.json",
@@ -53,31 +56,33 @@ def _escape(value: Any) -> str:
         return "資料待接"
     return html.escape(str(value))
 
+def _is_authoritative_us_artifact(data: dict[str, Any]) -> bool:
+    return (
+        data.get("market") == "US"
+        and data.get("artifact_kind") == "us_stock_runtime"
+        and data.get("data_source_mode") == "live"
+        and data.get("fixture") is False
+        and data.get("artifact_mode") == "production_runtime"
+        and data.get("validation_only") is False
+    )
+
+
 def _load_us_artifacts() -> list[dict[str, Any]]:
     artifacts = []
+    seen_windows: set[str] = set()
     for path in US_RUNTIME_FILES:
         data = read_json(path)
-        if data and data.get("market") == "US":
-            data["_source_path"] = str(path.relative_to(REPO_ROOT))
-            artifacts.append(data)
-    if artifacts:
-        return artifacts
-    try:
-        from app.us_stock.batch import build_us_stock_batch_artifact, us_stock_batch_input_example
-        payload = us_stock_batch_input_example()
-        built = build_us_stock_batch_artifact(payload, window="us_pre_market_2000")
-        built["artifact_type"] = "us_stock_dashboard_fixture_no_send"
-        built["runtime_mode"] = "offline_fixture"
-        built["runtime_watchlist_validation"] = {
-            "mode": "offline_fixture",
-            "source_sheet": "工作表2",
-            "enabled_stock_count": len([r for r in payload.get("sample_us_watchlist_rows", []) if r.get("enabled", True)]),
-            "private_values_printed": False,
-            "credentials_read": False,
-        }
-        return [built]
-    except Exception:
-        return []
+        if not data:
+            continue
+        if not _is_authoritative_us_artifact(data):
+            continue
+        window = str(data.get("window") or path.name)
+        if window in seen_windows:
+            continue
+        data["_source_path"] = str(path.relative_to(REPO_ROOT))
+        artifacts.append(data)
+        seen_windows.add(window)
+    return artifacts
 
 def us_stock_count(artifacts: list[dict[str, Any]]) -> int:
     symbols: set[str] = set()
@@ -120,7 +125,7 @@ def render_us_cards(artifacts: list[dict[str, Any]]) -> str:
               <div class="card-kicker">{html.escape(window_label)}｜US</div>
               <h3>{_escape(symbol)} {_escape(card.get('name'))}</h3>
               <dl>
-                <div><dt>交易所</dt><dd>{_escape(_exchange_for(artifact, symbol))}</dd></div>
+                <div><dt>交易所</dt><dd>{_escape(card.get('exchange') or _exchange_for(artifact, symbol))}</dd></div>
                 <div><dt>USD 價格</dt><dd>{_escape(card.get('price'))}</dd></div>
                 <div><dt>評等 / 動作 / 信心</dt><dd>{_escape(card.get('rating'))} / {_escape(card.get('action'))} / {_escape(card.get('confidence'))}</dd></div>
                 <div><dt>本次預測區間</dt><dd>{_escape(card.get('session_predicted_high_low'))}</dd></div>
@@ -133,7 +138,7 @@ def render_us_cards(artifacts: list[dict[str, Any]]) -> str:
             </article>
             """)
     if not rows:
-        rows.append("<article class='status-card warn'><h3>美股資料待接</h3><p>尚未找到可渲染的 US runtime artifact；不會回退到台股資料。</p></article>")
+        rows.append('<article class="status-card warn" data-market="US"><h3>正式美股資料尚未產生</h3><p>尚未找到 live production US runtime artifact；不會回退到台股資料，也不會渲染 validation fixture。</p></article>')
     return "\n".join(rows)
 
 def base_css() -> str:
@@ -173,7 +178,7 @@ def render_us_page(artifacts: list[dict[str, Any]] | None = None) -> str:
     <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>美股 AI 決策儀表板</title><meta name="market" content="US"><style>{base_css()}</style></head>
     <body><header><div class="wrap"><h1>美股 AI 決策儀表板</h1><p>美股盤前 20:00｜美股盤中 23:00｜美股檢討 06:30</p><nav class="nav"><a href="/stock-ai-dashboard/index.html">回到總覽</a><a href="/stock-ai-dashboard/dashboard/tw/index.html">台股 Dashboard</a><a href="/stock-ai-dashboard/dashboard/us/index.html">美股 Dashboard</a></nav></div></header><main class="wrap">
     <!-- AI-DEV-170-US-DASHBOARD-START -->
-    <section class="section"><h2>美股 Runtime Summary</h2><p>US enabled stock count：{count}</p><p>最新更新：{html.escape(latest)}</p><p>資料來源：工作表2 / US runtime artifacts；US Dashboard 不回退到台股資料。</p></section>
+    <section class="section"><h2>美股 Runtime Summary</h2><p>US enabled stock count：{count}</p><p>最新更新：{html.escape(latest)}</p><p>資料來源：工作表2 / live production US runtime artifacts；US Dashboard 不回退到台股資料，也不渲染 validation fixture。</p></section>
     <section class="section"><h2>美股盤前 20:00</h2><p>盤前預測、評等、風險與雙語新聞。</p></section>
     <section class="section"><h2>美股盤中 23:00</h2><p>盤中狀態、區間偏離與評等有效性。</p></section>
     <section class="section"><h2>美股檢討 06:30</h2><p>盤後 prediction review、區間命中與校準狀態。</p></section>
