@@ -134,7 +134,7 @@ def load_runtime_watchlist(dry_run: bool) -> tuple[list[dict[str, Any]], dict[st
 
 
 def build_runtime_artifact(window: str, dry_run: bool, reference: datetime, *, live_data: bool = False, production_artifact: bool = False) -> dict[str, Any]:
-    enabled, metadata = load_runtime_watchlist(dry_run=dry_run)
+    enabled, metadata = load_runtime_watchlist(dry_run=dry_run and not production_artifact)
     if live_data or production_artifact or not dry_run:
         artifact = build_live_runtime_artifact(
             window,
