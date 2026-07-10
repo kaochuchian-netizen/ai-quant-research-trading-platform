@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>台股 AI 決策儀表板 | 四時段 AI 決策儀表板</title><style>body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;background:#f6f7fb;color:#17202a}header.hero{padding:28px 20px;background:#102a43;color:white}.hero h1{margin:0 0 8px}.lead{max-width:900px}.status-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.status-row span,.badge{background:#eaf2ff;color:#102a43;border-radius:999px;padding:6px 10px;font-size:14px}main{max-width:1180px;margin:0 auto;padding:24px 16px}.panel,.card{background:white;border:1px solid #d6dbdf;border-radius:8px;padding:18px;margin-bottom:16px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}.stock-card{border:1px solid #e5e7eb;border-radius:8px;padding:14px}.muted{color:#667085}.debug pre{white-space:pre-wrap;overflow:auto}</style></head>
+<body>
+  <header class="hero"><div><p class="eyebrow">V10 Decision Intelligence</p><h1>四時段 AI 決策儀表板</h1><p>盤前、盤中、收盤快照、盤後檢討</p><p class="lead">正式 Dashboard 入口；LINE / Email 僅作提醒與摘要，完整決策資訊以本頁為準。</p><div class="status-row"><span>最新資料時間：2026-07-08 23:05:56</span><span>今日評等資料：9 / 9 檔可用</span><span>baseline V1，待回測校準</span><span>已發布並可驗證</span></div></div></header>
+  <main>
+    <section class="hero"><h2>今日決策摘要</h2><p>最新盤前資料：2026-07-08 23:05:56；正式評等 / 動作 / 分數覆蓋：9 / 9 檔。</p></section>
+    <section class="card"><h2>四個時段怎麼看</h2><div class="grid"><article class="card window-card"><div class="window-time">07:00</div><div class="window-title">盤前決策摘要</div><p><strong>盤前摘要可用</strong></p><p>LINE 為短提醒 + Dashboard URL</p><span class="badge warn">部分缺資料</span></article><article class="card window-card"><div class="window-time">13:05</div><div class="window-title">盤中追蹤</div><p><strong>13:05 盤中追蹤：今日資料尚未完成</strong></p><p>timeout 時不發 LINE / Email，避免過時通知。</p><span class="badge warn">資料尚未完成</span></article><article class="card window-card"><div class="window-time">13:35</div><div class="window-title">收盤快照</div><p><strong>13:35 收盤快照：資料尚未產生</strong></p><p>完整檢討以 15:00 盤後檢討為主。</p><span class="badge warn">資料尚未完成</span></article><article class="card window-card"><div class="window-time">15:00</div><div class="window-title">盤後檢討</div><p><strong>盤後檢討 / prediction review</strong></p><p>單日檢討與 7 天滾動檢討分區顯示。</p><span class="badge warn">部分缺資料</span></article></div></section>
+    <section class='panel'>
+<h2>追蹤標的</h2>
+<p class='muted'>目前追蹤標的：9 檔；今日評等資料：9 / 9 檔可用。</p>
+<p class='muted'>預測摘要：今日預測區間、隔日預測區間、1 個月趨勢、3 個月趨勢、未來 1 個月走勢、未來 3 個月走勢、信心分數、主要依據、方法 deterministic baseline V1、說明、風險與資料品質。趨勢可能顯示：偏多 / 不明朗；信心水準可能顯示：中高。</p>
+<div class='grid stock-grid'>
+<article class='card stock-card'><h3>00878 國泰永續高股息</h3><p><strong>追蹤名單有效</strong></p><p>今日評等資料：可用</p><p>評等：D級</p><p>動作：降低追價</p><p>分數：43.0 分</p><p class='muted'>預測區間、資料品質與風險提示請看每日股價預測區。</p></article>
+<article class='card stock-card'><h3>009816 凱基台灣TOP50</h3><p><strong>追蹤名單有效</strong></p><p>今日評等資料：可用</p><p>評等：D級</p><p>動作：降低追價</p><p>分數：35.0 分</p><p class='muted'>預測區間、資料品質與風險提示請看每日股價預測區。</p></article>
+<article class='card stock-card'><h3>1409 新纖</h3><p><strong>追蹤名單有效</strong></p><p>今日評等資料：可用</p><p>評等：C級</p><p>動作：中性觀察</p><p>分數：53.0 分</p><p class='muted'>預測區間、資料品質與風險提示請看每日股價預測區。</p></article>
+<article class='card stock-card'><h3>2305 全友</h3><p><strong>追蹤名單有效</strong></p><p>今日評等資料：可用</p><p>評等：D級</p><p>動作：降低追價</p><p>分數：45.0 分</p><p class='muted'>預測區間、資料品質與風險提示請看每日股價預測區。</p></article>
+<article class='card stock-card'><h3>2330 台積電</h3><p><strong>追蹤名單有效</strong></p><p>今日評等資料：可用</p><p>評等：C級</p><p>動作：中性觀察</p><p>分數：56.0 分</p><p class='muted'>預測區間、資料品質與風險提示請看每日股價預測區。</p></article>
+<article class='card stock-card'><h3>2337 旺宏</h3><p><strong>追蹤名單有效</strong></p><p>今日評等資料：可用</p><p>評等：D級</p><p>動作：降低追價</p><p>分數：48.0 分</p><p class='muted'>預測區間、資料品質與風險提示請看每日股價預測區。</p></article>
+<article class='card stock-card'><h3>2353 宏碁</h3><p><strong>追蹤名單有效</strong></p><p>今日評等資料：可用</p><p>評等：D級</p><p>動作：降低追價</p><p>分數：41.0 分</p><p class='muted'>預測區間、資料品質與風險提示請看每日股價預測區。</p></article>
+<article class='card stock-card'><h3>4743 合一</h3><p><strong>追蹤名單有效</strong></p><p>今日評等資料：可用</p><p>評等：C級</p><p>動作：中性觀察</p><p>分數：55.0 分</p><p class='muted'>預測區間、資料品質與風險提示請看每日股價預測區。</p></article>
+<article class='card stock-card'><h3>6873 泓德能源</h3><p><strong>追蹤名單有效</strong></p><p>今日評等資料：可用</p><p>評等：C級</p><p>動作：中性觀察</p><p>分數：57.0 分</p><p class='muted'>預測區間、資料品質與風險提示請看每日股價預測區。</p></article>
+</div></section>
+    <section class="card"><h2>最新報告摘要</h2><div class="source-grid"><div class="source-item"><h3>Debug / Legacy</h3><p>Debug / 範例 artifact 已隔離，不作為正式最新報告。</p></div></div></section>
+    <section class="card method-card"><h2>預測方法說明</h2><p>目前使用 deterministic baseline V1。</p><p>此方法以近 20 日高低價區間、報酬波動、ATR-like range 與均線 / 報酬率趨勢偏差估算。</p><p>用途：供研究參考，待回測校準。</p><p>限制：部分長週期資料不足時，3 個月趨勢可能維持不明朗。</p><h3>風險提醒</h3><ul><li>baseline V1 尚在回測校準階段。</li><li>預測值僅供研究參考，非交易指令。</li><li>不修改正式評等 / 動作 / 信心 / 權重。</li><li>樣本數仍不足，尚不可直接調整公式。</li></ul></section>
+
+    <section class="panel"><h2>缺資料顯示規則</h2>
+      <p>部分資料可用；正式預測與檢討資料待接，是缺資料時的安全語意，不代表本頁會用舊 preview 資料冒充正式資料。</p>
+      <p>盤前摘要：可用；每日股價預測：資料待接；盤中追蹤：資料待接；盤後檢討：資料待接。</p>
+      <p>尚未找到正式盤中 runtime artifact；13:05 盤中資料以資料待接呈現。13:35 收盤快照資料若不足，完整檢討待 15:00。</p>
+      <p>7 天滾動檢討：資料待接；資料過期會明確標示；目前僅找到盤前本機摘要，不能代表盤後檢討資料。</p>
+      <p>formal prediction artifact 已接線；formal review artifact 已接線；deterministic_baseline_v1；待回測校準。</p>
+      <p>LINE / Email 為 read-only audit，未重送，也未驗證實際送達內容。範例 artifact，不是正式最新報告。</p>
+      <p>樣本數不足，不代表穩定績效；尚不可直接修改公式。</p>
+    </section>
+    <section class="panel"><h2>個股狀態摘要</h2><p>趨勢顯示字典：偏多 / 中性 / 偏空 / 不明朗；信心水準：低 / 中 / 中高。重大新聞：重大新聞資料待接時不產生假新聞。</p></section>
+    <section class="panel"><h2>預測資料狀態</h2><p>今日最高價預測、今日最低價預測、今日最高 / 最低價預測、隔天最高價預測、隔天最低價預測、隔天最高 / 最低價預測以正式 artifact 呈現；缺資料時顯示資料待接。</p></section>
+    <section class="panel"><h2>資料來源可信度</h2><p>官方來源優先；FinMind / yfinance 不取代官方來源；Google News 只作事件或情緒輔助。</p></section>
+
+    <section class="card"><h2>每日股價預測資料狀態</h2><p>預測摘要：今日預測區間、隔日預測區間、1 個月趨勢、3 個月趨勢、未來 1 個月走勢、未來 3 個月走勢、信心分數、主要依據、方法 deterministic baseline V1、說明、風險與資料品質。重大新聞：重大新聞資料待接。趨勢可能顯示：偏多 / 不明朗；信心水準可能顯示：中高。</p><div class="source-grid"><div class="source-item stock-forecast-card"><h3>00878 國泰永續高股息</h3><div class="review-block"><h4>預測摘要</h4><p><strong>今日預測區間：</strong>32.78 ～ 33.77</p><p><strong>隔日預測區間：</strong>32.71 ～ 33.86</p><p><strong>1 個月趨勢：</strong>偏多</p><p><strong>3 個月趨勢：</strong>不明朗</p><p><strong>信心分數：</strong>67 / 75，中高</p></div><div class="review-block"><h4>重大新聞</h4><p>重大新聞資料待接</p><p>說明：尚未找到可安全引用的新聞標題 artifact。</p></div><div class="review-block"><h4>資料狀態</h4><p>歷史 OHLCV 可用；部分長週期資料待接</p></div></div><div class="source-item stock-forecast-card"><h3>009816 凱基台灣TOP50</h3><div class="review-block"><h4>預測摘要</h4><p><strong>今日預測區間：</strong>14.92 ～ 15.51</p><p><strong>隔日預測區間：</strong>14.86 ～ 15.55</p><p><strong>1 個月趨勢：</strong>偏空</p><p><strong>3 個月趨勢：</strong>不明朗</p><p><strong>信心分數：</strong>66 / 75，中高</p></div><div class="review-block"><h4>重大新聞</h4><p>重大新聞資料待接</p><p>說明：尚未找到可安全引用的新聞標題 artifact。</p></div><div class="review-block"><h4>資料狀態</h4><p>歷史 OHLCV 可用；部分長週期資料待接</p></div></div><div class="source-item stock-forecast-card"><h3>1409 新纖</h3><div class="review-block"><h4>預測摘要</h4><p><strong>今日預測區間：</strong>27.78 ～ 31.24</p><p><strong>隔日預測區間：</strong>27.56 ～ 31.54</p><p><strong>1 個月趨勢：</strong>偏多</p><p><strong>3 個月趨勢：</strong>不明朗</p><p><strong>信心分數：</strong>58 / 75，中</p></div><div class="review-block"><h4>重大新聞</h4><p>重大新聞資料待接</p><p>說明：尚未找到可安全引用的新聞標題 artifact。</p></div><div class="review-block"><h4>資料狀態</h4><p>歷史 OHLCV 可用；部分長週期資料待接</p></div></div><div class="source-item stock-forecast-card"><h3>2305 全友</h3><div class="review-block"><h4>預測摘要</h4><p><strong>今日預測區間：</strong>33.03 ～ 38.02</p><p><strong>隔日預測區間：</strong>32.71 ～ 38.45</p><p><strong>1 個月趨勢：</strong>偏多</p><p><strong>3 個月趨勢：</strong>不明朗</p><p><strong>信心分數：</strong>56 / 75，中</p></div><div class="review-block"><h4>重大新聞</h4><p>重大新聞資料待接</p><p>說明：尚未找到可安全引用的新聞標題 artifact。</p></div><div class="review-block"><h4>資料狀態</h4><p>歷史 OHLCV 可用；部分長週期資料待接</p></div></div><div class="source-item stock-forecast-card"><h3>2330 台積電</h3><div class="review-block"><h4>預測摘要</h4><p><strong>今日預測區間：</strong>2423.0 ～ 2522.0</p><p><strong>隔日預測區間：</strong>2417.0 ～ 2530.0</p><p><strong>1 個月趨勢：</strong>偏多</p><p><strong>3 個月趨勢：</strong>不明朗</p><p><strong>信心分數：</strong>66 / 75，中高</p></div><div class="review-block"><h4>重大新聞</h4><p>重大新聞資料待接</p><p>說明：尚未找到可安全引用的新聞標題 artifact。</p></div><div class="review-block"><h4>資料狀態</h4><p>歷史 OHLCV 可用；部分長週期資料待接</p></div></div><div class="source-item stock-forecast-card"><h3>2337 旺宏</h3><div class="review-block"><h4>預測摘要</h4><p><strong>今日預測區間：</strong>129.1 ～ 145.4</p><p><strong>隔日預測區間：</strong>127.7 ～ 146.5</p><p><strong>1 個月趨勢：</strong>偏空</p><p><strong>3 個月趨勢：</strong>不明朗</p><p><strong>信心分數：</strong>58 / 75，中</p></div><div class="review-block"><h4>重大新聞</h4><p>重大新聞資料待接</p><p>說明：尚未找到可安全引用的新聞標題 artifact。</p></div><div class="review-block"><h4>資料狀態</h4><p>歷史 OHLCV 可用；部分長週期資料待接</p></div></div><div class="source-item stock-forecast-card"><h3>2353 宏碁</h3><div class="review-block"><h4>預測摘要</h4><p><strong>今日預測區間：</strong>30.85 ～ 33.37</p><p><strong>隔日預測區間：</strong>30.63 ～ 33.53</p><p><strong>1 個月趨勢：</strong>偏空</p><p><strong>3 個月趨勢：</strong>不明朗</p><p><strong>信心分數：</strong>62 / 75，中高</p></div><div class="review-block"><h4>重大新聞</h4><p>重大新聞資料待接</p><p>說明：尚未找到可安全引用的新聞標題 artifact。</p></div><div class="review-block"><h4>資料狀態</h4><p>歷史 OHLCV 可用；部分長週期資料待接</p></div></div><div class="source-item stock-forecast-card"><h3>4743 合一</h3><div class="review-block"><h4>預測摘要</h4><p><strong>今日預測區間：</strong>53.99 ～ 58.01</p><p><strong>隔日預測區間：</strong>53.74 ～ 58.36</p><p><strong>1 個月趨勢：</strong>偏多</p><p><strong>3 個月趨勢：</strong>不明朗</p><p><strong>信心分數：</strong>63 / 75，中高</p></div><div class="review-block"><h4>重大新聞</h4><p>重大新聞資料待接</p><p>說明：尚未找到可安全引用的新聞標題 artifact。</p></div><div class="review-block"><h4>資料狀態</h4><p>歷史 OHLCV 可用；部分長週期資料待接</p></div></div><div class="source-item stock-forecast-card"><h3>6873 泓德能源</h3><div class="review-block"><h4>預測摘要</h4><p><strong>今日預測區間：</strong>87.19 ～ 92.15</p><p><strong>隔日預測區間：</strong>86.88 ～ 92.58</p><p><strong>1 個月趨勢：</strong>偏多</p><p><strong>3 個月趨勢：</strong>不明朗</p><p><strong>信心分數：</strong>64 / 75，中高</p></div><div class="review-block"><h4>重大新聞</h4><p>重大新聞資料待接</p><p>說明：尚未找到可安全引用的新聞標題 artifact。</p></div><div class="review-block"><h4>資料狀態</h4><p>歷史 OHLCV 可用；部分長週期資料待接</p></div></div></div></section>
+    <section class="card"><h2>Forecast Calibration / 回測校準狀態</h2><div class="source-grid"><div class="source-item"><h3>Forecast Calibration / 回測校準狀態</h3><p><strong>方法：</strong>deterministic_baseline_v1</p><p><strong>樣本數：</strong>9</p><span class="badge warn">樣本數：9</span><p><strong>今日高低價區間命中率：</strong>55.5556%</p><p><strong>隔日高低價區間命中率：</strong>資料不足</p><p><strong>校準狀態：</strong>blocked_insufficient_sample</p><span class="badge warn">樣本數不足，不代表穩定績效</span></div><div class="source-item"><h3>Method tuning gate</h3><p><strong>調參建議：</strong>暫不調整 deterministic_baseline_v1，持續累積正式 artifact 與 actual outcome。</p><p><strong>目前限制：</strong>目前 eligible sample count 低於 30，只能作初步 proposal visibility，不能進入 shadow tuning。；隔日高低價區間命中率為 null，因 selected window 沒有 usable next-day actual outcome。</p><p><strong>下一步：</strong>累積更多 formal forecast / actual outcome artifacts。</p><span class="badge warn">尚不可直接修改公式</span></div></div><p class="preview-note">目前為 baseline V1 回測初步結果，樣本數不足，不代表穩定績效；不可把 55.5556% 包裝成已通過完整驗證，也不可把隔日 null 顯示為 0%。</p></section>
+    <section class="card"><h2>Forecast Snapshot Accumulation / 預測樣本累積進度</h2><div class="source-grid"><div class="source-item"><h3>Forecast Snapshot Accumulation / 預測樣本累積進度</h3><p><strong>已歸檔 prediction snapshots：</strong>2</p><p><strong>已歸檔 actual outcome snapshots：</strong>2</p><p><strong>已歸檔 review snapshots：</strong>2</p><p><strong>可評估 same-day samples：</strong>9</p><p><strong>可評估 next-day samples：</strong>資料不足</p><span class="badge warn">樣本累積，不是績效</span></div><div class="source-item"><h3>Calibration Gate Progress</h3><p><strong>Shadow tuning 門檻：30</strong></p><p><strong>Formula change 門檻：100</strong></p><p><strong>目前 gate：</strong>blocked_insufficient_sample</p><p><strong>距離 shadow tuning 還差：</strong>21 samples</p><p><strong>距離 formula change 還差：</strong>91 samples</p><span class="badge warn">blocked_insufficient_sample</span></div></div><p class="preview-note">目前仍為基準模型樣本累積階段；樣本數不足時不可直接調整公式。不可把 snapshot count 當成績效，不可把 next-day null 顯示為 0%。</p></section>
+
+    <section class="panel manual-rerun-control">
+      <h2>手動重跑</h2>
+      <p>選擇單一批次，輸入 6 位數字重跑密碼。此操作只刷新 Dashboard / artifacts，不會重送 LINE / Email，不會執行交易，不會一次重跑四個批次。</p>
+      <div class="grid">
+        <button type="button" class="manual-rerun-button" data-window="pre_open_0700">重跑 07:00 盤前</button>
+        <button type="button" class="manual-rerun-button" data-window="intraday_1305">重跑 13:05 盤中</button>
+        <button type="button" class="manual-rerun-button" data-window="pre_close_1335">重跑 13:35 收盤快照</button>
+        <button type="button" class="manual-rerun-button" data-window="post_close_1500">重跑 15:00 盤後檢討</button>
+      </div>
+      <form id="manual-rerun-form" data-endpoint="/stock-ai-dashboard/api/manual-rerun" data-status-endpoint="/stock-ai-dashboard/api/manual-rerun/status">
+        <p id="manual-rerun-selected">尚未選擇批次。</p>
+        <label>6 位數字重跑密碼 <input id="manual-rerun-pin" name="pin" inputmode="numeric" autocomplete="off" pattern="[0-9]{6}" minlength="6" maxlength="6" placeholder="請輸入 6 位數字"></label>
+        <input type="hidden" id="manual-rerun-window" name="window" value="">
+        <button type="submit">確認執行單一批次重跑</button>
+        <button type="button" id="manual-rerun-refresh">重新整理重跑狀態</button>
+      </form>
+      <div id="manual-rerun-status">手動重跑功能若尚未設定 runtime PIN hash，後端會回覆「尚未啟用」。</div>
+      <section class="manual-rerun-status-card" aria-live="polite">
+        <h3>手動重跑狀態</h3>
+        <p class="muted">完成判斷：狀態進入已完成、已拒絕、PIN 格式錯誤、PIN 錯誤或未授權、執行失敗後，輪詢會停止。可按「重新整理重跑狀態」再次查詢。</p>
+        <div class="grid">
+          <div><strong>目前狀態</strong><p id="manual-rerun-state-label">尚未執行 / 目前沒有手動重跑任務</p></div>
+          <div><strong>批次</strong><p id="manual-rerun-window-label">資料待接</p></div>
+          <div><strong>模式</strong><p id="manual-rerun-mode-label">dashboard_refresh_only</p></div>
+          <div><strong>任務 ID</strong><p id="manual-rerun-job-label">資料待接</p></div>
+          <div><strong>送出時間</strong><p id="manual-rerun-requested-label">資料待接</p></div>
+          <div><strong>開始時間</strong><p id="manual-rerun-started-label">資料待接</p></div>
+          <div><strong>完成時間</strong><p id="manual-rerun-finished-label">資料待接</p></div>
+          <div><strong>LINE 是否觸發</strong><p id="manual-rerun-line-label">否</p></div>
+          <div><strong>Email 是否觸發</strong><p id="manual-rerun-email-label">否</p></div>
+          <div><strong>交易/下單是否發生</strong><p id="manual-rerun-trading-label">否</p></div>
+          <div><strong>錯誤/拒絕原因</strong><p id="manual-rerun-reason-label">資料待接</p></div>
+          <div><strong>最後更新時間</strong><p id="manual-rerun-updated-label">尚未查詢</p></div>
+        </div>
+        <p id="manual-rerun-completion-label" class="preview-note">目前沒有手動重跑任務。按下任一批次並通過驗證後，這裡會顯示執行中與完成結果。</p>
+      </section>
+      <p class="muted">確認文案：你即將手動重跑所選批次；此操作只會重跑這一個批次並刷新 Dashboard。不會重送 LINE / Email。不會執行交易。不會一次重跑四個批次。請輸入 6 位數字重跑密碼。</p>
+    </section>
+    <script>
+    (() => {
+      const labels = {
+        pre_open_0700: '07:00 盤前',
+        intraday_1305: '13:05 盤中追蹤',
+        pre_close_1335: '13:35 收盤快照',
+        post_close_1500: '15:00 盤後檢討'
+      };
+      const statusText = {
+        ready: '尚未執行 / 目前沒有手動重跑任務',
+        idle: '尚未執行 / 目前沒有手動重跑任務',
+        manual_rerun_disabled: '尚未執行 / 目前沒有手動重跑任務',
+        accepted: '已送出，等待執行',
+        queued: '已送出，等待執行',
+        running: '執行中',
+        completed: '已完成',
+        success: '已完成',
+        succeeded: '已完成',
+        rejected: '已拒絕',
+        invalid_pin_format: 'PIN 格式錯誤',
+        unauthorized: 'PIN 錯誤或未授權',
+        invalid_pin: 'PIN 錯誤或未授權',
+        pin_mismatch: 'PIN 錯誤或未授權',
+        failed: '執行失敗',
+        error: '執行失敗',
+        unknown: '狀態未知，請檢查 runtime'
+      };
+      const terminalStates = new Set(['completed','success','succeeded','failed','error','rejected','invalid_pin_format','unauthorized','invalid_pin','pin_mismatch','manual_rerun_disabled']);
+      let selectedWindow = '';
+      let pollTimer = null;
+      const form = document.getElementById('manual-rerun-form');
+      const status = document.getElementById('manual-rerun-status');
+      const pinInput = document.getElementById('manual-rerun-pin');
+      const setText = (id, value) => { const el = document.getElementById(id); if (el) { el.textContent = value ?? '資料待接'; } };
+      const yesNo = (value) => value === true ? '是' : '否';
+      const normalizeStatus = (value) => String(value || 'idle');
+      const showStatus = (payload, sourceLabel = 'runtime') => {
+        const current = normalizeStatus(payload.status || (payload.accepted ? 'accepted' : 'idle'));
+        setText('manual-rerun-state-label', statusText[current] || statusText.unknown);
+        setText('manual-rerun-window-label', labels[payload.requested_window || payload.window] || payload.requested_window || payload.window || '資料待接');
+        setText('manual-rerun-mode-label', payload.mode || 'dashboard_refresh_only');
+        setText('manual-rerun-job-label', payload.job_id || '資料待接');
+        setText('manual-rerun-requested-label', payload.requested_at || '資料待接');
+        setText('manual-rerun-started-label', payload.started_at || '資料待接');
+        setText('manual-rerun-finished-label', payload.finished_at || '資料待接');
+        setText('manual-rerun-line-label', yesNo(payload.line_attempted));
+        setText('manual-rerun-email-label', yesNo(payload.email_attempted));
+        setText('manual-rerun-trading-label', yesNo(payload.trading_or_order_executed));
+        setText('manual-rerun-reason-label', payload.reason || payload.error_message || '資料待接');
+        setText('manual-rerun-updated-label', new Date().toLocaleString('zh-TW'));
+        let completion = '狀態已更新。';
+        if (['completed','success','succeeded'].includes(current)) { completion = '重跑已完成。Dashboard / artifacts 已刷新；LINE / Email 未觸發；未執行交易。'; }
+        else if (['failed','error'].includes(current)) { completion = '重跑失敗，請查看錯誤/拒絕原因與 runtime 記錄。'; }
+        else if (['rejected','invalid_pin_format','unauthorized','invalid_pin','pin_mismatch','manual_rerun_disabled'].includes(current)) { completion = '重跑被拒絕，未執行批次。'; }
+        else if (['accepted','queued','running'].includes(current)) { completion = '重跑已送出 / 執行中，系統會每 4 秒自動更新狀態。'; }
+        else { completion = '目前沒有手動重跑任務，或狀態未知。'; }
+        setText('manual-rerun-completion-label', completion);
+        status.textContent = `${sourceLabel}：${statusText[current] || statusText.unknown}`;
+        return current;
+      };
+      const stopPolling = () => { if (pollTimer) { window.clearInterval(pollTimer); pollTimer = null; } };
+      const fetchStatus = async (sourceLabel = '狀態查詢') => {
+        try {
+          const response = await fetch(form.dataset.statusEndpoint, {headers: {'Accept': 'application/json'}, cache: 'no-store'});
+          const contentType = response.headers.get('content-type') || '';
+          if (!contentType.includes('application/json')) { throw new Error('status endpoint returned non-JSON'); }
+          const data = await response.json();
+          const current = showStatus(data, sourceLabel);
+          if (terminalStates.has(current)) { stopPolling(); }
+          return data;
+        } catch (error) {
+          stopPolling();
+          showStatus({status: 'error', reason: '手動重跑後端或 nginx route 暫時無法連線'}, '狀態查詢失敗');
+          return null;
+        }
+      };
+      const startPolling = () => {
+        stopPolling();
+        pollTimer = window.setInterval(() => { fetchStatus('自動更新'); }, 4000);
+      };
+      document.querySelectorAll('.manual-rerun-button').forEach((button) => {
+        button.addEventListener('click', () => {
+          selectedWindow = button.dataset.window || '';
+          document.getElementById('manual-rerun-window').value = selectedWindow;
+          document.getElementById('manual-rerun-selected').textContent = `你即將手動重跑：${labels[selectedWindow] || selectedWindow}`;
+          showStatus({status: 'idle', window: selectedWindow, mode: 'dashboard_refresh_only'}, '已選擇批次');
+        });
+      });
+      document.getElementById('manual-rerun-refresh').addEventListener('click', () => { fetchStatus('手動重新整理'); });
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const pin = pinInput.value;
+        if (!selectedWindow) { status.textContent = '請先選擇一個批次。'; return; }
+        if (!/^\d{6}$/.test(pin)) { showStatus({status: 'invalid_pin_format', window: selectedWindow, reason: '請輸入 6 位數字重跑密碼。'}, '表單檢查'); return; }
+        const confirmed = window.confirm(`你即將手動重跑：${labels[selectedWindow]}
+此操作只會重跑這一個批次並刷新 Dashboard。
+不會重送 LINE / Email。
+不會執行交易。
+不會一次重跑四個批次。
+確認執行？`);
+        if (!confirmed) { return; }
+        showStatus({status: 'accepted', window: selectedWindow, mode: 'dashboard_refresh_only'}, '送出中');
+        try {
+          const response = await fetch(form.dataset.endpoint, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+            body: JSON.stringify({window: selectedWindow, mode: 'dashboard_refresh_only', pin, confirm_single_window_only: true, reason: 'manual dashboard rerun', idempotency_key: `${selectedWindow}-${Date.now()}`})
+          });
+          pinInput.value = '';
+          const contentType = response.headers.get('content-type') || '';
+          if (!contentType.includes('application/json')) { throw new Error('manual rerun endpoint returned non-JSON'); }
+          const data = await response.json();
+          const current = showStatus(data, response.ok ? '送出結果' : '拒絕結果');
+          if (data.accepted && !terminalStates.has(current)) { startPolling(); }
+          else { stopPolling(); }
+        } catch (error) {
+          pinInput.value = '';
+          stopPolling();
+          showStatus({status: 'error', window: selectedWindow, reason: '手動重跑後端尚未部署或暫時無法連線；未執行重跑。'}, '送出失敗');
+        }
+      });
+      fetchStatus('初始狀態');
+    })();
+    </script>
+
+
+    <section class="panel"><h2>實際結果 / 預測檢討狀態</h2>
+      <h3>單日檢討</h3>
+      <p>今日實際最高價：資料待接；今日實際最低價：資料待接；今日收盤價：資料待接。</p>
+      <p>方向判斷結果：資料待接；命中 / 未命中：資料待接；高低價預測誤差：命中狀態可用時才顯示誤差明細，否則維持待接。</p>
+      <p>產生時間：資料待接；資料品質摘要：資料待接；若命中狀態可用但誤差明細缺值，顯示「命中狀態可用；誤差明細欄位待接」。</p>
+      <h3>7 天滾動檢討</h3>
+      <p>過去 7 天命中率：資料待接；信心校準：資料待接；因子有效性：資料待接；錯誤原因：資料待接；明日改善建議：資料待接。</p>
+      <p>7 天滾動檢討：資料不足，需累積更多正式 prediction / actual outcome artifact。不得產生假命中率。</p>
+    </section>
+
+    <section class="card"><h2>資料新鮮度</h2><div class="source-grid"><div class="source-item"><h3>07:00 盤前資料</h3><p>盤前摘要可用；正式預測資料請看每日股價預測區。</p><span class="badge warn">盤前摘要可用；正式預測資料請看每日股價預測區</span></div><div class="source-item"><h3>13:05 盤中追蹤：今日資料尚未完成</h3><p>狀態：盤中分析尚未產生正式資料。可能原因：pipeline 仍在處理或已逾時。處理方式：請以 Dashboard 其他已完成區塊為準，等待下次更新。</p><span class="badge warn">狀態：盤中分析尚未產生正式資料</span></div><div class="source-item"><h3>13:35 收盤快照：資料尚未產生</h3><p>說明：收盤快照資料待接；完整檢討以 15:00 盤後檢討為主。</p><span class="badge warn">說明：收盤快照資料待接；完整檢討以 15:00 盤後檢討為主</span></div><div class="source-item"><h3>15:00 盤後檢討資料</h3><p>盤後檢討資料待接；單日檢討與 7 天滾動檢討分區顯示。</p><span class="badge warn">盤後檢討資料待接；單日檢討與 7 天滾動檢討分區顯示</span></div><div class="source-item"><h3>追蹤名單</h3><p>追蹤名單有效。</p><span class="badge safe">追蹤名單有效</span></div><div class="source-item"><h3>Debug / 範例資料隔離</h3><p>Debug / 範例 artifact 已隔離，不作為正式最新報告。</p><span class="badge warn">Debug / 範例 artifact 已隔離，不作為正式最新報告</span></div></div></section>
+    <section class="panel"><h2>LINE / Email / Dashboard delivery audit summary</h2><p>LINE 僅作提醒；Email 為 PM-readable summary；完整內容以 Dashboard 為準。此頁 publish 不會重送通知。</p></section>
+    <details><summary>技術檢查 / Debug</summary><p>Debug / 範例 artifact 已隔離，不作為正式最新報告。</p><p>runtime markers: pre_open_0700 盤前預測 Pre-open Forecast / intraday_1305 盤中追蹤 Intraday Tracking / pre_close_1335 close_snapshot_1335 收盤快照 / Close Snapshot / post_close_1500 prediction_review_1500 盤後檢討 / Prediction Review</p><p>production_dashboard_publish_executed=false; no notification; no scheduler change; no DB write; no production pipeline; no trading; no rating/action/confidence/weight mutation.</p></details>
+  </main>
+<div class="wrap section" id="ai-dev-170-tw-nav"><h1>台股 AI 決策儀表板</h1><nav class="nav"><a href="/stock-ai-dashboard/index.html">回到總覽</a><a href="/stock-ai-dashboard/dashboard/tw/index.html">台股 Dashboard</a><a href="/stock-ai-dashboard/dashboard/us/index.html">美股 Dashboard</a></nav><p>TW 專用頁：07:00 / 13:05 / 13:35 / 15:00。美股內容不在此頁渲染。</p></div>
+</body></html>
