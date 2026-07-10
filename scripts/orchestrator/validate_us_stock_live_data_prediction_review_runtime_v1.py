@@ -107,6 +107,7 @@ def main() -> int:
         ],
         "sheet_checks": [
             ok("workbook2_reference_present", "工作表2" in runner_src and "load_us_stock_watchlist" in runner_src, "US loader remains 工作表2 based"),
+            ok("production_artifact_uses_runtime_sheet", "dry_run=dry_run and not production_artifact" in runner_src, "production-artifact no-send reads runtime 工作表2"),
             ok("private_values_not_printed_flag", "private_values_printed" in runner_src, "safe metadata only"),
         ],
         "dependency_checks": [
