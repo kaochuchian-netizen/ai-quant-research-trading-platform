@@ -1,0 +1,238 @@
+"""US live-data runtime artifact, prediction, and review pipeline."""
+from __future__ import annotations
+
+import json
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Any
+from zoneinfo import ZoneInfo
+
+from app.us_stock.constants import DEFAULT_CURRENCY, DEFAULT_MARKET, US_BATCH_WINDOWS, US_SCORING_WEIGHTS
+from app.us_stock.live_data import YFinanceUSClient, analyze_history, clean_number, now_taipei
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+RUNTIME_DIR = REPO_ROOT / "artifacts/runtime/us_stock"
+SNAPSHOT_DIR = RUNTIME_DIR / "prediction_snapshots"
+REVIEW_DIR = RUNTIME_DIR / "reviews"
+MODEL_VERSION = "us_live_deterministic_baseline_v1"
+WEIGHT_VERSION = "us_scoring_live_v1"
+TAIPEI = ZoneInfo("Asia/Taipei")
+NEW_YORK = ZoneInfo("America/New_York")
+
+def stable_json(payload: Any) -> str:
+    return json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+
+def write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(stable_json(payload), encoding="utf-8")
+
+def session_context(window: str, reference: datetime | None = None) -> dict[str, Any]:
+    reference = reference or datetime.now(TAIPEI).replace(microsecond=0)
+    ny = reference.astimezone(NEW_YORK)
+    is_dst = bool(ny.dst() and ny.dst().total_seconds())
+    weekday = ny.weekday()
+    closed_reason = "weekend" if weekday >= 5 else None
+    return {
+        "timezone_policy": "fixed_asia_taipei",
+        "window": window,
+        "taipei_time": US_BATCH_WINDOWS[window]["scheduled_time_tw"],
+        "reference_taipei": reference.isoformat(),
+        "reference_new_york": ny.isoformat(),
+        "session_date": ny.date().isoformat(),
+        "us_daylight_saving_active": is_dst,
+        "market_open_expected": closed_reason is None,
+        "market_closed_reason": closed_reason,
+        "phase_note": "PM-approved Asia/Taipei fixed schedule retained; phase metadata is advisory.",
+    }
+
+def rating_action(score: float | None, confidence_status: str) -> tuple[str, str, float | None, str]:
+    if score is None:
+        return "資料不足", "保守觀望", None, "insufficient_data"
+    if score >= 70:
+        rating, action = "B級", "偏多觀察"
+    elif score >= 55:
+        rating, action = "C級", "中性觀察"
+    elif score >= 40:
+        rating, action = "D級", "保守觀望"
+    else:
+        rating, action = "E級", "風險控管"
+    confidence = min(75, max(20, round(score * 0.72, 1))) if confidence_status == "sufficient" else min(45, round(score * 0.5, 1))
+    level = "medium_high" if confidence >= 60 else "medium" if confidence >= 40 else "low"
+    return rating, action, confidence, level
+
+def score_symbol(technical: dict[str, Any], market_context: dict[str, Any], news_items: list[dict[str, Any]]) -> dict[str, Any]:
+    if not technical.get("ok"):
+        return {"total_score": None, "rating": "資料不足", "action": "保守觀望", "confidence_score": None, "confidence_level": "insufficient_data", "confidence_status": "insufficient_data", "rationale": "歷史 OHLCV 不足，無法產生正式評分。"}
+    technical_score = technical.get("technical_score") or 50
+    market_score = market_context.get("market_environment_score") or 50
+    news_score = 55 if news_items else 50
+    vol_state = technical.get("volatility_state")
+    vol_score = 45 if vol_state == "high" else 55 if vol_state == "low" else 50
+    total = round(
+        technical_score * US_SCORING_WEIGHTS["technical"]
+        + news_score * US_SCORING_WEIGHTS["news_company_event"]
+        + market_score * US_SCORING_WEIGHTS["market_environment"]
+        + vol_score * US_SCORING_WEIGHTS["volatility_risk"],
+        2,
+    )
+    rating, action, confidence, level = rating_action(total, "sufficient")
+    return {"total_score": total, "rating": rating, "action": action, "confidence_score": confidence, "confidence_level": level, "confidence_status": "sufficient", "rationale": "由技術、新聞/公司事件、市場環境與波動風險 deterministic 加權產生。"}
+
+def prediction_for_symbol(quote: dict[str, Any], technical: dict[str, Any], window: str) -> dict[str, Any]:
+    price = quote.get("last_price") or technical.get("indicators", {}).get("latest_close")
+    indicators = technical.get("indicators", {})
+    if price is None or not technical.get("ok"):
+        return {"prediction_status": "insufficient_data", "missing_fields": ["last_price_or_20d_ohlcv"], "predicted_session_low": None, "predicted_session_high": None, "predicted_next_session_low": None, "predicted_next_session_high": None, "rationale": "價格或 20 日歷史資料不足，不產生假預測。"}
+    range_inputs = [indicators.get("atr_like_range_pct"), indicators.get("daily_range_pct"), indicators.get("return_volatility_pct")]
+    values = [float(x) for x in range_inputs if isinstance(x, (int, float)) and x > 0]
+    if not values:
+        return {"prediction_status": "insufficient_data", "missing_fields": ["range_measure"], "predicted_session_low": None, "predicted_session_high": None, "predicted_next_session_low": None, "predicted_next_session_high": None, "rationale": "波動區間資料不足，不產生假預測。"}
+    base_range = sorted(values)[len(values)//2]
+    trend = technical.get("trend_1m")
+    up_mult = 1.12 if trend == "bullish" else 0.92 if trend == "bearish" else 1.0
+    down_mult = 0.92 if trend == "bullish" else 1.12 if trend == "bearish" else 1.0
+    if window == "us_intraday_2300":
+        up_mult *= 0.85
+        down_mult *= 0.85
+    next_mult = 1.18
+    low = round(price * (1 - base_range * down_mult), 2)
+    high = round(price * (1 + base_range * up_mult), 2)
+    nlow = round(price * (1 - base_range * next_mult * down_mult), 2)
+    nhigh = round(price * (1 + base_range * next_mult * up_mult), 2)
+    return {
+        "prediction_status": "available",
+        "reference_price": round(float(price), 2),
+        "predicted_session_low": min(low, high),
+        "predicted_session_high": max(low, high),
+        "predicted_next_session_low": min(nlow, nhigh),
+        "predicted_next_session_high": max(nlow, nhigh),
+        "range_method": "median of ATR-like range, daily range, and return volatility with trend bias",
+        "base_range_pct": round(base_range * 100, 4),
+        "intraday_adjusted": window == "us_intraday_2300",
+        "model_version": MODEL_VERSION,
+        "missing_fields": [],
+        "rationale": "以真實 OHLCV 的 ATR-like range、日內區間、報酬波動與趨勢偏差估算。",
+    }
+
+def dashboard_card(entry: dict[str, Any], quote: dict[str, Any], technical: dict[str, Any], score: dict[str, Any], prediction: dict[str, Any], news_items: list[dict[str, Any]], window: str) -> dict[str, Any]:
+    label = {"us_pre_market_2000": "美股盤前 20:00", "us_intraday_2300": "美股盤中 23:00", "us_post_close_review_0630": "美股檢討 06:30"}[window]
+    pstatus = prediction.get("prediction_status")
+    session_range = "資料不足" if pstatus != "available" else f"{prediction['predicted_session_low']} ～ {prediction['predicted_session_high']}"
+    next_range = "資料不足" if pstatus != "available" else f"{prediction['predicted_next_session_low']} ～ {prediction['predicted_next_session_high']}"
+    news = news_items[0] if news_items else {"english_headline": None, "chinese_translation": "無可驗證重大新聞", "investment_reading": "未取得可安全引用新聞；不產生假新聞。"}
+    return {
+        "card_id": f"us_stock_{entry['symbol']}_{window}",
+        "market_label": "美股",
+        "window_label": label,
+        "symbol": entry["symbol"],
+        "name": entry.get("name"),
+        "exchange": quote.get("exchange") or entry.get("exchange") or "資料待接",
+        "price": quote.get("last_price"),
+        "currency": quote.get("currency") or DEFAULT_CURRENCY,
+        "rating": score.get("rating"),
+        "action": score.get("action"),
+        "confidence": score.get("confidence_score"),
+        "confidence_level": score.get("confidence_level"),
+        "session_predicted_high_low": session_range,
+        "next_session_predicted_high_low": next_range,
+        "one_month_trend": technical.get("trend_1m"),
+        "three_month_trend": technical.get("trend_3m"),
+        "latest_status": "live market data fetched" if quote.get("last_price") is not None else "live data insufficient",
+        "source_timestamp": quote.get("source_timestamp"),
+        "bilingual_news_snippet": news,
+        "review_result": "檢討資料待接" if window != "us_post_close_review_0630" else "依 snapshot/actual outcome 可用性檢討",
+    }
+
+def snapshot_path(session_date: str, window: str, symbol: str) -> Path:
+    return SNAPSHOT_DIR / session_date / f"{window}_{symbol}.json"
+
+def latest_snapshot_for(symbol: str, session_date: str) -> dict[str, Any] | None:
+    for window in ["us_intraday_2300", "us_pre_market_2000"]:
+        path = snapshot_path(session_date, window, symbol)
+        if path.exists():
+            try:
+                return json.loads(path.read_text(encoding="utf-8"))
+            except Exception:
+                return None
+    return None
+
+def build_review(symbol: str, session_date: str, quote: dict[str, Any], history: Any) -> dict[str, Any]:
+    snap = latest_snapshot_for(symbol, session_date)
+    if not snap:
+        return {"symbol": symbol, "review_status": "pending", "pending_reason": "missing_prior_prediction_snapshot", "fabricated": False}
+    pred = snap.get("prediction", {})
+    actual_high = quote.get("day_high")
+    actual_low = quote.get("day_low")
+    actual_close = quote.get("last_price")
+    if None in (actual_high, actual_low, actual_close, pred.get("predicted_session_high"), pred.get("predicted_session_low")):
+        return {"symbol": symbol, "review_status": "pending", "pending_reason": "actual_or_prediction_incomplete", "snapshot_ref": snap.get("snapshot_path"), "fabricated": False}
+    high_err = round(float(actual_high) - float(pred["predicted_session_high"]), 4)
+    low_err = round(float(actual_low) - float(pred["predicted_session_low"]), 4)
+    covered = actual_high <= pred["predicted_session_high"] and actual_low >= pred["predicted_session_low"]
+    return {"symbol": symbol, "review_status": "reviewed", "snapshot_ref": snap.get("snapshot_path"), "actual_high": actual_high, "actual_low": actual_low, "actual_close": actual_close, "range_covered": covered, "high_error": high_err, "low_error": low_err, "fabricated": False}
+
+def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *, production_runtime: bool, write_snapshots: bool = True, reference: datetime | None = None) -> dict[str, Any]:
+    if window not in US_BATCH_WINDOWS:
+        raise ValueError(f"unsupported US window: {window}")
+    generated_at = now_taipei()
+    context = session_context(window, reference)
+    client = YFinanceUSClient()
+    market_context = client.fetch_context()
+    cards = []
+    items = []
+    reviews = []
+    success = 0
+    insufficient = 0
+    for entry in watchlist:
+        symbol = str(entry.get("symbol") or "").upper()
+        if not symbol:
+            continue
+        result = client.fetch_symbol(symbol)
+        technical = analyze_history(result.history) if result.history is not None else {"ok": False, "data_quality": {"history_days": 0}, "indicators": {}, "trend_1m": "insufficient_data", "trend_3m": "insufficient_data", "volatility_state": "insufficient_data", "technical_score": None, "technical_summary": "history unavailable"}
+        score = score_symbol(technical, market_context, result.news)
+        prediction = prediction_for_symbol(result.quote, technical, window)
+        card = dashboard_card(entry, result.quote, technical, score, prediction, result.news, window)
+        if result.ok and prediction.get("prediction_status") == "available":
+            success += 1
+        else:
+            insufficient += 1
+        item = {"symbol": symbol, "name": entry.get("name"), "market": DEFAULT_MARKET, "quote": result.quote, "fetch_ok": result.ok, "fetch_error": result.error, "technical": technical, "market_context_ref": "market_context", "news": result.news, "score": score, "prediction": prediction, "data_quality": {"quote_available": result.quote.get("last_price") is not None, "history_days": technical.get("data_quality", {}).get("history_days"), "news_count": len(result.news)}, "source_timestamp": result.quote.get("source_timestamp")}
+        items.append(item)
+        cards.append(card)
+        if window in {"us_pre_market_2000", "us_intraday_2300"} and write_snapshots and prediction.get("prediction_status") == "available":
+            spath = snapshot_path(context["session_date"], window, symbol)
+            snap = {"schema_version": "us_stock_prediction_snapshot_v1", "market": DEFAULT_MARKET, "session_date": context["session_date"], "window": window, "symbol": symbol, "generated_at": generated_at, "prediction": prediction, "rating": score.get("rating"), "action": score.get("action"), "confidence_score": score.get("confidence_score"), "model_version": MODEL_VERSION, "data_source_timestamps": {"quote": result.quote.get("source_timestamp")}, "fixture": False, "validation_only": False}
+            snap["snapshot_path"] = str(spath.relative_to(REPO_ROOT))
+            write_json(spath, snap)
+        if window == "us_post_close_review_0630":
+            review = build_review(symbol, context["session_date"], result.quote, result.history)
+            reviews.append(review)
+    reviewed = len([r for r in reviews if r.get("review_status") == "reviewed"])
+    pending = len([r for r in reviews if r.get("review_status") != "reviewed"])
+    artifact = {
+        "schema_version": "us_stock_live_runtime_v1",
+        "artifact_kind": "us_stock_runtime",
+        "artifact_type": "us_stock_live_runtime_artifact",
+        "artifact_mode": "production_runtime" if production_runtime else "live_no_send_validation",
+        "data_source_mode": "live",
+        "fixture": False,
+        "validation_only": not production_runtime,
+        "generated_by": "app.us_stock.live_pipeline.build_live_runtime_artifact",
+        "generated_at": generated_at,
+        "market": DEFAULT_MARKET,
+        "currency": DEFAULT_CURRENCY,
+        "window": window,
+        "source_sheet": "工作表2",
+        "session_context": context,
+        "runtime_watchlist_validation": {"source_sheet": "工作表2", "enabled_stock_count": len(watchlist), "successfully_analyzed_count": success, "insufficient_data_count": insufficient, "invalid_row_count": 0, "private_values_printed": False},
+        "market_context": market_context,
+        "items": items,
+        "prediction_review_contract": {"market": DEFAULT_MARKET, "review_window": "us_post_close_review_0630", "reviewed_stock_count": reviewed, "pending_stock_count": pending, "skipped_stock_count": 0, "items": reviews, "fabricated": False},
+        "dashboard_ready_contract": {"market_label": "美股", "sections": ["美股盤前 20:00", "美股盤中 23:00", "美股檢討 06:30"], "cards": cards},
+        "delivery_policy": {"email_full_report": True, "line_reminder_only": True, "unscheduled_validation_send": False},
+        "safety_policy": {"python3_main_executed": False, "trading_or_order_executed": False, "line_email_sent_by_builder": False, "tw_formula_modified": False, "secrets_printed": False},
+    }
+    if window == "us_post_close_review_0630":
+        review_path = REVIEW_DIR / context["session_date"] / "us_post_close_review_0630.json"
+        write_json(review_path, artifact)
+    return artifact
