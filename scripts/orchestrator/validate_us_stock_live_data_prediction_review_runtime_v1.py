@@ -90,7 +90,7 @@ def validate_live_artifact(path: Path) -> tuple[list[dict[str, Any]], dict[str, 
         ok("artifact_market_us", data.get("market") == "US", str(data.get("market"))),
         ok("artifact_data_source_live", data.get("data_source_mode") == "live", str(data.get("data_source_mode"))),
         ok("artifact_not_fixture", data.get("fixture") is False, str(data.get("fixture"))),
-        ok("artifact_validation_only_for_dry_run", data.get("validation_only") is True, str(data.get("validation_only"))),
+                ok("artifact_validation_flag_matches_mode", ((data.get("artifact_mode") == "production_runtime" and data.get("validation_only") is False) or (data.get("artifact_mode") == "live_no_send_validation" and data.get("validation_only") is True)), "mode=%s validation_only=%s" % (data.get("artifact_mode"), data.get("validation_only"))),
         ok("no_foundation_placeholder", "US batch foundation ready" not in json.dumps(data, ensure_ascii=False), "foundation text absent"),
         ok("line_email_not_sent_by_builder", data.get("safety_policy", {}).get("line_email_sent_by_builder") is False, str(data.get("safety_policy", {}))),
     ])
