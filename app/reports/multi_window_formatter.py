@@ -9,7 +9,7 @@ PRE_OPEN_PREDICTION_FIELDS = [
     "今日最高價預測", "今日最低價預測", "隔天最高價預測", "隔天最低價預測",
     "未來 1 個月走勢", "未來 3 個月走勢", "信心分數", "主要依據",
 ]
-DASHBOARD_URL_FALLBACK = "http://35.201.242.167/stock-ai-dashboard/dashboard/decision-intelligence/four-window-preview/index.html"
+DASHBOARD_URL_FALLBACK = "http://35.201.242.167/stock-ai-dashboard/dashboard/tw/index.html"
 def stock_card_title(stock_id: str, stock_name: str, context: ReportWindowContext, marker: str = STATUS_MARK) -> str:
     return f"【{stock_id} {stock_name}】{context.display_label} {marker}"
 def format_stock_card(card: dict[str, Any], context: ReportWindowContext) -> dict[str, Any]:

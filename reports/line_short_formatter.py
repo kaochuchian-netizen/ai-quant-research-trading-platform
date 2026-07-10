@@ -1,4 +1,4 @@
-DASHBOARD_URL = "http://35.201.242.167/stock-ai-dashboard/dashboard/decision-intelligence/four-window-preview/index.html"
+DASHBOARD_URL = "http://35.201.242.167/stock-ai-dashboard/dashboard/tw/index.html"
 
 
 def format_line_short(result):

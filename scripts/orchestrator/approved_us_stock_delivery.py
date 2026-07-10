@@ -33,12 +33,12 @@ from scripts.orchestrator.notify_stage_report import build_message, load_env_fil
 WINDOWS = tuple(US_BATCH_WINDOWS.keys())
 TAIPEI = ZoneInfo("Asia/Taipei")
 NEW_YORK = ZoneInfo("America/New_York")
-DASHBOARD_URL = "http://35.201.242.167/stock-ai-dashboard/dashboard/decision-intelligence/four-window-preview/index.html"
+DASHBOARD_URL = "http://35.201.242.167/stock-ai-dashboard/dashboard/us/index.html"
 RUNTIME_DIR = REPO_ROOT / "artifacts/runtime"
 US_RUNTIME_DIR = RUNTIME_DIR / "us_stock"
 IDEMPOTENCY_DIR = US_RUNTIME_DIR / "idempotency"
 STATUS_PATH = RUNTIME_DIR / "us_stock_delivery_status_latest.json"
-STATIC_DASHBOARD_PATH = Path("/var/www/stock-ai-dashboard/dashboard/decision-intelligence/four-window-preview/index.html")
+STATIC_DASHBOARD_PATH = Path("/var/www/stock-ai-dashboard/dashboard/us/index.html")
 MAIL_ENV_FILE = Path("~/.config/stock-ai-orchestrator/mail.env")
 LOCK_PATH = Path("/tmp/stock_ai_us_stock_batch.lock")
 
@@ -172,24 +172,27 @@ def render_us_section(artifact: dict[str, Any]) -> str:
 
 
 def publish_dashboard(artifact: dict[str, Any]) -> dict[str, Any]:
-    target = STATIC_DASHBOARD_PATH
-    if not target.exists():
-        return {"attempted": True, "succeeded": False, "reason": "public_dashboard_html_missing", "target": str(target)}
-    original = target.read_text(encoding="utf-8")
-    backup = target.with_suffix(".before_ai_dev_169.html")
-    backup.write_text(original, encoding="utf-8")
-    marker_start = "<!-- AI-DEV-169-US-STOCK-SECTION-START -->"
-    marker_end = "<!-- AI-DEV-169-US-STOCK-SECTION-END -->"
-    block = marker_start + "\n" + render_us_section(artifact) + "\n" + marker_end
-    if marker_start in original and marker_end in original:
-        before = original.split(marker_start, 1)[0]
-        after = original.split(marker_end, 1)[1]
-        updated = before + block + after
-    else:
-        updated = original.replace("</body>", block + "\n</body>") if "</body>" in original else original + block
-    target.write_text(updated, encoding="utf-8")
-    return {"attempted": True, "succeeded": True, "target": str(target), "backup": str(backup), "public_url": DASHBOARD_URL}
+    try:
+        from app.dashboard.multi_market_dashboard import US_URL, publish_pages
 
+        result = publish_pages()
+        return {
+            "attempted": True,
+            "succeeded": bool(result.get("published")),
+            "target": str(STATIC_DASHBOARD_PATH),
+            "backup": result.get("backup_path"),
+            "public_url": US_URL,
+            "multi_market_publish": True,
+        }
+    except Exception as exc:
+        return {
+            "attempted": True,
+            "succeeded": False,
+            "reason": "multi_market_dashboard_publish_failed",
+            "error_type": type(exc).__name__,
+            "error_message": str(exc)[:240],
+            "target": str(STATIC_DASHBOARD_PATH),
+        }
 
 def build_email_body(artifact: dict[str, Any], window: str) -> str:
     date = artifact.get("generated_at", "")[:10]
