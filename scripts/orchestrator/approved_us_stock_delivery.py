@@ -228,9 +228,11 @@ def build_email_body(artifact: dict[str, Any], window: str) -> str:
     lines.append(f"- Enabled stocks: {artifact.get('runtime_watchlist_validation', {}).get('enabled_stock_count')}")
     lines.append("- LINE: 短提醒；Email: 完整報告；Dashboard: 完整可視化。")
     lines.append("")
-    lines.append("個股摘要：")
+    lines.append("個股研究摘要：")
     for card in artifact.get("dashboard_ready_contract", {}).get("cards", []):
-        lines.append(f"- {card.get('symbol')} {card.get('name')}: {card.get('rating')} / {card.get('action')} / {card.get('session_predicted_high_low')} / {card.get('bilingual_news_snippet', {}).get('chinese_translation')}")
+        news = card.get('bilingual_news_snippet', {}) if isinstance(card.get('bilingual_news_snippet'), dict) else {}
+        lines.append(f"- {card.get('symbol')} {card.get('name')}: {card.get('rating')} / {card.get('action')} / 預測 {card.get('session_predicted_high_low')} / 財務 {card.get('financial_quality')} / 盈餘 {card.get('latest_earnings_status')} / SEC {card.get('latest_sec_filing')} / 新聞 {news.get('chinese_translation')}")
+    lines.extend(["", "研究情報：", "- SEC/公司 IR 為 Tier 1 official evidence；yfinance/Yahoo 為 Tier 2 market reference。", "- 財務、盈餘、指引、重大新聞與雙語閱讀以 Dashboard 為完整主畫面。", "- 不複製完整 filings、transcripts 或 copyrighted articles。"] )
     if window == "us_post_close_review_0630":
         review = artifact.get("prediction_review_contract", {})
         lines.extend(["", "預測檢討：", f"- Reviewable: {review.get('reviewable_stock_count')}", f"- Reviewed: {review.get('reviewed_stock_count')}", f"- Skipped: {review.get('skipped_stock_count')}"])

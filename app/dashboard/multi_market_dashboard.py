@@ -131,10 +131,17 @@ def render_us_cards(artifacts: list[dict[str, Any]]) -> str:
                 <div><dt>本次預測區間</dt><dd>{_escape(card.get('session_predicted_high_low'))}</dd></div>
                 <div><dt>下次預測區間</dt><dd>{_escape(card.get('next_session_predicted_high_low'))}</dd></div>
                 <div><dt>1M / 3M 趨勢</dt><dd>{_escape(card.get('one_month_trend'))} / {_escape(card.get('three_month_trend'))}</dd></div>
+                <div><dt>技術摘要</dt><dd>{_escape(card.get('technical_summary'))}</dd></div>
+                <div><dt>財務品質</dt><dd>{_escape(card.get('financial_quality'))}</dd></div>
+                <div><dt>盈餘 / 指引</dt><dd>{_escape(card.get('latest_earnings_status'))} / {_escape(card.get('guidance_direction'))}</dd></div>
+                <div><dt>SEC 最新 filing</dt><dd>{_escape(card.get('latest_sec_filing'))}</dd></div>
+                <div><dt>官方事件</dt><dd>{_escape(card.get('official_event_warning'))}</dd></div>
+                <div><dt>研究因子</dt><dd>{_escape(card.get('research_score'))} / {_escape(card.get('research_rating'))}</dd></div>
                 <div><dt>資料狀態</dt><dd>{_escape(card.get('latest_status'))}</dd></div>
+                <div><dt>來源新鮮度</dt><dd>{_escape(card.get('source_freshness'))}</dd></div>
               </dl>
-              <section class="news-block"><h4>Bilingual News / 雙語新聞</h4><p><strong>EN:</strong> {_escape(news.get('english_headline'))}</p><p><strong>中:</strong> {_escape(news.get('chinese_translation'))}</p><p>{_escape(news.get('investment_reading'))}</p></section>
-              <section class="review-block"><h4>Prediction Review</h4><p>{_escape(artifact.get('prediction_review_contract', {}).get('review_status') or '檢討資料待接')}</p></section>
+              <details class="news-block" open><summary>Bilingual News / 雙語新聞</summary><p><strong>EN:</strong> {_escape(news.get('english_headline'))}</p><p><strong>中:</strong> {_escape(news.get('chinese_translation'))}</p><p>{_escape(news.get('investment_reading'))}</p><p>Vocabulary：{_escape(news.get('vocabulary'))}</p></details>
+              <details class="review-block"><summary>Prediction Review / 檢討</summary><p>{_escape(artifact.get('prediction_review_contract', {}).get('review_status') or '檢討資料待接')}</p></details>
             </article>
             """)
     if not rows:
@@ -179,9 +186,12 @@ def render_us_page(artifacts: list[dict[str, Any]] | None = None) -> str:
     <body><header><div class="wrap"><h1>美股 AI 決策儀表板</h1><p>美股盤前 20:00｜美股盤中 23:00｜美股檢討 06:30</p><nav class="nav"><a href="/stock-ai-dashboard/index.html">回到總覽</a><a href="/stock-ai-dashboard/dashboard/tw/index.html">台股 Dashboard</a><a href="/stock-ai-dashboard/dashboard/us/index.html">美股 Dashboard</a></nav></div></header><main class="wrap">
     <!-- AI-DEV-170-US-DASHBOARD-START -->
     <section class="section"><h2>美股 Runtime Summary</h2><p>US enabled stock count：{count}</p><p>最新更新：{html.escape(latest)}</p><p>資料來源：工作表2 / live production US runtime artifacts；US Dashboard 不回退到台股資料，也不渲染 validation fixture。</p></section>
-    <section class="section"><h2>美股盤前 20:00</h2><p>盤前預測、評等、風險與雙語新聞。</p></section>
-    <section class="section"><h2>美股盤中 23:00</h2><p>盤中狀態、區間偏離與評等有效性。</p></section>
-    <section class="section"><h2>美股檢討 06:30</h2><p>盤後 prediction review、區間命中與校準狀態。</p></section>
+    <section class="section"><h2>Market Summary</h2><p>SPY / QQQ / VIX / sector context feeds the US research score as Tier 2 market reference.</p></section>
+    <section class="section"><h2>Financial Quality</h2><p>Revenue, margins, cash flow, leverage and missing-data quality are shown per stock when available.</p></section>
+    <section class="section"><h2>Earnings / Guidance</h2><p>Company-reported actuals, company guidance, and third-party estimates are separated. Missing verified guidance stays unavailable.</p></section>
+    <section class="section"><h2>SEC / Official Events</h2><p>SEC EDGAR filings and company IR/newsroom metadata are Tier 1 official evidence. yfinance remains reference data.</p></section>
+    <section class="section"><h2>Material News & Bilingual Reading</h2><p>Headline metadata is classified, deduplicated, and displayed with Traditional Chinese learning support. No full articles are stored.</p></section>
+    <section class="section"><h2>Prediction / Review</h2><p>Predictions are deterministic and event-adjusted; reviews attribute misses to technical, market, news, official-event and data-quality causes when data exists.</p></section>
     <section class="section"><h2>美股個股卡</h2><div class="grid">{cards}</div></section>
     <!-- AI-DEV-170-US-DASHBOARD-END -->
     </main></body></html>\n"""
