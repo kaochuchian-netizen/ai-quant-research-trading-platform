@@ -36,6 +36,8 @@ US_WINDOWS = {
     "us_post_close_review_0630": "美股檢討 06:30",
 }
 
+SHARED_NAVIGATION_CSS = """.market-shared-navigation{background:white;color:#17262c}.market-shared-navigation__grid{display:grid;grid-template-columns:1fr;gap:12px;margin:14px 0 10px}.market-shared-navigation__button{display:block;width:100%;box-sizing:border-box;background:#fff;color:#0f2c33;text-decoration:none;border:1px solid #cbd8dc;border-radius:8px;padding:13px 14px;font-weight:800;text-align:left;box-shadow:0 1px 0 rgba(15,44,51,.04)}.market-shared-navigation__button[aria-current="page"]{border-color:#83aab4;background:#f4fbfd}.market-shared-navigation__subtitle{margin:10px 0 0;color:#51666d}@media(max-width:640px){.market-shared-navigation__grid{gap:10px}.market-shared-navigation__button{padding:14px 13px}}"""
+
 def now_taipei() -> str:
     return datetime.now(ZoneInfo("Asia/Taipei")).replace(microsecond=0).isoformat()
 
@@ -182,14 +184,18 @@ def render_us_cards(artifacts: list[dict[str, Any]]) -> str:
 def base_css() -> str:
     return """
     body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f6f8f9;color:#17262c;line-height:1.55}
-    header,.hero{background:#0f2c33;color:white;padding:24px 18px}.wrap{max-width:1120px;margin:0 auto;padding:18px}.nav{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.nav a,.btn{display:inline-block;background:#fff;color:#0f2c33;text-decoration:none;border-radius:8px;padding:10px 12px;font-weight:800;border:1px solid #cbd8dc}.section{background:white;border:1px solid #dce5e8;border-radius:10px;padding:16px;margin:14px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}.stock-card,.status-card{background:#fff;border:1px solid #d9e4e7;border-radius:10px;padding:14px}.card-kicker{font-weight:800;color:#35606b;font-size:13px}h1,h2,h3{margin:0 0 10px}dl{display:grid;gap:8px}dt{font-weight:800;color:#51666d}dd{margin:0}.badge{display:inline-block;border-radius:999px;padding:6px 10px;background:#e8f5e9;color:#225d28;font-weight:800}.warn{background:#fff9e8}.market-choice{display:block;text-decoration:none;color:#17262c}.market-choice h2{color:#0f5368}@media(max-width:640px){.wrap{padding:12px}.grid{grid-template-columns:1fr}.nav a{width:100%;box-sizing:border-box}}
+    header,.hero{background:#0f2c33;color:white;padding:24px 18px}.wrap{max-width:1120px;margin:0 auto;padding:18px}.nav{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.nav a,.btn{display:inline-block;background:#fff;color:#0f2c33;text-decoration:none;border-radius:8px;padding:10px 12px;font-weight:800;border:1px solid #cbd8dc}
+    """ + SHARED_NAVIGATION_CSS + """
+    .section{background:white;border:1px solid #dce5e8;border-radius:10px;padding:16px;margin:14px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}.stock-card,.status-card{background:#fff;border:1px solid #d9e4e7;border-radius:10px;padding:14px}.card-kicker{font-weight:800;color:#35606b;font-size:13px}h1,h2,h3{margin:0 0 10px}dl{display:grid;gap:8px}dt{font-weight:800;color:#51666d}dd{margin:0}.badge{display:inline-block;border-radius:999px;padding:6px 10px;background:#e8f5e9;color:#225d28;font-weight:800}.warn{background:#fff9e8}.market-choice{display:block;text-decoration:none;color:#17262c}.market-choice h2{color:#0f5368}@media(max-width:640px){.wrap{padding:12px}.grid{grid-template-columns:1fr}.nav a{width:100%;box-sizing:border-box}}
     """
 
 
 
 def shared_market_navigation(active_market: str, title: str, subtitle: str) -> str:
     active = html.escape(active_market)
-    return f"""<div class="wrap section market-shared-navigation" data-shared-navigation="tw-us" data-active-market="{active}"><h1>{html.escape(title)}</h1><nav class="nav" aria-label="Market Dashboard Navigation"><a href="/stock-ai-dashboard/index.html">回到總覽</a><a href="/stock-ai-dashboard/dashboard/tw/index.html">台股 Dashboard</a><a href="/stock-ai-dashboard/dashboard/us/index.html">美股 Dashboard</a></nav><p>{html.escape(subtitle)}</p></div>"""
+    current_tw = ' aria-current="page"' if active_market == "TW" else ""
+    current_us = ' aria-current="page"' if active_market == "US" else ""
+    return f"""<div class="wrap section market-shared-navigation market-shared-navigation--v1" data-shared-navigation="tw-us" data-active-market="{active}"><h1>{html.escape(title)}</h1><nav class="market-shared-navigation__grid market-shared-navigation__grid--responsive" aria-label="Market Dashboard Navigation"><a class="market-shared-navigation__button" href="/stock-ai-dashboard/index.html">回到總覽</a><a class="market-shared-navigation__button" href="/stock-ai-dashboard/dashboard/tw/index.html"{current_tw}>台股 Dashboard</a><a class="market-shared-navigation__button" href="/stock-ai-dashboard/dashboard/us/index.html"{current_us}>美股 Dashboard</a></nav><p class="market-shared-navigation__subtitle">{html.escape(subtitle)}</p></div>"""
 
 def render_landing_page() -> str:
     return f"""<!doctype html>
@@ -206,6 +212,11 @@ def render_tw_page(source_html: str | None = None) -> str:
     body = source_html if source_html is not None else (TW_TEMPLATE.read_text(encoding="utf-8") if TW_TEMPLATE.exists() else "<p>台股 Dashboard 資料待接</p>")
     nav = shared_market_navigation("TW", "台股 AI 決策儀表板", "TW 專用頁：07:00 / 13:05 / 13:35 / 15:00。美股內容不在此頁渲染。")
     dual_strategy = """<div class="wrap section" id="ai-dev-173-tw-dual-strategy"><h2>中長期量化策略</h2><p>沿用既有 TW Research / Position scoring、評等、動作與 prediction lifecycle；不由 Daily Tactical 覆寫。</p><h2>每日短期操作策略</h2><p>新增 TW Daily Tactical strategy：使用台股技術、量能、籌碼/flow、波動、事件風險與資料完整度，輸出 setup、進場區、停損/失效、目標區與風險；僅供研究參考，不是下單指令。</p><p>策略隔離：research_position 與 daily_tactical 分開顯示、分開檢討，不互相覆蓋。</p></div>"""
+    shared_style = f'<style id="shared-market-navigation-style">{SHARED_NAVIGATION_CSS}</style>'
+    if "</head>" in body and "shared-market-navigation-style" not in body:
+        body = body.replace("</head>", shared_style + "</head>", 1)
+    else:
+        nav = shared_style + nav
     header = nav + dual_strategy
     if "<body>" in body:
         body = body.replace("<body>", "<body>" + header + "\n", 1)
