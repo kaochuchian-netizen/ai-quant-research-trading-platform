@@ -56,6 +56,8 @@ def build_validation(require_public: bool) -> dict[str, Any]:
         "us_title_correct": "美股 AI 決策儀表板" in us,
         "us_windows_present": all(m in us for m in US_MARKERS),
         "tw_windows_present": all(m in tw for m in TW_MARKERS),
+        "tw_shared_navigation_present": all(m in tw for m in ["回到總覽", "台股 Dashboard", "美股 Dashboard", 'data-shared-navigation="tw-us"']),
+        "us_shared_navigation_present": all(m in us for m in ["回到總覽", "台股 Dashboard", "美股 Dashboard", 'data-shared-navigation="tw-us"']),
         "us_page_excludes_tw_9_of_9": "今日評等資料：9 / 9 檔可用" not in us,
         "tw_page_excludes_us_fixture_symbols": not any(symbol in tw for symbol in US_FIXTURE_SYMBOLS),
     }
@@ -121,6 +123,8 @@ def build_validation(require_public: bool) -> dict[str, Any]:
             "public_us_not_tw_main_title": "四時段 AI 決策儀表板" not in public_us,
             "public_us_not_tw_9_of_9": "今日評等資料：9 / 9 檔可用" not in public_us,
             "public_tw_markers_present": "台股 AI 決策儀表板" in public_tw,
+            "public_tw_shared_navigation_present": all(m in public_tw for m in ["回到總覽", "台股 Dashboard", "美股 Dashboard", 'data-shared-navigation="tw-us"']),
+            "public_us_shared_navigation_present": all(m in public_us for m in ["回到總覽", "台股 Dashboard", "美股 Dashboard", 'data-shared-navigation="tw-us"']),
             "public_us_stock_count_visible": "US enabled stock count" in public_us,
         })
         for key, ok in public_route_checks.items():
