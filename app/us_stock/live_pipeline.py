@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 
 from app.us_stock.constants import DEFAULT_CURRENCY, DEFAULT_MARKET, US_BATCH_WINDOWS, US_SCORING_WEIGHTS
 from app.us_stock.live_data import YFinanceUSClient, analyze_history, clean_number, now_taipei
+from app.us_stock.research_intelligence import RESEARCH_FACTOR_VERSION, USResearchIntelligenceBuilder
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_DIR = REPO_ROOT / "artifacts/runtime/us_stock"
@@ -45,40 +46,49 @@ def session_context(window: str, reference: datetime | None = None) -> dict[str,
         "phase_note": "PM-approved Asia/Taipei fixed schedule retained; phase metadata is advisory.",
     }
 
-def rating_action(score: float | None, confidence_status: str) -> tuple[str, str, float | None, str]:
+def rating_action(score: float | None, confidence_status: str, event_risk_level: str = "low") -> tuple[str, str, float | None, str]:
     if score is None:
         return "資料不足", "保守觀望", None, "insufficient_data"
-    if score >= 70:
-        rating, action = "B級", "偏多觀察"
+    if event_risk_level == "high" and score >= 55:
+        rating, action = "C級", "降低追價"
+    elif score >= 70:
+        rating, action = "B級", "偏多續抱"
     elif score >= 55:
         rating, action = "C級", "中性觀察"
     elif score >= 40:
         rating, action = "D級", "保守觀望"
     else:
-        rating, action = "E級", "風險控管"
+        rating, action = "E級", "風險升高"
     confidence = min(75, max(20, round(score * 0.72, 1))) if confidence_status == "sufficient" else min(45, round(score * 0.5, 1))
+    if event_risk_level in {"medium", "high"} and confidence is not None:
+        confidence = max(20, confidence - (8 if event_risk_level == "high" else 4))
     level = "medium_high" if confidence >= 60 else "medium" if confidence >= 40 else "low"
     return rating, action, confidence, level
 
-def score_symbol(technical: dict[str, Any], market_context: dict[str, Any], news_items: list[dict[str, Any]]) -> dict[str, Any]:
+def score_symbol(technical: dict[str, Any], market_context: dict[str, Any], news_items: list[dict[str, Any]], research: dict[str, Any] | None = None) -> dict[str, Any]:
     if not technical.get("ok"):
         return {"total_score": None, "rating": "資料不足", "action": "保守觀望", "confidence_score": None, "confidence_level": "insufficient_data", "confidence_status": "insufficient_data", "rationale": "歷史 OHLCV 不足，無法產生正式評分。"}
     technical_score = technical.get("technical_score") or 50
     market_score = market_context.get("market_environment_score") or 50
-    news_score = 55 if news_items else 50
+    research_factors = (research or {}).get("research_factors", {})
+    research_score = research_factors.get("research_score")
+    event_risk_level = (research or {}).get("earnings", {}).get("event_risk_level", "low")
+    material_news = (research or {}).get("material_news", {}).get("items", [])
+    news_score = 58 if material_news else 55 if news_items else 50
     vol_state = technical.get("volatility_state")
     vol_score = 45 if vol_state == "high" else 55 if vol_state == "low" else 50
     total = round(
-        technical_score * US_SCORING_WEIGHTS["technical"]
-        + news_score * US_SCORING_WEIGHTS["news_company_event"]
-        + market_score * US_SCORING_WEIGHTS["market_environment"]
-        + vol_score * US_SCORING_WEIGHTS["volatility_risk"],
+        technical_score * 0.28
+        + news_score * 0.14
+        + market_score * 0.18
+        + vol_score * 0.10
+        + (research_score if isinstance(research_score, (int, float)) else 50) * 0.30,
         2,
     )
-    rating, action, confidence, level = rating_action(total, "sufficient")
-    return {"total_score": total, "rating": rating, "action": action, "confidence_score": confidence, "confidence_level": level, "confidence_status": "sufficient", "rationale": "由技術、新聞/公司事件、市場環境與波動風險 deterministic 加權產生。"}
+    rating, action, confidence, level = rating_action(total, "sufficient", event_risk_level)
+    return {"total_score": total, "rating": rating, "action": action, "confidence_score": confidence, "confidence_level": level, "confidence_status": "sufficient", "rationale": "由技術、市場環境、波動風險、SEC/財務/盈餘/新聞 research factors deterministic 加權產生。", "weight_version": "us_scoring_research_integrated_v1", "research_factor_version": research_factors.get("research_factor_version"), "event_risk_level": event_risk_level}
 
-def prediction_for_symbol(quote: dict[str, Any], technical: dict[str, Any], window: str) -> dict[str, Any]:
+def prediction_for_symbol(quote: dict[str, Any], technical: dict[str, Any], window: str, research: dict[str, Any] | None = None) -> dict[str, Any]:
     price = quote.get("last_price") or technical.get("indicators", {}).get("latest_close")
     indicators = technical.get("indicators", {})
     if price is None or not technical.get("ok"):
@@ -94,7 +104,11 @@ def prediction_for_symbol(quote: dict[str, Any], technical: dict[str, Any], wind
     if window == "us_intraday_2300":
         up_mult *= 0.85
         down_mult *= 0.85
-    next_mult = 1.18
+    earnings_risk = (research or {}).get("earnings", {}).get("event_risk_level", "low")
+    material_events = (research or {}).get("material_news", {}).get("items", [])
+    event_mult = 1.18 if earnings_risk == "high" else 1.10 if earnings_risk == "medium" or material_events else 1.0
+    next_mult = 1.18 * event_mult
+    base_range = base_range * event_mult
     low = round(price * (1 - base_range * down_mult), 2)
     high = round(price * (1 + base_range * up_mult), 2)
     nlow = round(price * (1 - base_range * next_mult * down_mult), 2)
@@ -109,17 +123,26 @@ def prediction_for_symbol(quote: dict[str, Any], technical: dict[str, Any], wind
         "range_method": "median of ATR-like range, daily range, and return volatility with trend bias",
         "base_range_pct": round(base_range * 100, 4),
         "intraday_adjusted": window == "us_intraday_2300",
+        "event_adjusted": event_mult != 1.0,
+        "event_risk_type": earnings_risk if earnings_risk != "low" else ("material_news" if material_events else "none"),
+        "research_factor_version": (research or {}).get("research_factors", {}).get("research_factor_version"),
         "model_version": MODEL_VERSION,
         "missing_fields": [],
-        "rationale": "以真實 OHLCV 的 ATR-like range、日內區間、報酬波動與趨勢偏差估算。",
+        "rationale": "以真實 OHLCV 的 ATR-like range、日內區間、報酬波動、趨勢偏差與 earnings/event risk deterministic 調整估算。",
     }
 
-def dashboard_card(entry: dict[str, Any], quote: dict[str, Any], technical: dict[str, Any], score: dict[str, Any], prediction: dict[str, Any], news_items: list[dict[str, Any]], window: str) -> dict[str, Any]:
+def dashboard_card(entry: dict[str, Any], quote: dict[str, Any], technical: dict[str, Any], score: dict[str, Any], prediction: dict[str, Any], news_items: list[dict[str, Any]], window: str, research: dict[str, Any] | None = None) -> dict[str, Any]:
     label = {"us_pre_market_2000": "美股盤前 20:00", "us_intraday_2300": "美股盤中 23:00", "us_post_close_review_0630": "美股檢討 06:30"}[window]
     pstatus = prediction.get("prediction_status")
     session_range = "資料不足" if pstatus != "available" else f"{prediction['predicted_session_low']} ～ {prediction['predicted_session_high']}"
     next_range = "資料不足" if pstatus != "available" else f"{prediction['predicted_next_session_low']} ～ {prediction['predicted_next_session_high']}"
     news = news_items[0] if news_items else {"english_headline": None, "chinese_translation": "無可驗證重大新聞", "investment_reading": "未取得可安全引用新聞；不產生假新聞。"}
+    research = research or {}
+    sec = research.get("sec", {})
+    earnings = research.get("earnings", {})
+    fundamentals = research.get("fundamentals", {})
+    material_news = research.get("material_news", {})
+    research_factors = research.get("research_factors", {})
     return {
         "card_id": f"us_stock_{entry['symbol']}_{window}",
         "market_label": "美股",
@@ -138,8 +161,19 @@ def dashboard_card(entry: dict[str, Any], quote: dict[str, Any], technical: dict
         "one_month_trend": technical.get("trend_1m"),
         "three_month_trend": technical.get("trend_3m"),
         "latest_status": "live market data fetched" if quote.get("last_price") is not None else "live data insufficient",
+        "technical_summary": technical.get("technical_summary"),
+        "financial_quality": fundamentals.get("comparison", {}).get("trend_direction"),
+        "latest_earnings_status": earnings.get("earnings_status"),
+        "guidance_direction": earnings.get("guidance_direction"),
+        "latest_sec_filing": (sec.get("latest_quarterly_report") or sec.get("latest_annual_report") or {}).get("form"),
+        "official_event_warning": "有近期 8-K" if sec.get("recent_8k_items") else "無近期重大 8-K metadata",
+        "research_score": research_factors.get("research_score"),
+        "research_rating": research_factors.get("research_rating"),
+        "research_confidence": research_factors.get("research_confidence"),
+        "source_freshness": "SEC/yfinance/news metadata checked",
         "source_timestamp": quote.get("source_timestamp"),
-        "bilingual_news_snippet": news,
+        "bilingual_news_snippet": (material_news.get("items") or [news])[0] if (material_news.get("items") or news) else news,
+        "research_sections": {"sec": sec, "fundamentals": fundamentals, "earnings": earnings, "material_news": material_news, "research_factors": research_factors},
         "review_result": "檢討資料待接" if window != "us_post_close_review_0630" else "依 snapshot/actual outcome 可用性檢討",
     }
 
@@ -177,6 +211,7 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
     generated_at = now_taipei()
     context = session_context(window, reference)
     client = YFinanceUSClient()
+    research_builder = USResearchIntelligenceBuilder()
     market_context = client.fetch_context()
     cards = []
     items = []
@@ -189,14 +224,15 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
             continue
         result = client.fetch_symbol(symbol)
         technical = analyze_history(result.history) if result.history is not None else {"ok": False, "data_quality": {"history_days": 0}, "indicators": {}, "trend_1m": "insufficient_data", "trend_3m": "insufficient_data", "volatility_state": "insufficient_data", "technical_score": None, "technical_summary": "history unavailable"}
-        score = score_symbol(technical, market_context, result.news)
-        prediction = prediction_for_symbol(result.quote, technical, window)
-        card = dashboard_card(entry, result.quote, technical, score, prediction, result.news, window)
+        research = research_builder.build_for_symbol(symbol, technical, market_context, result.news)
+        score = score_symbol(technical, market_context, result.news, research)
+        prediction = prediction_for_symbol(result.quote, technical, window, research)
+        card = dashboard_card(entry, result.quote, technical, score, prediction, result.news, window, research)
         if result.ok and prediction.get("prediction_status") == "available":
             success += 1
         else:
             insufficient += 1
-        item = {"symbol": symbol, "name": entry.get("name"), "market": DEFAULT_MARKET, "quote": result.quote, "fetch_ok": result.ok, "fetch_error": result.error, "technical": technical, "market_context_ref": "market_context", "news": result.news, "score": score, "prediction": prediction, "data_quality": {"quote_available": result.quote.get("last_price") is not None, "history_days": technical.get("data_quality", {}).get("history_days"), "news_count": len(result.news)}, "source_timestamp": result.quote.get("source_timestamp")}
+        item = {"symbol": symbol, "name": entry.get("name"), "market": DEFAULT_MARKET, "quote": result.quote, "fetch_ok": result.ok, "fetch_error": result.error, "technical": technical, "market_context_ref": "market_context", "news": result.news, "research_intelligence": research, "score": score, "prediction": prediction, "data_quality": {"quote_available": result.quote.get("last_price") is not None, "history_days": technical.get("data_quality", {}).get("history_days"), "news_count": len(result.news), "sec_ok": research.get("sec", {}).get("ok"), "research_factor_version": research.get("research_factors", {}).get("research_factor_version")}, "source_timestamp": result.quote.get("source_timestamp")}
         items.append(item)
         cards.append(card)
         if window in {"us_pre_market_2000", "us_intraday_2300"} and write_snapshots and prediction.get("prediction_status") == "available":
@@ -226,6 +262,7 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
         "session_context": context,
         "runtime_watchlist_validation": {"source_sheet": "工作表2", "enabled_stock_count": len(watchlist), "successfully_analyzed_count": success, "insufficient_data_count": insufficient, "invalid_row_count": 0, "private_values_printed": False},
         "market_context": market_context,
+        "research_intelligence_contract": {"source_hierarchy": "tier1_official_sec_ir_company; tier2_market_reference_yfinance; tier3_secondary_news", "research_factor_version": RESEARCH_FACTOR_VERSION, "copyright_policy": "no full filings/articles/transcripts stored", "official_source_required_for_official_claims": True},
         "items": items,
         "prediction_review_contract": {"market": DEFAULT_MARKET, "review_window": "us_post_close_review_0630", "reviewed_stock_count": reviewed, "pending_stock_count": pending, "skipped_stock_count": 0, "items": reviews, "fabricated": False},
         "dashboard_ready_contract": {"market_label": "美股", "sections": ["美股盤前 20:00", "美股盤中 23:00", "美股檢討 06:30"], "cards": cards},
