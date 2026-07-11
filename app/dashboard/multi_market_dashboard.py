@@ -185,6 +185,12 @@ def base_css() -> str:
     header,.hero{background:#0f2c33;color:white;padding:24px 18px}.wrap{max-width:1120px;margin:0 auto;padding:18px}.nav{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.nav a,.btn{display:inline-block;background:#fff;color:#0f2c33;text-decoration:none;border-radius:8px;padding:10px 12px;font-weight:800;border:1px solid #cbd8dc}.section{background:white;border:1px solid #dce5e8;border-radius:10px;padding:16px;margin:14px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}.stock-card,.status-card{background:#fff;border:1px solid #d9e4e7;border-radius:10px;padding:14px}.card-kicker{font-weight:800;color:#35606b;font-size:13px}h1,h2,h3{margin:0 0 10px}dl{display:grid;gap:8px}dt{font-weight:800;color:#51666d}dd{margin:0}.badge{display:inline-block;border-radius:999px;padding:6px 10px;background:#e8f5e9;color:#225d28;font-weight:800}.warn{background:#fff9e8}.market-choice{display:block;text-decoration:none;color:#17262c}.market-choice h2{color:#0f5368}@media(max-width:640px){.wrap{padding:12px}.grid{grid-template-columns:1fr}.nav a{width:100%;box-sizing:border-box}}
     """
 
+
+
+def shared_market_navigation(active_market: str, title: str, subtitle: str) -> str:
+    active = html.escape(active_market)
+    return f"""<div class="wrap section market-shared-navigation" data-shared-navigation="tw-us" data-active-market="{active}"><h1>{html.escape(title)}</h1><nav class="nav" aria-label="Market Dashboard Navigation"><a href="/stock-ai-dashboard/index.html">回到總覽</a><a href="/stock-ai-dashboard/dashboard/tw/index.html">台股 Dashboard</a><a href="/stock-ai-dashboard/dashboard/us/index.html">美股 Dashboard</a></nav><p>{html.escape(subtitle)}</p></div>"""
+
 def render_landing_page() -> str:
     return f"""<!doctype html>
     <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>AI Multi-Market Decision Intelligence</title><style>{base_css()}</style></head>
@@ -198,14 +204,22 @@ def render_landing_page() -> str:
 
 def render_tw_page(source_html: str | None = None) -> str:
     body = source_html if source_html is not None else (TW_TEMPLATE.read_text(encoding="utf-8") if TW_TEMPLATE.exists() else "<p>台股 Dashboard 資料待接</p>")
-    nav = f"""<div class="wrap section" id="ai-dev-170-tw-nav"><h1>台股 AI 決策儀表板</h1><nav class="nav"><a href="/stock-ai-dashboard/index.html">回到總覽</a><a href="/stock-ai-dashboard/dashboard/tw/index.html">台股 Dashboard</a><a href="/stock-ai-dashboard/dashboard/us/index.html">美股 Dashboard</a></nav><p>TW 專用頁：07:00 / 13:05 / 13:35 / 15:00。美股內容不在此頁渲染。</p></div><div class="wrap section" id="ai-dev-173-tw-dual-strategy"><h2>中長期量化策略</h2><p>沿用既有 TW Research / Position scoring、評等、動作與 prediction lifecycle；不由 Daily Tactical 覆寫。</p><h2>每日短期操作策略</h2><p>新增 TW Daily Tactical strategy：使用台股技術、量能、籌碼/flow、波動、事件風險與資料完整度，輸出 setup、進場區、停損/失效、目標區與風險；僅供研究參考，不是下單指令。</p><p>策略隔離：research_position 與 daily_tactical 分開顯示、分開檢討，不互相覆蓋。</p></div>"""
-    if "</body>" in body:
-        body = body.replace("</body>", nav + "\n</body>")
+    nav = shared_market_navigation("TW", "台股 AI 決策儀表板", "TW 專用頁：07:00 / 13:05 / 13:35 / 15:00。美股內容不在此頁渲染。")
+    dual_strategy = """<div class="wrap section" id="ai-dev-173-tw-dual-strategy"><h2>中長期量化策略</h2><p>沿用既有 TW Research / Position scoring、評等、動作與 prediction lifecycle；不由 Daily Tactical 覆寫。</p><h2>每日短期操作策略</h2><p>新增 TW Daily Tactical strategy：使用台股技術、量能、籌碼/flow、波動、事件風險與資料完整度，輸出 setup、進場區、停損/失效、目標區與風險；僅供研究參考，不是下單指令。</p><p>策略隔離：research_position 與 daily_tactical 分開顯示、分開檢討，不互相覆蓋。</p></div>"""
+    header = nav + dual_strategy
+    if "<body>" in body:
+        body = body.replace("<body>", "<body>" + header + "\n", 1)
+    elif "<body " in body:
+        idx = body.find(">", body.find("<body "))
+        body = body[: idx + 1] + header + "\n" + body[idx + 1:]
+    elif "</body>" in body:
+        body = body.replace("</body>", header + "\n</body>")
     else:
-        body += nav
+        body = header + body
     if "<title>" in body:
         body = body.replace("<title>", "<title>台股 AI 決策儀表板 | ", 1)
     return body
+
 
 def render_us_page(artifacts: list[dict[str, Any]] | None = None) -> str:
     artifacts = artifacts if artifacts is not None else _load_us_artifacts()
@@ -214,7 +228,7 @@ def render_us_page(artifacts: list[dict[str, Any]] | None = None) -> str:
     cards = render_us_cards(artifacts)
     return f"""<!doctype html>
     <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>美股 AI 決策儀表板</title><meta name="market" content="US"><style>{base_css()}</style></head>
-    <body><header><div class="wrap"><h1>美股 AI 決策儀表板</h1><p>美股盤前 20:00｜美股盤中 23:00｜美股檢討 06:30</p><nav class="nav"><a href="/stock-ai-dashboard/index.html">回到總覽</a><a href="/stock-ai-dashboard/dashboard/tw/index.html">台股 Dashboard</a><a href="/stock-ai-dashboard/dashboard/us/index.html">美股 Dashboard</a></nav></div></header><main class="wrap">
+    <body><header>{shared_market_navigation("US", "美股 AI 決策儀表板", "美股盤前 20:00｜美股盤中 23:00｜美股檢討 06:30")}</header><main class="wrap">
     <!-- AI-DEV-170-US-DASHBOARD-START -->
     <section class="section"><h2>美股 Runtime Summary</h2><p>US enabled stock count：{count}</p><p>最新更新：{html.escape(latest)}</p><p>資料來源：工作表2 / live production US runtime artifacts；US Dashboard 不回退到台股資料，也不渲染 validation fixture。</p></section>
     <section class="section"><h2>Market Summary</h2><p>SPY / QQQ / VIX / sector context feeds the US research score as Tier 2 market reference.</p></section>
