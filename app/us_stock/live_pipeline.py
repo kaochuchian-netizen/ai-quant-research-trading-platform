@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 from app.us_stock.constants import DEFAULT_CURRENCY, DEFAULT_MARKET, US_BATCH_WINDOWS, US_SCORING_WEIGHTS
 from app.us_stock.live_data import YFinanceUSClient, analyze_history, clean_number, now_taipei
 from app.us_stock.research_intelligence import RESEARCH_FACTOR_VERSION, USResearchIntelligenceBuilder
+from app.strategy.dual_strategy import DAILY_TACTICAL, RESEARCH_POSITION, US_TACTICAL_FACTOR_VERSION, build_dual_strategies
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_DIR = REPO_ROOT / "artifacts/runtime/us_stock"
@@ -131,7 +132,7 @@ def prediction_for_symbol(quote: dict[str, Any], technical: dict[str, Any], wind
         "rationale": "以真實 OHLCV 的 ATR-like range、日內區間、報酬波動、趨勢偏差與 earnings/event risk deterministic 調整估算。",
     }
 
-def dashboard_card(entry: dict[str, Any], quote: dict[str, Any], technical: dict[str, Any], score: dict[str, Any], prediction: dict[str, Any], news_items: list[dict[str, Any]], window: str, research: dict[str, Any] | None = None) -> dict[str, Any]:
+def dashboard_card(entry: dict[str, Any], quote: dict[str, Any], technical: dict[str, Any], score: dict[str, Any], prediction: dict[str, Any], news_items: list[dict[str, Any]], window: str, research: dict[str, Any] | None = None, strategies: dict[str, Any] | None = None) -> dict[str, Any]:
     label = {"us_pre_market_2000": "美股盤前 20:00", "us_intraday_2300": "美股盤中 23:00", "us_post_close_review_0630": "美股檢討 06:30"}[window]
     pstatus = prediction.get("prediction_status")
     session_range = "資料不足" if pstatus != "available" else f"{prediction['predicted_session_low']} ～ {prediction['predicted_session_high']}"
@@ -143,6 +144,9 @@ def dashboard_card(entry: dict[str, Any], quote: dict[str, Any], technical: dict
     fundamentals = research.get("fundamentals", {})
     material_news = research.get("material_news", {})
     research_factors = research.get("research_factors", {})
+    strategies = strategies or {}
+    tactical = strategies.get(DAILY_TACTICAL, {}) if isinstance(strategies, dict) else {}
+    research_strategy = strategies.get(RESEARCH_POSITION, {}) if isinstance(strategies, dict) else {}
     return {
         "card_id": f"us_stock_{entry['symbol']}_{window}",
         "market_label": "美股",
@@ -174,6 +178,9 @@ def dashboard_card(entry: dict[str, Any], quote: dict[str, Any], technical: dict
         "source_timestamp": quote.get("source_timestamp"),
         "bilingual_news_snippet": (material_news.get("items") or [news])[0] if (material_news.get("items") or news) else news,
         "research_sections": {"sec": sec, "fundamentals": fundamentals, "earnings": earnings, "material_news": material_news, "research_factors": research_factors},
+        "strategies": strategies,
+        "research_position_summary": {"score": research_strategy.get("score"), "rating": research_strategy.get("rating"), "action": research_strategy.get("action"), "confidence": research_strategy.get("confidence"), "factor_version": research_strategy.get("factor_version")},
+        "daily_tactical_summary": {"direction": tactical.get("tactical_direction"), "score": tactical.get("tactical_score"), "grade": tactical.get("tactical_grade"), "action": tactical.get("action"), "confidence": tactical.get("tactical_confidence"), "setup_type": tactical.get("setup_type"), "entry_zone": tactical.get("entry_zone"), "stop_reference": tactical.get("stop_reference"), "target_zone_1": tactical.get("target_zone_1"), "reward_risk_ratio": tactical.get("reward_risk_ratio"), "chase_risk": tactical.get("chase_risk"), "event_risk": tactical.get("event_risk"), "factor_version": tactical.get("factor_version")},
         "review_result": "檢討資料待接" if window != "us_post_close_review_0630" else "依 snapshot/actual outcome 可用性檢討",
     }
 
@@ -227,12 +234,15 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
         research = research_builder.build_for_symbol(symbol, technical, market_context, result.news)
         score = score_symbol(technical, market_context, result.news, research)
         prediction = prediction_for_symbol(result.quote, technical, window, research)
-        card = dashboard_card(entry, result.quote, technical, score, prediction, result.news, window, research)
+        prediction["one_month_trend"] = technical.get("trend_1m")
+        prediction["three_month_trend"] = technical.get("trend_3m")
+        strategies = build_dual_strategies(DEFAULT_MARKET, score, prediction, result.quote, technical, market_context=market_context, research=research, generated_at=generated_at)
+        card = dashboard_card(entry, result.quote, technical, score, prediction, result.news, window, research, strategies)
         if result.ok and prediction.get("prediction_status") == "available":
             success += 1
         else:
             insufficient += 1
-        item = {"symbol": symbol, "name": entry.get("name"), "market": DEFAULT_MARKET, "quote": result.quote, "fetch_ok": result.ok, "fetch_error": result.error, "technical": technical, "market_context_ref": "market_context", "news": result.news, "research_intelligence": research, "score": score, "prediction": prediction, "data_quality": {"quote_available": result.quote.get("last_price") is not None, "history_days": technical.get("data_quality", {}).get("history_days"), "news_count": len(result.news), "sec_ok": research.get("sec", {}).get("ok"), "research_factor_version": research.get("research_factors", {}).get("research_factor_version")}, "source_timestamp": result.quote.get("source_timestamp")}
+        item = {"symbol": symbol, "name": entry.get("name"), "market": DEFAULT_MARKET, "quote": result.quote, "fetch_ok": result.ok, "fetch_error": result.error, "technical": technical, "market_context_ref": "market_context", "news": result.news, "research_intelligence": research, "strategies": strategies, "score": score, "prediction": prediction, "data_quality": {"quote_available": result.quote.get("last_price") is not None, "history_days": technical.get("data_quality", {}).get("history_days"), "news_count": len(result.news), "sec_ok": research.get("sec", {}).get("ok"), "research_factor_version": research.get("research_factors", {}).get("research_factor_version")}, "source_timestamp": result.quote.get("source_timestamp")}
         items.append(item)
         cards.append(card)
         if window in {"us_pre_market_2000", "us_intraday_2300"} and write_snapshots and prediction.get("prediction_status") == "available":
@@ -263,6 +273,7 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
         "runtime_watchlist_validation": {"source_sheet": "工作表2", "enabled_stock_count": len(watchlist), "successfully_analyzed_count": success, "insufficient_data_count": insufficient, "invalid_row_count": 0, "private_values_printed": False},
         "market_context": market_context,
         "research_intelligence_contract": {"source_hierarchy": "tier1_official_sec_ir_company; tier2_market_reference_yfinance; tier3_secondary_news", "research_factor_version": RESEARCH_FACTOR_VERSION, "copyright_policy": "no full filings/articles/transcripts stored", "official_source_required_for_official_claims": True},
+        "dual_strategy_contract": {"market": DEFAULT_MARKET, "strategy_types": [RESEARCH_POSITION, DAILY_TACTICAL], "research_position_version": "us_research_position_v1", "daily_tactical_version": "us_daily_tactical_v1", "daily_tactical_factor_version": US_TACTICAL_FACTOR_VERSION, "research_overwritten_by_tactical": False, "tactical_overwrites_research": False, "line_email_sent_by_builder": False},
         "items": items,
         "prediction_review_contract": {"market": DEFAULT_MARKET, "review_window": "us_post_close_review_0630", "reviewed_stock_count": reviewed, "pending_stock_count": pending, "skipped_stock_count": 0, "items": reviews, "fabricated": False},
         "dashboard_ready_contract": {"market_label": "美股", "sections": ["美股盤前 20:00", "美股盤中 23:00", "美股檢討 06:30"], "cards": cards},

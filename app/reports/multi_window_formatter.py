@@ -21,6 +21,8 @@ def prediction_field_blocks(context: ReportWindowContext) -> list[dict[str, Any]
 def strategy_v2_sections(context: ReportWindowContext) -> list[dict[str, str]]:
     if context.scheduler_window == "pre_open_0700":
         return [
+            {"heading": "中長期量化策略", "body": "沿用既有 TW Research / Position score、評等、動作與 prediction lifecycle，不由 Tactical 覆寫。"},
+            {"heading": "每日短期操作策略", "body": "新增 TW Daily Tactical：依台股技術、量能、籌碼/flow、波動與事件風險輸出 setup、進場區、停損/失效、目標區與風險；研究參考，非下單指令。"},
             {"heading": "台股盤前預測", "body": "今日盤前主報告，包含高低價、1M/3M 趨勢、confidence、rationale、風險與 Dashboard URL。"},
             {"heading": "台指期夜盤觀察", "body": "資料待接：夜盤觀察尚未找到正式 runtime artifact。"},
             {"heading": "美股盤後摘要狀態", "body": "美股資料待接：尚未提供美股股票代號或正式 runtime artifact。"},

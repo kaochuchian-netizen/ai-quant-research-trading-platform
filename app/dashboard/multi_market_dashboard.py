@@ -56,6 +56,35 @@ def _escape(value: Any) -> str:
         return "資料待接"
     return html.escape(str(value))
 
+
+
+def _fmt_zone(zone: Any) -> str:
+    if not isinstance(zone, dict):
+        return "資料不足"
+    low = zone.get("low")
+    high = zone.get("high")
+    if low is None or high is None:
+        return "資料不足"
+    return f"{_escape(low)} ～ {_escape(high)}"
+
+def _strategy_html(card: dict[str, Any]) -> str:
+    strategies = card.get("strategies", {}) if isinstance(card.get("strategies"), dict) else {}
+    research = strategies.get("research_position") or card.get("research_position_summary") or {}
+    tactical = strategies.get("daily_tactical") or card.get("daily_tactical_summary") or {}
+    return f"""
+              <section class="strategy-pair" data-strategy="dual">
+                <h4>Research / Position Strategy</h4>
+                <p>Score / Rating / Action / Confidence：{_escape(research.get('score'))} / {_escape(research.get('rating'))} / {_escape(research.get('action'))} / {_escape(research.get('confidence'))}</p>
+                <p>Horizon：{_escape(research.get('horizon') or 'days to months')}</p>
+                <h4>Daily Tactical Strategy</h4>
+                <p>方向 / Setup / Action：{_escape(tactical.get('tactical_direction') or tactical.get('direction'))} / {_escape(tactical.get('setup_type'))} / {_escape(tactical.get('action'))}</p>
+                <p>分數 / 等級 / 信心：{_escape(tactical.get('tactical_score') or tactical.get('score'))} / {_escape(tactical.get('tactical_grade') or tactical.get('grade'))} / {_escape(tactical.get('tactical_confidence') or tactical.get('confidence'))}</p>
+                <p>進場區：{_fmt_zone(tactical.get('entry_zone'))}｜停損/失效：{_escape(tactical.get('stop_reference') or tactical.get('invalidation_level'))}｜目標一：{_fmt_zone(tactical.get('target_zone_1'))}</p>
+                <p>預期波動 / 報酬風險：{_escape(tactical.get('expected_move'))} / {_escape(tactical.get('reward_risk_ratio'))}｜追高風險：{_escape(tactical.get('chase_risk'))}｜事件風險：{_escape(tactical.get('event_risk'))}</p>
+                <p class="risk-note">Daily Tactical 為研究參考，不是交易指令；未觸發 setup 不算自動失敗。</p>
+              </section>
+    """
+
 def _is_authoritative_us_artifact(data: dict[str, Any]) -> bool:
     return (
         data.get("market") == "US"
@@ -137,9 +166,11 @@ def render_us_cards(artifacts: list[dict[str, Any]]) -> str:
                 <div><dt>SEC 最新 filing</dt><dd>{_escape(card.get('latest_sec_filing'))}</dd></div>
                 <div><dt>官方事件</dt><dd>{_escape(card.get('official_event_warning'))}</dd></div>
                 <div><dt>研究因子</dt><dd>{_escape(card.get('research_score'))} / {_escape(card.get('research_rating'))}</dd></div>
+                <div><dt>策略版本</dt><dd>research_position / daily_tactical</dd></div>
                 <div><dt>資料狀態</dt><dd>{_escape(card.get('latest_status'))}</dd></div>
                 <div><dt>來源新鮮度</dt><dd>{_escape(card.get('source_freshness'))}</dd></div>
               </dl>
+              {_strategy_html(card)}
               <details class="news-block" open><summary>Bilingual News / 雙語新聞</summary><p><strong>EN:</strong> {_escape(news.get('english_headline'))}</p><p><strong>中:</strong> {_escape(news.get('chinese_translation'))}</p><p>{_escape(news.get('investment_reading'))}</p><p>Vocabulary：{_escape(news.get('vocabulary'))}</p></details>
               <details class="review-block"><summary>Prediction Review / 檢討</summary><p>{_escape(artifact.get('prediction_review_contract', {}).get('review_status') or '檢討資料待接')}</p></details>
             </article>
@@ -167,7 +198,7 @@ def render_landing_page() -> str:
 
 def render_tw_page(source_html: str | None = None) -> str:
     body = source_html if source_html is not None else (TW_TEMPLATE.read_text(encoding="utf-8") if TW_TEMPLATE.exists() else "<p>台股 Dashboard 資料待接</p>")
-    nav = f"""<div class="wrap section" id="ai-dev-170-tw-nav"><h1>台股 AI 決策儀表板</h1><nav class="nav"><a href="/stock-ai-dashboard/index.html">回到總覽</a><a href="/stock-ai-dashboard/dashboard/tw/index.html">台股 Dashboard</a><a href="/stock-ai-dashboard/dashboard/us/index.html">美股 Dashboard</a></nav><p>TW 專用頁：07:00 / 13:05 / 13:35 / 15:00。美股內容不在此頁渲染。</p></div>"""
+    nav = f"""<div class="wrap section" id="ai-dev-170-tw-nav"><h1>台股 AI 決策儀表板</h1><nav class="nav"><a href="/stock-ai-dashboard/index.html">回到總覽</a><a href="/stock-ai-dashboard/dashboard/tw/index.html">台股 Dashboard</a><a href="/stock-ai-dashboard/dashboard/us/index.html">美股 Dashboard</a></nav><p>TW 專用頁：07:00 / 13:05 / 13:35 / 15:00。美股內容不在此頁渲染。</p></div><div class="wrap section" id="ai-dev-173-tw-dual-strategy"><h2>中長期量化策略</h2><p>沿用既有 TW Research / Position scoring、評等、動作與 prediction lifecycle；不由 Daily Tactical 覆寫。</p><h2>每日短期操作策略</h2><p>新增 TW Daily Tactical strategy：使用台股技術、量能、籌碼/flow、波動、事件風險與資料完整度，輸出 setup、進場區、停損/失效、目標區與風險；僅供研究參考，不是下單指令。</p><p>策略隔離：research_position 與 daily_tactical 分開顯示、分開檢討，不互相覆蓋。</p></div>"""
     if "</body>" in body:
         body = body.replace("</body>", nav + "\n</body>")
     else:
@@ -187,6 +218,8 @@ def render_us_page(artifacts: list[dict[str, Any]] | None = None) -> str:
     <!-- AI-DEV-170-US-DASHBOARD-START -->
     <section class="section"><h2>美股 Runtime Summary</h2><p>US enabled stock count：{count}</p><p>最新更新：{html.escape(latest)}</p><p>資料來源：工作表2 / live production US runtime artifacts；US Dashboard 不回退到台股資料，也不渲染 validation fixture。</p></section>
     <section class="section"><h2>Market Summary</h2><p>SPY / QQQ / VIX / sector context feeds the US research score as Tier 2 market reference.</p></section>
+    <section class="section"><h2>Research / Position Strategy</h2><p>US Research preserves technical, SEC, fundamentals, earnings/guidance, official events, market context, and us_research_factor_v1 evidence for days-to-months positioning.</p></section>
+    <section class="section"><h2>Daily Tactical Strategy</h2><p>US Daily Tactical uses gap, momentum, relative volume, trend, volatility, benchmark/sector context, earnings/event risk and deterministic entry/stop/target levels for current/next session and 1-5 trading days.</p></section>
     <section class="section"><h2>Financial Quality</h2><p>Revenue, margins, cash flow, leverage and missing-data quality are shown per stock when available.</p></section>
     <section class="section"><h2>Earnings / Guidance</h2><p>Company-reported actuals, company guidance, and third-party estimates are separated. Missing verified guidance stays unavailable.</p></section>
     <section class="section"><h2>SEC / Official Events</h2><p>SEC EDGAR filings and company IR/newsroom metadata are Tier 1 official evidence. yfinance remains reference data.</p></section>
