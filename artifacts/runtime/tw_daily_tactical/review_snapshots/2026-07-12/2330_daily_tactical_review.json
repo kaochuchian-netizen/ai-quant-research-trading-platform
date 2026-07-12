@@ -1,0 +1,15 @@
+{
+  "evaluation_windows": [
+    1,
+    3,
+    5
+  ],
+  "market": "TW",
+  "reason": "No Trade setup intentionally avoided",
+  "status": "no_trade",
+  "stock_id": "2330",
+  "stock_name": "台積電",
+  "strategy_id": "tw_daily_tactical_v1",
+  "strategy_type": "daily_tactical",
+  "trigger_aware": true
+}

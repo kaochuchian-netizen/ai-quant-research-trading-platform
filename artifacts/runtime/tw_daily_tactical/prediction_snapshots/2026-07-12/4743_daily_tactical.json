@@ -1,0 +1,22 @@
+{
+  "confidence": 30.9,
+  "data_quality": "partial",
+  "direction": "neutral",
+  "entry_zone_high": 54.63,
+  "entry_zone_low": 53.84,
+  "expected_move_pct": 0.03034,
+  "market": "TW",
+  "position_size": "half",
+  "prediction_date": "2026-07-12",
+  "reward_risk": 0.96,
+  "setup_type": "range_trade",
+  "stock_id": "4743",
+  "stock_name": "合一",
+  "stop_invalidation": 52.55,
+  "strategy_id": "tw_daily_tactical_v1",
+  "strategy_type": "daily_tactical",
+  "target_1_high": 56.2,
+  "target_1_low": 55.49,
+  "target_2_high": 57.78,
+  "target_2_low": 56.77
+}

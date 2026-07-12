@@ -1,0 +1,22 @@
+{
+  "confidence": 30.9,
+  "data_quality": "partial",
+  "direction": "neutral",
+  "entry_zone_high": 87.07,
+  "entry_zone_low": 85.19,
+  "expected_move_pct": 0.02078,
+  "market": "TW",
+  "position_size": "half",
+  "prediction_date": "2026-07-12",
+  "reward_risk": 0.97,
+  "setup_type": "range_trade",
+  "stock_id": "6873",
+  "stock_name": "泓德能源",
+  "stop_invalidation": 83.78,
+  "strategy_id": "tw_daily_tactical_v1",
+  "strategy_type": "daily_tactical",
+  "target_1_high": 88.79,
+  "target_1_low": 88.01,
+  "target_2_high": 90.51,
+  "target_2_low": 89.42
+}

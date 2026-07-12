@@ -1,0 +1,22 @@
+{
+  "confidence": 33.5,
+  "data_quality": "partial",
+  "direction": "no_trade",
+  "entry_zone_high": null,
+  "entry_zone_low": null,
+  "expected_move_pct": null,
+  "market": "TW",
+  "position_size": "avoid",
+  "prediction_date": "2026-07-12",
+  "reward_risk": null,
+  "setup_type": "no_trade",
+  "stock_id": "00878",
+  "stock_name": "國泰永續高股息",
+  "stop_invalidation": null,
+  "strategy_id": "tw_daily_tactical_v1",
+  "strategy_type": "daily_tactical",
+  "target_1_high": null,
+  "target_1_low": null,
+  "target_2_high": null,
+  "target_2_low": null
+}

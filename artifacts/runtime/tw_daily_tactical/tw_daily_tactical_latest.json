@@ -1,0 +1,2365 @@
+{
+  "artifact_mode": "production_runtime",
+  "artifact_type": "tw_daily_tactical_runtime",
+  "cards": [
+    {
+      "prediction_snapshot": {
+        "confidence": 33.5,
+        "data_quality": "partial",
+        "direction": "no_trade",
+        "entry_zone_high": null,
+        "entry_zone_low": null,
+        "expected_move_pct": null,
+        "market": "TW",
+        "position_size": "avoid",
+        "prediction_date": "2026-07-12",
+        "reward_risk": null,
+        "setup_type": "no_trade",
+        "stock_id": "00878",
+        "stock_name": "國泰永續高股息",
+        "stop_invalidation": null,
+        "strategy_id": "tw_daily_tactical_v1",
+        "strategy_type": "daily_tactical",
+        "target_1_high": null,
+        "target_1_low": null,
+        "target_2_high": null,
+        "target_2_low": null
+      },
+      "review_snapshot": {
+        "evaluation_windows": [
+          1,
+          3,
+          5
+        ],
+        "market": "TW",
+        "reason": "No Trade setup intentionally avoided",
+        "status": "no_trade",
+        "stock_id": "00878",
+        "stock_name": "國泰永續高股息",
+        "strategy_id": "tw_daily_tactical_v1",
+        "strategy_type": "daily_tactical",
+        "trigger_aware": true
+      },
+      "stock_id": "00878",
+      "stock_name": "國泰永續高股息",
+      "strategies": {
+        "daily_tactical": {
+          "action": "暫不操作",
+          "advisory_only": true,
+          "chase_risk": "medium",
+          "chip_tactical": {
+            "chip_direction": "neutral",
+            "chip_score": 46,
+            "data_quality": "limited",
+            "flow_confirmation": false,
+            "institutional_flow": {
+              "data_status": "limited_for_etf",
+              "dealer_net_buy_sell": null,
+              "foreign_consecutive_days": null,
+              "foreign_investor_net_buy_sell": null,
+              "institutional_alignment": "unavailable",
+              "investment_trust_consecutive_days": null,
+              "investment_trust_net_buy_sell": null
+            },
+            "margin_risk": {
+              "data_status": "limited_for_etf",
+              "margin_balance_change": null,
+              "margin_price_divergence": "unavailable",
+              "short_balance_change": null,
+              "short_interest_signal": "unavailable"
+            },
+            "notes": [
+              "TWSE/chip runtime detail unavailable; downgraded confidence rather than fabricating flow data."
+            ],
+            "short_interest_signal": "unavailable"
+          },
+          "confidence": 33.5,
+          "data_quality": "partial",
+          "direction": "no_trade",
+          "entry_zone": null,
+          "event_risk": "unknown",
+          "expected_move_pct": null,
+          "factor_version": "tw_daily_tactical_factor_v1",
+          "factor_weights": {
+            "chip_flow": 0.14,
+            "data_quality": 0.18,
+            "market_context": 0.12,
+            "risk_quality": 0.18,
+            "technical_setup": 0.22,
+            "volume_confirmation": 0.16
+          },
+          "generated_at": "2026-07-12T15:56:13+08:00",
+          "market": "TW",
+          "market_context": {
+            "data_status": "partial",
+            "market_bias": "neutral",
+            "market_breadth_status": "watchlist breadth bullish=0/9, bearish=0/9; broad TWSE breadth unavailable",
+            "market_context_score": 50.0,
+            "market_regime": "neutral_medium_risk",
+            "market_risk": "medium",
+            "market_volume_status": "contracted",
+            "unavailable_fields": [
+              "TWSE index breadth",
+              "OTC breadth",
+              "market-wide advancers/decliners"
+            ]
+          },
+          "playbook": "目前報酬風險不足或資料品質不完整，今日不建立戰術部位。",
+          "position_size": "avoid",
+          "rating": "No-Trade",
+          "reasons": [
+            "價格位於 20 日區間中段，適合區間觀察"
+          ],
+          "reward_risk": null,
+          "risk_reasons": [
+            "reward/risk below 0.8 threshold"
+          ],
+          "score": 45.0,
+          "setup_type": "no_trade",
+          "source_status": {
+            "chip_engine": "partial",
+            "historical_ohlcv": "partial",
+            "margin_short": "unavailable",
+            "news_event": "unavailable",
+            "technical_engine": "partial",
+            "tw_market_context": "partial",
+            "twse_institutional_flow": "unavailable"
+          },
+          "stock_id": "00878",
+          "stock_name": "國泰永續高股息",
+          "stop_invalidation": null,
+          "strategy_id": "tw_daily_tactical_v1",
+          "strategy_type": "daily_tactical",
+          "strategy_version": "tw_daily_tactical_v1",
+          "support_resistance": {
+            "nearest_resistance": 33.24,
+            "nearest_support": 33.18,
+            "secondary_resistance": 33.79,
+            "secondary_support": 33.17,
+            "sources": [
+              "swing_high_low",
+              "20d_high_low",
+              "moving_average",
+              "bollinger_band"
+            ]
+          },
+          "target_1": null,
+          "target_2": null,
+          "technical_factors": {
+            "atr14": 0.59,
+            "atr_pct": 0.01765,
+            "bollinger_lower": 31.98,
+            "bollinger_middle": 33.17,
+            "bollinger_upper": 34.36,
+            "bollinger_width": 0.07176,
+            "current_range_position": 0.5994,
+            "high_10d": 33.83,
+            "high_20d": 34.62,
+            "high_5d": 33.79,
+            "history_days": 20,
+            "latest_close": 33.19,
+            "latest_date": "2026-07-09",
+            "latest_high": 33.39,
+            "latest_low": 32.99,
+            "latest_open": 33.29,
+            "latest_volume": 23045.0,
+            "low_10d": 32.68,
+            "low_20d": 31.05,
+            "low_5d": 32.72,
+            "ma10": 33.18,
+            "ma20": 33.17,
+            "ma20_slope": null,
+            "ma5": 33.24,
+            "ma60": null,
+            "ma60_slope": null,
+            "macd": null,
+            "macd_histogram": null,
+            "macd_signal": null,
+            "relative_volume": 0.59,
+            "return_volatility_pct": 0.0119,
+            "rsi14": 44.2,
+            "volume_contraction": true,
+            "volume_expansion": false,
+            "volume_ma20": 39029.0,
+            "volume_ma5": 27872.0
+          },
+          "time_horizon": "intraday_to_5d",
+          "trading_or_order_executed": false
+        },
+        "research_position": {
+          "action": "資料待接",
+          "confidence": 67,
+          "market": "TW",
+          "prediction": {
+            "next_day_high_low": {
+              "high": null,
+              "low": null
+            },
+            "one_month_trend": "bullish",
+            "same_day_high_low": {
+              "high": null,
+              "low": null
+            },
+            "three_month_trend": "uncertain"
+          },
+          "preserved_existing_behavior": true,
+          "rating": "資料待接",
+          "score": null,
+          "strategy_type": "research_position",
+          "strategy_version": "tw_research_position_existing_v1"
+        }
+      }
+    },
+    {
+      "prediction_snapshot": {
+        "confidence": 33.0,
+        "data_quality": "partial",
+        "direction": "neutral",
+        "entry_zone_high": 15.29,
+        "entry_zone_low": 15.1,
+        "expected_move_pct": 0.0151,
+        "market": "TW",
+        "position_size": "half",
+        "prediction_date": "2026-07-12",
+        "reward_risk": 0.96,
+        "setup_type": "range_trade",
+        "stock_id": "009816",
+        "stock_name": "凱基台灣TOP50",
+        "stop_invalidation": 14.92,
+        "strategy_id": "tw_daily_tactical_v1",
+        "strategy_type": "daily_tactical",
+        "target_1_high": 15.51,
+        "target_1_low": 15.41,
+        "target_2_high": 15.73,
+        "target_2_low": 15.59
+      },
+      "review_snapshot": {
+        "entry_zone_touched": true,
+        "evaluation_windows": [
+          1,
+          3,
+          5
+        ],
+        "mae": -0.1,
+        "market": "TW",
+        "mfe": 0.72,
+        "realized_reward_risk": 0.96,
+        "same_bar_policy": "conservative_stop_first",
+        "status": "win",
+        "stock_id": "009816",
+        "stock_name": "凱基台灣TOP50",
+        "stop_breached": false,
+        "strategy_id": "tw_daily_tactical_v1",
+        "strategy_type": "daily_tactical",
+        "target_1_reached": true,
+        "target_2_reached": true,
+        "trigger_aware": true
+      },
+      "stock_id": "009816",
+      "stock_name": "凱基台灣TOP50",
+      "strategies": {
+        "daily_tactical": {
+          "action": "區間操作",
+          "advisory_only": true,
+          "chase_risk": "low",
+          "chip_tactical": {
+            "chip_direction": "neutral",
+            "chip_score": 46,
+            "data_quality": "limited",
+            "flow_confirmation": false,
+            "institutional_flow": {
+              "data_status": "limited_for_etf",
+              "dealer_net_buy_sell": null,
+              "foreign_consecutive_days": null,
+              "foreign_investor_net_buy_sell": null,
+              "institutional_alignment": "unavailable",
+              "investment_trust_consecutive_days": null,
+              "investment_trust_net_buy_sell": null
+            },
+            "margin_risk": {
+              "data_status": "limited_for_etf",
+              "margin_balance_change": null,
+              "margin_price_divergence": "unavailable",
+              "short_balance_change": null,
+              "short_interest_signal": "unavailable"
+            },
+            "notes": [
+              "TWSE/chip runtime detail unavailable; downgraded confidence rather than fabricating flow data."
+            ],
+            "short_interest_signal": "unavailable"
+          },
+          "confidence": 33.0,
+          "data_quality": "partial",
+          "direction": "neutral",
+          "entry_zone": {
+            "high": 15.29,
+            "low": 15.1
+          },
+          "event_risk": "unknown",
+          "expected_move_pct": 0.0151,
+          "factor_version": "tw_daily_tactical_factor_v1",
+          "factor_weights": {
+            "chip_flow": 0.14,
+            "data_quality": 0.18,
+            "market_context": 0.12,
+            "risk_quality": 0.18,
+            "technical_setup": 0.22,
+            "volume_confirmation": 0.16
+          },
+          "generated_at": "2026-07-12T15:56:13+08:00",
+          "market": "TW",
+          "market_context": {
+            "data_status": "partial",
+            "market_bias": "neutral",
+            "market_breadth_status": "watchlist breadth bullish=0/9, bearish=0/9; broad TWSE breadth unavailable",
+            "market_context_score": 50.0,
+            "market_regime": "neutral_medium_risk",
+            "market_risk": "medium",
+            "market_volume_status": "contracted",
+            "unavailable_fields": [
+              "TWSE index breadth",
+              "OTC breadth",
+              "market-wide advancers/decliners"
+            ]
+          },
+          "playbook": "以區間下緣到中低區觀察，接近上緣降低追價。",
+          "position_size": "half",
+          "rating": "C-Tactical",
+          "reasons": [
+            "價格位於 20 日區間中段，適合區間觀察"
+          ],
+          "reward_risk": 0.96,
+          "risk_reasons": [
+            "追價風險未見明顯升高"
+          ],
+          "score": 54.3,
+          "setup_type": "range_trade",
+          "source_status": {
+            "chip_engine": "partial",
+            "historical_ohlcv": "partial",
+            "margin_short": "unavailable",
+            "news_event": "unavailable",
+            "technical_engine": "partial",
+            "tw_market_context": "partial",
+            "twse_institutional_flow": "unavailable"
+          },
+          "stock_id": "009816",
+          "stock_name": "凱基台灣TOP50",
+          "stop_invalidation": 14.92,
+          "strategy_id": "tw_daily_tactical_v1",
+          "strategy_type": "daily_tactical",
+          "strategy_version": "tw_daily_tactical_v1",
+          "support_resistance": {
+            "nearest_resistance": 15.44,
+            "nearest_support": 15.1,
+            "secondary_resistance": 15.45,
+            "secondary_support": 14.98,
+            "sources": [
+              "swing_high_low",
+              "20d_high_low",
+              "moving_average",
+              "bollinger_band"
+            ]
+          },
+          "target_1": {
+            "high": 15.51,
+            "low": 15.41
+          },
+          "target_2": {
+            "high": 15.73,
+            "low": 15.59
+          },
+          "technical_factors": {
+            "atr14": 0.4,
+            "atr_pct": 0.02659,
+            "bollinger_lower": 14.7,
+            "bollinger_middle": 15.47,
+            "bollinger_upper": 16.23,
+            "bollinger_width": 0.09901,
+            "current_range_position": 0.4907,
+            "high_10d": 15.96,
+            "high_20d": 16.32,
+            "high_5d": 15.92,
+            "history_days": 20,
+            "latest_close": 15.23,
+            "latest_date": "2026-07-09",
+            "latest_high": 15.44,
+            "latest_low": 15.2,
+            "latest_open": 15.31,
+            "latest_volume": 85657.0,
+            "low_10d": 14.98,
+            "low_20d": 14.18,
+            "low_5d": 15.1,
+            "ma10": 15.45,
+            "ma20": 15.47,
+            "ma20_slope": null,
+            "ma5": 15.44,
+            "ma60": null,
+            "ma60_slope": null,
+            "macd": null,
+            "macd_histogram": null,
+            "macd_signal": null,
+            "relative_volume": 0.543,
+            "return_volatility_pct": 0.01953,
+            "rsi14": 42.86,
+            "volume_contraction": true,
+            "volume_expansion": false,
+            "volume_ma20": 157874.0,
+            "volume_ma5": 114452.0
+          },
+          "time_horizon": "intraday_to_5d",
+          "trading_or_order_executed": false
+        },
+        "research_position": {
+          "action": "資料待接",
+          "confidence": 66,
+          "market": "TW",
+          "prediction": {
+            "next_day_high_low": {
+              "high": null,
+              "low": null
+            },
+            "one_month_trend": "bearish",
+            "same_day_high_low": {
+              "high": null,
+              "low": null
+            },
+            "three_month_trend": "uncertain"
+          },
+          "preserved_existing_behavior": true,
+          "rating": "資料待接",
+          "score": null,
+          "strategy_type": "research_position",
+          "strategy_version": "tw_research_position_existing_v1"
+        }
+      }
+    },
+    {
+      "prediction_snapshot": {
+        "confidence": 33.5,
+        "data_quality": "partial",
+        "direction": "no_trade",
+        "entry_zone_high": null,
+        "entry_zone_low": null,
+        "expected_move_pct": null,
+        "market": "TW",
+        "position_size": "avoid",
+        "prediction_date": "2026-07-12",
+        "reward_risk": null,
+        "setup_type": "no_trade",
+        "stock_id": "1409",
+        "stock_name": "新纖",
+        "stop_invalidation": null,
+        "strategy_id": "tw_daily_tactical_v1",
+        "strategy_type": "daily_tactical",
+        "target_1_high": null,
+        "target_1_low": null,
+        "target_2_high": null,
+        "target_2_low": null
+      },
+      "review_snapshot": {
+        "evaluation_windows": [
+          1,
+          3,
+          5
+        ],
+        "market": "TW",
+        "reason": "No Trade setup intentionally avoided",
+        "status": "no_trade",
+        "stock_id": "1409",
+        "stock_name": "新纖",
+        "strategy_id": "tw_daily_tactical_v1",
+        "strategy_type": "daily_tactical",
+        "trigger_aware": true
+      },
+      "stock_id": "1409",
+      "stock_name": "新纖",
+      "strategies": {
+        "daily_tactical": {
+          "action": "暫不操作",
+          "advisory_only": true,
+          "chase_risk": "low",
+          "chip_tactical": {
+            "chip_direction": "neutral",
+            "chip_score": 50,
+            "data_quality": "partial",
+            "flow_confirmation": false,
+            "institutional_flow": {
+              "data_status": "partial",
+              "dealer_net_buy_sell": null,
+              "foreign_consecutive_days": null,
+              "foreign_investor_net_buy_sell": null,
+              "institutional_alignment": "unavailable",
+              "investment_trust_consecutive_days": null,
+              "investment_trust_net_buy_sell": null
+            },
+            "margin_risk": {
+              "data_status": "unavailable",
+              "margin_balance_change": null,
+              "margin_price_divergence": "unavailable",
+              "short_balance_change": null,
+              "short_interest_signal": "unavailable"
+            },
+            "notes": [
+              "TWSE/chip runtime detail unavailable; downgraded confidence rather than fabricating flow data."
+            ],
+            "short_interest_signal": "unavailable"
+          },
+          "confidence": 33.5,
+          "data_quality": "partial",
+          "direction": "no_trade",
+          "entry_zone": null,
+          "event_risk": "unknown",
+          "expected_move_pct": null,
+          "factor_version": "tw_daily_tactical_factor_v1",
+          "factor_weights": {
+            "chip_flow": 0.14,
+            "data_quality": 0.18,
+            "market_context": 0.12,
+            "risk_quality": 0.18,
+            "technical_setup": 0.22,
+            "volume_confirmation": 0.16
+          },
+          "generated_at": "2026-07-12T15:56:13+08:00",
+          "market": "TW",
+          "market_context": {
+            "data_status": "partial",
+            "market_bias": "neutral",
+            "market_breadth_status": "watchlist breadth bullish=0/9, bearish=0/9; broad TWSE breadth unavailable",
+            "market_context_score": 50.0,
+            "market_regime": "neutral_medium_risk",
+            "market_risk": "medium",
+            "market_volume_status": "contracted",
+            "unavailable_fields": [
+              "TWSE index breadth",
+              "OTC breadth",
+              "market-wide advancers/decliners"
+            ]
+          },
+          "playbook": "目前報酬風險不足或資料品質不完整，今日不建立戰術部位。",
+          "position_size": "avoid",
+          "rating": "No-Trade",
+          "reasons": [
+            "價格位於 20 日區間中段，適合區間觀察"
+          ],
+          "reward_risk": null,
+          "risk_reasons": [
+            "reward/risk below 0.8 threshold"
+          ],
+          "score": 45.0,
+          "setup_type": "no_trade",
+          "source_status": {
+            "chip_engine": "partial",
+            "historical_ohlcv": "partial",
+            "margin_short": "unavailable",
+            "news_event": "unavailable",
+            "technical_engine": "partial",
+            "tw_market_context": "partial",
+            "twse_institutional_flow": "unavailable"
+          },
+          "stock_id": "1409",
+          "stock_name": "新纖",
+          "stop_invalidation": null,
+          "strategy_id": "tw_daily_tactical_v1",
+          "strategy_type": "daily_tactical",
+          "strategy_version": "tw_daily_tactical_v1",
+          "support_resistance": {
+            "nearest_resistance": 27.42,
+            "nearest_support": 26.5,
+            "secondary_resistance": 28.06,
+            "secondary_support": 25.25,
+            "sources": [
+              "swing_high_low",
+              "20d_high_low",
+              "moving_average",
+              "bollinger_band"
+            ]
+          },
+          "target_1": null,
+          "target_2": null,
+          "technical_factors": {
+            "atr14": 2.47,
+            "atr_pct": 0.09309,
+            "bollinger_lower": 23.57,
+            "bollinger_middle": 27.42,
+            "bollinger_upper": 31.27,
+            "bollinger_width": 0.28108,
+            "current_range_position": 0.3041,
+            "high_10d": 34.1,
+            "high_20d": 34.1,
+            "high_5d": 34.1,
+            "history_days": 20,
+            "latest_close": 26.55,
+            "latest_date": "2026-07-09",
+            "latest_high": 29.4,
+            "latest_low": 26.5,
+            "latest_open": 29.4,
+            "latest_volume": 76958.0,
+            "low_10d": 25.25,
+            "low_20d": 23.25,
+            "low_5d": 26.5,
+            "ma10": 28.06,
+            "ma20": 27.42,
+            "ma20_slope": null,
+            "ma5": 29.75,
+            "ma60": null,
+            "ma60_slope": null,
+            "macd": null,
+            "macd_histogram": null,
+            "macd_signal": null,
+            "relative_volume": 1.493,
+            "return_volatility_pct": 0.05746,
+            "rsi14": 52.52,
+            "volume_contraction": false,
+            "volume_expansion": true,
+            "volume_ma20": 51536.0,
+            "volume_ma5": 122110.0
+          },
+          "time_horizon": "intraday_to_5d",
+          "trading_or_order_executed": false
+        },
+        "research_position": {
+          "action": "資料待接",
+          "confidence": 58,
+          "market": "TW",
+          "prediction": {
+            "next_day_high_low": {
+              "high": null,
+              "low": null
+            },
+            "one_month_trend": "bullish",
+            "same_day_high_low": {
+              "high": null,
+              "low": null
+            },
+            "three_month_trend": "uncertain"
+          },
+          "preserved_existing_behavior": true,
+          "rating": "資料待接",
+          "score": null,
+          "strategy_type": "research_position",
+          "strategy_version": "tw_research_position_existing_v1"
+        }
+      }
+    },
+    {
+      "prediction_snapshot": {
+        "confidence": 32.3,
+        "data_quality": "partial",
+        "direction": "neutral",
+        "entry_zone_high": 36.46,
+        "entry_zone_low": 34.86,
+        "expected_move_pct": 0.04872,
+        "market": "TW",
+        "position_size": "half",
+        "prediction_date": "2026-07-12",
+        "reward_risk": 0.96,
+        "setup_type": "range_trade",
+        "stock_id": "2305",
+        "stock_name": "全友",
+        "stop_invalidation": 33.49,
+        "strategy_id": "tw_daily_tactical_v1",
+        "strategy_type": "daily_tactical",
+        "target_1_high": 38.14,
+        "target_1_low": 37.37,
+        "target_2_high": 39.81,
+        "target_2_low": 38.75
+      },
+      "review_snapshot": {
+        "entry_zone_touched": true,
+        "evaluation_windows": [
+          1,
+          3,
+          5
+        ],
+        "mae": -2.11,
+        "market": "TW",
+        "mfe": 6.99,
+        "realized_reward_risk": 0.96,
+        "same_bar_policy": "conservative_stop_first",
+        "status": "win",
+        "stock_id": "2305",
+        "stock_name": "全友",
+        "stop_breached": false,
+        "strategy_id": "tw_daily_tactical_v1",
+        "strategy_type": "daily_tactical",
+        "target_1_reached": true,
+        "target_2_reached": true,
+        "trigger_aware": true
+      },
+      "stock_id": "2305",
+      "stock_name": "全友",
+      "strategies": {
+        "daily_tactical": {
+          "action": "區間操作",
+          "advisory_only": true,
+          "chase_risk": "medium",
+          "chip_tactical": {
+            "chip_direction": "neutral",
+            "chip_score": 50,
+            "data_quality": "partial",
+            "flow_confirmation": false,
+            "institutional_flow": {
+              "data_status": "partial",
+              "dealer_net_buy_sell": null,
+              "foreign_consecutive_days": null,
+              "foreign_investor_net_buy_sell": null,
+              "institutional_alignment": "unavailable",
+              "investment_trust_consecutive_days": null,
+              "investment_trust_net_buy_sell": null
+            },
+            "margin_risk": {
+              "data_status": "unavailable",
+              "margin_balance_change": null,
+              "margin_price_divergence": "unavailable",
+              "short_balance_change": null,
+              "short_interest_signal": "unavailable"
+            },
+            "notes": [
+              "TWSE/chip runtime detail unavailable; downgraded confidence rather than fabricating flow data."
+            ],
+            "short_interest_signal": "unavailable"
+          },
+          "confidence": 32.3,
+          "data_quality": "partial",
+          "direction": "neutral",
+          "entry_zone": {
+            "high": 36.46,
+            "low": 34.86
+          },
+          "event_risk": "unknown",
+          "expected_move_pct": 0.04872,
+          "factor_version": "tw_daily_tactical_factor_v1",
+          "factor_weights": {
+            "chip_flow": 0.14,
+            "data_quality": 0.18,
+            "market_context": 0.12,
+            "risk_quality": 0.18,
+            "technical_setup": 0.22,
+            "volume_confirmation": 0.16
+          },
+          "generated_at": "2026-07-12T15:56:13+08:00",
+          "market": "TW",
+          "market_context": {
+            "data_status": "partial",
+            "market_bias": "neutral",
+            "market_breadth_status": "watchlist breadth bullish=0/9, bearish=0/9; broad TWSE breadth unavailable",
+            "market_context_score": 50.0,
+            "market_regime": "neutral_medium_risk",
+            "market_risk": "medium",
+            "market_volume_status": "contracted",
+            "unavailable_fields": [
+              "TWSE index breadth",
+              "OTC breadth",
+              "market-wide advancers/decliners"
+            ]
+          },
+          "playbook": "以區間下緣到中低區觀察，接近上緣降低追價。",
+          "position_size": "half",
+          "rating": "C-Tactical",
+          "reasons": [
+            "價格位於 20 日區間中段，適合區間觀察"
+          ],
+          "reward_risk": 0.96,
+          "risk_reasons": [
+            "上攻量能未確認"
+          ],
+          "score": 53.34,
+          "setup_type": "range_trade",
+          "source_status": {
+            "chip_engine": "partial",
+            "historical_ohlcv": "partial",
+            "margin_short": "unavailable",
+            "news_event": "unavailable",
+            "technical_engine": "partial",
+            "tw_market_context": "partial",
+            "twse_institutional_flow": "unavailable"
+          },
+          "stock_id": "2305",
+          "stock_name": "全友",
+          "stop_invalidation": 33.49,
+          "strategy_id": "tw_daily_tactical_v1",
+          "strategy_type": "daily_tactical",
+          "strategy_version": "tw_daily_tactical_v1",
+          "support_resistance": {
+            "nearest_resistance": 37.63,
+            "nearest_support": 34.86,
+            "secondary_resistance": 38.2,
+            "secondary_support": 33.55,
+            "sources": [
+              "swing_high_low",
+              "20d_high_low",
+              "moving_average",
+              "bollinger_band"
+            ]
+          },
+          "target_1": {
+            "high": 38.14,
+            "low": 37.37
+          },
+          "target_2": {
+            "high": 39.81,
+            "low": 38.75
+          },
+          "technical_factors": {
+            "atr14": 3.05,
+            "atr_pct": 0.08482,
+            "bollinger_lower": 24.97,
+            "bollinger_middle": 34.86,
+            "bollinger_upper": 44.76,
+            "bollinger_width": 0.5674,
+            "current_range_position": 0.6841,
+            "high_10d": 42.65,
+            "high_20d": 42.65,
+            "high_5d": 42.65,
+            "history_days": 20,
+            "latest_close": 36.0,
+            "latest_date": "2026-07-09",
+            "latest_high": 37.7,
+            "latest_low": 33.55,
+            "latest_open": 34.8,
+            "latest_volume": 5323.0,
+            "low_10d": 33.55,
+            "low_20d": 21.6,
+            "low_5d": 33.55,
+            "ma10": 37.63,
+            "ma20": 34.86,
+            "ma20_slope": null,
+            "ma5": 38.2,
+            "ma60": null,
+            "ma60_slope": null,
+            "macd": null,
+            "macd_histogram": null,
+            "macd_signal": null,
+            "relative_volume": 0.893,
+            "return_volatility_pct": 0.0643,
+            "rsi14": 54.39,
+            "volume_contraction": false,
+            "volume_expansion": false,
+            "volume_ma20": 5964.0,
+            "volume_ma5": 3752.0
+          },
+          "time_horizon": "intraday_to_5d",
+          "trading_or_order_executed": false
+        },
+        "research_position": {
+          "action": "資料待接",
+          "confidence": 56,
+          "market": "TW",
+          "prediction": {
+            "next_day_high_low": {
+              "high": null,
+              "low": null
+            },
+            "one_month_trend": "bullish",
+            "same_day_high_low": {
+              "high": null,
+              "low": null
+            },
+            "three_month_trend": "uncertain"
+          },
+          "preserved_existing_behavior": true,
+          "rating": "資料待接",
+          "score": null,
+          "strategy_type": "research_position",
+          "strategy_version": "tw_research_position_existing_v1"
+        }
+      }
+    },
+    {
+      "prediction_snapshot": {
+        "confidence": 33.5,
+        "data_quality": "partial",
+        "direction": "no_trade",
+        "entry_zone_high": null,
+        "entry_zone_low": null,
+        "expected_move_pct": null,
+        "market": "TW",
+        "position_size": "avoid",
+        "prediction_date": "2026-07-12",
+        "reward_risk": null,
+        "setup_type": "no_trade",
+        "stock_id": "2330",
+        "stock_name": "台積電",
+        "stop_invalidation": null,
+        "strategy_id": "tw_daily_tactical_v1",
+        "strategy_type": "daily_tactical",
+        "target_1_high": null,
+        "target_1_low": null,
+        "target_2_high": null,
+        "target_2_low": null
+      },
+      "review_snapshot": {
+        "evaluation_windows": [
+          1,
+          3,
+          5
+        ],
+        "market": "TW",
+        "reason": "No Trade setup intentionally avoided",
+        "status": "no_trade",
+        "stock_id": "2330",
+        "stock_name": "台積電",
+        "strategy_id": "tw_daily_tactical_v1",
+        "strategy_type": "daily_tactical",
+        "trigger_aware": true
+      },
+      "stock_id": "2330",
+      "stock_name": "台積電",
+      "strategies": {
+        "daily_tactical": {
+          "action": "暫不操作",
+          "advisory_only": true,
+          "chase_risk": "medium",
+          "chip_tactical": {
+            "chip_direction": "neutral",
+            "chip_score": 50,
+            "data_quality": "partial",
+            "flow_confirmation": false,
+            "institutional_flow": {
+              "data_status": "partial",
+              "dealer_net_buy_sell": null,
+              "foreign_consecutive_days": null,
+              "foreign_investor_net_buy_sell": null,
+              "institutional_alignment": "unavailable",
+              "investment_trust_consecutive_days": null,
+              "investment_trust_net_buy_sell": null
+            },
+            "margin_risk": {
+              "data_status": "unavailable",
+              "margin_balance_change": null,
+              "margin_price_divergence": "unavailable",
+              "short_balance_change": null,
+              "short_interest_signal": "unavailable"
+            },
+            "notes": [
+              "TWSE/chip runtime detail unavailable; downgraded confidence rather than fabricating flow data."
+            ],
+            "short_interest_signal": "unavailable"
+          },
+          "confidence": 33.5,
+          "data_quality": "partial",
+          "direction": "no_trade",
+          "entry_zone": null,
+          "event_risk": "unknown",
+          "expected_move_pct": null,
+          "factor_version": "tw_daily_tactical_factor_v1",
+          "factor_weights": {
+            "chip_flow": 0.14,
+            "data_quality": 0.18,
+            "market_context": 0.12,
+            "risk_quality": 0.18,
+            "technical_setup": 0.22,
+            "volume_confirmation": 0.16
+          },
+          "generated_at": "2026-07-12T15:56:13+08:00",
+          "market": "TW",
+          "market_context": {
+            "data_status": "partial",
+            "market_bias": "neutral",
+            "market_breadth_status": "watchlist breadth bullish=0/9, bearish=0/9; broad TWSE breadth unavailable",
+            "market_context_score": 50.0,
+            "market_regime": "neutral_medium_risk",
+            "market_risk": "medium",
+            "market_volume_status": "contracted",
+            "unavailable_fields": [
+              "TWSE index breadth",
+              "OTC breadth",
+              "market-wide advancers/decliners"
+            ]
+          },
+          "playbook": "目前報酬風險不足或資料品質不完整，今日不建立戰術部位。",
+          "position_size": "avoid",
+          "rating": "No-Trade",
+          "reasons": [
+            "價格位於 20 日區間中段，適合區間觀察"
+          ],
+          "reward_risk": null,
+          "risk_reasons": [
+            "reward/risk below 0.8 threshold"
+          ],
+          "score": 45.0,
+          "setup_type": "no_trade",
+          "source_status": {
+            "chip_engine": "partial",
+            "historical_ohlcv": "partial",
+            "margin_short": "unavailable",
+            "news_event": "unavailable",
+            "technical_engine": "partial",
+            "tw_market_context": "partial",
+            "twse_institutional_flow": "unavailable"
+          },
+          "stock_id": "2330",
+          "stock_name": "台積電",
+          "stop_invalidation": null,
+          "strategy_id": "tw_daily_tactical_v1",
+          "strategy_type": "daily_tactical",
+          "strategy_version": "tw_daily_tactical_v1",
+          "support_resistance": {
+            "nearest_resistance": 2431.5,
+            "nearest_support": 2411.25,
+            "secondary_resistance": 2445.0,
+            "secondary_support": 2325.0,
+            "sources": [
+              "swing_high_low",
+              "20d_high_low",
+              "moving_average",
+              "bollinger_band"
+            ]
+          },
+          "target_1": null,
+          "target_2": null,
+          "technical_factors": {
+            "atr14": 66.07,
+            "atr_pct": 0.02736,
+            "bollinger_lower": 2284.01,
+            "bollinger_middle": 2411.25,
+            "bollinger_upper": 2538.49,
+            "bollinger_width": 0.10553,
+            "current_range_position": 0.6308,
+            "high_10d": 2505.0,
+            "high_20d": 2535.0,
+            "high_5d": 2500.0,
+            "history_days": 20,
+            "latest_close": 2415.0,
+            "latest_date": "2026-07-09",
+            "latest_high": 2460.0,
+            "latest_low": 2415.0,
+            "latest_open": 2450.0,
+            "latest_volume": 26936.0,
+            "low_10d": 2325.0,
+            "low_20d": 2210.0,
+            "low_5d": 2415.0,
+            "ma10": 2431.5,
+            "ma20": 2411.25,
+            "ma20_slope": null,
+            "ma5": 2445.0,
+            "ma60": null,
+            "ma60_slope": null,
+            "macd": null,
+            "macd_histogram": null,
+            "macd_signal": null,
+            "relative_volume": 0.84,
+            "return_volatility_pct": 0.02083,
+            "rsi14": 50.41,
+            "volume_contraction": false,
+            "volume_expansion": false,
+            "volume_ma20": 32074.0,
+            "volume_ma5": 24700.0
+          },
+          "time_horizon": "intraday_to_5d",
+          "trading_or_order_executed": false
+        },
+        "research_position": {
+          "action": "資料待接",
+          "confidence": 66,
+          "market": "TW",
+          "prediction": {
+            "next_day_high_low": {
+              "high": null,
+              "low": null
+            },
+            "one_month_trend": "bullish",
+            "same_day_high_low": {
+              "high": null,
+              "low": null
+            },
+            "three_month_trend": "uncertain"
+          },
+          "preserved_existing_behavior": true,
+          "rating": "資料待接",
+          "score": null,
+          "strategy_type": "research_position",
+          "strategy_version": "tw_research_position_existing_v1"
+        }
+      }
+    },
+    {
+      "prediction_snapshot": {
+        "confidence": 35.0,
+        "data_quality": "partial",
+        "direction": "no_trade",
+        "entry_zone_high": null,
+        "entry_zone_low": null,
+        "expected_move_pct": null,
+        "market": "TW",
+        "position_size": "avoid",
+        "prediction_date": "2026-07-12",
+        "reward_risk": null,
+        "setup_type": "no_trade",
+        "stock_id": "2337",
+        "stock_name": "旺宏",
+        "stop_invalidation": null,
+        "strategy_id": "tw_daily_tactical_v1",
+        "strategy_type": "daily_tactical",
+        "target_1_high": null,
+        "target_1_low": null,
+        "target_2_high": null,
+        "target_2_low": null
+      },
+      "review_snapshot": {
+        "evaluation_windows": [
+          1,
+          3,
+          5
+        ],
+        "market": "TW",
+        "reason": "No Trade setup intentionally avoided",
+        "status": "no_trade",
+        "stock_id": "2337",
+        "stock_name": "旺宏",
+        "strategy_id": "tw_daily_tactical_v1",
+        "strategy_type": "daily_tactical",
+        "trigger_aware": true
+      },
+      "stock_id": "2337",
+      "stock_name": "旺宏",
+      "strategies": {
+        "daily_tactical": {
+          "action": "暫不操作",
+          "advisory_only": true,
+          "chase_risk": "low",
+          "chip_tactical": {
+            "chip_direction": "neutral",
+            "chip_score": 50,
+            "data_quality": "partial",
+            "flow_confirmation": false,
+            "institutional_flow": {
+              "data_status": "partial",
+              "dealer_net_buy_sell": null,
+              "foreign_consecutive_days": null,
+              "foreign_investor_net_buy_sell": null,
+              "institutional_alignment": "unavailable",
+              "investment_trust_consecutive_days": null,
+              "investment_trust_net_buy_sell": null
+            },
+            "margin_risk": {
+              "data_status": "unavailable",
+              "margin_balance_change": null,
+              "margin_price_divergence": "unavailable",
+              "short_balance_change": null,
+              "short_interest_signal": "unavailable"
+            },
+            "notes": [
+              "TWSE/chip runtime detail unavailable; downgraded confidence rather than fabricating flow data."
+            ],
+            "short_interest_signal": "unavailable"
+          },
+          "confidence": 35.0,
+          "data_quality": "partial",
+          "direction": "no_trade",
+          "entry_zone": null,
+          "event_risk": "unknown",
+          "expected_move_pct": null,
+          "factor_version": "tw_daily_tactical_factor_v1",
+          "factor_weights": {
+            "chip_flow": 0.14,
+            "data_quality": 0.18,
+            "market_context": 0.12,
+            "risk_quality": 0.18,
+            "technical_setup": 0.22,
+            "volume_confirmation": 0.16
+          },
+          "generated_at": "2026-07-12T15:56:13+08:00",
+          "market": "TW",
+          "market_context": {
+            "data_status": "partial",
+            "market_bias": "neutral",
+            "market_breadth_status": "watchlist breadth bullish=0/9, bearish=0/9; broad TWSE breadth unavailable",
+            "market_context_score": 50.0,
+            "market_regime": "neutral_medium_risk",
+            "market_risk": "medium",
+            "market_volume_status": "contracted",
+            "unavailable_fields": [
+              "TWSE index breadth",
+              "OTC breadth",
+              "market-wide advancers/decliners"
+            ]
+          },
+          "playbook": "目前報酬風險不足或資料品質不完整，今日不建立戰術部位。",
+          "position_size": "avoid",
+          "rating": "No-Trade",
+          "reasons": [
+            "價格接近 20 日區間下緣",
+            "RSI 偏低，觀察反彈"
+          ],
+          "reward_risk": null,
+          "risk_reasons": [
+            "reward/risk below 0.8 threshold"
+          ],
+          "score": 42.9,
+          "setup_type": "no_trade",
+          "source_status": {
+            "chip_engine": "partial",
+            "historical_ohlcv": "partial",
+            "margin_short": "unavailable",
+            "news_event": "unavailable",
+            "technical_engine": "partial",
+            "tw_market_context": "partial",
+            "twse_institutional_flow": "unavailable"
+          },
+          "stock_id": "2337",
+          "stock_name": "旺宏",
+          "stop_invalidation": null,
+          "strategy_id": "tw_daily_tactical_v1",
+          "strategy_type": "daily_tactical",
+          "strategy_version": "tw_daily_tactical_v1",
+          "support_resistance": {
+            "nearest_resistance": 147.35,
+            "nearest_support": 141.6,
+            "secondary_resistance": 152.0,
+            "secondary_support": 134.0,
+            "sources": [
+              "swing_high_low",
+              "20d_high_low",
+              "moving_average",
+              "bollinger_band"
+            ]
+          },
+          "target_1": null,
+          "target_2": null,
+          "technical_factors": {
+            "atr14": 11.93,
+            "atr_pct": 0.08313,
+            "bollinger_lower": 129.08,
+            "bollinger_middle": 155.35,
+            "bollinger_upper": 181.62,
+            "bollinger_width": 0.33818,
+            "current_range_position": 0.1849,
+            "high_10d": 174.5,
+            "high_20d": 192.0,
+            "high_5d": 152.0,
+            "history_days": 20,
+            "latest_close": 143.5,
+            "latest_date": "2026-07-09",
+            "latest_high": 148.0,
+            "latest_low": 139.5,
+            "latest_open": 141.5,
+            "latest_volume": 62282.0,
+            "low_10d": 134.0,
+            "low_20d": 132.5,
+            "low_5d": 134.0,
+            "ma10": 147.35,
+            "ma20": 155.35,
+            "ma20_slope": null,
+            "ma5": 141.6,
+            "ma60": null,
+            "ma60_slope": null,
+            "macd": null,
+            "macd_histogram": null,
+            "macd_signal": null,
+            "relative_volume": 0.685,
+            "return_volatility_pct": 0.04796,
+            "rsi14": 33.76,
+            "volume_contraction": true,
+            "volume_expansion": false,
+            "volume_ma20": 90895.0,
+            "volume_ma5": 58522.0
+          },
+          "time_horizon": "intraday_to_5d",
+          "trading_or_order_executed": false
+        },
+        "research_position": {
+          "action": "資料待接",
+          "confidence": 58,
+          "market": "TW",
+          "prediction": {
+            "next_day_high_low": {
+              "high": null,
+              "low": null
+            },
+            "one_month_trend": "bearish",
+            "same_day_high_low": {
+              "high": null,
+              "low": null
+            },
+            "three_month_trend": "uncertain"
+          },
+          "preserved_existing_behavior": true,
+          "rating": "資料待接",
+          "score": null,
+          "strategy_type": "research_position",
+          "strategy_version": "tw_research_position_existing_v1"
+        }
+      }
+    },
+    {
+      "prediction_snapshot": {
+        "confidence": 33.5,
+        "data_quality": "partial",
+        "direction": "no_trade",
+        "entry_zone_high": null,
+        "entry_zone_low": null,
+        "expected_move_pct": null,
+        "market": "TW",
+        "position_size": "avoid",
+        "prediction_date": "2026-07-12",
+        "reward_risk": null,
+        "setup_type": "no_trade",
+        "stock_id": "2353",
+        "stock_name": "宏碁",
+        "stop_invalidation": null,
+        "strategy_id": "tw_daily_tactical_v1",
+        "strategy_type": "daily_tactical",
+        "target_1_high": null,
+        "target_1_low": null,
+        "target_2_high": null,
+        "target_2_low": null
+      },
+      "review_snapshot": {
+        "evaluation_windows": [
+          1,
+          3,
+          5
+        ],
+        "market": "TW",
+        "reason": "No Trade setup intentionally avoided",
+        "status": "no_trade",
+        "stock_id": "2353",
+        "stock_name": "宏碁",
+        "strategy_id": "tw_daily_tactical_v1",
+        "strategy_type": "daily_tactical",
+        "trigger_aware": true
+      },
+      "stock_id": "2353",
+      "stock_name": "宏碁",
+      "strategies": {
+        "daily_tactical": {
+          "action": "暫不操作",
+          "advisory_only": true,
+          "chase_risk": "low",
+          "chip_tactical": {
+            "chip_direction": "neutral",
+            "chip_score": 50,
+            "data_quality": "partial",
+            "flow_confirmation": false,
+            "institutional_flow": {
+              "data_status": "partial",
+              "dealer_net_buy_sell": null,
+              "foreign_consecutive_days": null,
+              "foreign_investor_net_buy_sell": null,
+              "institutional_alignment": "unavailable",
+              "investment_trust_consecutive_days": null,
+              "investment_trust_net_buy_sell": null
+            },
+            "margin_risk": {
+              "data_status": "unavailable",
+              "margin_balance_change": null,
+              "margin_price_divergence": "unavailable",
+              "short_balance_change": null,
+              "short_interest_signal": "unavailable"
+            },
+            "notes": [
+              "TWSE/chip runtime detail unavailable; downgraded confidence rather than fabricating flow data."
+            ],
+            "short_interest_signal": "unavailable"
+          },
+          "confidence": 33.5,
+          "data_quality": "partial",
+          "direction": "no_trade",
+          "entry_zone": null,
+          "event_risk": "unknown",
+          "expected_move_pct": null,
+          "factor_version": "tw_daily_tactical_factor_v1",
+          "factor_weights": {
+            "chip_flow": 0.14,
+            "data_quality": 0.18,
+            "market_context": 0.12,
+            "risk_quality": 0.18,
+            "technical_setup": 0.22,
+            "volume_confirmation": 0.16
+          },
+          "generated_at": "2026-07-12T15:56:13+08:00",
+          "market": "TW",
+          "market_context": {
+            "data_status": "partial",
+            "market_bias": "neutral",
+            "market_breadth_status": "watchlist breadth bullish=0/9, bearish=0/9; broad TWSE breadth unavailable",
+            "market_context_score": 50.0,
+            "market_regime": "neutral_medium_risk",
+            "market_risk": "medium",
+            "market_volume_status": "contracted",
+            "unavailable_fields": [
+              "TWSE index breadth",
+              "OTC breadth",
+              "market-wide advancers/decliners"
+            ]
+          },
+          "playbook": "目前報酬風險不足或資料品質不完整，今日不建立戰術部位。",
+          "position_size": "avoid",
+          "rating": "No-Trade",
+          "reasons": [
+            "缺乏明確 setup，暫不操作"
+          ],
+          "reward_risk": null,
+          "risk_reasons": [
+            "setup not confirmed"
+          ],
+          "score": 44.98,
+          "setup_type": "no_trade",
+          "source_status": {
+            "chip_engine": "partial",
+            "historical_ohlcv": "partial",
+            "margin_short": "unavailable",
+            "news_event": "unavailable",
+            "technical_engine": "partial",
+            "tw_market_context": "partial",
+            "twse_institutional_flow": "unavailable"
+          },
+          "stock_id": "2353",
+          "stock_name": "宏碁",
+          "stop_invalidation": null,
+          "strategy_id": "tw_daily_tactical_v1",
+          "strategy_type": "daily_tactical",
+          "strategy_version": "tw_daily_tactical_v1",
+          "support_resistance": {
+            "nearest_resistance": 33.75,
+            "nearest_support": 32.38,
+            "secondary_resistance": 33.98,
+            "secondary_support": 31.8,
+            "sources": [
+              "swing_high_low",
+              "20d_high_low",
+              "moving_average",
+              "bollinger_band"
+            ]
+          },
+          "target_1": null,
+          "target_2": null,
+          "technical_factors": {
+            "atr14": 1.31,
+            "atr_pct": 0.04022,
+            "bollinger_lower": 29.76,
+            "bollinger_middle": 33.98,
+            "bollinger_upper": 38.2,
+            "bollinger_width": 0.24829,
+            "current_range_position": 0.1097,
+            "high_10d": 34.1,
+            "high_20d": 39.4,
+            "high_5d": 33.75,
+            "history_days": 20,
+            "latest_close": 32.5,
+            "latest_date": "2026-07-09",
+            "latest_high": 33.75,
+            "latest_low": 32.5,
+            "latest_open": 32.8,
+            "latest_volume": 52128.0,
+            "low_10d": 31.65,
+            "low_20d": 31.65,
+            "low_5d": 31.8,
+            "ma10": 32.38,
+            "ma20": 33.98,
+            "ma20_slope": null,
+            "ma5": 32.5,
+            "ma60": null,
+            "ma60_slope": null,
+            "macd": null,
+            "macd_histogram": null,
+            "macd_signal": null,
+            "relative_volume": 1.22,
+            "return_volatility_pct": 0.0322,
+            "rsi14": 39.08,
+            "volume_contraction": false,
+            "volume_expansion": false,
+            "volume_ma20": 42711.0,
+            "volume_ma5": 36744.0
+          },
+          "time_horizon": "intraday_to_5d",
+          "trading_or_order_executed": false
+        },
+        "research_position": {
+          "action": "資料待接",
+          "confidence": 62,
+          "market": "TW",
+          "prediction": {
+            "next_day_high_low": {
+              "high": null,
+              "low": null
+            },
+            "one_month_trend": "bearish",
+            "same_day_high_low": {
+              "high": null,
+              "low": null
+            },
+            "three_month_trend": "uncertain"
+          },
+          "preserved_existing_behavior": true,
+          "rating": "資料待接",
+          "score": null,
+          "strategy_type": "research_position",
+          "strategy_version": "tw_research_position_existing_v1"
+        }
+      }
+    },
+    {
+      "prediction_snapshot": {
+        "confidence": 30.9,
+        "data_quality": "partial",
+        "direction": "neutral",
+        "entry_zone_high": 54.63,
+        "entry_zone_low": 53.84,
+        "expected_move_pct": 0.03034,
+        "market": "TW",
+        "position_size": "half",
+        "prediction_date": "2026-07-12",
+        "reward_risk": 0.96,
+        "setup_type": "range_trade",
+        "stock_id": "4743",
+        "stock_name": "合一",
+        "stop_invalidation": 52.55,
+        "strategy_id": "tw_daily_tactical_v1",
+        "strategy_type": "daily_tactical",
+        "target_1_high": 56.2,
+        "target_1_low": 55.49,
+        "target_2_high": 57.78,
+        "target_2_low": 56.77
+      },
+      "review_snapshot": {
+        "entry_zone_touched": true,
+        "evaluation_windows": [
+          1,
+          3,
+          5
+        ],
+        "mae": -1.94,
+        "market": "TW",
+        "mfe": 8.77,
+        "realized_reward_risk": 0.96,
+        "same_bar_policy": "conservative_stop_first",
+        "status": "breakeven",
+        "stock_id": "4743",
+        "stock_name": "合一",
+        "stop_breached": true,
+        "strategy_id": "tw_daily_tactical_v1",
+        "strategy_type": "daily_tactical",
+        "target_1_reached": true,
+        "target_2_reached": true,
+        "trigger_aware": true
+      },
+      "stock_id": "4743",
+      "stock_name": "合一",
+      "strategies": {
+        "daily_tactical": {
+          "action": "區間操作",
+          "advisory_only": true,
+          "chase_risk": "medium",
+          "chip_tactical": {
+            "chip_direction": "neutral",
+            "chip_score": 50,
+            "data_quality": "partial",
+            "flow_confirmation": false,
+            "institutional_flow": {
+              "data_status": "partial",
+              "dealer_net_buy_sell": null,
+              "foreign_consecutive_days": null,
+              "foreign_investor_net_buy_sell": null,
+              "institutional_alignment": "unavailable",
+              "investment_trust_consecutive_days": null,
+              "investment_trust_net_buy_sell": null
+            },
+            "margin_risk": {
+              "data_status": "unavailable",
+              "margin_balance_change": null,
+              "margin_price_divergence": "unavailable",
+              "short_balance_change": null,
+              "short_interest_signal": "unavailable"
+            },
+            "notes": [
+              "TWSE/chip runtime detail unavailable; downgraded confidence rather than fabricating flow data."
+            ],
+            "short_interest_signal": "unavailable"
+          },
+          "confidence": 30.9,
+          "data_quality": "partial",
+          "direction": "neutral",
+          "entry_zone": {
+            "high": 54.63,
+            "low": 53.84
+          },
+          "event_risk": "unknown",
+          "expected_move_pct": 0.03034,
+          "factor_version": "tw_daily_tactical_factor_v1",
+          "factor_weights": {
+            "chip_flow": 0.14,
+            "data_quality": 0.18,
+            "market_context": 0.12,
+            "risk_quality": 0.18,
+            "technical_setup": 0.22,
+            "volume_confirmation": 0.16
+          },
+          "generated_at": "2026-07-12T15:56:13+08:00",
+          "market": "TW",
+          "market_context": {
+            "data_status": "partial",
+            "market_bias": "neutral",
+            "market_breadth_status": "watchlist breadth bullish=0/9, bearish=0/9; broad TWSE breadth unavailable",
+            "market_context_score": 50.0,
+            "market_regime": "neutral_medium_risk",
+            "market_risk": "medium",
+            "market_volume_status": "contracted",
+            "unavailable_fields": [
+              "TWSE index breadth",
+              "OTC breadth",
+              "market-wide advancers/decliners"
+            ]
+          },
+          "playbook": "以區間下緣到中低區觀察，接近上緣降低追價。",
+          "position_size": "half",
+          "rating": "C-Tactical",
+          "reasons": [
+            "價格位於 20 日區間中段，適合區間觀察"
+          ],
+          "reward_risk": 0.96,
+          "risk_reasons": [
+            "已達一個 ATR 以上擴張",
+            "上攻量能未確認"
+          ],
+          "score": 51.26,
+          "setup_type": "range_trade",
+          "source_status": {
+            "chip_engine": "partial",
+            "historical_ohlcv": "partial",
+            "margin_short": "unavailable",
+            "news_event": "unavailable",
+            "technical_engine": "partial",
+            "tw_market_context": "partial",
+            "twse_institutional_flow": "unavailable"
+          },
+          "stock_id": "4743",
+          "stock_name": "合一",
+          "stop_invalidation": 52.55,
+          "strategy_id": "tw_daily_tactical_v1",
+          "strategy_type": "daily_tactical",
+          "strategy_version": "tw_daily_tactical_v1",
+          "support_resistance": {
+            "nearest_resistance": 56.72,
+            "nearest_support": 53.84,
+            "secondary_resistance": 58.39,
+            "secondary_support": 52.3,
+            "sources": [
+              "swing_high_low",
+              "20d_high_low",
+              "moving_average",
+              "bollinger_band"
+            ]
+          },
+          "target_1": {
+            "high": 56.2,
+            "low": 55.49
+          },
+          "target_2": {
+            "high": 57.78,
+            "low": 56.77
+          },
+          "technical_factors": {
+            "atr14": 2.86,
+            "atr_pct": 0.05271,
+            "bollinger_lower": 43.93,
+            "bollinger_middle": 51.16,
+            "bollinger_upper": 58.39,
+            "bollinger_width": 0.2828,
+            "current_range_position": 0.4395,
+            "high_10d": 63.0,
+            "high_20d": 63.0,
+            "high_5d": 63.0,
+            "history_days": 20,
+            "latest_close": 54.2,
+            "latest_date": "2026-07-09",
+            "latest_high": 56.3,
+            "latest_low": 53.7,
+            "latest_open": 55.2,
+            "latest_volume": 2645.0,
+            "low_10d": 48.1,
+            "low_20d": 47.3,
+            "low_5d": 52.3,
+            "ma10": 53.84,
+            "ma20": 51.16,
+            "ma20_slope": null,
+            "ma5": 56.72,
+            "ma60": null,
+            "ma60_slope": null,
+            "macd": null,
+            "macd_histogram": null,
+            "macd_signal": null,
+            "relative_volume": 0.709,
+            "return_volatility_pct": 0.03375,
+            "rsi14": 63.9,
+            "volume_contraction": true,
+            "volume_expansion": false,
+            "volume_ma20": 3732.0,
+            "volume_ma5": 8308.0
+          },
+          "time_horizon": "intraday_to_5d",
+          "trading_or_order_executed": false
+        },
+        "research_position": {
+          "action": "資料待接",
+          "confidence": 63,
+          "market": "TW",
+          "prediction": {
+            "next_day_high_low": {
+              "high": null,
+              "low": null
+            },
+            "one_month_trend": "bullish",
+            "same_day_high_low": {
+              "high": null,
+              "low": null
+            },
+            "three_month_trend": "uncertain"
+          },
+          "preserved_existing_behavior": true,
+          "rating": "資料待接",
+          "score": null,
+          "strategy_type": "research_position",
+          "strategy_version": "tw_research_position_existing_v1"
+        }
+      }
+    },
+    {
+      "prediction_snapshot": {
+        "confidence": 30.9,
+        "data_quality": "partial",
+        "direction": "neutral",
+        "entry_zone_high": 87.07,
+        "entry_zone_low": 85.19,
+        "expected_move_pct": 0.02078,
+        "market": "TW",
+        "position_size": "half",
+        "prediction_date": "2026-07-12",
+        "reward_risk": 0.97,
+        "setup_type": "range_trade",
+        "stock_id": "6873",
+        "stock_name": "泓德能源",
+        "stop_invalidation": 83.78,
+        "strategy_id": "tw_daily_tactical_v1",
+        "strategy_type": "daily_tactical",
+        "target_1_high": 88.79,
+        "target_1_low": 88.01,
+        "target_2_high": 90.51,
+        "target_2_low": 89.42
+      },
+      "review_snapshot": {
+        "entry_zone_touched": true,
+        "evaluation_windows": [
+          1,
+          3,
+          5
+        ],
+        "mae": -5.23,
+        "market": "TW",
+        "mfe": 6.97,
+        "realized_reward_risk": 0.97,
+        "same_bar_policy": "conservative_stop_first",
+        "status": "breakeven",
+        "stock_id": "6873",
+        "stock_name": "泓德能源",
+        "stop_breached": true,
+        "strategy_id": "tw_daily_tactical_v1",
+        "strategy_type": "daily_tactical",
+        "target_1_reached": true,
+        "target_2_reached": true,
+        "trigger_aware": true
+      },
+      "stock_id": "6873",
+      "stock_name": "泓德能源",
+      "strategies": {
+        "daily_tactical": {
+          "action": "區間操作",
+          "advisory_only": true,
+          "chase_risk": "medium",
+          "chip_tactical": {
+            "chip_direction": "neutral",
+            "chip_score": 50,
+            "data_quality": "partial",
+            "flow_confirmation": false,
+            "institutional_flow": {
+              "data_status": "partial",
+              "dealer_net_buy_sell": null,
+              "foreign_consecutive_days": null,
+              "foreign_investor_net_buy_sell": null,
+              "institutional_alignment": "unavailable",
+              "investment_trust_consecutive_days": null,
+              "investment_trust_net_buy_sell": null
+            },
+            "margin_risk": {
+              "data_status": "unavailable",
+              "margin_balance_change": null,
+              "margin_price_divergence": "unavailable",
+              "short_balance_change": null,
+              "short_interest_signal": "unavailable"
+            },
+            "notes": [
+              "TWSE/chip runtime detail unavailable; downgraded confidence rather than fabricating flow data."
+            ],
+            "short_interest_signal": "unavailable"
+          },
+          "confidence": 30.9,
+          "data_quality": "partial",
+          "direction": "neutral",
+          "entry_zone": {
+            "high": 87.07,
+            "low": 85.19
+          },
+          "event_risk": "unknown",
+          "expected_move_pct": 0.02078,
+          "factor_version": "tw_daily_tactical_factor_v1",
+          "factor_weights": {
+            "chip_flow": 0.14,
+            "data_quality": 0.18,
+            "market_context": 0.12,
+            "risk_quality": 0.18,
+            "technical_setup": 0.22,
+            "volume_confirmation": 0.16
+          },
+          "generated_at": "2026-07-12T15:56:13+08:00",
+          "market": "TW",
+          "market_context": {
+            "data_status": "partial",
+            "market_bias": "neutral",
+            "market_breadth_status": "watchlist breadth bullish=0/9, bearish=0/9; broad TWSE breadth unavailable",
+            "market_context_score": 50.0,
+            "market_regime": "neutral_medium_risk",
+            "market_risk": "medium",
+            "market_volume_status": "contracted",
+            "unavailable_fields": [
+              "TWSE index breadth",
+              "OTC breadth",
+              "market-wide advancers/decliners"
+            ]
+          },
+          "playbook": "以區間下緣到中低區觀察，接近上緣降低追價。",
+          "position_size": "half",
+          "rating": "C-Tactical",
+          "reasons": [
+            "價格位於 20 日區間中段，適合區間觀察"
+          ],
+          "reward_risk": 0.97,
+          "risk_reasons": [
+            "已達一個 ATR 以上擴張",
+            "上攻量能未確認"
+          ],
+          "score": 51.26,
+          "setup_type": "range_trade",
+          "source_status": {
+            "chip_engine": "partial",
+            "historical_ohlcv": "partial",
+            "margin_short": "unavailable",
+            "news_event": "unavailable",
+            "technical_engine": "partial",
+            "tw_market_context": "partial",
+            "twse_institutional_flow": "unavailable"
+          },
+          "stock_id": "6873",
+          "stock_name": "泓德能源",
+          "stop_invalidation": 83.78,
+          "strategy_id": "tw_daily_tactical_v1",
+          "strategy_type": "daily_tactical",
+          "strategy_version": "tw_daily_tactical_v1",
+          "support_resistance": {
+            "nearest_resistance": 88.14,
+            "nearest_support": 84.81,
+            "secondary_resistance": 89.66,
+            "secondary_support": 82.69,
+            "sources": [
+              "swing_high_low",
+              "20d_high_low",
+              "moving_average",
+              "bollinger_band"
+            ]
+          },
+          "target_1": {
+            "high": 88.79,
+            "low": 88.01
+          },
+          "target_2": {
+            "high": 90.51,
+            "low": 89.42
+          },
+          "technical_factors": {
+            "atr14": 3.13,
+            "atr_pct": 0.03613,
+            "bollinger_lower": 75.73,
+            "bollinger_middle": 82.69,
+            "bollinger_upper": 89.66,
+            "bollinger_width": 0.16842,
+            "current_range_position": 0.5912,
+            "high_10d": 93.1,
+            "high_20d": 93.1,
+            "high_5d": 93.1,
+            "history_days": 20,
+            "latest_close": 86.6,
+            "latest_date": "2026-07-09",
+            "latest_high": 89.8,
+            "latest_low": 86.6,
+            "latest_open": 89.7,
+            "latest_volume": 296.0,
+            "low_10d": 79.2,
+            "low_20d": 77.2,
+            "low_5d": 80.9,
+            "ma10": 84.81,
+            "ma20": 82.69,
+            "ma20_slope": null,
+            "ma5": 88.14,
+            "ma60": null,
+            "ma60_slope": null,
+            "macd": null,
+            "macd_histogram": null,
+            "macd_signal": null,
+            "relative_volume": 0.575,
+            "return_volatility_pct": 0.02633,
+            "rsi14": 65.12,
+            "volume_contraction": true,
+            "volume_expansion": false,
+            "volume_ma20": 515.0,
+            "volume_ma5": 584.0
+          },
+          "time_horizon": "intraday_to_5d",
+          "trading_or_order_executed": false
+        },
+        "research_position": {
+          "action": "資料待接",
+          "confidence": 64,
+          "market": "TW",
+          "prediction": {
+            "next_day_high_low": {
+              "high": null,
+              "low": null
+            },
+            "one_month_trend": "bullish",
+            "same_day_high_low": {
+              "high": null,
+              "low": null
+            },
+            "three_month_trend": "uncertain"
+          },
+          "preserved_existing_behavior": true,
+          "rating": "資料待接",
+          "score": null,
+          "strategy_type": "research_position",
+          "strategy_version": "tw_research_position_existing_v1"
+        }
+      }
+    }
+  ],
+  "email_contract": {
+    "contains_daily_tactical": true,
+    "contains_entry_stop_target_rr": true,
+    "contains_research_position": true,
+    "notification_sent": false
+  },
+  "factor_version": "tw_daily_tactical_factor_v1",
+  "factor_weights": {
+    "chip_flow": 0.14,
+    "data_quality": 0.18,
+    "market_context": 0.12,
+    "risk_quality": 0.18,
+    "technical_setup": 0.22,
+    "volume_confirmation": 0.16
+  },
+  "generated_at": "2026-07-12T15:56:13+08:00",
+  "line_summary": {
+    "daily_tactical_no_trade": 5,
+    "daily_tactical_observable": 4,
+    "high_chase_risk": 0,
+    "line_full_report": false,
+    "research_bullish": 0,
+    "research_conservative": 0,
+    "research_neutral": 9
+  },
+  "market": "TW",
+  "market_context": {
+    "data_status": "partial",
+    "market_bias": "neutral",
+    "market_breadth_status": "watchlist breadth bullish=0/9, bearish=0/9; broad TWSE breadth unavailable",
+    "market_context_score": 50.0,
+    "market_regime": "neutral_medium_risk",
+    "market_risk": "medium",
+    "market_volume_status": "contracted",
+    "unavailable_fields": [
+      "TWSE index breadth",
+      "OTC breadth",
+      "market-wide advancers/decliners"
+    ]
+  },
+  "prediction_snapshots": [
+    {
+      "confidence": 33.5,
+      "data_quality": "partial",
+      "direction": "no_trade",
+      "entry_zone_high": null,
+      "entry_zone_low": null,
+      "expected_move_pct": null,
+      "market": "TW",
+      "position_size": "avoid",
+      "prediction_date": "2026-07-12",
+      "reward_risk": null,
+      "setup_type": "no_trade",
+      "stock_id": "00878",
+      "stock_name": "國泰永續高股息",
+      "stop_invalidation": null,
+      "strategy_id": "tw_daily_tactical_v1",
+      "strategy_type": "daily_tactical",
+      "target_1_high": null,
+      "target_1_low": null,
+      "target_2_high": null,
+      "target_2_low": null
+    },
+    {
+      "confidence": 33.0,
+      "data_quality": "partial",
+      "direction": "neutral",
+      "entry_zone_high": 15.29,
+      "entry_zone_low": 15.1,
+      "expected_move_pct": 0.0151,
+      "market": "TW",
+      "position_size": "half",
+      "prediction_date": "2026-07-12",
+      "reward_risk": 0.96,
+      "setup_type": "range_trade",
+      "stock_id": "009816",
+      "stock_name": "凱基台灣TOP50",
+      "stop_invalidation": 14.92,
+      "strategy_id": "tw_daily_tactical_v1",
+      "strategy_type": "daily_tactical",
+      "target_1_high": 15.51,
+      "target_1_low": 15.41,
+      "target_2_high": 15.73,
+      "target_2_low": 15.59
+    },
+    {
+      "confidence": 33.5,
+      "data_quality": "partial",
+      "direction": "no_trade",
+      "entry_zone_high": null,
+      "entry_zone_low": null,
+      "expected_move_pct": null,
+      "market": "TW",
+      "position_size": "avoid",
+      "prediction_date": "2026-07-12",
+      "reward_risk": null,
+      "setup_type": "no_trade",
+      "stock_id": "1409",
+      "stock_name": "新纖",
+      "stop_invalidation": null,
+      "strategy_id": "tw_daily_tactical_v1",
+      "strategy_type": "daily_tactical",
+      "target_1_high": null,
+      "target_1_low": null,
+      "target_2_high": null,
+      "target_2_low": null
+    },
+    {
+      "confidence": 32.3,
+      "data_quality": "partial",
+      "direction": "neutral",
+      "entry_zone_high": 36.46,
+      "entry_zone_low": 34.86,
+      "expected_move_pct": 0.04872,
+      "market": "TW",
+      "position_size": "half",
+      "prediction_date": "2026-07-12",
+      "reward_risk": 0.96,
+      "setup_type": "range_trade",
+      "stock_id": "2305",
+      "stock_name": "全友",
+      "stop_invalidation": 33.49,
+      "strategy_id": "tw_daily_tactical_v1",
+      "strategy_type": "daily_tactical",
+      "target_1_high": 38.14,
+      "target_1_low": 37.37,
+      "target_2_high": 39.81,
+      "target_2_low": 38.75
+    },
+    {
+      "confidence": 33.5,
+      "data_quality": "partial",
+      "direction": "no_trade",
+      "entry_zone_high": null,
+      "entry_zone_low": null,
+      "expected_move_pct": null,
+      "market": "TW",
+      "position_size": "avoid",
+      "prediction_date": "2026-07-12",
+      "reward_risk": null,
+      "setup_type": "no_trade",
+      "stock_id": "2330",
+      "stock_name": "台積電",
+      "stop_invalidation": null,
+      "strategy_id": "tw_daily_tactical_v1",
+      "strategy_type": "daily_tactical",
+      "target_1_high": null,
+      "target_1_low": null,
+      "target_2_high": null,
+      "target_2_low": null
+    },
+    {
+      "confidence": 35.0,
+      "data_quality": "partial",
+      "direction": "no_trade",
+      "entry_zone_high": null,
+      "entry_zone_low": null,
+      "expected_move_pct": null,
+      "market": "TW",
+      "position_size": "avoid",
+      "prediction_date": "2026-07-12",
+      "reward_risk": null,
+      "setup_type": "no_trade",
+      "stock_id": "2337",
+      "stock_name": "旺宏",
+      "stop_invalidation": null,
+      "strategy_id": "tw_daily_tactical_v1",
+      "strategy_type": "daily_tactical",
+      "target_1_high": null,
+      "target_1_low": null,
+      "target_2_high": null,
+      "target_2_low": null
+    },
+    {
+      "confidence": 33.5,
+      "data_quality": "partial",
+      "direction": "no_trade",
+      "entry_zone_high": null,
+      "entry_zone_low": null,
+      "expected_move_pct": null,
+      "market": "TW",
+      "position_size": "avoid",
+      "prediction_date": "2026-07-12",
+      "reward_risk": null,
+      "setup_type": "no_trade",
+      "stock_id": "2353",
+      "stock_name": "宏碁",
+      "stop_invalidation": null,
+      "strategy_id": "tw_daily_tactical_v1",
+      "strategy_type": "daily_tactical",
+      "target_1_high": null,
+      "target_1_low": null,
+      "target_2_high": null,
+      "target_2_low": null
+    },
+    {
+      "confidence": 30.9,
+      "data_quality": "partial",
+      "direction": "neutral",
+      "entry_zone_high": 54.63,
+      "entry_zone_low": 53.84,
+      "expected_move_pct": 0.03034,
+      "market": "TW",
+      "position_size": "half",
+      "prediction_date": "2026-07-12",
+      "reward_risk": 0.96,
+      "setup_type": "range_trade",
+      "stock_id": "4743",
+      "stock_name": "合一",
+      "stop_invalidation": 52.55,
+      "strategy_id": "tw_daily_tactical_v1",
+      "strategy_type": "daily_tactical",
+      "target_1_high": 56.2,
+      "target_1_low": 55.49,
+      "target_2_high": 57.78,
+      "target_2_low": 56.77
+    },
+    {
+      "confidence": 30.9,
+      "data_quality": "partial",
+      "direction": "neutral",
+      "entry_zone_high": 87.07,
+      "entry_zone_low": 85.19,
+      "expected_move_pct": 0.02078,
+      "market": "TW",
+      "position_size": "half",
+      "prediction_date": "2026-07-12",
+      "reward_risk": 0.97,
+      "setup_type": "range_trade",
+      "stock_id": "6873",
+      "stock_name": "泓德能源",
+      "stop_invalidation": 83.78,
+      "strategy_id": "tw_daily_tactical_v1",
+      "strategy_type": "daily_tactical",
+      "target_1_high": 88.79,
+      "target_1_low": 88.01,
+      "target_2_high": 90.51,
+      "target_2_low": 89.42
+    }
+  ],
+  "review_snapshots": [
+    {
+      "evaluation_windows": [
+        1,
+        3,
+        5
+      ],
+      "market": "TW",
+      "reason": "No Trade setup intentionally avoided",
+      "status": "no_trade",
+      "stock_id": "00878",
+      "stock_name": "國泰永續高股息",
+      "strategy_id": "tw_daily_tactical_v1",
+      "strategy_type": "daily_tactical",
+      "trigger_aware": true
+    },
+    {
+      "entry_zone_touched": true,
+      "evaluation_windows": [
+        1,
+        3,
+        5
+      ],
+      "mae": -0.1,
+      "market": "TW",
+      "mfe": 0.72,
+      "realized_reward_risk": 0.96,
+      "same_bar_policy": "conservative_stop_first",
+      "status": "win",
+      "stock_id": "009816",
+      "stock_name": "凱基台灣TOP50",
+      "stop_breached": false,
+      "strategy_id": "tw_daily_tactical_v1",
+      "strategy_type": "daily_tactical",
+      "target_1_reached": true,
+      "target_2_reached": true,
+      "trigger_aware": true
+    },
+    {
+      "evaluation_windows": [
+        1,
+        3,
+        5
+      ],
+      "market": "TW",
+      "reason": "No Trade setup intentionally avoided",
+      "status": "no_trade",
+      "stock_id": "1409",
+      "stock_name": "新纖",
+      "strategy_id": "tw_daily_tactical_v1",
+      "strategy_type": "daily_tactical",
+      "trigger_aware": true
+    },
+    {
+      "entry_zone_touched": true,
+      "evaluation_windows": [
+        1,
+        3,
+        5
+      ],
+      "mae": -2.11,
+      "market": "TW",
+      "mfe": 6.99,
+      "realized_reward_risk": 0.96,
+      "same_bar_policy": "conservative_stop_first",
+      "status": "win",
+      "stock_id": "2305",
+      "stock_name": "全友",
+      "stop_breached": false,
+      "strategy_id": "tw_daily_tactical_v1",
+      "strategy_type": "daily_tactical",
+      "target_1_reached": true,
+      "target_2_reached": true,
+      "trigger_aware": true
+    },
+    {
+      "evaluation_windows": [
+        1,
+        3,
+        5
+      ],
+      "market": "TW",
+      "reason": "No Trade setup intentionally avoided",
+      "status": "no_trade",
+      "stock_id": "2330",
+      "stock_name": "台積電",
+      "strategy_id": "tw_daily_tactical_v1",
+      "strategy_type": "daily_tactical",
+      "trigger_aware": true
+    },
+    {
+      "evaluation_windows": [
+        1,
+        3,
+        5
+      ],
+      "market": "TW",
+      "reason": "No Trade setup intentionally avoided",
+      "status": "no_trade",
+      "stock_id": "2337",
+      "stock_name": "旺宏",
+      "strategy_id": "tw_daily_tactical_v1",
+      "strategy_type": "daily_tactical",
+      "trigger_aware": true
+    },
+    {
+      "evaluation_windows": [
+        1,
+        3,
+        5
+      ],
+      "market": "TW",
+      "reason": "No Trade setup intentionally avoided",
+      "status": "no_trade",
+      "stock_id": "2353",
+      "stock_name": "宏碁",
+      "strategy_id": "tw_daily_tactical_v1",
+      "strategy_type": "daily_tactical",
+      "trigger_aware": true
+    },
+    {
+      "entry_zone_touched": true,
+      "evaluation_windows": [
+        1,
+        3,
+        5
+      ],
+      "mae": -1.94,
+      "market": "TW",
+      "mfe": 8.77,
+      "realized_reward_risk": 0.96,
+      "same_bar_policy": "conservative_stop_first",
+      "status": "breakeven",
+      "stock_id": "4743",
+      "stock_name": "合一",
+      "stop_breached": true,
+      "strategy_id": "tw_daily_tactical_v1",
+      "strategy_type": "daily_tactical",
+      "target_1_reached": true,
+      "target_2_reached": true,
+      "trigger_aware": true
+    },
+    {
+      "entry_zone_touched": true,
+      "evaluation_windows": [
+        1,
+        3,
+        5
+      ],
+      "mae": -5.23,
+      "market": "TW",
+      "mfe": 6.97,
+      "realized_reward_risk": 0.97,
+      "same_bar_policy": "conservative_stop_first",
+      "status": "breakeven",
+      "stock_id": "6873",
+      "stock_name": "泓德能源",
+      "stop_breached": true,
+      "strategy_id": "tw_daily_tactical_v1",
+      "strategy_type": "daily_tactical",
+      "target_1_reached": true,
+      "target_2_reached": true,
+      "trigger_aware": true
+    }
+  ],
+  "safety": {
+    "email_attempted": false,
+    "line_attempted": false,
+    "notification_sent": false,
+    "production_pipeline_executed": false,
+    "python_main_executed": false,
+    "scheduler_modified": false,
+    "secrets_read": false,
+    "trading_or_order_executed": false
+  },
+  "schema_version": "tw_daily_tactical_runtime_v1",
+  "source_mode": "read_only_local_historical_ohlcv_plus_existing_tw_artifacts",
+  "stock_count": 9,
+  "strategy_id": "tw_daily_tactical_v1",
+  "strategy_type": "daily_tactical"
+}

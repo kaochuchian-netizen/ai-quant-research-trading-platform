@@ -21,6 +21,7 @@ LANDING_URL = PUBLIC_BASE_URL + LANDING_ROUTE
 STATIC_ROOT = Path("/var/www/stock-ai-dashboard")
 TW_TEMPLATE = REPO_ROOT / "templates/four_window_dashboard_route_preview.example.html"
 OUTPUT_DIR = REPO_ROOT / "templates/multi_market_dashboard_v2"
+TW_DAILY_TACTICAL_RUNTIME = REPO_ROOT / "artifacts/runtime/tw_daily_tactical/tw_daily_tactical_latest.json"
 US_RUNTIME_FILES = [
     REPO_ROOT / "artifacts/runtime/us_stock/us_pre_market_2000_latest.json",
     REPO_ROOT / "artifacts/runtime/us_stock/us_intraday_2300_latest.json",
@@ -68,6 +69,78 @@ def _fmt_zone(zone: Any) -> str:
     if low is None or high is None:
         return "資料不足"
     return f"{_escape(low)} ～ {_escape(high)}"
+
+
+def _load_tw_tactical_artifact() -> dict[str, Any] | None:
+    data = read_json(TW_DAILY_TACTICAL_RUNTIME)
+    if not data:
+        return None
+    if data.get("market") != "TW" or data.get("strategy_type") != "daily_tactical":
+        return None
+    return data
+
+
+def _tw_zone(zone: Any) -> str:
+    if not isinstance(zone, dict):
+        return "資料不足"
+    low = zone.get("low")
+    high = zone.get("high")
+    if low is None or high is None:
+        return "資料不足"
+    return f"{_escape(low)} ～ {_escape(high)}"
+
+
+def _tw_list(items: Any) -> str:
+    if not isinstance(items, list) or not items:
+        return "<li>資料待接</li>"
+    return "".join(f"<li>{_escape(item)}</li>" for item in items[:4])
+
+
+def render_tw_tactical_cards(artifact: dict[str, Any] | None = None) -> str:
+    artifact = artifact if artifact is not None else _load_tw_tactical_artifact()
+    if not artifact:
+        return """<div class="wrap section" id="tw-daily-tactical-runtime" data-strategy-type="daily_tactical"><h2>每日短期操作策略</h2><p>TW Daily Tactical runtime artifact 尚未產生；不會用 Research 或 US 資料 fallback。</p></div>"""
+    cards = artifact.get("cards", []) if isinstance(artifact.get("cards"), list) else []
+    market_context = artifact.get("market_context", {}) if isinstance(artifact.get("market_context"), dict) else {}
+    header = f"""
+    <div class="wrap section" id="tw-daily-tactical-runtime" data-market="TW" data-strategy-type="daily_tactical">
+      <h2>每日短期操作策略</h2>
+      <p>Strategy ID：{_escape(artifact.get('strategy_id'))}｜Factor Version：{_escape(artifact.get('factor_version'))}｜更新：{_escape(artifact.get('generated_at'))}</p>
+      <p>市場環境：{_escape(market_context.get('market_bias'))}｜風險：{_escape(market_context.get('market_risk'))}｜Regime：{_escape(market_context.get('market_regime'))}</p>
+      <p>Research / Position Strategy 保持獨立；Daily Tactical 只使用台股技術、量能、籌碼/flow、波動與事件風險，不使用 US premarket / SPY / QQQ / VIX。</p>
+      <div class="grid tw-tactical-grid">
+    """
+    rows: list[str] = []
+    for card in cards:
+        if not isinstance(card, dict):
+            continue
+        strategies = card.get("strategies", {}) if isinstance(card.get("strategies"), dict) else {}
+        research = strategies.get("research_position", {}) if isinstance(strategies.get("research_position"), dict) else {}
+        tactical = strategies.get("daily_tactical", {}) if isinstance(strategies.get("daily_tactical"), dict) else {}
+        review = card.get("review_snapshot", {}) if isinstance(card.get("review_snapshot"), dict) else {}
+        rows.append(f"""
+        <article class="stock-card tw-tactical-card" data-market="TW" data-strategy-type="daily_tactical">
+          <div class="card-kicker">TW｜research_position + daily_tactical</div>
+          <h3>{_escape(card.get('stock_id'))} {_escape(card.get('stock_name'))}</h3>
+          <dl>
+            <div><dt>中長期量化策略</dt><dd>Score {_escape(research.get('score'))}｜{_escape(research.get('rating'))}｜{_escape(research.get('action'))}｜Confidence {_escape(research.get('confidence'))}</dd></div>
+            <div><dt>Daily Tactical Direction</dt><dd>{_escape(tactical.get('direction'))}｜{_escape(tactical.get('setup_type'))}｜{_escape(tactical.get('action'))}</dd></div>
+            <div><dt>Tactical Score / Rating / Confidence</dt><dd>{_escape(tactical.get('score'))}｜{_escape(tactical.get('rating'))}｜{_escape(tactical.get('confidence'))}</dd></div>
+            <div><dt>Entry Zone</dt><dd>{_tw_zone(tactical.get('entry_zone'))}</dd></div>
+            <div><dt>Stop / Invalidation</dt><dd>{_escape(tactical.get('stop_invalidation'))}</dd></div>
+            <div><dt>Target 1</dt><dd>{_tw_zone(tactical.get('target_1'))}</dd></div>
+            <div><dt>Target 2</dt><dd>{_tw_zone(tactical.get('target_2'))}</dd></div>
+            <div><dt>Expected Move / Reward-Risk</dt><dd>{_escape(tactical.get('expected_move_pct'))}%｜{_escape(tactical.get('reward_risk'))}</dd></div>
+            <div><dt>Chase / Event / Position</dt><dd>{_escape(tactical.get('chase_risk'))}｜{_escape(tactical.get('event_risk'))}｜{_escape(tactical.get('position_size'))}</dd></div>
+            <div><dt>Data Quality</dt><dd>{_escape(tactical.get('data_quality'))}</dd></div>
+            <div><dt>Prediction Review</dt><dd>{_escape(review.get('review_status'))}｜Entry {_escape(review.get('entry_triggered'))}｜T1 {_escape(review.get('target_1_reached'))}｜Stop {_escape(review.get('stop_breached'))}</dd></div>
+          </dl>
+          <details open><summary>主要依據</summary><ul>{_tw_list(tactical.get('reasons'))}</ul></details>
+          <details><summary>主要風險</summary><ul>{_tw_list(tactical.get('risk_reasons'))}</ul></details>
+          <p class="risk-note">Playbook：{_escape(tactical.get('playbook'))}</p>
+        </article>
+        """)
+    return header + "\n".join(rows) + "</div></div>"
 
 def _strategy_html(card: dict[str, Any]) -> str:
     strategies = card.get("strategies", {}) if isinstance(card.get("strategies"), dict) else {}
@@ -211,7 +284,7 @@ def render_landing_page() -> str:
 def render_tw_page(source_html: str | None = None) -> str:
     body = source_html if source_html is not None else (TW_TEMPLATE.read_text(encoding="utf-8") if TW_TEMPLATE.exists() else "<p>台股 Dashboard 資料待接</p>")
     nav = shared_market_navigation("TW", "台股 AI 決策儀表板", "TW 專用頁：07:00 / 13:05 / 13:35 / 15:00。美股內容不在此頁渲染。")
-    dual_strategy = """<div class="wrap section" id="ai-dev-173-tw-dual-strategy"><h2>中長期量化策略</h2><p>沿用既有 TW Research / Position scoring、評等、動作與 prediction lifecycle；不由 Daily Tactical 覆寫。</p><h2>每日短期操作策略</h2><p>新增 TW Daily Tactical strategy：使用台股技術、量能、籌碼/flow、波動、事件風險與資料完整度，輸出 setup、進場區、停損/失效、目標區與風險；僅供研究參考，不是下單指令。</p><p>策略隔離：research_position 與 daily_tactical 分開顯示、分開檢討，不互相覆蓋。</p></div>"""
+    dual_strategy = """<div class="wrap section" id="ai-dev-173-tw-dual-strategy"><h2>中長期量化策略</h2><p>沿用既有 TW Research / Position scoring、評等、動作與 prediction lifecycle；不由 Daily Tactical 覆寫。</p><p>策略隔離：research_position 與 daily_tactical 分開顯示、分開檢討，不互相覆蓋。</p></div>""" + render_tw_tactical_cards()
     shared_style = f'<style id="shared-market-navigation-style">{SHARED_NAVIGATION_CSS}</style>'
     if "</head>" in body and "shared-market-navigation-style" not in body:
         body = body.replace("</head>", shared_style + "</head>", 1)
