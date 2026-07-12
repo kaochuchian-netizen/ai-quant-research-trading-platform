@@ -1,0 +1,22 @@
+{
+  "entry_zone_touched": true,
+  "evaluation_windows": [
+    1,
+    3,
+    5
+  ],
+  "mae": -1.94,
+  "market": "TW",
+  "mfe": 8.77,
+  "realized_reward_risk": 0.96,
+  "same_bar_policy": "conservative_stop_first",
+  "status": "breakeven",
+  "stock_id": "4743",
+  "stock_name": "合一",
+  "stop_breached": true,
+  "strategy_id": "tw_daily_tactical_v1",
+  "strategy_type": "daily_tactical",
+  "target_1_reached": true,
+  "target_2_reached": true,
+  "trigger_aware": true
+}

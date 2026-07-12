@@ -1,0 +1,22 @@
+{
+  "confidence": 32.3,
+  "data_quality": "partial",
+  "direction": "neutral",
+  "entry_zone_high": 36.46,
+  "entry_zone_low": 34.86,
+  "expected_move_pct": 0.04872,
+  "market": "TW",
+  "position_size": "half",
+  "prediction_date": "2026-07-12",
+  "reward_risk": 0.96,
+  "setup_type": "range_trade",
+  "stock_id": "2305",
+  "stock_name": "全友",
+  "stop_invalidation": 33.49,
+  "strategy_id": "tw_daily_tactical_v1",
+  "strategy_type": "daily_tactical",
+  "target_1_high": 38.14,
+  "target_1_low": 37.37,
+  "target_2_high": 39.81,
+  "target_2_low": 38.75
+}

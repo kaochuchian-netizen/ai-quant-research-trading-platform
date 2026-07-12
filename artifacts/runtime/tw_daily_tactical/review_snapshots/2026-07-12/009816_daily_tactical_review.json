@@ -1,0 +1,22 @@
+{
+  "entry_zone_touched": true,
+  "evaluation_windows": [
+    1,
+    3,
+    5
+  ],
+  "mae": -0.1,
+  "market": "TW",
+  "mfe": 0.72,
+  "realized_reward_risk": 0.96,
+  "same_bar_policy": "conservative_stop_first",
+  "status": "win",
+  "stock_id": "009816",
+  "stock_name": "凱基台灣TOP50",
+  "stop_breached": false,
+  "strategy_id": "tw_daily_tactical_v1",
+  "strategy_type": "daily_tactical",
+  "target_1_reached": true,
+  "target_2_reached": true,
+  "trigger_aware": true
+}

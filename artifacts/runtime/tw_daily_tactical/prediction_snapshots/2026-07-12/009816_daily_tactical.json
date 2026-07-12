@@ -1,0 +1,22 @@
+{
+  "confidence": 33.0,
+  "data_quality": "partial",
+  "direction": "neutral",
+  "entry_zone_high": 15.29,
+  "entry_zone_low": 15.1,
+  "expected_move_pct": 0.0151,
+  "market": "TW",
+  "position_size": "half",
+  "prediction_date": "2026-07-12",
+  "reward_risk": 0.96,
+  "setup_type": "range_trade",
+  "stock_id": "009816",
+  "stock_name": "凱基台灣TOP50",
+  "stop_invalidation": 14.92,
+  "strategy_id": "tw_daily_tactical_v1",
+  "strategy_type": "daily_tactical",
+  "target_1_high": 15.51,
+  "target_1_low": 15.41,
+  "target_2_high": 15.73,
+  "target_2_low": 15.59
+}

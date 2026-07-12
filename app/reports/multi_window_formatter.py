@@ -1,6 +1,8 @@
 """Multi-window user-facing report formatter."""
 from __future__ import annotations
 from typing import Any
+import json
+from pathlib import Path
 from .report_sections import base_sections, normalize_stock_cards, review_state_cards
 from .window_context import ReportWindowContext, get_window_context
 STATUS_MARK = "🟡"
@@ -10,6 +12,51 @@ PRE_OPEN_PREDICTION_FIELDS = [
     "未來 1 個月走勢", "未來 3 個月走勢", "信心分數", "主要依據",
 ]
 DASHBOARD_URL_FALLBACK = "http://35.201.242.167/stock-ai-dashboard/dashboard/tw/index.html"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+TW_DAILY_TACTICAL_RUNTIME = REPO_ROOT / "artifacts/runtime/tw_daily_tactical/tw_daily_tactical_latest.json"
+
+def _load_tw_tactical_runtime() -> dict[str, Any] | None:
+    try:
+        data = json.loads(TW_DAILY_TACTICAL_RUNTIME.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    if data.get("market") != "TW" or data.get("strategy_type") != "daily_tactical":
+        return None
+    return data
+
+def _zone_text(zone: Any) -> str:
+    if not isinstance(zone, dict):
+        return "資料不足"
+    low = zone.get("low")
+    high = zone.get("high")
+    if low is None or high is None:
+        return "資料不足"
+    return f"{low} ～ {high}"
+
+def _tw_tactical_email_body() -> str:
+    runtime = _load_tw_tactical_runtime()
+    if not runtime:
+        return "TW Daily Tactical runtime artifact 尚未產生；不會用 Research 或 US 資料 fallback。"
+    lines = [f"TW Daily Tactical：{runtime.get('stock_count')} 檔；Strategy {runtime.get('strategy_id')}；Factor {runtime.get('factor_version')}。"]
+    for card in runtime.get("cards", [])[:9]:
+        strategies = card.get("strategies", {}) if isinstance(card, dict) else {}
+        tactical = strategies.get("daily_tactical", {}) if isinstance(strategies, dict) else {}
+        if not tactical:
+            continue
+        no_trade_reason = "；".join(tactical.get("risk_reasons") or []) if tactical.get("setup_type") == "no_trade" else "不適用"
+        lines.append(f"{card.get('stock_id')} {card.get('stock_name')}：{tactical.get('setup_type')} / {tactical.get('action')} / Entry {_zone_text(tactical.get('entry_zone'))} / Stop {tactical.get('stop_invalidation')} / Target {_zone_text(tactical.get('target_1'))} / RR {tactical.get('reward_risk')} / Confidence {tactical.get('confidence')} / No Trade原因 {no_trade_reason}")
+    return "\n".join(lines)
+
+def _tw_tactical_line_summary() -> str:
+    runtime = _load_tw_tactical_runtime()
+    if not runtime:
+        return "Daily Tactical：資料待接"
+    summary = runtime.get("line_summary", {}) if isinstance(runtime.get("line_summary"), dict) else {}
+    return "\n".join([
+        f"Research：偏多 {summary.get('research_bullish')}｜中性 {summary.get('research_neutral')}｜保守 {summary.get('research_conservative')}",
+        f"Daily Tactical：可觀察 {summary.get('daily_tactical_observable')}｜No Trade {summary.get('daily_tactical_no_trade')}",
+        f"高追價風險：{summary.get('high_chase_risk')}",
+    ])
 def stock_card_title(stock_id: str, stock_name: str, context: ReportWindowContext, marker: str = STATUS_MARK) -> str:
     return f"【{stock_id} {stock_name}】{context.display_label} {marker}"
 def format_stock_card(card: dict[str, Any], context: ReportWindowContext) -> dict[str, Any]:
@@ -22,7 +69,7 @@ def strategy_v2_sections(context: ReportWindowContext) -> list[dict[str, str]]:
     if context.scheduler_window == "pre_open_0700":
         return [
             {"heading": "中長期量化策略", "body": "沿用既有 TW Research / Position score、評等、動作與 prediction lifecycle，不由 Tactical 覆寫。"},
-            {"heading": "每日短期操作策略", "body": "新增 TW Daily Tactical：依台股技術、量能、籌碼/flow、波動與事件風險輸出 setup、進場區、停損/失效、目標區與風險；研究參考，非下單指令。"},
+            {"heading": "每日短期操作策略", "body": _tw_tactical_email_body()},
             {"heading": "台股盤前預測", "body": "今日盤前主報告，包含高低價、1M/3M 趨勢、confidence、rationale、風險與 Dashboard URL。"},
             {"heading": "台指期夜盤觀察", "body": "資料待接：夜盤觀察尚未找到正式 runtime artifact。"},
             {"heading": "美股盤後摘要狀態", "body": "美股資料待接：尚未提供美股股票代號或正式 runtime artifact。"},
@@ -37,14 +84,19 @@ def strategy_v2_sections(context: ReportWindowContext) -> list[dict[str, str]]:
 
 def line_notification_text(context: ReportWindowContext, dashboard_url: str) -> str:
     templates = {
-        "pre_open_0700": ("【Stock AI】07:00 盤前決策摘要已更新", "今日盤前報告、baseline 預測、資料品質與風險提示請看 Dashboard。"),
+        "pre_open_0700": ("【Stock AI】07:00 盤前決策摘要已更新", "盤前摘要、Research 與 Tactical 請看 Dashboard。"),
         "intraday_1305": ("【Stock AI】13:05 盤中追蹤已更新", "盤中狀態、風險變化與資料完整度請看 Dashboard。"),
         "pre_close_1335": ("【Stock AI】13:35 收盤快照已更新", "收盤快照、當日狀態與後續檢討進度請看 Dashboard。"),
         "post_close_1500": ("【Stock AI】15:00 盤後檢討已更新", "單日檢討、7 天滾動檢討、樣本累積與校準狀態請看 Dashboard。"),
         "prediction_review_1500": ("【Stock AI】15:00 盤後檢討已更新", "單日檢討、7 天滾動檢討、樣本累積與校準狀態請看 Dashboard。"),
     }
     title, body = templates.get(context.scheduler_window, templates["pre_open_0700"])
-    return "\n".join([title, body, "Dashboard：", dashboard_url, "僅供研究參考，非交易指令。"])
+    extra = _tw_tactical_line_summary() if context.scheduler_window == "pre_open_0700" else ""
+    parts = [title, body]
+    if extra:
+        parts.append(extra)
+    parts.extend(["Dashboard：", dashboard_url, "僅供研究參考，非交易指令。"])
+    return "\n".join(parts)
 
 def render_markdown_report(user_report: dict[str, Any]) -> str:
     lines = [f"# {user_report['title']}", "", str(user_report.get("subtitle", "")), "", str(user_report.get("summary", "")), ""]
