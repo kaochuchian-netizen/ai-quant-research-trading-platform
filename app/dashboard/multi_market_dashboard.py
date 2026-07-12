@@ -39,6 +39,8 @@ US_WINDOWS = {
 
 SHARED_NAVIGATION_CSS = """.market-shared-navigation{background:white;color:#17262c}.market-shared-navigation__grid{display:grid;grid-template-columns:1fr;gap:12px;margin:14px 0 10px}.market-shared-navigation__button{display:block;width:100%;box-sizing:border-box;background:#fff;color:#0f2c33;text-decoration:none;border:1px solid #cbd8dc;border-radius:8px;padding:13px 14px;font-weight:800;text-align:left;box-shadow:0 1px 0 rgba(15,44,51,.04)}.market-shared-navigation__button[aria-current="page"]{border-color:#83aab4;background:#f4fbfd}.market-shared-navigation__subtitle{margin:10px 0 0;color:#51666d}@media(max-width:640px){.market-shared-navigation__grid{gap:10px}.market-shared-navigation__button{padding:14px 13px}}"""
 
+TW_TACTICAL_CSS = """.tw-tactical-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}.tw-tactical-card{min-width:0;overflow-wrap:anywhere;word-break:break-word}.tw-tactical-card dl{display:grid;gap:8px}.tw-tactical-card dd{overflow-wrap:anywhere;word-break:break-word}.tw-tactical-card details{max-width:100%;overflow-wrap:anywhere}@media(max-width:640px){.tw-tactical-grid{grid-template-columns:1fr!important}.tw-tactical-card{width:100%;box-sizing:border-box}.tw-tactical-card dl{grid-template-columns:1fr!important}}"""
+
 def now_taipei() -> str:
     return datetime.now(ZoneInfo("Asia/Taipei")).replace(microsecond=0).isoformat()
 
@@ -285,7 +287,7 @@ def render_tw_page(source_html: str | None = None) -> str:
     body = source_html if source_html is not None else (TW_TEMPLATE.read_text(encoding="utf-8") if TW_TEMPLATE.exists() else "<p>台股 Dashboard 資料待接</p>")
     nav = shared_market_navigation("TW", "台股 AI 決策儀表板", "TW 專用頁：07:00 / 13:05 / 13:35 / 15:00。美股內容不在此頁渲染。")
     dual_strategy = """<div class="wrap section" id="ai-dev-173-tw-dual-strategy"><h2>中長期量化策略</h2><p>沿用既有 TW Research / Position scoring、評等、動作與 prediction lifecycle；不由 Daily Tactical 覆寫。</p><p>策略隔離：research_position 與 daily_tactical 分開顯示、分開檢討，不互相覆蓋。</p></div>""" + render_tw_tactical_cards()
-    shared_style = f'<style id="shared-market-navigation-style">{SHARED_NAVIGATION_CSS}</style>'
+    shared_style = f'<style id="shared-market-navigation-style">{SHARED_NAVIGATION_CSS}{TW_TACTICAL_CSS}</style>'
     if "</head>" in body and "shared-market-navigation-style" not in body:
         body = body.replace("</head>", shared_style + "</head>", 1)
     else:
