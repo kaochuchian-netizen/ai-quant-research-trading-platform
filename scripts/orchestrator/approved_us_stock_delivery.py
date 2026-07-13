@@ -29,6 +29,7 @@ from app.us_stock.batch import build_us_stock_batch_artifact, us_stock_batch_inp
 from app.us_stock.constants import US_BATCH_WINDOWS
 from app.us_stock.live_pipeline import build_live_runtime_artifact
 from app.dashboard.dashboard_url_registry import get_us_dashboard_url, normalize_delivery_dashboard_url
+from app.dashboard.decision_presentation import decision_email_block_v2, decision_line_summary_v2, decision_presentation_v2
 from app.us_stock.watchlist import normalize_us_watchlist_rows
 from scripts.orchestrator.notify_stage_report import build_message, load_env_file, load_mail_config, send_message
 
@@ -231,10 +232,13 @@ def build_email_body(artifact: dict[str, Any], window: str) -> str:
     lines.append("")
     lines.append("個股研究摘要：")
     for card in artifact.get("dashboard_ready_contract", {}).get("cards", []):
+        if not isinstance(card, dict):
+            continue
+        lines.append(decision_email_block_v2(decision_presentation_v2("US", card)))
         news = card.get('bilingual_news_snippet', {}) if isinstance(card.get('bilingual_news_snippet'), dict) else {}
-        tactical = card.get("daily_tactical_summary", {}) if isinstance(card.get("daily_tactical_summary"), dict) else {}
-        research = card.get("research_position_summary", {}) if isinstance(card.get("research_position_summary"), dict) else {}
-        lines.append(f"- {card.get('symbol')} {card.get('name')}: Research {research.get('rating') or card.get('rating')} / {research.get('action') or card.get('action')} / 預測 {card.get('session_predicted_high_low')}；Daily Tactical {tactical.get('direction')} / {tactical.get('setup_type')} / {tactical.get('action')} / 進場 {tactical.get('entry_zone')} / 停損 {tactical.get('stop_reference')} / 目標 {tactical.get('target_zone_1')} / 新聞 {news.get('chinese_translation')}")
+        if news.get('chinese_translation'):
+            lines.append(f"News：{news.get('chinese_translation')}")
+        lines.append("")
     lines.extend(["", "研究情報：", "- SEC/公司 IR 為 Tier 1 official evidence；yfinance/Yahoo 為 Tier 2 market reference。", "- 財務、盈餘、指引、重大新聞與雙語閱讀以 Dashboard 為完整主畫面。", "- 不複製完整 filings、transcripts 或 copyrighted articles。"] )
     if window == "us_post_close_review_0630":
         review = artifact.get("prediction_review_contract", {})
@@ -244,18 +248,10 @@ def build_email_body(artifact: dict[str, Any], window: str) -> str:
 
 
 def line_text(artifact: dict[str, Any], window: str) -> str:
-    count = artifact.get("runtime_watchlist_validation", {}).get("enabled_stock_count", 0)
-    cards = artifact.get("dashboard_ready_contract", {}).get("cards", [])
-    tactical_watch = 0
-    high_risk = 0
-    for card in cards:
-        tactical = card.get("daily_tactical_summary", {}) if isinstance(card.get("daily_tactical_summary"), dict) else {}
-        action = str(tactical.get("action") or "")
-        if action in {"突破確認後偏多", "拉回承接", "拉回觀察", "區間操作"}:
-            tactical_watch += 1
-        if action in {"暫不操作", "避免追高", "偏空防守"} or tactical.get("event_risk") == "high":
-            high_risk += 1
-    return "\n".join([LINE_LABELS[window], f"美股追蹤：{count} 檔", f"Research summaries：{len(cards)}", f"Daily Tactical 可觀察：{tactical_watch}", f"高風險／暫不操作：{high_risk}", "Dashboard：", DASHBOARD_URL, "僅供研究參考，非交易指令。"])
+    cards = [card for card in artifact.get("dashboard_ready_contract", {}).get("cards", []) if isinstance(card, dict)]
+    presentations = [decision_presentation_v2("US", card) for card in cards]
+    summary = decision_line_summary_v2("美股", presentations, DASHBOARD_URL) if presentations else "美股決策摘要已更新\nDaily Tactical：資料待接\nDashboard：\n" + DASHBOARD_URL
+    return LINE_LABELS[window] + "\n" + summary
 
 
 def send_email_if_allowed(artifact: dict[str, Any], window: str, production_approved: bool) -> dict[str, Any]:

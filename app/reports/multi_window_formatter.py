@@ -4,6 +4,7 @@ from typing import Any
 import json
 from pathlib import Path
 from app.dashboard.dashboard_url_registry import get_tw_dashboard_url
+from app.dashboard.decision_presentation import decision_email_block_v2, decision_line_summary_v2, decision_presentation_v2
 from .report_sections import base_sections, normalize_stock_cards, review_state_cards
 from .window_context import ReportWindowContext, get_window_context
 STATUS_MARK = "🟡"
@@ -25,39 +26,26 @@ def _load_tw_tactical_runtime() -> dict[str, Any] | None:
         return None
     return data
 
-def _zone_text(zone: Any) -> str:
-    if not isinstance(zone, dict):
-        return "資料不足"
-    low = zone.get("low")
-    high = zone.get("high")
-    if low is None or high is None:
-        return "資料不足"
-    return f"{low} ～ {high}"
+def _tw_presentations() -> list[dict[str, Any]]:
+    runtime = _load_tw_tactical_runtime()
+    if not runtime:
+        return []
+    return [decision_presentation_v2("TW", card) for card in runtime.get("cards", []) if isinstance(card, dict)]
 
 def _tw_tactical_email_body() -> str:
-    runtime = _load_tw_tactical_runtime()
-    if not runtime:
+    presentations = _tw_presentations()
+    if not presentations:
         return "TW Daily Tactical runtime artifact 尚未產生；不會用 Research 或 US 資料 fallback。"
-    lines = [f"TW Daily Tactical：{runtime.get('stock_count')} 檔；Strategy {runtime.get('strategy_id')}；Factor {runtime.get('factor_version')}。"]
-    for card in runtime.get("cards", [])[:9]:
-        strategies = card.get("strategies", {}) if isinstance(card, dict) else {}
-        tactical = strategies.get("daily_tactical", {}) if isinstance(strategies, dict) else {}
-        if not tactical:
-            continue
-        no_trade_reason = "；".join(tactical.get("risk_reasons") or []) if tactical.get("setup_type") == "no_trade" else "不適用"
-        lines.append(f"{card.get('stock_id')} {card.get('stock_name')}：{tactical.get('setup_type')} / {tactical.get('action')} / Entry {_zone_text(tactical.get('entry_zone'))} / Stop {tactical.get('stop_invalidation')} / Target {_zone_text(tactical.get('target_1'))} / RR {tactical.get('reward_risk')} / Confidence {tactical.get('confidence')} / No Trade原因 {no_trade_reason}")
+    lines = ["Decision Presentation V2", "", "Research / Daily Tactical / Prediction"]
+    for item in presentations[:9]:
+        lines.extend(["", decision_email_block_v2(item)])
     return "\n".join(lines)
 
-def _tw_tactical_line_summary() -> str:
-    runtime = _load_tw_tactical_runtime()
-    if not runtime:
+def _tw_tactical_line_summary(dashboard_url: str | None = None) -> str:
+    presentations = _tw_presentations()
+    if not presentations:
         return "Daily Tactical：資料待接"
-    summary = runtime.get("line_summary", {}) if isinstance(runtime.get("line_summary"), dict) else {}
-    return "\n".join([
-        f"Research：偏多 {summary.get('research_bullish')}｜中性 {summary.get('research_neutral')}｜保守 {summary.get('research_conservative')}",
-        f"Daily Tactical：可觀察 {summary.get('daily_tactical_observable')}｜No Trade {summary.get('daily_tactical_no_trade')}",
-        f"高追價風險：{summary.get('high_chase_risk')}",
-    ])
+    return decision_line_summary_v2("台股", presentations, dashboard_url or DASHBOARD_URL_FALLBACK)
 def stock_card_title(stock_id: str, stock_name: str, context: ReportWindowContext, marker: str = STATUS_MARK) -> str:
     return f"【{stock_id} {stock_name}】{context.display_label} {marker}"
 def format_stock_card(card: dict[str, Any], context: ReportWindowContext) -> dict[str, Any]:
@@ -92,10 +80,11 @@ def line_notification_text(context: ReportWindowContext, dashboard_url: str) -> 
         "prediction_review_1500": ("【Stock AI】15:00 盤後檢討已更新", "單日檢討、7 天滾動檢討、樣本累積與校準狀態請看 Dashboard。"),
     }
     title, body = templates.get(context.scheduler_window, templates["pre_open_0700"])
-    extra = _tw_tactical_line_summary() if context.scheduler_window == "pre_open_0700" else ""
+    extra = _tw_tactical_line_summary(dashboard_url) if context.scheduler_window == "pre_open_0700" else ""
     parts = [title, body]
     if extra:
         parts.append(extra)
+        return "\n".join(parts)
     parts.extend(["Dashboard：", dashboard_url, "僅供研究參考，非交易指令。"])
     return "\n".join(parts)
 

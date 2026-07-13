@@ -262,3 +262,167 @@ def is_no_trade(tactical: dict[str, Any]) -> bool:
         or clean_text(tactical.get("direction"), missing="no_trade") == "no_trade"
         or clean_text(tactical.get("position_size"), missing="avoid") == "avoid"
     )
+
+
+
+def _zone_from_flat(payload: dict[str, Any], low_key: str, high_key: str) -> str:
+    low = payload.get(low_key)
+    high = payload.get(high_key)
+    if low is None or high is None:
+        return MISSING_TEXT
+    return f"{format_optional_price(low)}–{format_optional_price(high)}"
+
+
+def prediction_summary_from_tw_card(card: dict[str, Any]) -> dict[str, str]:
+    snapshot = card.get("prediction_snapshot", {}) if isinstance(card.get("prediction_snapshot"), dict) else {}
+    research = (card.get("strategies", {}) or {}).get("research_position", {}) if isinstance(card.get("strategies"), dict) else {}
+    research_prediction = research.get("prediction", {}) if isinstance(research.get("prediction"), dict) else {}
+    today = _zone_from_flat(snapshot, "target_1_low", "target_1_high")
+    tomorrow = _zone_from_flat(snapshot, "target_2_low", "target_2_high")
+    if today == MISSING_TEXT:
+        today = format_price_zone(research_prediction.get("same_day_high_low"))
+    if tomorrow == MISSING_TEXT:
+        tomorrow = format_price_zone(research_prediction.get("next_day_high_low"))
+    reason = "資料不足：目前 prediction snapshot 沒有完整價位。" if today == MISSING_TEXT and tomorrow == MISSING_TEXT else "依現有 runtime prediction snapshot 呈現。"
+    return {
+        "today_range": today,
+        "tomorrow_range": tomorrow,
+        "expected_range": today if today != MISSING_TEXT else tomorrow,
+        "expected_move": format_percent(snapshot.get("expected_move_pct")),
+        "confidence": format_confidence(snapshot.get("confidence") or research.get("confidence")),
+        "status": "資料不足" if today == MISSING_TEXT and tomorrow == MISSING_TEXT else "可參考",
+        "reason": reason,
+    }
+
+
+def prediction_summary_from_us_card(card: dict[str, Any]) -> dict[str, str]:
+    today = clean_text(card.get("session_predicted_high_low"), missing=MISSING_TEXT)
+    tomorrow = clean_text(card.get("next_session_predicted_high_low"), missing=MISSING_TEXT)
+    return {
+        "today_range": today,
+        "tomorrow_range": tomorrow,
+        "expected_range": today if today != MISSING_TEXT else tomorrow,
+        "expected_move": MISSING_TEXT,
+        "confidence": format_confidence(card.get("confidence")),
+        "status": "資料不足" if today == MISSING_TEXT and tomorrow == MISSING_TEXT else "可參考",
+        "reason": "Production runtime prediction range." if today != MISSING_TEXT or tomorrow != MISSING_TEXT else "Prediction unavailable：runtime artifact 未提供完整區間。",
+    }
+
+
+def tactical_plan_from_payload(tactical: dict[str, Any]) -> dict[str, str]:
+    no_trade = is_no_trade(tactical)
+    entry = tactical.get("entry_zone")
+    stop = tactical.get("stop_invalidation") or tactical.get("stop_reference") or tactical.get("invalidation_level")
+    target1 = tactical.get("target_1") or tactical.get("target_zone_1")
+    target2 = tactical.get("target_2") or tactical.get("target_zone_2")
+    expected = tactical.get("expected_move_pct") if tactical.get("expected_move_pct") is not None else tactical.get("expected_move")
+    rr = tactical.get("reward_risk") if tactical.get("reward_risk") is not None else tactical.get("reward_risk_ratio")
+    return {
+        "direction": format_direction(tactical.get("direction") or tactical.get("tactical_direction")),
+        "setup": format_setup(tactical.get("setup_type")),
+        "action": "今日不建議進場" if no_trade else clean_text(tactical.get("action"), missing="等待確認"),
+        "entry_zone": MISSING_TEXT if no_trade else format_price_zone(entry),
+        "stop": MISSING_TEXT if no_trade else format_stop(stop),
+        "target_1": MISSING_TEXT if no_trade else format_price_zone(target1),
+        "target_2": MISSING_TEXT if no_trade else format_price_zone(target2),
+        "expected_move": format_percent(expected),
+        "reward_risk": format_ratio(rr),
+        "confidence": format_confidence(tactical.get("confidence") or tactical.get("tactical_confidence")),
+        "risk": format_risk_level(tactical.get("chase_risk") or tactical.get("event_risk")),
+        "position_size": format_position_size(tactical.get("position_size")),
+        "data_quality": format_data_quality(tactical.get("data_quality")),
+        "conclusion": "今日不建議進場" if no_trade else clean_text(tactical.get("action"), missing="可觀察，等待觸發條件"),
+    }
+
+
+def research_summary_from_payload(research: dict[str, Any], fallback: dict[str, Any] | None = None) -> dict[str, str]:
+    fallback = fallback or {}
+    prediction = research.get("prediction", {}) if isinstance(research.get("prediction"), dict) else {}
+    return {
+        "rating": clean_text(research.get("rating") or fallback.get("rating"), missing="資料不足"),
+        "action": clean_text(research.get("action") or fallback.get("action"), missing="資料不足"),
+        "confidence": format_confidence(research.get("confidence") or fallback.get("confidence")),
+        "one_month": format_trend(prediction.get("one_month_trend") or fallback.get("one_month_trend")),
+        "three_month": format_trend(prediction.get("three_month_trend") or fallback.get("three_month_trend")),
+        "financial_quality": clean_text(fallback.get("financial_quality"), missing="資料不足"),
+        "official_events": clean_text(fallback.get("official_event_warning"), missing="資料不足"),
+        "material_news": clean_text(fallback.get("material_news") or fallback.get("latest_status"), missing="資料不足"),
+        "sec": clean_text(fallback.get("latest_sec_filing"), missing="資料不足"),
+        "conclusion": clean_text(research.get("action") or fallback.get("action"), missing="部分研究資料尚未完成"),
+    }
+
+
+def decision_presentation_v2(market: str, card: dict[str, Any]) -> dict[str, Any]:
+    strategies = card.get("strategies", {}) if isinstance(card.get("strategies"), dict) else {}
+    if market == "US":
+        research = strategies.get("research_position") or card.get("research_position_summary") or {}
+        tactical = strategies.get("daily_tactical") or card.get("daily_tactical_summary") or {}
+        prediction = prediction_summary_from_us_card(card)
+        symbol = card.get("symbol") or card.get("stock_id")
+        name = card.get("name") or card.get("stock_name")
+    else:
+        research = strategies.get("research_position", {}) if isinstance(strategies.get("research_position"), dict) else {}
+        tactical = strategies.get("daily_tactical", {}) if isinstance(strategies.get("daily_tactical"), dict) else {}
+        prediction = prediction_summary_from_tw_card(card)
+        symbol = card.get("stock_id") or card.get("symbol")
+        name = card.get("stock_name") or card.get("name")
+    tactical_plan = tactical_plan_from_payload(tactical)
+    research_summary = research_summary_from_payload(research, card)
+    return {
+        "schema_version": "decision_presentation_v2",
+        "market": market,
+        "symbol": clean_text(symbol, missing=""),
+        "name": clean_text(name, missing=""),
+        "summary_cards": {
+            "research": {"title": "Research", "value": research_summary["rating"], "subvalue": research_summary["action"]},
+            "daily_tactical": {"title": "Daily Tactical", "value": tactical_plan["direction"], "subvalue": tactical_plan["action"]},
+            "prediction": {"title": "Prediction", "value": prediction["today_range"], "subvalue": f"明日 {prediction['tomorrow_range']}"},
+            "confidence": {"title": "Confidence", "value": tactical_plan["confidence"], "subvalue": f"Research {research_summary['confidence']}"},
+        },
+        "daily_tactical": tactical_plan,
+        "prediction": prediction,
+        "research": research_summary,
+        "reasons": limit_items(tactical.get("reasons"), fallback="目前沒有足夠依據"),
+        "risks": limit_items(tactical.get("risk_reasons") or tactical.get("risk_notes"), fallback="目前未偵測到額外風險"),
+        "technical_detail": {
+            "factor_coverage": format_factor_coverage(tactical.get("factor_coverage") or tactical.get("source_status")),
+            "score_components": format_score_components(tactical.get("score_components")),
+            "strategy_id": clean_text(tactical.get("strategy_id"), missing="資料不足"),
+            "factor_version": clean_text(tactical.get("factor_version"), missing="資料不足"),
+        },
+    }
+
+
+def decision_email_block_v2(presentation: dict[str, Any]) -> str:
+    t = presentation["daily_tactical"]
+    p = presentation["prediction"]
+    r = presentation["research"]
+    return "\n".join([
+        f"{presentation['symbol']} {presentation['name']}",
+        f"Research：{r['rating']} / {r['action']} / 信心 {r['confidence']}",
+        f"Daily Tactical：{t['direction']} / {t['setup']} / {t['action']}",
+        f"Prediction：今日 {p['today_range']}；明日 {p['tomorrow_range']}；信心 {p['confidence']}",
+        f"Entry：{t['entry_zone']}｜Stop：{t['stop']}｜Target：{t['target_1']}｜RR：{t['reward_risk']}",
+        f"Risk：追價/事件 {t['risk']}｜資料 {t['data_quality']}",
+    ])
+
+
+def decision_line_summary_v2(market_label: str, presentations: list[dict[str, Any]], dashboard_url: str) -> str:
+    tactical_watch = 0
+    no_trade = 0
+    for item in presentations:
+        action = item.get("daily_tactical", {}).get("action")
+        if action == "今日不建議進場":
+            no_trade += 1
+        else:
+            tactical_watch += 1
+    return "\n".join([
+        f"{market_label}決策摘要已更新",
+        f"Research：{len(presentations)} 檔",
+        f"Daily Tactical 可觀察：{tactical_watch}",
+        f"今日不建議進場：{no_trade}",
+        "今日預測：請看 Dashboard / Email",
+        "Dashboard：",
+        dashboard_url,
+        "僅供研究參考，非交易指令。",
+    ])
