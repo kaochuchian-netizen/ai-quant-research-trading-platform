@@ -6,13 +6,18 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import sys
 from pathlib import Path
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+from app.dashboard.dashboard_url_registry import get_tw_dashboard_url
+
 PREVIEW_JSON = REPO_ROOT / "artifacts/runtime/line_four_batch_runtime_preview_latest.json"
 TRACE_MD = REPO_ROOT / "artifacts/runtime/line_runtime_activation_trace_latest.md"
-NEW_URL = "http://35.201.242.167/stock-ai-dashboard/dashboard/decision-intelligence/four-window-preview/index.html"
+NEW_URL = get_tw_dashboard_url()
 REQUIRED_WINDOWS = {"pre_open_0700", "intraday_1305", "pre_close_1335", "post_close_1500"}
 FORBIDDEN_TERMS = [
     "/stock-ai-dashboard/index.html",

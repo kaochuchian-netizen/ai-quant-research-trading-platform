@@ -28,13 +28,14 @@ if str(REPO_ROOT) not in sys.path:
 from app.us_stock.batch import build_us_stock_batch_artifact, us_stock_batch_input_example
 from app.us_stock.constants import US_BATCH_WINDOWS
 from app.us_stock.live_pipeline import build_live_runtime_artifact
+from app.dashboard.dashboard_url_registry import get_us_dashboard_url
 from app.us_stock.watchlist import normalize_us_watchlist_rows
 from scripts.orchestrator.notify_stage_report import build_message, load_env_file, load_mail_config, send_message
 
 WINDOWS = tuple(US_BATCH_WINDOWS.keys())
 TAIPEI = ZoneInfo("Asia/Taipei")
 NEW_YORK = ZoneInfo("America/New_York")
-DASHBOARD_URL = "http://35.201.242.167/stock-ai-dashboard/dashboard/us/index.html"
+DASHBOARD_URL = get_us_dashboard_url()
 RUNTIME_DIR = REPO_ROOT / "artifacts/runtime"
 US_RUNTIME_DIR = RUNTIME_DIR / "us_stock"
 IDEMPOTENCY_DIR = US_RUNTIME_DIR / "idempotency"

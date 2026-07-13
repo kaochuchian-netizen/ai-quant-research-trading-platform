@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from app.dashboard.dashboard_url_registry import get_tw_dashboard_url
 from app.strategy.tw_daily_tactical import build_runtime
 
 RUNTIME_DIR = ROOT / "artifacts/runtime/tw_daily_tactical"
@@ -21,7 +22,7 @@ PREDICTION_DIR = RUNTIME_DIR / "prediction_snapshots"
 REVIEW_DIR = RUNTIME_DIR / "review_snapshots"
 EMAIL_PREVIEW = RUNTIME_DIR / "tw_daily_tactical_email_preview_latest.md"
 LINE_PREVIEW = RUNTIME_DIR / "tw_daily_tactical_line_preview_latest.txt"
-DASHBOARD_URL = "http://35.201.242.167/stock-ai-dashboard/dashboard/tw/index.html"
+DASHBOARD_URL = get_tw_dashboard_url()
 
 
 def stable_json(data: Any) -> str:

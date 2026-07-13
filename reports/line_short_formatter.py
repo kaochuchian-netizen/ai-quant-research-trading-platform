@@ -1,4 +1,7 @@
-DASHBOARD_URL = "http://35.201.242.167/stock-ai-dashboard/dashboard/tw/index.html"
+from app.dashboard.dashboard_url_registry import get_tw_dashboard_url
+
+
+DASHBOARD_URL = get_tw_dashboard_url()
 
 
 def format_line_short(result):

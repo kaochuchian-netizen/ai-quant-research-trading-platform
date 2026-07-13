@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 import json
 from pathlib import Path
+from app.dashboard.dashboard_url_registry import get_tw_dashboard_url
 from .report_sections import base_sections, normalize_stock_cards, review_state_cards
 from .window_context import ReportWindowContext, get_window_context
 STATUS_MARK = "🟡"
@@ -11,7 +12,7 @@ PRE_OPEN_PREDICTION_FIELDS = [
     "今日最高價預測", "今日最低價預測", "隔天最高價預測", "隔天最低價預測",
     "未來 1 個月走勢", "未來 3 個月走勢", "信心分數", "主要依據",
 ]
-DASHBOARD_URL_FALLBACK = "http://35.201.242.167/stock-ai-dashboard/dashboard/tw/index.html"
+DASHBOARD_URL_FALLBACK = get_tw_dashboard_url()
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TW_DAILY_TACTICAL_RUNTIME = REPO_ROOT / "artifacts/runtime/tw_daily_tactical/tw_daily_tactical_latest.json"
 
