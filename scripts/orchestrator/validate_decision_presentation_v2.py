@@ -17,6 +17,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.dashboard.multi_market_dashboard import OUTPUT_DIR, build_pages
+from app.dashboard.decision_presentation import decision_email_block_v2, decision_presentation_v2
 from app.reports.multi_window_formatter import format_window_report
 from scripts.orchestrator.approved_us_stock_delivery import build_email_body, build_runtime_artifact, line_text
 
@@ -25,6 +26,9 @@ DASHBOARD_PAGES = {
     "tw": OUTPUT_DIR / "tw_index.html",
     "us": OUTPUT_DIR / "us_index.html",
 }
+
+PARITY_SYMBOLS = ["AAPL", "NVDA", "TSLA", "GOOGL"]
+US_PRE_MARKET_RUNTIME = ROOT / "artifacts/runtime/us_stock/us_pre_market_2000_latest.json"
 
 FORBIDDEN_VISIBLE_TOKENS = [
     "insufficient_data",
@@ -123,6 +127,97 @@ def channel_texts() -> dict[str, str]:
     }
 
 
+def load_us_runtime_cards() -> dict[str, dict[str, Any]]:
+    if not US_PRE_MARKET_RUNTIME.exists():
+        return {}
+    data = json.loads(US_PRE_MARKET_RUNTIME.read_text(encoding="utf-8"))
+    cards = data.get("dashboard_ready_contract", {}).get("cards", [])
+    return {
+        str(card.get("symbol")): card
+        for card in cards
+        if isinstance(card, dict) and card.get("symbol") in set(PARITY_SYMBOLS)
+    }
+
+
+def raw_tactical(card: dict[str, Any]) -> dict[str, Any]:
+    strategies = card.get("strategies", {}) if isinstance(card.get("strategies"), dict) else {}
+    tactical = strategies.get("daily_tactical") or card.get("daily_tactical_summary") or {}
+    return tactical if isinstance(tactical, dict) else {}
+
+
+def compact_raw_tactical(tactical: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "direction": tactical.get("direction") or tactical.get("tactical_direction"),
+        "setup": tactical.get("setup_type"),
+        "action": tactical.get("action"),
+        "entry": tactical.get("entry_zone"),
+        "stop": tactical.get("stop_invalidation") or tactical.get("stop_reference") or tactical.get("invalidation_level"),
+        "target": tactical.get("target_1") or tactical.get("target_zone_1"),
+        "reward_risk": tactical.get("reward_risk") if tactical.get("reward_risk") is not None else tactical.get("reward_risk_ratio"),
+        "confidence": tactical.get("confidence") or tactical.get("tactical_confidence"),
+    }
+
+
+def dashboard_email_parity_checks(us_html_text: str) -> tuple[dict[str, Any], list[str]]:
+    errors: list[str] = []
+    checks: dict[str, Any] = {}
+    cards_by_symbol = load_us_runtime_cards()
+    for symbol in PARITY_SYMBOLS:
+        card = cards_by_symbol.get(symbol)
+        if not card:
+            checks[symbol] = {"runtime_card_found": False}
+            errors.append(f"{symbol}: runtime card missing")
+            continue
+        runtime = compact_raw_tactical(raw_tactical(card))
+        presentation = decision_presentation_v2("US", card)
+        tactical = presentation["daily_tactical"]
+        email_text = decision_email_block_v2(presentation)
+        expected_values = {
+            "direction": tactical["direction"],
+            "setup": tactical["setup"],
+            "action": tactical["action"],
+            "entry": tactical["entry_zone"],
+            "stop": tactical["stop"],
+            "target": tactical["target_1"],
+            "reward_risk": tactical["reward_risk"],
+            "confidence": tactical["confidence"],
+        }
+        runtime_has = {
+            "entry": runtime["entry"] is not None,
+            "stop": runtime["stop"] is not None,
+            "target": runtime["target"] is not None,
+            "reward_risk": runtime["reward_risk"] is not None,
+        }
+        email_required_keys = ["direction", "setup", "action", "entry", "stop", "target", "reward_risk"]
+        missing_email = [key for key in email_required_keys if expected_values[key] and expected_values[key] not in email_text]
+        missing_html = [key for key, value in expected_values.items() if value and value not in us_html_text]
+        unexpected_missing = [
+            key
+            for key, has_runtime_value in runtime_has.items()
+            if has_runtime_value and expected_values[key] == "暫無"
+        ]
+        check = {
+            "runtime_card_found": True,
+            "runtime_raw_tactical": runtime,
+            "email_formatter_output": email_text,
+            "dashboard_presentation": presentation["daily_tactical"],
+            "rendered_html_contains_expected_values": not missing_html,
+            "email_contains_expected_values": not missing_email,
+            "missing_email_fields": missing_email,
+            "missing_html_fields": missing_html,
+            "runtime_value_not_dropped": not unexpected_missing,
+            "runtime_values_dropped": unexpected_missing,
+        }
+        checks[symbol] = check
+        if missing_email:
+            errors.append(f"{symbol}: email missing {missing_email}")
+        if missing_html:
+            errors.append(f"{symbol}: dashboard HTML missing {missing_html}")
+        if unexpected_missing:
+            errors.append(f"{symbol}: runtime values dropped to 暫無 {unexpected_missing}")
+    return checks, errors
+
+
 def build_validation() -> dict[str, Any]:
     errors: list[str] = []
     manifest = build_pages(OUTPUT_DIR)
@@ -159,6 +254,10 @@ def build_validation() -> dict[str, Any]:
         if name.endswith("_line") and not check["dashboard_url_not_duplicated"]:
             errors.append(f"{name}: duplicate Dashboard URL")
 
+    us_html_text = visible_text((OUTPUT_DIR / "us_index.html").read_text(encoding="utf-8"))
+    parity_checks, parity_errors = dashboard_email_parity_checks(us_html_text)
+    errors.extend(parity_errors)
+
     safety_checks = {
         "no_line_email_sent": True,
         "no_main_py": True,
@@ -175,6 +274,7 @@ def build_validation() -> dict[str, Any]:
         "manifest_schema_version": manifest.get("schema_version"),
         "page_checks": page_checks,
         "channel_checks": channel_checks,
+        "dashboard_email_parity_checks": parity_checks,
         "safety_checks": safety_checks,
         "errors": errors,
     }
