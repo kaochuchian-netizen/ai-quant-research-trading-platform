@@ -309,29 +309,59 @@ def prediction_summary_from_us_card(card: dict[str, Any]) -> dict[str, str]:
     }
 
 
+def format_tactical_action(value: Any) -> str:
+    text = clean_text(value, missing="等待確認")
+    return {
+        "wait_trigger": "等待觸發",
+        "wait_for_trigger": "等待觸發",
+        "breakout_pending": "等待突破",
+        "breakout_confirmation": "等待突破確認",
+        "pullback_pending": "等待拉回",
+        "range_trade": "等待進入區間",
+        "wait_stabilization": "等待止穩",
+        "no_trade": "暫不操作",
+        "avoid": "暫不操作",
+    }.get(text, text)
+
+
+def is_explicit_no_trade(tactical: dict[str, Any]) -> bool:
+    setup = clean_text(tactical.get("setup_type"), missing="")
+    direction = clean_text(tactical.get("direction") or tactical.get("tactical_direction"), missing="")
+    position = clean_text(tactical.get("position_size"), missing="")
+    action = clean_text(tactical.get("action"), missing="").lower().replace(" ", "_")
+    return (
+        setup == "no_trade"
+        or direction == "no_trade"
+        or position == "avoid"
+        or action in {"no_trade", "avoid", "avoid_trade", "暫不操作", "今日不建議進場"}
+    )
+
+
 def tactical_plan_from_payload(tactical: dict[str, Any]) -> dict[str, str]:
-    no_trade = is_no_trade(tactical)
+    tactical = tactical if isinstance(tactical, dict) else {}
+    no_trade = is_explicit_no_trade(tactical)
     entry = tactical.get("entry_zone")
     stop = tactical.get("stop_invalidation") or tactical.get("stop_reference") or tactical.get("invalidation_level")
     target1 = tactical.get("target_1") or tactical.get("target_zone_1")
     target2 = tactical.get("target_2") or tactical.get("target_zone_2")
     expected = tactical.get("expected_move_pct") if tactical.get("expected_move_pct") is not None else tactical.get("expected_move")
     rr = tactical.get("reward_risk") if tactical.get("reward_risk") is not None else tactical.get("reward_risk_ratio")
+    action = "今日不建議進場" if no_trade else format_tactical_action(tactical.get("action"))
     return {
         "direction": format_direction(tactical.get("direction") or tactical.get("tactical_direction")),
         "setup": format_setup(tactical.get("setup_type")),
-        "action": "今日不建議進場" if no_trade else clean_text(tactical.get("action"), missing="等待確認"),
-        "entry_zone": MISSING_TEXT if no_trade else format_price_zone(entry),
-        "stop": MISSING_TEXT if no_trade else format_stop(stop),
-        "target_1": MISSING_TEXT if no_trade else format_price_zone(target1),
-        "target_2": MISSING_TEXT if no_trade else format_price_zone(target2),
+        "action": action,
+        "entry_zone": format_price_zone(entry),
+        "stop": format_stop(stop),
+        "target_1": format_price_zone(target1),
+        "target_2": format_price_zone(target2),
         "expected_move": format_percent(expected),
         "reward_risk": format_ratio(rr),
         "confidence": format_confidence(tactical.get("confidence") or tactical.get("tactical_confidence")),
         "risk": format_risk_level(tactical.get("chase_risk") or tactical.get("event_risk")),
         "position_size": format_position_size(tactical.get("position_size")),
         "data_quality": format_data_quality(tactical.get("data_quality")),
-        "conclusion": "今日不建議進場" if no_trade else clean_text(tactical.get("action"), missing="可觀察，等待觸發條件"),
+        "conclusion": action if no_trade else format_tactical_action(tactical.get("action")),
     }
 
 
@@ -357,6 +387,8 @@ def decision_presentation_v2(market: str, card: dict[str, Any]) -> dict[str, Any
     if market == "US":
         research = strategies.get("research_position") or card.get("research_position_summary") or {}
         tactical = strategies.get("daily_tactical") or card.get("daily_tactical_summary") or {}
+        research = research if isinstance(research, dict) else {}
+        tactical = tactical if isinstance(tactical, dict) else {}
         prediction = prediction_summary_from_us_card(card)
         symbol = card.get("symbol") or card.get("stock_id")
         name = card.get("name") or card.get("stock_name")

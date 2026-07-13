@@ -43,6 +43,13 @@ rendering together. It confirms TW/US Dashboard cards expose Decision Summary,
 Daily Tactical, Prediction, Research, reasons, risks, and technical details
 through human-readable labels, while Email and LINE use the same presentation
 helpers instead of raw runtime dicts. LINE must include only one Dashboard URL.
+AI-DEV-176A adds US Dashboard / Email parity checks for AAPL, NVDA, TSLA, and
+GOOGL. If runtime has `entry_zone`, `stop_reference` / `invalidation_level`,
+`target_zone_1`, or `reward_risk_ratio`, the presentation object, Email block,
+and rendered Dashboard HTML must all preserve the value. This hotfix is
+presentation-only; it does not change strategy engines, scores, confidence,
+prediction, scheduler, runtime artifacts, data sources, LINE contract, or Email
+contract.
 
 Publish pages after merge from `main`:
 
