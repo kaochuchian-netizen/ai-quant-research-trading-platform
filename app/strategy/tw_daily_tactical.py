@@ -8,7 +8,7 @@ from __future__ import annotations
 import csv
 import json
 import math
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from statistics import mean
 from typing import Any
@@ -154,6 +154,8 @@ def technical_factors(rows: list[dict[str, Any]]) -> dict[str, Any]:
     returns = [(closes[i] / closes[i - 1] - 1) for i in range(1, len(closes)) if closes[i - 1] != 0]
     true_ranges = [max(h - l, abs(h - pc), abs(l - pc)) for h, l, pc in zip(highs[1:], lows[1:], closes[:-1])]
     atr14 = _sma(true_ranges, 14)
+    if atr14 is None and len(highs) >= 5 and len(lows) >= 5:
+        atr14 = _avg([h - l for h, l in zip(highs[-10:], lows[-10:])])
     latest_close = closes[-1] if closes else None
     bb_mid = ma20
     std20 = _rolling_std(closes[-20:]) if len(closes) >= 20 else None
@@ -197,18 +199,66 @@ def technical_factors(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def source_status(tech: dict[str, Any]) -> dict[str, str]:
+def tw_tick_size(price: float | None) -> float:
+    if price is None:
+        return 0.01
+    p = abs(float(price))
+    if p < 10:
+        return 0.01
+    if p < 50:
+        return 0.05
+    if p < 100:
+        return 0.1
+    if p < 500:
+        return 0.5
+    if p < 1000:
+        return 1.0
+    return 5.0
+
+
+def round_tw_price(value: float | None) -> float | None:
+    if value is None or not math.isfinite(float(value)):
+        return None
+    tick = tw_tick_size(value)
+    return round(round(float(value) / tick) * tick, 2)
+
+
+def instrument_type(stock_id: str) -> str:
+    if stock_id.startswith("00"):
+        return "etf"
+    if stock_id.isdigit() and len(stock_id) == 4:
+        return "common_stock"
+    return "other_or_unknown"
+
+
+def factor_coverage(tech: dict[str, Any], stock_id: str) -> dict[str, Any]:
     days = int(tech.get("history_days") or 0)
-    base = "available" if days >= 60 else "partial" if days >= 20 else "unavailable"
-    return {
-        "historical_ohlcv": base,
-        "technical_engine": base,
-        "twse_institutional_flow": "unavailable",
-        "margin_short": "unavailable",
-        "chip_engine": "partial" if days >= 20 else "unavailable",
-        "news_event": "unavailable",
-        "tw_market_context": "partial" if days >= 20 else "unavailable",
+    hist = "available" if days >= 60 else "partial" if days >= 20 else "limited" if days >= 10 else "unavailable"
+    inst_type = instrument_type(stock_id)
+    etf = inst_type == "etf"
+    coverage = {
+        "price_trend": hist,
+        "volume": "available" if days >= 20 and tech.get("volume_ma20") is not None else "partial" if days >= 5 else "unavailable",
+        "support_resistance": "available" if days >= 20 else "partial" if days >= 10 else "unavailable",
+        "chip": "not_applicable" if etf else "partial" if days >= 20 else "unavailable",
+        "institutional_flow": "not_applicable" if etf else "unavailable",
+        "margin_short": "not_applicable" if etf else "unavailable",
+        "market_context": "partial" if days >= 10 else "unavailable",
+        "event_news": "unavailable",
+        "prediction_snapshot": "available" if days >= 10 else "unavailable",
+        "review_outcome": "partial" if days >= 10 else "unavailable",
     }
+    complete = sum(1 for v in coverage.values() if v == "available")
+    partial = sum(1 for v in coverage.values() if v == "partial")
+    unavailable = sum(1 for v in coverage.values() if v == "unavailable")
+    not_applicable = sum(1 for v in coverage.values() if v == "not_applicable")
+    quality = "complete" if unavailable == 0 and partial <= 2 else "partial" if days >= 20 and unavailable <= 5 else "limited" if days >= 10 else "insufficient"
+    return {"statuses": coverage, "instrument_type": inst_type, "summary": {"available": complete, "partial": partial, "unavailable": unavailable, "stale": 0, "not_applicable": not_applicable}, "data_quality": quality, "downgrade_policy": "missing or stale TW tactical inputs lower confidence/position size; insufficient core OHLCV forces no_trade"}
+
+
+def source_status(tech: dict[str, Any], stock_id: str = "") -> dict[str, str]:
+    cov = factor_coverage(tech, stock_id).get("statuses", {})
+    return {"historical_ohlcv": cov.get("price_trend", "unavailable"), "technical_engine": cov.get("price_trend", "unavailable"), "twse_institutional_flow": cov.get("institutional_flow", "unavailable"), "margin_short": cov.get("margin_short", "unavailable"), "chip_engine": cov.get("chip", "unavailable"), "news_event": cov.get("event_news", "unavailable"), "tw_market_context": cov.get("market_context", "unavailable")}
 
 
 def trend_state(tech: dict[str, Any]) -> str:
@@ -225,63 +275,29 @@ def trend_state(tech: dict[str, Any]) -> str:
 
 
 def support_resistance(tech: dict[str, Any]) -> dict[str, Any]:
-    close = _num(tech.get("latest_close"))
-    support_inputs = [tech.get("low_5d"), tech.get("low_10d"), tech.get("low_20d"), tech.get("ma5"), tech.get("ma10"), tech.get("ma20"), tech.get("bollinger_lower")]
-    resist_inputs = [tech.get("high_5d"), tech.get("high_10d"), tech.get("high_20d"), tech.get("ma5"), tech.get("ma10"), tech.get("ma20"), tech.get("bollinger_upper")]
-    supports = sorted({_round(v) for v in support_inputs if _num(v) is not None and close is not None and _num(v) < close}, reverse=True)
-    resists = sorted({_round(v) for v in resist_inputs if _num(v) is not None and close is not None and _num(v) > close})
-    return {
-        "nearest_support": supports[0] if supports else None,
-        "secondary_support": supports[1] if len(supports) > 1 else None,
-        "nearest_resistance": resists[0] if resists else None,
-        "secondary_resistance": resists[1] if len(resists) > 1 else None,
-        "sources": ["swing_high_low", "20d_high_low", "moving_average", "bollinger_band"],
-    }
+    close = _num(tech.get("latest_close")); atr = _num(tech.get("atr14")) or 0
+    support_inputs = [tech.get("low_5d"), tech.get("low_10d"), tech.get("low_20d"), tech.get("ma5"), tech.get("ma10"), tech.get("ma20"), tech.get("ma60"), tech.get("bollinger_lower")]
+    resist_inputs = [tech.get("high_5d"), tech.get("high_10d"), tech.get("high_20d"), tech.get("ma5"), tech.get("ma10"), tech.get("ma20"), tech.get("ma60"), tech.get("bollinger_upper")]
+    supports = sorted({round_tw_price(_num(v)) for v in support_inputs if _num(v) is not None and close is not None and _num(v) < close}, reverse=True)
+    resists = sorted({round_tw_price(_num(v)) for v in resist_inputs if _num(v) is not None and close is not None and _num(v) > close})
+    supports = [v for v in supports if v is not None]; resists = [v for v in resists if v is not None]
+    return {"nearest_support": supports[0] if supports else round_tw_price(close - atr) if close is not None and atr else None, "secondary_support": supports[1] if len(supports) > 1 else round_tw_price(close - 1.5 * atr) if close is not None and atr else None, "nearest_resistance": resists[0] if resists else round_tw_price(close + atr) if close is not None and atr else None, "secondary_resistance": resists[1] if len(resists) > 1 else round_tw_price(close + 1.8 * atr) if close is not None and atr else None, "sources": ["recent_swing_high_low", "5_10_20d_high_low", "moving_average", "bollinger_band", "atr_buffer"], "tick_size_applied": True}
 
 
 def chip_tactical(stock_id: str, tech: dict[str, Any]) -> dict[str, Any]:
-    is_etf = stock_id.startswith("00")
-    rel_vol = _num(tech.get("relative_volume"))
-    direction = "neutral"
-    flow_confirmation = False
-    tr = trend_state(tech)
-    if rel_vol is not None and rel_vol >= 1.25 and tr == "bullish":
-        direction = "positive"; flow_confirmation = True
-    elif rel_vol is not None and rel_vol >= 1.25 and tr == "bearish":
-        direction = "negative"
-    score = 55 if direction == "positive" else 43 if direction == "negative" else 50
-    if is_etf:
-        score -= 4
-    return {
-        "chip_direction": direction,
-        "chip_score": score,
-        "institutional_flow": {
-            "foreign_investor_net_buy_sell": None,
-            "foreign_consecutive_days": None,
-            "investment_trust_net_buy_sell": None,
-            "investment_trust_consecutive_days": None,
-            "dealer_net_buy_sell": None,
-            "institutional_alignment": "unavailable",
-            "data_status": "limited_for_etf" if is_etf else "partial",
-        },
-        "margin_risk": {
-            "margin_balance_change": None,
-            "short_balance_change": None,
-            "margin_price_divergence": "unavailable",
-            "short_interest_signal": "unavailable",
-            "data_status": "limited_for_etf" if is_etf else "unavailable",
-        },
-        "short_interest_signal": "unavailable",
-        "flow_confirmation": flow_confirmation,
-        "data_quality": "limited" if is_etf else "partial",
-        "notes": ["TWSE/chip runtime detail unavailable; downgraded confidence rather than fabricating flow data."] if not flow_confirmation else ["Volume/trend proxy supports chip confirmation until official flow artifact is connected."],
-    }
+    inst_type = instrument_type(stock_id); rel_vol = _num(tech.get("relative_volume")); tr = trend_state(tech); etf = inst_type == "etf"
+    direction = "neutral"; flow_confirmation = False
+    if rel_vol is not None and rel_vol >= 1.25 and tr == "bullish": direction = "positive"; flow_confirmation = True
+    elif rel_vol is not None and rel_vol >= 1.25 and tr == "bearish": direction = "negative"
+    score = 56 if direction == "positive" else 42 if direction == "negative" else 50
+    if etf: score = 50
+    institutional_status = "not_applicable" if etf else "unavailable"; margin_status = "not_applicable" if etf else "unavailable"
+    return {"instrument_type": inst_type, "chip_direction": direction, "chip_score": score, "institutional_flow": {"foreign_investor_net_buy_sell": None, "foreign_consecutive_days": None, "investment_trust_net_buy_sell": None, "investment_trust_consecutive_days": None, "dealer_net_buy_sell": None, "institutional_alignment": institutional_status, "price_flow_divergence": "unavailable" if not etf else "not_applicable", "data_status": institutional_status}, "margin_risk": {"margin_balance_change": None, "short_balance_change": None, "margin_price_divergence": "unavailable" if not etf else "not_applicable", "short_interest_signal": "unavailable" if not etf else "not_applicable", "margin_overheat_risk": "unavailable" if not etf else "not_applicable", "data_status": margin_status}, "short_signal": "not_applicable" if etf else "unavailable", "short_interest_signal": "not_applicable" if etf else "unavailable", "flow_confirmation": flow_confirmation, "chip_data_quality": "not_applicable" if etf else "partial" if rel_vol is not None else "limited", "data_quality": "not_applicable" if etf else "partial" if rel_vol is not None else "limited", "notes": ["ETF 標的不硬套個股法人/融資券規則，籌碼因子列為 not_applicable。"] if etf else ["正式法人/融資券細項尚未接入；以量價代理輔助判斷並降低信心，不偽造籌碼資料。"]}
 
 
 def market_context(tech_by_stock: dict[str, dict[str, Any]]) -> dict[str, Any]:
     trends = [trend_state(t) for t in tech_by_stock.values()]
-    total = len(trends) or 1
-    bullish = trends.count("bullish"); bearish = trends.count("bearish")
+    total = len(trends) or 1; bullish = trends.count("bullish"); bearish = trends.count("bearish")
     rel_vols = [_num(t.get("relative_volume")) for t in tech_by_stock.values() if _num(t.get("relative_volume")) is not None]
     avg_rvol = _avg(rel_vols)
     bias = "bullish" if bullish / total >= 0.45 else "bearish" if bearish / total >= 0.45 else "neutral"
@@ -290,7 +306,7 @@ def market_context(tech_by_stock: dict[str, dict[str, Any]]) -> dict[str, Any]:
     score = 58 if bias == "bullish" else 42 if bias == "bearish" else 50
     if volume_status == "expanded" and bias == "bullish": score += 4
     if risk == "high": score -= 8
-    return {"market_bias": bias, "market_risk": risk, "market_breadth_status": f"watchlist breadth bullish={bullish}/{total}, bearish={bearish}/{total}; broad TWSE breadth unavailable", "market_volume_status": volume_status, "market_regime": f"{bias}_{risk}_risk", "market_context_score": _round(_clamp(score), 2), "data_status": "partial", "unavailable_fields": ["TWSE index breadth", "OTC breadth", "market-wide advancers/decliners"]}
+    return {"market_bias": bias, "market_risk": risk, "market_breadth_status": f"watchlist breadth bullish={bullish}/{total}, bearish={bearish}/{total}; broad TWSE breadth unavailable", "market_volume_status": volume_status, "market_regime": f"{bias}_{risk}_risk", "market_context_score": _round(_clamp(score), 2), "market_data_quality": "partial", "data_status": "partial", "unavailable_fields": ["TWSE index breadth", "OTC breadth", "market-wide advancers/decliners"]}
 
 
 def chase_risk(tech: dict[str, Any]) -> tuple[str, list[str]]:
@@ -301,142 +317,127 @@ def chase_risk(tech: dict[str, Any]) -> tuple[str, list[str]]:
     if close and upper and close >= upper * 0.985: points += 1; reasons.append("接近 Bollinger 上緣")
     if rsi and rsi >= 72: points += 1; reasons.append("RSI 過熱")
     if atr_pct and ma20 and close and close / ma20 - 1 > atr_pct: points += 1; reasons.append("已達一個 ATR 以上擴張")
-    if rel_vol is not None and rel_vol < 1 and close and ma20 and close > ma20: points += 1; reasons.append("上攻量能未確認")
+    if rel_vol is not None and rel_vol < 1 and close and ma20 and close > ma20: points += 1; reasons.append("突破或上攻量能未確認")
     return ("high" if points >= 3 else "medium" if points >= 1 else "low", reasons or ["追價風險未見明顯升高"])
 
 
 def setup_detection(tech: dict[str, Any], market: dict[str, Any], data_quality: str) -> tuple[str, str, list[str], list[str]]:
-    if data_quality == "limited":
-        return "no_trade", "no_trade", ["資料品質不足，今日不建立戰術部位"], ["history < 20 or core indicator unavailable"]
+    if data_quality == "insufficient":
+        return "no_trade", "no_trade", ["資料品質不足，今日不建立戰術部位"], ["core OHLCV/indicator coverage insufficient"]
     close = _num(tech.get("latest_close")); high20 = _num(tech.get("high_20d")); ma5 = _num(tech.get("ma5")); ma10 = _num(tech.get("ma10")); ma20 = _num(tech.get("ma20")); low20 = _num(tech.get("low_20d")); rsi = _num(tech.get("rsi14")); rel_vol = _num(tech.get("relative_volume")); pos = _num(tech.get("current_range_position")); tr = trend_state(tech)
     cr, chase_reasons = chase_risk(tech)
-    if cr == "high":
-        return "no_trade", "no_trade", ["追高風險過高，等待拉回"], chase_reasons
-    if market.get("market_risk") == "high":
-        return "no_trade", "no_trade", ["大盤風險偏高，先降低戰術部位"], ["market_context high risk"]
-    if close and high20 and close >= high20 * 0.995 and rel_vol and rel_vol >= 1.2 and tr == "bullish" and (rsi is None or rsi < 72):
-        return "bullish", "breakout", ["接近/突破 20 日高點", "量能放大", "均線趨勢偏多"], []
-    if tr == "bullish" and close and any(x and abs(close / x - 1) <= 0.025 for x in [ma5, ma10, ma20]) and rel_vol is not None and rel_vol <= 1.1:
-        return "bullish", "pullback", ["中期趨勢向上", "回測短中期均線", "量縮整理"], []
-    if tr == "bullish" and close and ma20 and close > ma20 and (rsi is None or rsi < 68):
-        return "bullish", "trend_continuation", ["價格站上 MA20", "短中期趨勢延續"], []
-    if close and low20 and pos is not None and pos <= 0.25 and rsi is not None and rsi <= 38:
-        return "neutral", "mean_reversion", ["價格接近 20 日區間下緣", "RSI 偏低，觀察反彈"], []
-    if pos is not None and 0.25 < pos < 0.75:
-        return "neutral", "range_trade", ["價格位於 20 日區間中段，適合區間觀察"], []
-    if tr == "bearish":
-        return "bearish", "reversal_watch", ["趨勢偏弱，僅觀察止穩訊號"], ["trend bearish"]
+    if cr == "high": return "no_trade", "no_trade", ["追高風險過高，等待拉回"], chase_reasons
+    if market.get("market_risk") == "high": return "no_trade", "no_trade", ["大盤風險偏高，先降低戰術部位"], ["market_context high risk"]
+    if close and high20 and close >= high20 * 0.995 and rel_vol and rel_vol >= 1.2 and tr == "bullish" and (rsi is None or rsi < 72): return "bullish", "breakout", ["接近/突破 20 日高點", "量能放大", "均線趨勢偏多"], []
+    if tr == "bullish" and close and any(x and abs(close / x - 1) <= 0.025 for x in [ma5, ma10, ma20]) and rel_vol is not None and rel_vol <= 1.1: return "bullish", "pullback", ["中期趨勢向上", "回測短中期均線", "量縮整理"], []
+    if tr == "bullish" and close and ma20 and close > ma20 and (rsi is None or rsi < 68): return "bullish", "trend_continuation", ["價格站上 MA20", "短中期趨勢延續"], []
+    if close and low20 and pos is not None and pos <= 0.25 and rsi is not None and rsi <= 38: return "neutral", "mean_reversion", ["價格接近 20 日區間下緣", "RSI 偏低，觀察反彈"], []
+    if pos is not None and 0.25 < pos < 0.75: return "neutral", "range_trade", ["價格位於 20 日區間中段，適合區間觀察"], []
+    if tr == "bearish": return "bearish", "reversal_watch", ["趨勢偏弱，僅觀察止穩訊號"], ["trend bearish"]
+    if data_quality == "limited" and close and _num(tech.get("atr14")):
+        ma10v = _num(tech.get("ma10"))
+        if ma10v and close >= ma10v:
+            return "neutral", "range_trade", ["歷史資料有限，但價格仍在 MA10 附近或上方", "以區間觀察，不提高部位"], ["limited history below 20 bars; confidence downgraded"]
+        return "neutral", "reversal_watch", ["歷史資料有限，僅觀察止穩訊號"], ["limited history below 20 bars; trend confirmation unavailable"]
     return "no_trade", "no_trade", ["缺乏明確 setup，暫不操作"], ["setup not confirmed"]
+
+
+def _stop_price(stop: Any) -> float | None:
+    if isinstance(stop, dict): return _num(stop.get("price"))
+    return _num(stop)
 
 
 def price_levels(direction: str, setup: str, tech: dict[str, Any], sr: dict[str, Any]) -> dict[str, Any]:
     close = _num(tech.get("latest_close")); atr = _num(tech.get("atr14"))
     if close is None or atr is None or atr <= 0 or setup == "no_trade":
-        return {"entry_zone": None, "stop_invalidation": None, "target_1": None, "target_2": None, "expected_move_pct": None, "reward_risk": None}
-    support = _num(sr.get("nearest_support")) or close - atr
-    resistance = _num(sr.get("nearest_resistance")) or close + atr
+        return {"entry_zone": None, "stop_invalidation": None, "target_1": None, "target_2": None, "expected_move_pct": None, "reward_risk": None, "level_method": "suppressed_for_no_trade_or_insufficient_data"}
+    support = _num(sr.get("nearest_support")) or close - atr; resistance = _num(sr.get("nearest_resistance")) or close + atr
     if direction == "bullish":
-        if setup == "breakout":
-            entry_low, entry_high = resistance, resistance + 0.25 * atr
-            stop = min(close, resistance - 0.65 * atr, support)
-        elif setup == "pullback":
-            entry_low, entry_high = max(support, close - 0.55 * atr), min(close, close + 0.1 * atr)
-            stop = min(support - 0.35 * atr, entry_low - 0.45 * atr)
-        else:
-            entry_low, entry_high = max(support, close - 0.25 * atr), close + 0.2 * atr
-            stop = min(support - 0.3 * atr, entry_low - 0.5 * atr)
-        target1_low = max(resistance, entry_high + 0.8 * atr); target1_high = target1_low + 0.35 * atr
-        target2_low = target1_high + 0.25 * atr; target2_high = target2_low + 0.55 * atr
+        if setup == "breakout": entry_low, entry_high, stop, reason = resistance, resistance + 0.25 * atr, min(close, resistance - 0.65 * atr, support), "跌回突破壓力區與 ATR buffer 下方，突破 setup 失效"
+        elif setup == "pullback": entry_low, entry_high, stop, reason = max(support, close - 0.55 * atr), min(close, close + 0.1 * atr), min(support - 0.35 * atr, close - 0.75 * atr), "跌破回測支撐與 ATR 失效區，拉回承接 setup 取消"
+        else: entry_low, entry_high, stop, reason = max(support, close - 0.25 * atr), close + 0.2 * atr, min(support - 0.3 * atr, close - 0.65 * atr), "跌破結構支撐與 ATR 失效區"
+        target1_low = max(resistance, entry_high + 0.8 * atr); target1_high = target1_low + 0.35 * atr; target2_low = target1_high + 0.25 * atr; target2_high = target2_low + 0.55 * atr
     elif direction == "bearish":
-        entry_high, entry_low = min(resistance, close + 0.4 * atr), close - 0.15 * atr
-        stop = max(resistance + 0.3 * atr, entry_high + 0.45 * atr)
-        target1_high = min(support, entry_low - 0.7 * atr); target1_low = target1_high - 0.35 * atr
-        target2_high = target1_low - 0.25 * atr; target2_low = target2_high - 0.55 * atr
+        entry_high, entry_low, stop, reason = min(resistance, close + 0.4 * atr), close - 0.15 * atr, max(resistance + 0.3 * atr, close + 0.7 * atr), "重新站回壓力與 ATR 失效區，偏空觀察取消"
+        target1_high = min(support, entry_low - 0.7 * atr); target1_low = target1_high - 0.35 * atr; target2_high = target1_low - 0.25 * atr; target2_low = target2_high - 0.55 * atr
     else:
-        entry_low, entry_high = max(support, close - 0.45 * atr), min(resistance, close + 0.15 * atr)
-        stop = entry_low - 0.45 * atr
-        target1_low = min(resistance, close + 0.45 * atr); target1_high = target1_low + 0.25 * atr
-        target2_low = target1_high + 0.2 * atr; target2_high = target2_low + 0.35 * atr
+        entry_low, entry_high, stop, reason = max(support, close - 0.45 * atr), min(resistance, close + 0.15 * atr), max(support, close - 0.45 * atr) - 0.45 * atr, "跌破區間下緣與 ATR 失效區，區間策略取消"
+        target1_low = min(resistance, close + 0.45 * atr); target1_high = target1_low + 0.25 * atr; target2_low = target1_high + 0.2 * atr; target2_high = target2_low + 0.35 * atr
+    entry_low, entry_high, stop = round_tw_price(entry_low), round_tw_price(entry_high), round_tw_price(stop)
+    target1_low, target1_high, target2_low, target2_high = round_tw_price(target1_low), round_tw_price(target1_high), round_tw_price(target2_low), round_tw_price(target2_high)
+    if None in {entry_low, entry_high, stop, target1_low, target1_high}: return {"entry_zone": None, "stop_invalidation": None, "target_1": None, "target_2": None, "expected_move_pct": None, "reward_risk": None, "level_method": "insufficient_level_inputs"}
     entry_mid = (entry_low + entry_high) / 2; target_mid = (min(target1_low, target1_high) + max(target1_low, target1_high)) / 2
     risk = abs(entry_mid - stop); reward = abs(target_mid - entry_mid)
-    return {"entry_zone": {"low": _round(min(entry_low, entry_high)), "high": _round(max(entry_low, entry_high))}, "stop_invalidation": _round(stop), "target_1": {"low": _round(min(target1_low, target1_high)), "high": _round(max(target1_low, target1_high))}, "target_2": {"low": _round(min(target2_low, target2_high)), "high": _round(max(target2_low, target2_high))}, "expected_move_pct": _round(None if close == 0 else abs(target_mid - close) / close, 5), "reward_risk": _round(None if risk <= 0 else reward / risk, 2)}
+    return {"entry_zone": {"low": min(entry_low, entry_high), "high": max(entry_low, entry_high)}, "stop_invalidation": {"price": stop, "reason": reason}, "target_1": {"low": min(target1_low, target1_high), "high": max(target1_low, target1_high)}, "target_2": {"low": min(target2_low, target2_high), "high": max(target2_low, target2_high)} if target2_low is not None and target2_high is not None else None, "expected_move_pct": _round(None if close == 0 else abs(target_mid - close) / close * 100, 2), "reward_risk": _round(None if risk <= 0 else reward / risk, 2), "level_method": "setup_specific_support_resistance_atr_tick_size_v1", "representative_entry": _round(entry_mid), "representative_stop": stop, "representative_target": _round(target_mid)}
 
 
 def build_tactical(stock: dict[str, Any], tech: dict[str, Any], market: dict[str, Any]) -> dict[str, Any]:
-    stock_id = str(stock.get("stock_id") or stock.get("symbol") or "")
-    stock_name = str(stock.get("stock_name") or stock.get("name") or "")
-    data_quality = "complete" if int(tech.get("history_days") or 0) >= 60 else "partial" if int(tech.get("history_days") or 0) >= 20 else "limited"
-    sr = support_resistance(tech)
-    chip = chip_tactical(stock_id, tech)
-    direction, setup, reasons, risk_reasons = setup_detection(tech, market, data_quality)
-    levels = price_levels(direction, setup, tech, sr)
-    rr = _num(levels.get("reward_risk"))
-    cr, chase_reasons = chase_risk(tech)
-    if rr is not None and rr < 0.8 and setup != "no_trade":
-        direction, setup = "no_trade", "no_trade"
-        risk_reasons.append("reward/risk below 0.8 threshold")
-        levels = price_levels(direction, setup, tech, sr)
-    technical_setup = 70 if setup in {"breakout", "pullback", "trend_continuation"} else 55 if setup in {"mean_reversion", "range_trade"} else 35
+    stock_id = str(stock.get("stock_id") or stock.get("symbol") or ""); stock_name = str(stock.get("stock_name") or stock.get("name") or "")
+    coverage = factor_coverage(tech, stock_id); data_quality = str(coverage.get("data_quality") or "insufficient")
+    sr = support_resistance(tech); chip = chip_tactical(stock_id, tech); direction, setup, reasons, risk_reasons = setup_detection(tech, market, data_quality); levels = price_levels(direction, setup, tech, sr)
+    rr = _num(levels.get("reward_risk")); cr, chase_reasons = chase_risk(tech)
+    if rr is not None and rr < 0.8 and setup != "no_trade": direction, setup = "no_trade", "no_trade"; risk_reasons.append("reward/risk below 0.8 threshold"); levels = price_levels(direction, setup, tech, sr)
+    technical_setup = 70 if setup in {"breakout", "pullback", "trend_continuation"} else 55 if setup in {"mean_reversion", "range_trade"} else 42 if setup == "reversal_watch" else 35
     volume_confirmation = 66 if tech.get("volume_expansion") else 55 if not tech.get("volume_contraction") else 42
-    chip_score = _num(chip.get("chip_score")) or 45
-    market_score = _num(market.get("market_context_score")) or 50
-    risk_quality = 70 if cr == "low" and setup != "no_trade" else 50 if cr == "medium" else 28
-    dq_score = 80 if data_quality == "complete" else 58 if data_quality == "partial" else 25
-    score = technical_setup * TW_TACTICAL_WEIGHTS["technical_setup"] + volume_confirmation * TW_TACTICAL_WEIGHTS["volume_confirmation"] + chip_score * TW_TACTICAL_WEIGHTS["chip_flow"] + market_score * TW_TACTICAL_WEIGHTS["market_context"] + risk_quality * TW_TACTICAL_WEIGHTS["risk_quality"] + dq_score * TW_TACTICAL_WEIGHTS["data_quality"]
+    chip_score = _num(chip.get("chip_score")) or 45; market_score = _num(market.get("market_context_score")) or 50; risk_quality = 72 if cr == "low" and setup != "no_trade" else 52 if cr == "medium" else 28; dq_score = 82 if data_quality == "complete" else 62 if data_quality == "partial" else 40 if data_quality == "limited" else 18
+    components = {"technical_setup": _round(technical_setup * TW_TACTICAL_WEIGHTS["technical_setup"], 2), "volume_confirmation": _round(volume_confirmation * TW_TACTICAL_WEIGHTS["volume_confirmation"], 2), "chip_flow": _round(chip_score * TW_TACTICAL_WEIGHTS["chip_flow"], 2), "market_context": _round(market_score * TW_TACTICAL_WEIGHTS["market_context"], 2), "risk_quality": _round(risk_quality * TW_TACTICAL_WEIGHTS["risk_quality"], 2), "data_quality": _round(dq_score * TW_TACTICAL_WEIGHTS["data_quality"], 2)}
+    score_before_penalty = sum(v for v in components.values() if v is not None)
+    risk_penalty = (12 if cr == "high" else 0) + (8 if market.get("market_risk") == "high" else 0) + (6 if rr is not None and rr < 1.0 else 0)
+    data_quality_penalty = 0 if data_quality == "complete" else 5 if data_quality == "partial" else 14 if data_quality == "limited" else 25
+    score = _clamp(score_before_penalty - risk_penalty - data_quality_penalty)
     if setup == "no_trade": score = min(score, 45)
-    confidence = _clamp(30 + abs(score - 50) * 0.7 + (12 if data_quality == "complete" else 0) - (10 if cr == "high" else 0), 15, 75)
+    confidence = _clamp(35 + (coverage["summary"].get("available", 0) * 4) + (8 if setup != "no_trade" else -5) + (6 if rr and rr >= 1.5 else 0) - risk_penalty * 0.7 - data_quality_penalty, 15, 85)
     rating = "No-Trade" if setup == "no_trade" else "A-Tactical" if score >= 72 else "B-Tactical" if score >= 60 else "C-Tactical" if score >= 48 else "D-Tactical"
     action = {"breakout": "突破確認後偏多", "pullback": "拉回承接", "trend_continuation": "拉回觀察", "mean_reversion": "區間操作", "range_trade": "區間操作", "reversal_watch": "等待止穩", "no_trade": "避免追高" if cr == "high" else "暫不操作"}.get(setup, "暫不操作")
-    position_size = "avoid" if setup == "no_trade" else "small" if cr == "high" or data_quality == "limited" else "half" if confidence < 55 or cr == "medium" else "normal"
-    playbook = {"breakout": "等待突破壓力並確認量能，未站穩不追價；跌回突破區下方視為失效。", "pullback": "等待回測支撐或短期均線止穩，量縮不破可觀察；跌破結構支撐取消。", "trend_continuation": "趨勢延續但不追高，優先等待短線回測或量價同步確認。", "mean_reversion": "超跌反彈只做短線觀察，未重新站回支撐不提高部位。", "range_trade": "以區間下緣到中低區觀察，接近上緣降低追價。", "reversal_watch": "等待止穩與量能確認，未轉強前偏防守。", "no_trade": "目前報酬風險不足或資料品質不完整，今日不建立戰術部位。"}[setup]
-    return {"market": "TW", "stock_id": stock_id, "stock_name": stock_name, "strategy_id": TW_TACTICAL_VERSION, "strategy_type": "daily_tactical", "strategy_version": TW_TACTICAL_VERSION, "factor_version": TW_TACTICAL_FACTOR_VERSION, "factor_weights": TW_TACTICAL_WEIGHTS, "generated_at": now_taipei(), "direction": direction, "setup_type": setup, "action": action, "score": _round(score, 2), "rating": rating, "confidence": _round(confidence, 1), "entry_zone": levels.get("entry_zone"), "stop_invalidation": levels.get("stop_invalidation"), "target_1": levels.get("target_1"), "target_2": levels.get("target_2"), "expected_move_pct": levels.get("expected_move_pct"), "reward_risk": levels.get("reward_risk"), "chase_risk": cr, "event_risk": "unknown", "position_size": position_size, "time_horizon": "intraday_to_5d", "data_quality": data_quality, "source_status": source_status(tech), "technical_factors": tech, "support_resistance": sr, "chip_tactical": chip, "market_context": market, "reasons": reasons, "risk_reasons": risk_reasons or chase_reasons, "playbook": playbook, "advisory_only": True, "trading_or_order_executed": False}
+    position_size = "avoid" if setup == "no_trade" or data_quality == "insufficient" else "small" if cr == "high" or data_quality == "limited" else "half" if confidence < 58 or cr == "medium" else "normal"
+    playbook = {"breakout": "等待有效突破壓力並確認量能；未站穩突破區不追價，跌回失效區取消。", "pullback": "等待回測支撐或短期均線止穩；量縮不破可觀察，跌破結構支撐取消。", "trend_continuation": "趨勢延續但不追高，優先等待短線回測或量價同步確認。", "mean_reversion": "僅在超跌後出現止穩訊號時觀察；若中期結構繼續轉弱，不建立部位。", "range_trade": "接近區間支撐才具備操作價值；接近壓力不追價，跌破區間下緣取消。", "reversal_watch": "只列為觀察，等待止穩與量能確認，未轉強前偏防守。", "no_trade": "目前缺乏合理進場結構、資料品質不足或報酬風險不合格，暫不建立戰術部位。"}[setup]
+    if setup == "no_trade" and not risk_reasons: risk_reasons.append("no actionable tactical setup")
+    return {"market": "TW", "stock_id": stock_id, "stock_name": stock_name, "strategy_id": TW_TACTICAL_VERSION, "strategy_type": "daily_tactical", "strategy_version": "v1", "factor_version": TW_TACTICAL_FACTOR_VERSION, "factor_weights": TW_TACTICAL_WEIGHTS, "generated_at": now_taipei(), "direction": direction, "setup_type": setup, "action": action, "score": _round(score, 2), "rating": rating, "confidence": _round(confidence, 1), "entry_zone": levels.get("entry_zone"), "stop_invalidation": levels.get("stop_invalidation"), "target_1": levels.get("target_1"), "target_2": levels.get("target_2"), "expected_move_pct": levels.get("expected_move_pct"), "reward_risk": levels.get("reward_risk"), "level_method": levels.get("level_method"), "chase_risk": cr, "event_risk": "unknown", "position_size": position_size, "time_horizon": "intraday_to_5d", "data_quality": data_quality, "factor_coverage": coverage, "source_status": source_status(tech, stock_id), "technical_factors": tech, "support_resistance": sr, "chip_tactical": chip, "market_context": market, "score_components": components, "score_before_penalty": _round(score_before_penalty, 2), "risk_penalty": _round(risk_penalty, 2), "data_quality_penalty": _round(data_quality_penalty, 2), "final_score": _round(score, 2), "reasons": reasons, "risk_reasons": risk_reasons or chase_reasons, "playbook": {"setup_type": setup, "template": playbook, "entry_condition": "use deterministic entry_zone when present", "invalidation_condition": levels.get("stop_invalidation", {}).get("reason") if isinstance(levels.get("stop_invalidation"), dict) else "資料不足", "risk_context": risk_reasons or chase_reasons}, "advisory_only": True, "trading_or_order_executed": False}
 
 
 def prediction_snapshot(tactical: dict[str, Any], prediction_date: str) -> dict[str, Any]:
-    ez = tactical.get("entry_zone") or {}; t1 = tactical.get("target_1") or {}; t2 = tactical.get("target_2") or {}
-    return {"market": "TW", "strategy_type": "daily_tactical", "strategy_id": TW_TACTICAL_VERSION, "stock_id": tactical.get("stock_id"), "stock_name": tactical.get("stock_name"), "prediction_date": prediction_date, "direction": tactical.get("direction"), "setup_type": tactical.get("setup_type"), "entry_zone_low": ez.get("low"), "entry_zone_high": ez.get("high"), "stop_invalidation": tactical.get("stop_invalidation"), "target_1_low": t1.get("low"), "target_1_high": t1.get("high"), "target_2_low": t2.get("low"), "target_2_high": t2.get("high"), "expected_move_pct": tactical.get("expected_move_pct"), "reward_risk": tactical.get("reward_risk"), "confidence": tactical.get("confidence"), "position_size": tactical.get("position_size"), "data_quality": tactical.get("data_quality")}
+    ez = tactical.get("entry_zone") or {}; t1 = tactical.get("target_1") or {}; t2 = tactical.get("target_2") or {}; stop = tactical.get("stop_invalidation")
+    try: valid_until = (datetime.fromisoformat(prediction_date) + timedelta(days=7)).date().isoformat()
+    except ValueError: valid_until = prediction_date
+    return {"market": "TW", "strategy_type": "daily_tactical", "strategy_id": TW_TACTICAL_VERSION, "strategy_version": "v1", "factor_version": TW_TACTICAL_FACTOR_VERSION, "stock_id": tactical.get("stock_id"), "stock_name": tactical.get("stock_name"), "prediction_date": prediction_date, "valid_from": prediction_date, "valid_until": valid_until, "evaluation_windows": ["1D", "3D", "5D"], "direction": tactical.get("direction"), "setup_type": tactical.get("setup_type"), "entry_zone_low": ez.get("low"), "entry_zone_high": ez.get("high"), "stop_invalidation": _stop_price(stop), "stop_reason": stop.get("reason") if isinstance(stop, dict) else None, "target_1_low": t1.get("low"), "target_1_high": t1.get("high"), "target_2_low": t2.get("low"), "target_2_high": t2.get("high"), "expected_move_pct": tactical.get("expected_move_pct"), "reward_risk": tactical.get("reward_risk"), "confidence": tactical.get("confidence"), "position_size": tactical.get("position_size"), "data_quality": tactical.get("data_quality"), "score_components": tactical.get("score_components"), "prediction_status": "no_trade" if tactical.get("setup_type") == "no_trade" else "active" if ez else "insufficient_data"}
 
 
 def review_snapshot(tactical: dict[str, Any], rows: list[dict[str, Any]], windows: list[int] | None = None) -> dict[str, Any]:
     windows = windows or [1, 3, 5]
-    base = {"market": "TW", "strategy_type": "daily_tactical", "strategy_id": TW_TACTICAL_VERSION, "stock_id": tactical.get("stock_id"), "stock_name": tactical.get("stock_name"), "evaluation_windows": windows, "trigger_aware": True}
-    if tactical.get("setup_type") == "no_trade":
-        return {**base, "status": "no_trade", "reason": "No Trade setup intentionally avoided"}
-    if not rows or not tactical.get("entry_zone"):
-        return {**base, "status": "insufficient_data", "reason": "Missing outcome rows or entry zone"}
-    future = rows[-max(windows):]
-    entry = tactical["entry_zone"]; stop = _num(tactical.get("stop_invalidation")); t1 = tactical.get("target_1") or {}; t2 = tactical.get("target_2") or {}
+    base = {"market": "TW", "strategy_type": "daily_tactical", "strategy_id": TW_TACTICAL_VERSION, "strategy_version": "v1", "factor_version": TW_TACTICAL_FACTOR_VERSION, "stock_id": tactical.get("stock_id"), "stock_name": tactical.get("stock_name"), "evaluation_windows": [f"{w}D" for w in windows], "trigger_aware": True, "same_bar_policy": "conservative_stop_first", "not_triggered_is_not_loss": True}
+    if tactical.get("setup_type") == "no_trade": return {**base, "review_status": "no_trade", "status": "no_trade", "reason": "No Trade setup intentionally avoided", "entry_triggered": False, "counted_as_win_loss": False}
+    if not rows or not tactical.get("entry_zone"): return {**base, "review_status": "insufficient_data", "status": "insufficient_data", "reason": "Missing outcome rows or entry zone"}
+    future = rows[-max(windows):]; entry = tactical["entry_zone"]; stop = _stop_price(tactical.get("stop_invalidation")); t1 = tactical.get("target_1") or {}; t2 = tactical.get("target_2") or {}
     entry_low, entry_high = _num(entry.get("low")), _num(entry.get("high"))
-    if entry_low is None or entry_high is None or stop is None:
-        return {**base, "status": "insufficient_data", "reason": "Missing deterministic levels"}
-    touched = any((r.get("low") or 0) <= entry_high and (r.get("high") or 0) >= entry_low for r in future)
-    if not touched:
-        return {**base, "status": "not_triggered", "entry_zone_touched": False, "not_triggered_is_not_loss": True}
-    hit_stop = any((r.get("low") or 0) <= stop for r in future)
-    hit_t1 = any((r.get("high") or 0) >= (_num(t1.get("low")) or 10**12) for r in future)
-    hit_t2 = any((r.get("high") or 0) >= (_num(t2.get("low")) or 10**12) for r in future)
-    status = "loss" if hit_stop and not hit_t1 else "breakeven" if hit_stop and hit_t1 else "win" if hit_t1 else "not_triggered"
-    entry_mid = (entry_low + entry_high) / 2
-    highs = [r.get("high") for r in future if r.get("high") is not None]
-    lows = [r.get("low") for r in future if r.get("low") is not None]
-    return {**base, "status": status, "entry_zone_touched": touched, "stop_breached": hit_stop, "target_1_reached": hit_t1, "target_2_reached": hit_t2, "mfe": _round(None if not highs else max(highs) - entry_mid), "mae": _round(None if not lows else min(lows) - entry_mid), "realized_reward_risk": tactical.get("reward_risk") if hit_t1 else None, "same_bar_policy": "conservative_stop_first"}
+    if entry_low is None or entry_high is None or stop is None: return {**base, "review_status": "insufficient_data", "status": "insufficient_data", "reason": "Missing deterministic levels"}
+    entry_idx = stop_idx = t1_idx = t2_idx = None
+    for idx, row in enumerate(future):
+        low = _num(row.get("low")); high = _num(row.get("high"))
+        if low is None or high is None: continue
+        if entry_idx is None and low <= entry_high and high >= entry_low: entry_idx = idx
+        if entry_idx is not None:
+            if stop_idx is None and low <= stop: stop_idx = idx
+            if t1_idx is None and high >= (_num(t1.get("low")) or 10**12): t1_idx = idx
+            if t2_idx is None and high >= (_num(t2.get("low")) or 10**12): t2_idx = idx
+    if entry_idx is None: return {**base, "review_status": "not_triggered", "status": "not_triggered", "entry_triggered": False, "not_triggered_is_not_loss": True, "counted_as_win_loss": False}
+    status = "loss" if stop_idx is not None and (t1_idx is None or stop_idx <= t1_idx) else "breakeven" if t1_idx is not None and stop_idx is not None else "win" if t1_idx is not None else "expired"
+    entry_mid = (entry_low + entry_high) / 2; highs = [_num(r.get("high")) for r in future if _num(r.get("high")) is not None]; lows = [_num(r.get("low")) for r in future if _num(r.get("low")) is not None]
+    return {**base, "review_status": status, "status": status, "entry_triggered": True, "entry_first_trigger_index": entry_idx, "entry_first_trigger_window": f"{entry_idx + 1}D", "stop_breached": stop_idx is not None, "stop_first_trigger_index": stop_idx, "target_1_reached": t1_idx is not None, "target_1_first_trigger_index": t1_idx, "target_2_reached": t2_idx is not None, "target_2_first_trigger_index": t2_idx, "mfe": _round(None if not highs else max(highs) - entry_mid), "mae": _round(None if not lows else min(lows) - entry_mid), "realized_reward_risk": tactical.get("reward_risk") if status in {"win", "breakeven"} else -1 if status == "loss" else None, "false_breakout": tactical.get("setup_type") == "breakout" and status == "loss", "outcome_data_quality": "partial", "counted_as_win_loss": status in {"win", "loss", "breakeven"}}
 
 
 def build_runtime() -> dict[str, Any]:
-    stocks = load_formal_stocks()
-    tech_by_stock: dict[str, dict[str, Any]] = {}; rows_by_stock: dict[str, list[dict[str, Any]]] = {}
+    stocks = load_formal_stocks(); tech_by_stock: dict[str, dict[str, Any]] = {}; rows_by_stock: dict[str, list[dict[str, Any]]] = {}
     for stock in stocks:
-        sid = str(stock.get("stock_id") or "")
-        rows = read_ohlcv(sid); rows_by_stock[sid] = rows; tech_by_stock[sid] = technical_factors(rows)
-    market = market_context(tech_by_stock)
-    generated_at = now_taipei()
-    cards = []; predictions = []; reviews = []
+        sid = str(stock.get("stock_id") or ""); rows = read_ohlcv(sid); rows_by_stock[sid] = rows; tech_by_stock[sid] = technical_factors(rows)
+    market = market_context(tech_by_stock); generated_at = now_taipei(); cards = []; predictions = []; reviews = []
     for stock in stocks:
-        sid = str(stock.get("stock_id") or "")
-        tactical = build_tactical(stock, tech_by_stock.get(sid, {}), market)
+        sid = str(stock.get("stock_id") or ""); tactical = build_tactical(stock, tech_by_stock.get(sid, {}), market)
         research = {"market": "TW", "strategy_type": "research_position", "strategy_version": "tw_research_position_existing_v1", "score": stock.get("score"), "rating": stock.get("rating", "資料待接"), "action": stock.get("action", "資料待接"), "confidence": stock.get("confidence_score"), "prediction": {"same_day_high_low": {"high": stock.get("same_day_predicted_high"), "low": stock.get("same_day_predicted_low")}, "next_day_high_low": {"high": stock.get("next_day_predicted_high"), "low": stock.get("next_day_predicted_low")}, "one_month_trend": stock.get("one_month_trend"), "three_month_trend": stock.get("three_month_trend")}, "preserved_existing_behavior": True}
-        pred = prediction_snapshot(tactical, generated_at[:10]); review = review_snapshot(tactical, rows_by_stock.get(sid, []))
-        predictions.append(pred); reviews.append({"stock_id": sid, "stock_name": tactical.get("stock_name"), **review})
-        cards.append({"stock_id": sid, "stock_name": tactical.get("stock_name"), "strategies": {"research_position": research, "daily_tactical": tactical}, "prediction_snapshot": pred, "review_snapshot": review})
-    counts = {"observable": sum(1 for c in cards if c["strategies"]["daily_tactical"].get("setup_type") != "no_trade"), "no_trade": sum(1 for c in cards if c["strategies"]["daily_tactical"].get("setup_type") == "no_trade"), "high_chase_risk": sum(1 for c in cards if c["strategies"]["daily_tactical"].get("chase_risk") == "high")}
-    return {"schema_version": "tw_daily_tactical_runtime_v1", "artifact_type": "tw_daily_tactical_runtime", "artifact_mode": "production_runtime", "market": "TW", "strategy_type": "daily_tactical", "strategy_id": TW_TACTICAL_VERSION, "generated_at": generated_at, "source_mode": "read_only_local_historical_ohlcv_plus_existing_tw_artifacts", "stock_count": len(cards), "factor_version": TW_TACTICAL_FACTOR_VERSION, "factor_weights": TW_TACTICAL_WEIGHTS, "market_context": market, "cards": cards, "prediction_snapshots": predictions, "review_snapshots": reviews, "line_summary": {"research_bullish": 0, "research_neutral": len(cards), "research_conservative": 0, "daily_tactical_observable": counts["observable"], "daily_tactical_no_trade": counts["no_trade"], "high_chase_risk": counts["high_chase_risk"], "line_full_report": False}, "email_contract": {"contains_research_position": True, "contains_daily_tactical": True, "contains_entry_stop_target_rr": True, "notification_sent": False}, "safety": {"notification_sent": False, "line_attempted": False, "email_attempted": False, "scheduler_modified": False, "trading_or_order_executed": False, "python_main_executed": False, "production_pipeline_executed": False, "secrets_read": False}}
+        pred = prediction_snapshot(tactical, generated_at[:10]); review = review_snapshot(tactical, rows_by_stock.get(sid, [])); predictions.append(pred); reviews.append({"stock_id": sid, "stock_name": tactical.get("stock_name"), **review}); cards.append({"stock_id": sid, "stock_name": tactical.get("stock_name"), "strategies": {"research_position": research, "daily_tactical": tactical}, "prediction_snapshot": pred, "review_snapshot": review})
+    observable = sum(1 for c in cards if c["strategies"]["daily_tactical"].get("setup_type") != "no_trade"); no_trade = sum(1 for c in cards if c["strategies"]["daily_tactical"].get("setup_type") == "no_trade"); high_chase = sum(1 for c in cards if c["strategies"]["daily_tactical"].get("chase_risk") == "high"); limited = sum(1 for c in cards if c["strategies"]["daily_tactical"].get("data_quality") in {"limited", "insufficient"})
+    quality_counts: dict[str, int] = {}
+    for c in cards:
+        q = str(c["strategies"]["daily_tactical"].get("data_quality")); quality_counts[q] = quality_counts.get(q, 0) + 1
+    runtime_health = {"google_sheet_status": "read_via_formal_prediction_runtime", "shioaji_status": "not_initialized_by_tactical_builder", "twse_status": "not_connected_in_v1", "historical_data_status": "available" if cards else "unavailable", "news_status": "unavailable", "chip_status": "partial_or_not_applicable", "tactical_coverage": f"{len(cards)}/{len(stocks)}", "prediction_coverage": f"{len(predictions)}/{len(stocks)}", "pipeline_duration_seconds": None, "generated_at": generated_at}
+    delivery_readiness = {"expected_stock_count": len(stocks), "actual_stock_count": len(cards), "research_coverage": sum(1 for c in cards if c["strategies"].get("research_position")), "tactical_coverage": len(cards), "prediction_coverage": len(predictions), "stale_artifact_count": 0, "insufficient_data_count": limited, "dashboard_ready": bool(cards), "email_ready": bool(cards), "line_ready": bool(cards), "blocking_reasons": [] if cards else ["no TW stocks loaded from formal prediction runtime"]}
+    return {"schema_version": "tw_daily_tactical_runtime_v1", "artifact_type": "tw_daily_tactical_runtime", "artifact_mode": "production_runtime", "market": "TW", "strategy_type": "daily_tactical", "strategy_id": TW_TACTICAL_VERSION, "generated_at": generated_at, "source_mode": "read_only_local_historical_ohlcv_plus_existing_tw_artifacts", "stock_count": len(cards), "factor_version": TW_TACTICAL_FACTOR_VERSION, "factor_weights": TW_TACTICAL_WEIGHTS, "market_context": market, "runtime_health": runtime_health, "delivery_readiness": delivery_readiness, "data_quality_distribution": quality_counts, "cards": cards, "prediction_snapshots": predictions, "review_snapshots": reviews, "line_summary": {"research_bullish": 0, "research_neutral": len(cards), "research_conservative": 0, "daily_tactical_observable": observable, "daily_tactical_no_trade": no_trade, "high_chase_risk": high_chase, "data_limited": limited, "line_full_report": False}, "email_contract": {"contains_research_position": True, "contains_daily_tactical": True, "contains_entry_stop_target_rr": True, "notification_sent": False}, "safety": {"notification_sent": False, "line_attempted": False, "email_attempted": False, "scheduler_modified": False, "trading_or_order_executed": False, "python_main_executed": False, "production_pipeline_executed": False, "secrets_read": False}}

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-10T21:42:30+08:00",
+  "generated_at": "2026-07-13T10:06:02+08:00",
   "landing_url": "http://35.201.242.167/stock-ai-dashboard/index.html",
   "market_isolation": {
     "cross_market_fallback": false,
@@ -16,6 +16,6 @@
   "schema_version": "multi_market_dashboard_v2_build_v1",
   "task_id": "AI-DEV-170",
   "tw_url": "http://35.201.242.167/stock-ai-dashboard/dashboard/tw/index.html",
-  "us_stock_count": 3,
+  "us_stock_count": 6,
   "us_url": "http://35.201.242.167/stock-ai-dashboard/dashboard/us/index.html"
 }

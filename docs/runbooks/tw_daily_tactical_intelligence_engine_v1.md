@@ -2,213 +2,76 @@
 
 ## Purpose
 
-TW Daily Tactical adds a deterministic short-term strategy beside the existing TW Research / Position strategy. The tactical layer focuses on the current session, next session, and roughly 1-5 trading days. It is research guidance only and never creates orders.
+TW Daily Tactical adds a deterministic short-term strategy beside the existing TW Research / Position strategy. It answers whether a stock has tactical value today through roughly 1-5 trading days. It is research guidance only and never creates orders.
 
 ## Strategy Isolation
 
-Every stock keeps two independent strategy outputs:
-
-- `research_position`: existing TW medium-term score, rating, action, prediction, 1M/3M view, and confidence.
-- `daily_tactical`: new short-term setup, entry zone, invalidation, stop reference, targets, reward/risk, confidence, playbook, and review.
-
-Daily Tactical does not overwrite Research. Conflicting conclusions are valid, for example Research may stay neutral or constructive while Tactical says avoid chasing.
+Every TW card contains `strategies.research_position` and `strategies.daily_tactical`. Research keeps existing score/rating/action/prediction behavior. Tactical has its own factor version, score components, action, entry, invalidation, targets, reward/risk, prediction snapshot, and trigger-aware review. Tactical never overwrites Research.
 
 ## Market Isolation
 
-TW Tactical uses TW-only inputs:
+TW Tactical uses only Taiwan market inputs: local TW historical OHLCV, TW technical indicators, volume, support/resistance, TW chip/flow contract, TW market context proxy, and TW news/event status when available. It does not use US premarket, SEC, SPY, QQQ, VIX, US sector ETFs, or 工作表2 data.
 
-- local historical OHLCV
-- TW technical indicators
-- TW volume and range context
-- TW chip/flow contract, with unavailable institutional/margin data marked explicitly
-- TW market breadth/volume proxy from the TW watchlist
-- TW news/event status when available
+## Actual Data Source Inventory
 
-TW Tactical must not use US premarket, SPY, QQQ, VIX, US sector ETFs, SEC, or US event logic. US runtime and US Tactical behavior are unchanged.
+Current production-safe V1 sources are local historical OHLCV and existing TW formal runtime artifacts. TWSE institutional flow, margin/short, broad market breadth, and news/event details are explicit `unavailable` or `not_applicable` where not connected. Missing data lowers confidence and position size instead of being fabricated.
 
-## Factor Coverage
+## Factor Definitions
 
-Price and trend factors:
+Price/trend: MA5, MA10, MA20, MA60, MA20/MA60 slope, RSI14, MACD/signal/histogram, Bollinger bands/width, ATR14, 5/10/20 day high-low, range position, MA deviation, volatility state.
 
-- MA5 / MA10 / MA20 / MA60
-- MA20 slope / MA60 slope
-- RSI14
-- MACD / signal / histogram
-- Bollinger upper / middle / lower and width
-- ATR14 and ATR percentage
-- 5 / 10 / 20 day high-low ranges
-- current range position
-- short/mid trend consistency
+Volume: latest daily volume, volume MA5, volume MA20, daily relative volume, expansion/contraction, price-volume confirmation, breakout volume confirmation. Daily relative volume is based on daily bars and is not described as real-time intraday RVOL.
 
-Volume factors:
+Support/resistance: recent swing high/low, 5/10/20 day high-low, MA5/MA10/MA20/MA60, Bollinger band, ATR buffer, and Taiwan tick-size rounding.
 
-- Volume MA5 / MA20
-- Relative volume based on daily bars
-- Volume expansion / contraction
-- Price-volume confirmation
-- Breakout volume confirmation
+Chip: chip direction, chip score, institutional flow shell, margin risk shell, short signal, flow confirmation, chip data quality. ETF-specific fields are `not_applicable`.
 
-Chip factors:
-
-- `chip_direction`
-- `chip_score`
-- `institutional_flow`
-- `margin_risk`
-- `short_interest_signal`
-- `flow_confirmation`
-
-When institutional or margin data is unavailable, the engine marks the source as unavailable and lowers data quality/confidence instead of inventing neutral completeness.
-
-## Tactical Weights
-
-`tw_daily_tactical_factor_v1` uses versioned weights:
-
-- technical_setup: 22%
-- volume_confirmation: 16%
-- chip_flow: 14%
-- market_context: 12%
-- risk_quality: 18%
-- data_quality: 18%
-
-The Dashboard reads the output, not the weight constants. Validators protect the weight keys and strategy version.
+Market context: watchlist breadth proxy, market volume status, market risk, market regime. Broad TWSE/OTC breadth remains unavailable until connected.
 
 ## Setup Rules
 
-Supported setup types:
+Supported setups: `breakout`, `pullback`, `trend_continuation`, `mean_reversion`, `range_trade`, `reversal_watch`, `no_trade`. Each setup has deterministic trigger logic, reasons, risk reasons, invalidation, and a fixed playbook template. Limited 10-19 bar history can only produce conservative range/reversal observations with low confidence.
 
-- `breakout`: price breaks recent resistance with trend and volume support, while RSI is not extremely overheated.
-- `pullback`: trend remains constructive and price pulls back into MA/support with controlled risk.
-- `trend_continuation`: price remains above key moving averages with constructive momentum.
-- `mean_reversion`: price is stretched toward lower band or oversold while structure is not broken.
-- `range_trade`: price remains in a defined range with acceptable reward/risk.
-- `reversal_watch`: early turn signal with incomplete confirmation.
-- `no_trade`: reward/risk, data quality, volatility, chase risk, liquidity, chip conflict, or event uncertainty is not acceptable.
+## Entry / Stop / Target
 
-## Entry / Stop / Target Methodology
+Entry depends on setup: breakout uses resistance plus ATR buffer; pullback uses support/MA/ATR; mean reversion uses lower band/support; range trade uses lower-to-mid range. Stop/invalidation uses structure plus ATR and tick-size rounding. Targets use resistance, ATR extension, range projection, and reward/risk. No LLM-generated price levels are allowed.
 
-All numeric levels are deterministic.
+Reward/risk uses representative entry, stop, and target: `(target_1_mid - entry_mid) / max(entry_mid - stop, small_positive_value)` for long/neutral tactical observations, with absolute distance handling in runtime. Low reward/risk downgrades rating or emits no_trade.
 
-Entry zone depends on setup:
+## Score and Confidence
 
-- Breakout: resistance area plus a small ATR-based confirmation buffer.
-- Pullback: support and short moving-average area with ATR allowance.
-- Mean reversion: lower band/support area.
-- Range trade: lower to middle range area.
+`tw_daily_tactical_factor_v1` weights: technical_setup 22%, volume_confirmation 16%, chip_flow 14%, market_context 12%, risk_quality 18%, data_quality 18%. Runtime stores score components, score_before_penalty, risk_penalty, data_quality_penalty, and final_score. Confidence is separate from score and reflects coverage, setup confirmation, reward/risk, chase risk, market risk, and missing data.
 
-Stop / invalidation uses structural support and ATR, not a fixed percent.
+## Chase Risk and Position Size
 
-Targets use nearby resistance, recent highs, Bollinger bands, and ATR-derived move expectations.
-
-Reward/risk formula:
-
-```text
-reward_risk = (target_1_mid - entry_mid) / max(entry_mid - stop_invalidation, small_positive_value)
-```
-
-If reward/risk is too poor or risk is excessive, the engine downgrades position size or emits `no_trade`.
-
-## Data Quality Downgrade
-
-Sources are marked as:
-
-- available
-- partial
-- unavailable
-- stale
-
-Limited data lowers confidence. Critical gaps can force `no_trade`. Missing fields remain explicit; the engine does not fabricate values.
+Chase risk considers MA5/MA20 deviation, RSI, Bollinger upper proximity, ATR expansion, resistance/target proximity, and weak volume confirmation. High chase risk can output avoid/wait-for-pullback even when Research is constructive. Position size is `normal`, `half`, `small`, or `avoid`.
 
 ## Prediction Lifecycle
 
-Each stock gets a TW Daily Tactical prediction snapshot with:
-
-- market = TW
-- strategy_type = daily_tactical
-- stock_id
-- prediction_date
-- direction
-- setup_type
-- entry zone
-- stop / invalidation
-- target 1 / target 2
-- expected move
-- reward/risk
-- confidence
-- position size
-- data quality
-
-Research predictions remain unchanged.
+Each stock has an independent TW Tactical prediction snapshot with market, strategy_id, strategy_type, stock_id, prediction_date, valid_from, valid_until, 1D/3D/5D windows, direction, setup, entry, stop, targets, expected move, reward/risk, confidence, position size, data quality, score components, and prediction_status. Research predictions remain unchanged.
 
 ## Review Lifecycle
 
-The review contract is trigger-aware and supports:
+The review is trigger-aware and supports win, loss, breakeven, not_triggered, no_trade, expired, insufficient_data, and pending. It records entry trigger, stop/target trigger indices, conservative same-bar policy, MFE, MAE, realized reward/risk, false breakout, and whether the outcome counts as win/loss. No Trade is reviewed separately and is not counted as a normal win/loss.
 
-- win
-- loss
-- breakeven
-- not_triggered
-- no_trade
-- expired
-- insufficient_data
+## Dashboard / Email / LINE
 
-A setup is not counted as a loss if the entry zone was never triggered. Same-day stop/target ambiguity uses conservative handling. Review fields include entry touched, stop breached, target reached, MFE, MAE, realized reward/risk, false breakout, and pending reason.
+TW Dashboard shows Research and Daily Tactical separately. Daily Tactical displays direction, setup, action, score/rating/confidence, entry, stop/invalidation, targets, expected move, reward/risk, chase risk, event risk, position size, data quality, factor coverage, score components, reasons, risk reasons, playbook, and review.
 
-## Dashboard Contract
+TW Email preview includes Research + Tactical and tactical entry/stop/target/RR. TW LINE stays concise with counts only; no full price table. Validation sends no Email or LINE.
 
-TW Dashboard shows:
+## Runtime Health and Delivery Readiness
 
-- 中長期量化策略
-- 每日短期操作策略
-
-Each TW tactical card includes direction, setup, action, score, rating, confidence, entry zone, stop/invalidation, target 1, target 2, expected move, reward/risk, chase risk, event risk, position size, data quality, reasons, risks, playbook, and prediction review.
-
-US Dashboard is not changed by this task.
-
-## Email / LINE Contract
-
-TW Email includes Research / Position Strategy, Daily Tactical Strategy, and risk/data-quality context. The tactical section can include setup, entry, stop, target, reward/risk, confidence, and no-trade reasons.
-
-TW LINE remains concise and contains only counts, risk summary, and Dashboard URL. It does not include full entry/stop/target tables.
-
-No validation run sends LINE or Email.
+Runtime artifacts include `runtime_health` and `delivery_readiness`: stock counts, tactical coverage, prediction coverage, insufficient-data counts, dashboard/email/line readiness, and blocking reasons. Secrets, sessions, raw network logs, and credentials are never displayed.
 
 ## Controlled Runtime
 
-Allowed:
-
-- dry-run build
-- runtime artifact build without approved delivery
-- Dashboard controlled publish
-
-Forbidden:
-
-- `python3 main.py`
-- orders/trades
-- scheduler time changes
-- secrets or PIN reads
-- unscheduled LINE/Email
-- US Tactical rule changes
+Allowed: fixture/unit validation, dry-run, production artifact build without delivery approval, controlled TW artifact refresh, controlled Dashboard publish. Forbidden: `python3 main.py`, production-approved delivery, orders, scheduler changes, secrets, unscheduled notifications, US tactical changes.
 
 ## Rollback
 
-1. Revert the AI-DEV-174 commit from main if needed.
-2. Rebuild/publish the previous Dashboard backup.
-3. Remove `artifacts/runtime/tw_daily_tactical` runtime artifacts if they are no longer desired.
-4. Leave scheduler unchanged.
-
-## Validation Commands
-
-```bash
-python3 -m py_compile app/strategy/tw_daily_tactical.py scripts/orchestrator/build_tw_daily_tactical_runtime_v1.py scripts/orchestrator/validate_tw_daily_tactical_intelligence_engine_v1.py
-python3 scripts/orchestrator/build_tw_daily_tactical_runtime_v1.py --pretty
-python3 scripts/orchestrator/validate_tw_daily_tactical_intelligence_engine_v1.py --pretty
-python3 scripts/orchestrator/validate_dual_strategy_intelligence_engine_v1.py --pretty
-python3 scripts/orchestrator/validate_multi_market_dashboard_v2_us_link_isolation_v1.py --pretty
-python3 scripts/orchestrator/validate_ai_branch.py --base main --head HEAD --pretty
-```
+Revert the AI-DEV-174 commit, rebuild/publish the prior Dashboard backup, and leave scheduler unchanged. Runtime artifacts can be regenerated from the previous main if needed.
 
 ## Known Limitations
 
-- Institutional flow and margin/short data are marked unavailable unless the current runtime provides safe source artifacts.
-- Broad TW market breadth is approximated from the tracked universe until official breadth data is connected.
-- V1 does not claim profitability; it creates a backtest-ready deterministic tactical contract.
+Current V1 marks detailed TWSE institutional flow, margin/short, official broad market breadth, and event/news details unavailable unless already present in safe runtime artifacts. Limited local history produces conservative observation only and does not claim performance.
