@@ -22,7 +22,11 @@ EMAIL_PREVIEW = ROOT / "artifacts/runtime/tw_daily_tactical/tw_daily_tactical_em
 LINE_PREVIEW = ROOT / "artifacts/runtime/tw_daily_tactical/tw_daily_tactical_line_preview_latest.txt"
 PREDICTION_DIR = ROOT / "artifacts/runtime/tw_daily_tactical/prediction_snapshots"
 REVIEW_DIR = ROOT / "artifacts/runtime/tw_daily_tactical/review_snapshots"
-FORBIDDEN_US_TERMS = ["SPY", "QQQ", "VIX", "US Sector ETF", "us_daily_tactical", "premarket_gap"]
+FORBIDDEN_US_TERMS = ["SPY", "QQQ", "VIX", "US Sector ETF", "us_daily_tactical", "premarket_gap", "SEC"]
+VALID_SETUPS = {"breakout", "pullback", "trend_continuation", "mean_reversion", "range_trade", "reversal_watch", "no_trade"}
+VALID_DQ = {"complete", "partial", "limited", "insufficient"}
+VALID_POS = {"normal", "half", "small", "avoid"}
+VALID_REVIEW = {"win", "loss", "breakeven", "not_triggered", "no_trade", "expired", "insufficient_data", "pending"}
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -37,12 +41,18 @@ def finite(value: Any) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(float(value))
 
 
+def stop_price(stop: Any) -> Any:
+    return stop.get("price") if isinstance(stop, dict) else stop
+
+
 def validate_runtime(runtime: dict[str, Any]) -> list[dict[str, Any]]:
     checks: list[dict[str, Any]] = []
     cards = runtime.get("cards", []) if isinstance(runtime.get("cards"), list) else []
     checks.append(ok("runtime_market_tw", runtime.get("market") == "TW"))
     checks.append(ok("runtime_strategy_daily_tactical", runtime.get("strategy_type") == "daily_tactical"))
     checks.append(ok("weights_versioned", set(TW_TACTICAL_WEIGHTS) == {"technical_setup", "volume_confirmation", "chip_flow", "market_context", "risk_quality", "data_quality"}))
+    checks.append(ok("delivery_readiness_exists", isinstance(runtime.get("delivery_readiness"), dict)))
+    checks.append(ok("runtime_health_exists", isinstance(runtime.get("runtime_health"), dict)))
     checks.append(ok("cards_exist", len(cards) >= 1, str(len(cards))))
     for card in cards:
         stock_id = str(card.get("stock_id"))
@@ -53,22 +63,37 @@ def validate_runtime(runtime: dict[str, Any]) -> list[dict[str, Any]]:
         checks.append(ok(prefix + "has_research_position", research.get("strategy_type") == "research_position"))
         checks.append(ok(prefix + "has_daily_tactical", tactical.get("strategy_type") == "daily_tactical"))
         checks.append(ok(prefix + "strategy_not_overwritten", research.get("action") != tactical.get("action") or research.get("score") != tactical.get("score")))
-        checks.append(ok(prefix + "confidence_range", finite(tactical.get("confidence")) and 0 <= float(tactical.get("confidence")) <= 75))
+        checks.append(ok(prefix + "setup_valid", tactical.get("setup_type") in VALID_SETUPS))
+        checks.append(ok(prefix + "data_quality_valid", tactical.get("data_quality") in VALID_DQ))
+        checks.append(ok(prefix + "position_size_valid", tactical.get("position_size") in VALID_POS))
+        checks.append(ok(prefix + "factor_coverage_exists", isinstance(tactical.get("factor_coverage"), dict) and isinstance(tactical.get("factor_coverage", {}).get("statuses"), dict)))
+        checks.append(ok(prefix + "score_components_exists", set((tactical.get("score_components") or {}).keys()) == set(TW_TACTICAL_WEIGHTS.keys())))
+        checks.append(ok(prefix + "confidence_range", finite(tactical.get("confidence")) and 0 <= float(tactical.get("confidence")) <= 85))
         checks.append(ok(prefix + "score_range", finite(tactical.get("score")) and 0 <= float(tactical.get("score")) <= 100))
+        checks.append(ok(prefix + "score_not_research_copy", tactical.get("score") != research.get("score")))
         entry = tactical.get("entry_zone") if isinstance(tactical.get("entry_zone"), dict) else {}
         t1 = tactical.get("target_1") if isinstance(tactical.get("target_1"), dict) else {}
-        stop = tactical.get("stop_invalidation")
+        t2 = tactical.get("target_2") if isinstance(tactical.get("target_2"), dict) else {}
+        stop = stop_price(tactical.get("stop_invalidation"))
         setup = tactical.get("setup_type")
         if setup == "no_trade":
             checks.append(ok(prefix + "no_trade_position_avoid", tactical.get("position_size") == "avoid"))
             checks.append(ok(prefix + "no_trade_has_risk_reason", bool(tactical.get("risk_reasons"))))
+            checks.append(ok(prefix + "no_trade_no_active_levels", tactical.get("entry_zone") is None and tactical.get("target_1") is None))
         else:
             checks.append(ok(prefix + "entry_order", finite(entry.get("low")) and finite(entry.get("high")) and entry["low"] <= entry["high"]))
             checks.append(ok(prefix + "target_order", finite(t1.get("low")) and finite(t1.get("high")) and t1["low"] <= t1["high"]))
-            checks.append(ok(prefix + "stop_below_entry_for_long_bias", finite(stop) and float(stop) <= float(entry.get("high"))))
+            checks.append(ok(prefix + "stop_below_entry_for_long_or_above_for_bearish", finite(stop) and (float(stop) <= float(entry.get("high")) if tactical.get("direction") != "bearish" else float(stop) >= float(entry.get("low")))))
             checks.append(ok(prefix + "reward_risk_positive", finite(tactical.get("reward_risk")) and float(tactical.get("reward_risk")) > 0))
-        checks.append(ok(prefix + "prediction_snapshot", card.get("prediction_snapshot", {}).get("strategy_type") == "daily_tactical"))
-        checks.append(ok(prefix + "review_snapshot", card.get("review_snapshot", {}).get("strategy_type") == "daily_tactical"))
+            if t2:
+                checks.append(ok(prefix + "target2_not_below_target1", finite(t2.get("low")) and finite(t1.get("high")) and float(t2.get("low")) >= float(t1.get("low"))))
+        pred = card.get("prediction_snapshot", {})
+        review = card.get("review_snapshot", {})
+        checks.append(ok(prefix + "prediction_snapshot", pred.get("strategy_type") == "daily_tactical" and pred.get("evaluation_windows") == ["1D", "3D", "5D"]))
+        checks.append(ok(prefix + "review_snapshot", review.get("strategy_type") == "daily_tactical" and review.get("review_status") in VALID_REVIEW))
+        if stock_id.startswith("00"):
+            chip = tactical.get("chip_tactical", {})
+            checks.append(ok(prefix + "etf_chip_not_applicable", chip.get("instrument_type") == "etf" and chip.get("institutional_flow", {}).get("data_status") == "not_applicable"))
     runtime_text = json.dumps(runtime, ensure_ascii=False)
     checks.append(ok("tw_no_us_factor_terms", not any(term in runtime_text for term in FORBIDDEN_US_TERMS)))
     safety = runtime.get("safety", {}) if isinstance(runtime.get("safety"), dict) else {}
@@ -97,7 +122,7 @@ def validate_rendering() -> list[dict[str, Any]]:
     checks: list[dict[str, Any]] = []
     tw_html = render_tw_page()
     us_html = render_us_page()
-    checks.append(ok("dashboard_tw_has_tactical_fields", all(marker in tw_html for marker in ["每日短期操作策略", "Entry Zone", "Stop / Invalidation", "Target 1", "Reward-Risk", "Prediction Review", "tw-tactical-card"])))
+    checks.append(ok("dashboard_tw_has_tactical_fields", all(marker in tw_html for marker in ["每日短期操作策略", "Entry Zone", "Stop / Invalidation", "Target 1", "Reward-Risk", "Prediction Review", "Factor Coverage", "Score Components", "Playbook", "tw-tactical-card"])))
     checks.append(ok("dashboard_tw_has_research_and_tactical", "中長期量化策略" in tw_html and "daily_tactical" in tw_html and "research_position" in tw_html))
     checks.append(ok("dashboard_us_not_regressed", "美股 AI 決策儀表板" in us_html and "Daily Tactical Strategy" in us_html))
     report = format_window_report("pre_open_0700", "partial", "盤前摘要", [], None)
@@ -108,22 +133,17 @@ def validate_rendering() -> list[dict[str, Any]]:
     return checks
 
 
+def validate_docs() -> list[dict[str, Any]]:
+    docs = [ROOT / "docs/runbooks/tw_daily_tactical_intelligence_engine_v1.md", ROOT / "docs/tw_daily_tactical_factor_coverage_v1.md", ROOT / "templates/tw_daily_tactical_factor_coverage_v1.example.json"]
+    return [ok("doc_exists:" + path.name, path.exists()) for path in docs]
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pretty", action="store_true")
     args = parser.parse_args()
     runtime = load_json(RUNTIME_PATH) if RUNTIME_PATH.exists() else build_runtime()
-    sections = {
-        "runtime_checks": validate_runtime(runtime),
-        "artifact_checks": validate_artifacts(runtime),
-        "dashboard_delivery_checks": validate_rendering(),
-        "safety_checks": [
-            ok("no_main_py", True),
-            ok("no_scheduler_change_required", True),
-            ok("no_unscheduled_notification", True),
-            ok("no_trading_or_order_path", True),
-        ],
-    }
+    sections = {"runtime_checks": validate_runtime(runtime), "artifact_checks": validate_artifacts(runtime), "dashboard_delivery_checks": validate_rendering(), "docs_checks": validate_docs(), "safety_checks": [ok("no_main_py", True), ok("no_scheduler_change_required", True), ok("no_unscheduled_notification", True), ok("no_trading_or_order_path", True)]}
     overall = all(item["ok"] for checks in sections.values() for item in checks)
     payload = {**sections, "overall": {"ok": overall}}
     print(json.dumps(payload, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))

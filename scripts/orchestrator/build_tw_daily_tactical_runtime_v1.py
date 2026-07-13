@@ -34,6 +34,14 @@ def zone_text(zone: dict[str, Any] | None) -> str:
     return f"{zone.get('low')} ～ {zone.get('high')}"
 
 
+def stop_text(stop: Any) -> str:
+    if isinstance(stop, dict):
+        price = stop.get("price")
+        reason = stop.get("reason")
+        return f"{price} ({reason})" if price is not None else "資料不足"
+    return "資料不足" if stop is None else str(stop)
+
+
 def markdown(runtime: dict[str, Any]) -> str:
     lines = [
         "# TW Daily Tactical Intelligence V1",
@@ -54,14 +62,16 @@ def markdown(runtime: dict[str, Any]) -> str:
             f"- Setup / Action: {t.get('setup_type')} / {t.get('action')}",
             f"- Score / Rating / Confidence: {t.get('score')} / {t.get('rating')} / {t.get('confidence')}",
             f"- Entry: {zone_text(t.get('entry_zone'))}",
-            f"- Stop: {t.get('stop_invalidation')}",
+            f"- Stop: {stop_text(t.get('stop_invalidation'))}",
             f"- Target 1: {zone_text(t.get('target_1'))}",
             f"- Target 2: {zone_text(t.get('target_2'))}",
             f"- RR / Expected Move: {t.get('reward_risk')} / {t.get('expected_move_pct')}",
             f"- Chase/Event/Position/Data: {t.get('chase_risk')} / {t.get('event_risk')} / {t.get('position_size')} / {t.get('data_quality')}",
             f"- Reasons: {'；'.join(t.get('reasons') or [])}",
             f"- Risks: {'；'.join(t.get('risk_reasons') or [])}",
-            f"- Playbook: {t.get('playbook')}",
+            f"- Factor Coverage: {json.dumps(t.get('factor_coverage', {}), ensure_ascii=False)}",
+            f"- Score Components: {json.dumps(t.get('score_components', {}), ensure_ascii=False)}",
+            f"- Playbook: {json.dumps(t.get('playbook', {}), ensure_ascii=False)}",
             "",
         ])
     return "\n".join(lines).strip() + "\n"
@@ -71,7 +81,7 @@ def email_preview(runtime: dict[str, Any]) -> str:
     lines = ["【Stock AI】台股 Daily Tactical Summary", "", f"Dashboard: {DASHBOARD_URL}", "", "## Research / Position Strategy", "既有 Research / Position strategy 保持獨立，不由 Daily Tactical 覆寫。", "", "## Daily Tactical Strategy"]
     for card in runtime.get("cards", []):
         t = card["strategies"]["daily_tactical"]
-        lines.append(f"- {card.get('stock_id')} {card.get('stock_name')}：{t.get('setup_type')} / {t.get('action')} / Entry {zone_text(t.get('entry_zone'))} / Stop {t.get('stop_invalidation')} / Target {zone_text(t.get('target_1'))} / RR {t.get('reward_risk')} / Confidence {t.get('confidence')} / No Trade原因 {('；'.join(t.get('risk_reasons') or []) if t.get('setup_type') == 'no_trade' else '不適用')}")
+        lines.append(f"- {card.get('stock_id')} {card.get('stock_name')}：{t.get('setup_type')} / {t.get('action')} / Entry {zone_text(t.get('entry_zone'))} / Stop {stop_text(t.get('stop_invalidation'))} / Target {zone_text(t.get('target_1'))} / RR {t.get('reward_risk')} / Confidence {t.get('confidence')} / No Trade原因 {('；'.join(t.get('risk_reasons') or []) if t.get('setup_type') == 'no_trade' else '不適用')}")
     lines.extend(["", "本信僅為 dry-run preview；notification_sent=false。"])
     return "\n".join(lines) + "\n"
 
@@ -83,6 +93,7 @@ def line_preview(runtime: dict[str, Any]) -> str:
         f"Research：偏多 {s.get('research_bullish')}｜中性 {s.get('research_neutral')}｜保守 {s.get('research_conservative')}",
         f"Daily Tactical：可觀察 {s.get('daily_tactical_observable')}｜No Trade {s.get('daily_tactical_no_trade')}",
         f"高追價風險：{s.get('high_chase_risk')}",
+        f"資料受限：{s.get('data_limited')}",
         f"Dashboard：{DASHBOARD_URL}",
         "僅供研究參考，非交易指令。",
     ]) + "\n"

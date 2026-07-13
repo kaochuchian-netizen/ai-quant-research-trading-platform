@@ -1,0 +1,73 @@
+{
+  "downgrade_policy": {
+    "complete": "normal scoring allowed",
+    "insufficient": "no_trade / avoid",
+    "limited": "only conservative range/reversal observation; small size; low confidence",
+    "partial": "confidence and position size may be reduced"
+  },
+  "factor_groups": {
+    "chip": {
+      "fields": [
+        "chip_direction",
+        "chip_score",
+        "institutional_flow",
+        "margin_risk",
+        "short_signal",
+        "flow_confirmation"
+      ],
+      "status": "partial|unavailable|not_applicable"
+    },
+    "event_news": {
+      "policy": "missing event/news lowers confidence and event_risk remains unknown; never fabricate news",
+      "status": "unavailable|partial|available"
+    },
+    "market_context": {
+      "fields": [
+        "market_bias",
+        "market_risk",
+        "market_volume_status",
+        "market_regime"
+      ],
+      "status": "partial|unavailable"
+    },
+    "price_trend": {
+      "required_fields": [
+        "MA5",
+        "MA10",
+        "MA20",
+        "MA60",
+        "RSI14",
+        "MACD",
+        "Bollinger",
+        "ATR14",
+        "5/10/20 day range"
+      ],
+      "status": "available|partial|limited|unavailable"
+    },
+    "support_resistance": {
+      "method": "swing high/low + moving averages + Bollinger + ATR buffer + TW tick-size rounding",
+      "status": "available|partial|limited|unavailable"
+    },
+    "volume": {
+      "required_fields": [
+        "volume",
+        "volume_ma5",
+        "volume_ma20",
+        "daily_relative_volume",
+        "volume_expansion"
+      ],
+      "status": "available|partial|limited|unavailable"
+    }
+  },
+  "market": "TW",
+  "schema_version": "tw_daily_tactical_factor_coverage_v1",
+  "statuses": [
+    "available",
+    "partial",
+    "limited",
+    "unavailable",
+    "stale",
+    "not_applicable"
+  ],
+  "strategy_type": "daily_tactical"
+}

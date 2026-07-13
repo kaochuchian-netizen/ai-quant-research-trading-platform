@@ -92,6 +92,31 @@ def _tw_zone(zone: Any) -> str:
     return f"{_escape(low)} ～ {_escape(high)}"
 
 
+
+def _tw_stop_text(stop: Any) -> str:
+    if isinstance(stop, dict):
+        price = stop.get("price")
+        reason = stop.get("reason")
+        if price is None:
+            return "資料不足"
+        return f"{_escape(price)}（{_escape(reason)}）"
+    return _escape(stop)
+
+
+def _tw_compact_json(value: Any) -> str:
+    if value is None:
+        return "資料待接"
+    try:
+        return _escape(json.dumps(value, ensure_ascii=False, sort_keys=True))
+    except TypeError:
+        return _escape(value)
+
+
+def _tw_playbook_text(value: Any) -> str:
+    if isinstance(value, dict):
+        return _escape(value.get("template") or value)
+    return _escape(value)
+
 def _tw_list(items: Any) -> str:
     if not isinstance(items, list) or not items:
         return "<li>資料待接</li>"
@@ -108,7 +133,7 @@ def render_tw_tactical_cards(artifact: dict[str, Any] | None = None) -> str:
     <div class="wrap section" id="tw-daily-tactical-runtime" data-market="TW" data-strategy-type="daily_tactical">
       <h2>每日短期操作策略</h2>
       <p>Strategy ID：{_escape(artifact.get('strategy_id'))}｜Factor Version：{_escape(artifact.get('factor_version'))}｜更新：{_escape(artifact.get('generated_at'))}</p>
-      <p>市場環境：{_escape(market_context.get('market_bias'))}｜風險：{_escape(market_context.get('market_risk'))}｜Regime：{_escape(market_context.get('market_regime'))}</p>
+      <p>市場環境：{_escape(market_context.get('market_bias'))}｜風險：{_escape(market_context.get('market_risk'))}｜Regime：{_escape(market_context.get('market_regime'))}</p><p>Delivery readiness：{_tw_compact_json(artifact.get('delivery_readiness'))}</p>
       <p>Research / Position Strategy 保持獨立；Daily Tactical 只使用台股技術、量能、籌碼/flow、波動與事件風險，不使用 US premarket / SPY / QQQ / VIX。</p>
       <div class="grid tw-tactical-grid">
     """
@@ -129,17 +154,19 @@ def render_tw_tactical_cards(artifact: dict[str, Any] | None = None) -> str:
             <div><dt>Daily Tactical Direction</dt><dd>{_escape(tactical.get('direction'))}｜{_escape(tactical.get('setup_type'))}｜{_escape(tactical.get('action'))}</dd></div>
             <div><dt>Tactical Score / Rating / Confidence</dt><dd>{_escape(tactical.get('score'))}｜{_escape(tactical.get('rating'))}｜{_escape(tactical.get('confidence'))}</dd></div>
             <div><dt>Entry Zone</dt><dd>{_tw_zone(tactical.get('entry_zone'))}</dd></div>
-            <div><dt>Stop / Invalidation</dt><dd>{_escape(tactical.get('stop_invalidation'))}</dd></div>
+            <div><dt>Stop / Invalidation</dt><dd>{_tw_stop_text(tactical.get('stop_invalidation'))}</dd></div>
             <div><dt>Target 1</dt><dd>{_tw_zone(tactical.get('target_1'))}</dd></div>
             <div><dt>Target 2</dt><dd>{_tw_zone(tactical.get('target_2'))}</dd></div>
             <div><dt>Expected Move / Reward-Risk</dt><dd>{_escape(tactical.get('expected_move_pct'))}%｜{_escape(tactical.get('reward_risk'))}</dd></div>
             <div><dt>Chase / Event / Position</dt><dd>{_escape(tactical.get('chase_risk'))}｜{_escape(tactical.get('event_risk'))}｜{_escape(tactical.get('position_size'))}</dd></div>
             <div><dt>Data Quality</dt><dd>{_escape(tactical.get('data_quality'))}</dd></div>
+            <div><dt>Factor Coverage</dt><dd>{_tw_compact_json(tactical.get('factor_coverage', {}).get('statuses'))}</dd></div>
+            <div><dt>Score Components</dt><dd>{_tw_compact_json(tactical.get('score_components'))}</dd></div>
             <div><dt>Prediction Review</dt><dd>{_escape(review.get('review_status'))}｜Entry {_escape(review.get('entry_triggered'))}｜T1 {_escape(review.get('target_1_reached'))}｜Stop {_escape(review.get('stop_breached'))}</dd></div>
           </dl>
           <details open><summary>主要依據</summary><ul>{_tw_list(tactical.get('reasons'))}</ul></details>
           <details><summary>主要風險</summary><ul>{_tw_list(tactical.get('risk_reasons'))}</ul></details>
-          <p class="risk-note">Playbook：{_escape(tactical.get('playbook'))}</p>
+          <p class="risk-note">Playbook：{_tw_playbook_text(tactical.get('playbook'))}</p>
         </article>
         """)
     return header + "\n".join(rows) + "</div></div>"
