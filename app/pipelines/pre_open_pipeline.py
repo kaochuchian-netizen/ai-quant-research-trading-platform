@@ -1,6 +1,8 @@
 import json
 import os
 from datetime import datetime
+from pathlib import Path
+from time import monotonic
 from zoneinfo import ZoneInfo
 
 from app.loaders.google_sheet_loader import load_stock_ids
@@ -32,6 +34,49 @@ from scripts.update_historical_csv import main as update_historical_csv
 
 LINE_BATCH_SIZE = 3
 
+STAGE_TIMING_PATH = Path("artifacts/runtime/pre_open_stage_timing_latest.json")
+
+
+def _now_taipei():
+    return datetime.now(ZoneInfo("Asia/Taipei")).isoformat(timespec="seconds")
+
+
+class StageTiming:
+    def __init__(self, window, pipeline_run_id):
+        self.window = window
+        self.pipeline_run_id = pipeline_run_id
+        self.started_at = _now_taipei()
+        self.events = []
+        self._active = {}
+        self._write("started")
+
+    def start(self, stage, **metadata):
+        self._active[stage] = monotonic()
+        self.events.append({"stage": stage, "status": "started", "at": _now_taipei(), **metadata})
+        self._write(stage)
+        print(f"stage_start: {stage}", flush=True)
+
+    def finish(self, stage, status="completed", **metadata):
+        started = self._active.pop(stage, None)
+        elapsed = None if started is None else round(monotonic() - started, 3)
+        self.events.append({"stage": stage, "status": status, "at": _now_taipei(), "elapsed_seconds": elapsed, **metadata})
+        self._write(stage)
+        print(f"stage_{status}: {stage} elapsed_seconds={elapsed}", flush=True)
+
+    def _write(self, current_stage):
+        payload = {
+            "schema_version": "pre_open_stage_timing_v1",
+            "window": self.window,
+            "pipeline_run_id": self.pipeline_run_id,
+            "started_at": self.started_at,
+            "last_updated_at": _now_taipei(),
+            "current_stage": current_stage,
+            "events": self.events,
+        }
+        STAGE_TIMING_PATH.parent.mkdir(parents=True, exist_ok=True)
+        STAGE_TIMING_PATH.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
 
 def send_reports_in_batches(reports, batch_size=LINE_BATCH_SIZE, dry_run=False):
     if not reports:
@@ -54,10 +99,11 @@ def send_reports_in_batches(reports, batch_size=LINE_BATCH_SIZE, dry_run=False):
 
 def run_pre_open_pipeline(dry_run=False, limit=None):
     context = create_pipeline_context("pre_open")
-    print(f"pipeline_type: {context['pipeline_type']}")
-    print(f"pipeline_run_id: {context['pipeline_run_id']}")
-    print(f"run_date: {context['run_date']}")
-    print(f"run_time: {context['run_time']}")
+    stage_timing = StageTiming("pre_open_0700", context["pipeline_run_id"])
+    print(f"pipeline_type: {context['pipeline_type']}", flush=True)
+    print(f"pipeline_run_id: {context['pipeline_run_id']}", flush=True)
+    print(f"run_date: {context['run_date']}", flush=True)
+    print(f"run_time: {context['run_time']}", flush=True)
 
     if dry_run:
         print("dry-run 模式：略過 SQLite 初始化")
@@ -74,10 +120,17 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
             "warnings": [],
         }
     else:
-        print("開始更新 historical CSV")
+        print("開始更新 historical CSV", flush=True)
+        stage_timing.start("historical_csv_update")
         pipeline_pre_delivery_status = update_historical_csv()
-        print("pipeline_pre_delivery_status:")
-        print(json.dumps(pipeline_pre_delivery_status, ensure_ascii=False, sort_keys=True))
+        stage_timing.finish(
+            "historical_csv_update",
+            updated_count=pipeline_pre_delivery_status.get("updated_count"),
+            fallback_count=pipeline_pre_delivery_status.get("fallback_count"),
+            failed_count=pipeline_pre_delivery_status.get("failed_count"),
+        )
+        print("pipeline_pre_delivery_status:", flush=True)
+        print(json.dumps(pipeline_pre_delivery_status, ensure_ascii=False, sort_keys=True), flush=True)
         if pipeline_pre_delivery_status.get("historical_update_completed"):
             print("historical CSV 更新完成")
         elif pipeline_pre_delivery_status.get("report_ready_available"):
@@ -85,8 +138,10 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
         else:
             print("historical CSV 更新失敗且 fallback 不足，pipeline 將繼續嘗試既有逐檔檢查")
 
+    stage_timing.start("load_stock_universe")
     stock_ids = load_stock_ids()
-    print(f"pre_open stock universe count: {len(stock_ids)}")
+    stage_timing.finish("load_stock_universe", stock_count=len(stock_ids))
+    print(f"pre_open stock universe count: {len(stock_ids)}", flush=True)
     print(f"pre_open dry_run: {dry_run}")
     print(f"pre_open limit: {limit}")
 
@@ -119,7 +174,9 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
                 f"{stock_name_result['warning']}"
             )
 
-        print(f"開始分析股票：{stock_name}({stock_id})")
+        stage_name = f"stock_analysis_{stock_id}"
+        stage_timing.start(stage_name, stock_id=stock_id, stock_name=stock_name)
+        print(f"開始分析股票：{stock_name}({stock_id})", flush=True)
 
         csv_path = f"data/historical/{stock_id}_daily.csv"
 
@@ -132,6 +189,7 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
                     "reason": f"找不到歷史資料 {csv_path}",
                 }
             )
+            stage_timing.finish(stage_name, status="failed", reason="missing_historical_csv")
             continue
 
         try:
@@ -201,15 +259,19 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
                 )
 
                 print(f"SQLite 已寫入：{stock_name}({stock_id})")
-            print(report)
+            print(report, flush=True)
             daily_reports.append(report)
+            stage_timing.finish(stage_name, report_ready=True)
 
         except Exception as e:
             reason = e.__class__.__name__
-            print(f"分析失敗：{stock_name}({stock_id})，原因類型：{reason}")
+            print(f"分析失敗：{stock_name}({stock_id})，原因類型：{reason}", flush=True)
             failed_reports.append({"stock_id": stock_id, "stock_name": stock_name, "reason": reason})
+            stage_timing.finish(stage_name, status="failed", reason=reason)
 
+    stage_timing.start("line_link_only_reminder")
     send_reports_in_batches(daily_reports, dry_run=dry_run)
+    stage_timing.finish("line_link_only_reminder", report_count=len(daily_reports))
 
     result = {
         "pipeline_type": context["pipeline_type"],
@@ -232,6 +294,10 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
     if dry_run:
         print("dry-run 模式：略過回測自動補值")
     else:
+        stage_timing.start("backtest_auto_update")
         run_backtest_auto_update()
+        stage_timing.finish("backtest_auto_update")
+
+    stage_timing.finish("pipeline", report_count=len(daily_reports), failed_count=len(failed_reports))
 
     return result

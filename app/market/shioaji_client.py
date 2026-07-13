@@ -1,3 +1,6 @@
+import os
+from functools import lru_cache
+
 from app.config.settings import settings
 
 
@@ -22,6 +25,16 @@ class ShioajiClientError(RuntimeError):
         self.classification = classification
 
 
+def _contracts_timeout_ms():
+    raw = os.environ.get("STOCK_AI_SHIOAJI_CONTRACTS_TIMEOUT_MS", "15000")
+    try:
+        value = int(raw)
+    except ValueError:
+        value = 15000
+    return max(3000, min(value, 30000))
+
+
+@lru_cache(maxsize=1)
 def get_api():
     try:
         import shioaji as sj
@@ -38,6 +51,7 @@ def get_api():
         api.login(
             api_key=settings.SINOPAC_API_KEY,
             secret_key=settings.SINOPAC_SECRET_KEY,
+            contracts_timeout=_contracts_timeout_ms(),
         )
     except Exception as exc:
         classification = classify_shioaji_error(exc)
