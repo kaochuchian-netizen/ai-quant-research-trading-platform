@@ -28,14 +28,14 @@ if str(REPO_ROOT) not in sys.path:
 from app.us_stock.batch import build_us_stock_batch_artifact, us_stock_batch_input_example
 from app.us_stock.constants import US_BATCH_WINDOWS
 from app.us_stock.live_pipeline import build_live_runtime_artifact
-from app.dashboard.dashboard_url_registry import get_us_dashboard_url
+from app.dashboard.dashboard_url_registry import get_us_dashboard_url, normalize_delivery_dashboard_url
 from app.us_stock.watchlist import normalize_us_watchlist_rows
 from scripts.orchestrator.notify_stage_report import build_message, load_env_file, load_mail_config, send_message
 
 WINDOWS = tuple(US_BATCH_WINDOWS.keys())
 TAIPEI = ZoneInfo("Asia/Taipei")
 NEW_YORK = ZoneInfo("America/New_York")
-DASHBOARD_URL = get_us_dashboard_url()
+DASHBOARD_URL = normalize_delivery_dashboard_url("US", get_us_dashboard_url())
 RUNTIME_DIR = REPO_ROOT / "artifacts/runtime"
 US_RUNTIME_DIR = RUNTIME_DIR / "us_stock"
 IDEMPOTENCY_DIR = US_RUNTIME_DIR / "idempotency"
@@ -343,6 +343,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "email_succeeded": email_result.get("succeeded", False),
             "line_attempted": line_result.get("attempted", False),
             "line_succeeded": line_result.get("succeeded", False),
+            "line_payload_preview": line_text(artifact, args.window),
+            "email_payload_preview": build_email_body(artifact, args.window),
+            "dashboard_url": DASHBOARD_URL,
             "production_pipeline_executed": False,
             "trading_or_order_executed": False,
             "error_type": None,
@@ -355,7 +358,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         }
         write_json(STATUS_PATH, status)
         write_json(US_STATUS_PATH, status)
-        return {"ok": True, "status": status, "dashboard": dashboard_result, "email": email_result, "line": line_result}
+        return {"ok": True, "status": status, "dashboard": dashboard_result, "email": email_result, "line": line_result, "line_payload_preview": status["line_payload_preview"], "email_payload_preview": status["email_payload_preview"], "dashboard_url": DASHBOARD_URL}
     except Exception as exc:
         error = {"ok": False, "status": "failed", "window": args.window, "error_type": type(exc).__name__, "error_message": str(exc)[:240], "line_attempted": False, "email_attempted": False, "trading_or_order_executed": False, "production_pipeline_executed": False}
         write_json(STATUS_PATH, error)

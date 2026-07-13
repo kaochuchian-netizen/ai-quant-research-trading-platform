@@ -34,11 +34,23 @@ fi
 if [ "${STOCK_AI_APPROVED_DELIVERY:-0}" = "1" ]; then
   APPROVED_OUTPUT="${STOCK_AI_APPROVED_DELIVERY_OUTPUT:-/tmp/approved_${WINDOW}_delivery_result.json}"
 
+  DEFAULT_TW_DASHBOARD_URL="$($PYTHON_BIN - <<'PY'
+from app.dashboard.dashboard_url_registry import get_tw_dashboard_url
+print(get_tw_dashboard_url())
+PY
+)"
+
+  DRY_RUN_ARGS=()
+  if [ "${STOCK_AI_APPROVED_DELIVERY_DRY_RUN:-0}" = "1" ]; then
+    DRY_RUN_ARGS+=(--dry-run)
+  fi
+
   "$PYTHON_BIN" scripts/orchestrator/approved_pre_open_delivery.py \
     --window "$WINDOW" \
     --dashboard-publish-dir "${STOCK_AI_DASHBOARD_PUBLISH_DIR:-/var/www/stock-ai-dashboard}" \
-    --dashboard-url "${STOCK_AI_DASHBOARD_URL:-http://35.201.242.167/stock-ai-dashboard/dashboard/decision-intelligence/four-window-preview/index.html}" \
+    --dashboard-url "${STOCK_AI_DASHBOARD_URL:-$DEFAULT_TW_DASHBOARD_URL}" \
     --output "$APPROVED_OUTPUT" \
+    "${DRY_RUN_ARGS[@]}" \
     >> "$LOG_PATH" 2>&1
   exit $?
 fi

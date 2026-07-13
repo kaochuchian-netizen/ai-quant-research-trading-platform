@@ -13,6 +13,7 @@ PUBLIC_DASHBOARD_BASE_URL = "http://35.201.242.167/stock-ai-dashboard"
 TW_DASHBOARD_PATH = "/dashboard/tw/index.html"
 US_DASHBOARD_PATH = "/dashboard/us/index.html"
 LANDING_DASHBOARD_PATH = "/index.html"
+LEGACY_FOUR_WINDOW_PATH_FRAGMENT = "dashboard/decision-intelligence/four-window-preview"
 
 
 @dataclass(frozen=True)
@@ -57,6 +58,29 @@ def get_dashboard_route(market: str) -> DashboardRoute:
     if normalized in {"US", "USA", "美股"}:
         return DashboardRoute("US", US_DASHBOARD_PATH, get_us_dashboard_url())
     raise ValueError(f"unsupported dashboard market: {market!r}")
+
+
+def is_legacy_dashboard_url(value: str | None) -> bool:
+    return LEGACY_FOUR_WINDOW_PATH_FRAGMENT in str(value or "")
+
+
+def normalize_delivery_dashboard_url(market: str, candidate: str | None = None) -> str:
+    """Return the canonical market URL for delivery, ignoring legacy fallbacks.
+
+    Production delivery must never emit the legacy four-window compatibility route.
+    If a wrapper, environment variable, or stale artifact supplies that route, the
+    current market registry wins.
+    """
+    canonical = get_dashboard_url(market)
+    if not candidate or is_legacy_dashboard_url(candidate):
+        return canonical
+    if str(candidate).strip() == canonical:
+        return canonical
+    return canonical
+
+
+def get_delivery_dashboard_url(market: str, window: str | None = None, candidate: str | None = None) -> str:
+    return normalize_delivery_dashboard_url(market, candidate)
 
 
 def dashboard_url_registry() -> dict[str, str]:

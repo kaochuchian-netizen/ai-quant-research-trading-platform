@@ -26,7 +26,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from app.reports.multi_window_formatter import line_notification_text  # noqa: E402
-from app.dashboard.dashboard_url_registry import get_tw_dashboard_url  # noqa: E402
+from app.dashboard.dashboard_url_registry import get_tw_dashboard_url, normalize_delivery_dashboard_url  # noqa: E402
 from app.reports.report_content_contract import build_report_content_artifact  # noqa: E402
 from app.reports.window_context import get_window_context  # noqa: E402
 from app.runtime.production_run_guard import evaluate_pre_open_run_guard  # noqa: E402
@@ -58,17 +58,20 @@ WINDOW_TIMEOUT_SECONDS = {
     "intraday_1305": 10 * 60,
     "pre_close_1335": 10 * 60,
     "post_close_1500": 15 * 60,
+    "prediction_review_1500": 15 * 60,
 }
 WINDOW_GRACE_PERIOD_SECONDS = {
     "pre_open_0700": 30 * 60,
     "intraday_1305": 15 * 60,
     "pre_close_1335": 15 * 60,
     "post_close_1500": 20 * 60,
+    "prediction_review_1500": 20 * 60,
 }
 PROGRESS_ARTIFACTS = {
     "intraday_1305": Path("artifacts/runtime/delivery_progress_intraday_1305_latest.json"),
     "pre_close_1335": Path("artifacts/runtime/delivery_progress_pre_close_1335_latest.json"),
     "post_close_1500": Path("artifacts/runtime/delivery_progress_prediction_review_1500_latest.json"),
+    "prediction_review_1500": Path("artifacts/runtime/delivery_progress_prediction_review_1500_latest.json"),
     "pre_open_0700": Path("artifacts/runtime/delivery_progress_pre_open_0700_latest.json"),
 }
 
@@ -111,6 +114,16 @@ WINDOWS = {
         "line_mode": "concise_reminder",
         "email_policy": "PM-readable post-close review summary with Dashboard link",
         "dashboard_policy": "publish latest post-close / prediction review snapshot",
+        "fallback_state": "prediction review pending / insufficient data when review records are unavailable",
+    },
+    "prediction_review_1500": {
+        "label": "15:00 prediction review",
+        "local_time": "15:00",
+        "pipeline_type": "post_close",
+        "line_policy": "link-only prediction review notification with dashboard URL only",
+        "line_mode": "concise_reminder",
+        "email_policy": "PM-readable prediction review summary with Dashboard link",
+        "dashboard_policy": "publish latest prediction review snapshot",
         "fallback_state": "prediction review pending / insufficient data when review records are unavailable",
     },
 }
@@ -370,18 +383,21 @@ def _production_email_summary() -> dict[str, Any]:
 
 
 def build_email_body(window_id: str, run_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str) -> str:
+    dashboard_url = normalize_delivery_dashboard_url("TW", dashboard_url)
     summary = _production_email_summary()
     titles = {
         "pre_open_0700": "【Stock AI】07:00 盤前決策摘要已更新",
         "intraday_1305": "【Stock AI】13:05 盤中追蹤已更新",
         "pre_close_1335": "【Stock AI】13:35 收盤快照已更新",
         "post_close_1500": "【Stock AI】15:00 盤後檢討已更新",
+        "prediction_review_1500": "【Stock AI】15:00 盤後檢討已更新",
     }
     status_label = {
         "pre_open_0700": "盤前評等資料",
         "intraday_1305": "盤中追蹤資料",
         "pre_close_1335": "收盤快照資料",
         "post_close_1500": "盤後檢討資料",
+        "prediction_review_1500": "預測檢討資料",
     }.get(window_id, "批次資料")
     lines = [
         titles.get(window_id, "【Stock AI】排程摘要已更新"),
@@ -432,6 +448,7 @@ def build_line_message(window_id: str, generated_at: str, pipeline_status: str, 
     Runtime diagnostics, pipeline state, stock details, and raw artifact keys stay out
     of LINE. The full decision content belongs on the Dashboard.
     """
+    dashboard_url = normalize_delivery_dashboard_url("TW", dashboard_url)
     context = get_window_context(window_id)
     return tail_text(line_notification_text(context, dashboard_url or DEFAULT_DECISION_INTELLIGENCE_DASHBOARD_URL), LINE_BODY_LIMIT)
 
@@ -572,6 +589,9 @@ def dry_run_result(args: argparse.Namespace, generated_at: str, run_id: str) -> 
         "email_would_send": True,
         "dashboard_policy": cfg["dashboard_policy"],
         "dashboard_would_publish": True,
+        "dashboard_url": args.dashboard_url,
+        "line_payload_preview": build_line_message(args.window, generated_at, "dry_run", args.dashboard_url, ""),
+        "email_payload_preview": build_email_body(args.window, run_id, generated_at, "dry_run", args.dashboard_url, ""),
         "fallback_state": cfg["fallback_state"],
         "content_state": cfg["fallback_state"],
         "line_delivery_status": "dry_run_not_sent",
@@ -605,6 +625,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    args.dashboard_url = normalize_delivery_dashboard_url("TW", args.dashboard_url)
     cfg = window_config(args.window)
     generated = now_taipei()
     generated_at = generated.isoformat()
