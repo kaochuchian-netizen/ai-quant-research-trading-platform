@@ -2,12 +2,12 @@
     <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>美股 AI 決策儀表板</title><meta name="market" content="US"><style>
     body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f6f8f9;color:#17262c;line-height:1.55}
     header,.hero{background:#0f2c33;color:white;padding:24px 18px}.wrap{max-width:1120px;margin:0 auto;padding:18px}.nav{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.nav a,.btn{display:inline-block;background:#fff;color:#0f2c33;text-decoration:none;border-radius:8px;padding:10px 12px;font-weight:800;border:1px solid #cbd8dc}
-    .market-shared-navigation{background:white;color:#17262c}.market-shared-navigation__grid{display:grid;grid-template-columns:1fr;gap:12px;margin:14px 0 10px}.market-shared-navigation__button{display:block;width:100%;box-sizing:border-box;background:#fff;color:#0f2c33;text-decoration:none;border:1px solid #cbd8dc;border-radius:8px;padding:13px 14px;font-weight:800;text-align:left;box-shadow:0 1px 0 rgba(15,44,51,.04)}.market-shared-navigation__button[aria-current="page"]{border-color:#83aab4;background:#f4fbfd}.market-shared-navigation__subtitle{margin:10px 0 0;color:#51666d}@media(max-width:640px){.market-shared-navigation__grid{gap:10px}.market-shared-navigation__button{padding:14px 13px}}
+    .market-shared-navigation{background:white;color:#17262c}.market-shared-navigation__grid{display:grid;grid-template-columns:1fr;gap:12px;margin:14px 0 10px}.market-shared-navigation__button{display:block;width:100%;box-sizing:border-box;background:#fff;color:#0f2c33;text-decoration:none;border:1px solid #cbd8dc;border-radius:8px;padding:13px 14px;font-weight:800;text-align:left;box-shadow:0 1px 0 rgba(15,44,51,.04)}.market-shared-navigation__button[aria-current="page"]{border-color:#83aab4;background:#f4fbfd}.market-shared-navigation__subtitle{margin:10px 0 0;color:#51666d}@media(max-width:640px){.market-shared-navigation__grid{gap:10px}.market-shared-navigation__button{padding:14px 13px}}html,body{max-width:100%;overflow-x:hidden}.wrap,.section{box-sizing:border-box;max-width:100%;overflow-wrap:anywhere}.decision-grid{display:grid;width:100%;max-width:100%;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}.decision-card{min-width:0;overflow-wrap:anywhere;word-break:break-word}.decision-card__head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}.decision-card__market{font-size:12px;font-weight:800;color:#51666d}.decision-badge{display:inline-block;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:800;background:#eef6f7;color:#234c55}.decision-badge--warn{background:#fff2d4;color:#7a4d00}.decision-badge--ok{background:#e9f7ed;color:#1f6b35}.decision-section{border-top:1px solid #e5eef0;margin-top:12px;padding-top:12px}.decision-section h4{margin:0 0 8px;font-size:15px}.decision-plan{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.decision-metric{background:#f7fafb;border:1px solid #dce8eb;border-radius:8px;padding:10px;min-width:0}.decision-metric dt{font-size:12px}.decision-metric dd{font-size:15px;font-weight:800;color:#14333a}.decision-list{margin:0;padding-left:18px}.decision-list li{margin:5px 0}.decision-details{margin-top:12px;border:1px solid #dce8eb;border-radius:8px;background:#fbfdfe}.decision-details summary{cursor:pointer;list-style:none;padding:12px 13px;font-weight:900;min-height:24px}.decision-details summary::-webkit-details-marker{display:none}.decision-details__body{padding:0 13px 13px}.decision-table{width:100%;border-collapse:collapse;table-layout:fixed}.decision-table th,.decision-table td{border-top:1px solid #e5eef0;text-align:left;padding:8px;vertical-align:top;overflow-wrap:anywhere}.decision-table th{color:#51666d;width:45%;font-size:13px}.decision-note{color:#51666d}.decision-compact{display:grid;gap:8px}.decision-status-low{color:#8a4b00}.decision-status-good{color:#1f6b35}@media(max-width:640px){.decision-grid{grid-template-columns:1fr!important}.decision-card{width:100%;box-sizing:border-box}.decision-plan{grid-template-columns:1fr}.decision-details summary{padding:14px 13px}.decision-table th,.decision-table td{display:block;width:100%;box-sizing:border-box}.decision-table td{border-top:0;padding-top:0}}
     .section{background:white;border:1px solid #dce5e8;border-radius:10px;padding:16px;margin:14px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}.stock-card,.status-card{background:#fff;border:1px solid #d9e4e7;border-radius:10px;padding:14px}.card-kicker{font-weight:800;color:#35606b;font-size:13px}h1,h2,h3{margin:0 0 10px}dl{display:grid;gap:8px}dt{font-weight:800;color:#51666d}dd{margin:0}.badge{display:inline-block;border-radius:999px;padding:6px 10px;background:#e8f5e9;color:#225d28;font-weight:800}.warn{background:#fff9e8}.market-choice{display:block;text-decoration:none;color:#17262c}.market-choice h2{color:#0f5368}@media(max-width:640px){.wrap{padding:12px}.grid{grid-template-columns:1fr}.nav a{width:100%;box-sizing:border-box}}
     </style></head>
     <body><header><div class="wrap section market-shared-navigation market-shared-navigation--v1" data-shared-navigation="tw-us" data-active-market="US"><h1>美股 AI 決策儀表板</h1><nav class="market-shared-navigation__grid market-shared-navigation__grid--responsive" aria-label="Market Dashboard Navigation"><a class="market-shared-navigation__button" href="/stock-ai-dashboard/index.html">回到總覽</a><a class="market-shared-navigation__button" href="/stock-ai-dashboard/dashboard/tw/index.html">台股 Dashboard</a><a class="market-shared-navigation__button" href="/stock-ai-dashboard/dashboard/us/index.html" aria-current="page">美股 Dashboard</a></nav><p class="market-shared-navigation__subtitle">美股盤前 20:00｜美股盤中 23:00｜美股檢討 06:30</p></div></header><main class="wrap">
     <!-- AI-DEV-170-US-DASHBOARD-START -->
-    <section class="section"><h2>美股 Runtime Summary</h2><p>US enabled stock count：6</p><p>最新更新：2026-07-12T15:57:04+08:00</p><p>資料來源：工作表2 / live production US runtime artifacts；US Dashboard 不回退到台股資料，也不渲染 validation fixture。</p></section>
+    <section class="section"><h2>美股 Runtime Summary</h2><p>US enabled stock count：6</p><p>最新更新：2026-07-13T20:00:03+08:00</p><p>資料來源：工作表2 / live production US runtime artifacts；US Dashboard 不回退到台股資料，也不渲染 validation fixture。</p></section>
     <section class="section"><h2>Market Summary</h2><p>SPY / QQQ / VIX / sector context feeds the US research score as Tier 2 market reference.</p></section>
     <section class="section"><h2>Research / Position Strategy</h2><p>US Research preserves technical, SEC, fundamentals, earnings/guidance, official events, market context, and us_research_factor_v1 evidence for days-to-months positioning.</p></section>
     <section class="section"><h2>Daily Tactical Strategy</h2><p>US Daily Tactical uses gap, momentum, relative volume, trend, volatility, benchmark/sector context, earnings/event risk and deterministic entry/stop/target levels for current/next session and 1-5 trading days.</p></section>
@@ -17,459 +17,165 @@
     <section class="section"><h2>Material News & Bilingual Reading</h2><p>Headline metadata is classified, deduplicated, and displayed with Traditional Chinese learning support. No full articles are stored.</p></section>
     <section class="section"><h2>Prediction / Review</h2><p>Predictions are deterministic and event-adjusted; reviews attribute misses to technical, market, news, official-event and data-quality causes when data exists.</p></section>
     <section class="section"><h2>美股個股卡</h2><div class="grid">
-            <article class="stock-card us-stock-card" data-market="US">
-              <div class="card-kicker">美股盤前 20:00｜US</div>
-              <h3>AAPL Apple</h3>
-              <dl>
-                <div><dt>交易所</dt><dd>NMS</dd></div>
-                <div><dt>USD 價格</dt><dd>315.32</dd></div>
-                <div><dt>評等 / 動作 / 信心</dt><dd>C級 / 中性觀察 / 40.5</dd></div>
-                <div><dt>本次預測區間</dt><dd>306.61 ～ 324.03</dd></div>
-                <div><dt>下次預測區間</dt><dd>304.02 ～ 326.62</dd></div>
-                <div><dt>1M / 3M 趨勢</dt><dd>neutral / bullish</dd></div>
-                <div><dt>技術摘要</dt><dd>MA/RSI/MACD/Bollinger computed from 251 daily OHLCV rows.</dd></div>
-                <div><dt>財務品質</dt><dd>成長與獲利同步改善</dd></div>
-                <div><dt>盈餘 / 指引</dt><dd>available_reference / unavailable</dd></div>
-                <div><dt>SEC 最新 filing</dt><dd>10-Q</dd></div>
-                <div><dt>官方事件</dt><dd>有近期 8-K</dd></div>
-                <div><dt>研究因子</dt><dd>59.55 / research_neutral</dd></div>
-                <div><dt>策略版本</dt><dd>research_position / daily_tactical</dd></div>
-                <div><dt>資料狀態</dt><dd>live market data fetched</dd></div>
-                <div><dt>來源新鮮度</dt><dd>SEC/yfinance/news metadata checked</dd></div>
-              </dl>
+            <article class="stock-card decision-card us-stock-card" data-market="US">
+              <div class="decision-card__head"><div><div class="decision-card__market">美股盤前 20:00｜US</div><h3>AAPL Apple</h3></div><span class="decision-badge">C級</span></div>
+              <section class="decision-section"><h4>今日結論</h4><div class="decision-plan"><dl class="decision-metric"><dt>評等 / 動作</dt><dd>C級 / 中性觀察</dd></dl><dl class="decision-metric"><dt>信心</dt><dd>40%｜中低</dd></dl><dl class="decision-metric"><dt>USD 價格</dt><dd>315.32</dd></dl><dl class="decision-metric"><dt>資料狀態</dt><dd>live market data fetched</dd></dl></div></section>
+              <section class="decision-section"><h4>Research / Position Strategy</h4><div class="decision-plan"><dl class="decision-metric"><dt>1M 趨勢</dt><dd>中性</dd></dl><dl class="decision-metric"><dt>3M 趨勢</dt><dd>偏多</dd></dl><dl class="decision-metric"><dt>財務品質</dt><dd>成長與獲利同步改善</dd></dl><dl class="decision-metric"><dt>盈餘 / 指引</dt><dd>參考資料可用 / 尚未接入</dd></dl></div></section>
               
-              <section class="strategy-pair" data-strategy="dual">
+              <section class="decision-section strategy-pair" data-strategy="dual">
                 <h4>Research / Position Strategy</h4>
-                <p>Score / Rating / Action / Confidence：61.86 / C級 / 中性觀察 / 40.5</p>
-                <p>Horizon：days_to_months; 1M/3M trend</p>
-                <h4>Daily Tactical Strategy</h4>
-                <p>方向 / Setup / Action：mildly_bullish / breakout / 突破確認後偏多</p>
-                <p>分數 / 等級 / 信心：68.84 / B-Tactical / 43.4</p>
-                <p>進場區：311.76 ～ 316.51｜停損/失效：306.22｜目標一：321.2 ～ 323.97</p>
-                <p>預期波動 / 報酬風險：8.65 / 1.07｜追高風險：low｜事件風險：medium</p>
-                <p class="risk-note">Daily Tactical 為研究參考，不是交易指令；未觸發 setup 不算自動失敗。</p>
+                <table class="decision-table"><tbody><tr><th>Score / Rating</th><td>60.62 / C級</td></tr><tr><th>Action</th><td>中性觀察</td></tr><tr><th>Confidence</th><td>40%｜中低</td></tr><tr><th>Horizon</th><td>days_to_months; 1M/3M trend</td></tr></tbody></table>
               </section>
+              <section class="decision-section">
+                <h4>Daily Tactical Strategy</h4>
+                <div class="decision-plan"><dl class="decision-metric"><dt>今日建議</dt><dd>暫不操作</dd></dl><dl class="decision-metric"><dt>方向</dt><dd>溫和偏多</dd></dl><dl class="decision-metric"><dt>策略</dt><dd>突破</dd></dl><dl class="decision-metric"><dt>信心</dt><dd>43%｜中低</dd></dl></div>
+              </section>
+              <section class="decision-section"><h4>操作計畫</h4><div class="decision-plan"><dl class="decision-metric"><dt>進場區</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>停損／策略失效</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>第一目標</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>第二目標</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>報酬風險比</dt><dd>1.07</dd></dl><dl class="decision-metric"><dt>部位建議</dt><dd>不建立部位</dd></dl></div></section>
+              <section class="decision-section"><h4>信心與風險</h4><div class="decision-plan"><dl class="decision-metric"><dt>追價風險</dt><dd>低</dd></dl><dl class="decision-metric"><dt>事件風險</dt><dd>中</dd></dl><dl class="decision-metric"><dt>資料完整度</dt><dd>可用</dd></dl><dl class="decision-metric"><dt>預期波動</dt><dd>8.7%</dd></dl></div></section>
+              <section class="decision-section"><h4>主要依據</h4><ul class="decision-list"><li>目前沒有足夠依據</li></ul></section>
+              <section class="decision-section"><h4>主要風險</h4><ul class="decision-list"><li>研究參考，不是下單指令。</li><li>若觸發條件未出現，不應把 setup 視為失敗交易。</li></ul></section>
+              <section class="decision-section"><h4>操作劇本</h4><p>等待有效突破壓力並確認量能；未站穩突破區不追價，跌回失效區取消。</p></section>
+              <details class="decision-details"><summary>技術與資料細節</summary><div class="decision-details__body"><h4>資料來源狀態</h4><table class="decision-table"><tbody><tr><th>資料來源</th><td>資料不足</td></tr></tbody></table><h4>分數構成</h4><table class="decision-table"><tbody><tr><th>分數構成</th><td>資料不足</td></tr></tbody></table></div></details>
     
-              <details class="news-block" open><summary>Bilingual News / 雙語新聞</summary><p><strong>EN:</strong> 資料待接</p><p><strong>中:</strong> 無可驗證重大新聞</p><p>未取得可安全引用新聞；不產生假新聞。</p><p>Vocabulary：資料待接</p></details>
-              <details class="review-block"><summary>Prediction Review / 檢討</summary><p>檢討資料待接</p></details>
+              <section class="decision-section"><h4>主要依據</h4><ul class="decision-list"><li>MA/RSI/MACD/Bollinger computed from 251 daily OHLCV rows.</li><li>SEC / 官方事件：10-Q｜有近期 8-K</li></ul></section>
+              <section class="decision-section"><h4>主要風險</h4><ul class="decision-list"><li>資料新鮮度：SEC/yfinance/news metadata checked</li><li>事件風險與缺漏資料仍需依 artifact provenance 判讀。</li></ul></section>
+              <details class="decision-details" open><summary>Material News & Bilingual Reading / 雙語新聞</summary><div class="decision-details__body"><p><strong>EN:</strong> 資料待接</p><p><strong>中:</strong> 無可驗證重大新聞</p><p>未取得可安全引用新聞；不產生假新聞。</p><p>Vocabulary：資料待接</p></div></details>
+              <details class="decision-details"><summary>策略檢討</summary><div class="decision-details__body"><p>待檢討</p></div></details>
             </article>
             
 
-            <article class="stock-card us-stock-card" data-market="US">
-              <div class="card-kicker">美股盤前 20:00｜US</div>
-              <h3>NVDA Nvidia</h3>
-              <dl>
-                <div><dt>交易所</dt><dd>NMS</dd></div>
-                <div><dt>USD 價格</dt><dd>210.96</dd></div>
-                <div><dt>評等 / 動作 / 信心</dt><dd>C級 / 中性觀察 / 40.5</dd></div>
-                <div><dt>本次預測區間</dt><dd>204.28 ～ 217.64</dd></div>
-                <div><dt>下次預測區間</dt><dd>202.29 ～ 219.63</dd></div>
-                <div><dt>1M / 3M 趨勢</dt><dd>neutral / bullish</dd></div>
-                <div><dt>技術摘要</dt><dd>MA/RSI/MACD/Bollinger computed from 251 daily OHLCV rows.</dd></div>
-                <div><dt>財務品質</dt><dd>成長與獲利同步改善</dd></div>
-                <div><dt>盈餘 / 指引</dt><dd>available_reference / unavailable</dd></div>
-                <div><dt>SEC 最新 filing</dt><dd>10-Q</dd></div>
-                <div><dt>官方事件</dt><dd>有近期 8-K</dd></div>
-                <div><dt>研究因子</dt><dd>59.55 / research_neutral</dd></div>
-                <div><dt>策略版本</dt><dd>research_position / daily_tactical</dd></div>
-                <div><dt>資料狀態</dt><dd>live market data fetched</dd></div>
-                <div><dt>來源新鮮度</dt><dd>SEC/yfinance/news metadata checked</dd></div>
-              </dl>
+            <article class="stock-card decision-card us-stock-card" data-market="US">
+              <div class="decision-card__head"><div><div class="decision-card__market">美股盤前 20:00｜US</div><h3>NVDA Nvidia</h3></div><span class="decision-badge">C級</span></div>
+              <section class="decision-section"><h4>今日結論</h4><div class="decision-plan"><dl class="decision-metric"><dt>評等 / 動作</dt><dd>C級 / 中性觀察</dd></dl><dl class="decision-metric"><dt>信心</dt><dd>40%｜中低</dd></dl><dl class="decision-metric"><dt>USD 價格</dt><dd>210.96</dd></dl><dl class="decision-metric"><dt>資料狀態</dt><dd>live market data fetched</dd></dl></div></section>
+              <section class="decision-section"><h4>Research / Position Strategy</h4><div class="decision-plan"><dl class="decision-metric"><dt>1M 趨勢</dt><dd>中性</dd></dl><dl class="decision-metric"><dt>3M 趨勢</dt><dd>偏多</dd></dl><dl class="decision-metric"><dt>財務品質</dt><dd>成長與獲利同步改善</dd></dl><dl class="decision-metric"><dt>盈餘 / 指引</dt><dd>參考資料可用 / 尚未接入</dd></dl></div></section>
               
-              <section class="strategy-pair" data-strategy="dual">
+              <section class="decision-section strategy-pair" data-strategy="dual">
                 <h4>Research / Position Strategy</h4>
-                <p>Score / Rating / Action / Confidence：61.86 / C級 / 中性觀察 / 40.5</p>
-                <p>Horizon：days_to_months; 1M/3M trend</p>
-                <h4>Daily Tactical Strategy</h4>
-                <p>方向 / Setup / Action：mildly_bullish / breakout / 突破確認後偏多</p>
-                <p>分數 / 等級 / 信心：68.84 / B-Tactical / 43.4</p>
-                <p>進場區：208.02 ～ 211.94｜停損/失效：203.44｜目標一：214.56 ～ 216.85</p>
-                <p>預期波動 / 報酬風險：5.89 / 0.87｜追高風險：low｜事件風險：medium</p>
-                <p class="risk-note">Daily Tactical 為研究參考，不是交易指令；未觸發 setup 不算自動失敗。</p>
+                <table class="decision-table"><tbody><tr><th>Score / Rating</th><td>60.62 / C級</td></tr><tr><th>Action</th><td>中性觀察</td></tr><tr><th>Confidence</th><td>40%｜中低</td></tr><tr><th>Horizon</th><td>days_to_months; 1M/3M trend</td></tr></tbody></table>
               </section>
+              <section class="decision-section">
+                <h4>Daily Tactical Strategy</h4>
+                <div class="decision-plan"><dl class="decision-metric"><dt>今日建議</dt><dd>暫不操作</dd></dl><dl class="decision-metric"><dt>方向</dt><dd>溫和偏多</dd></dl><dl class="decision-metric"><dt>策略</dt><dd>突破</dd></dl><dl class="decision-metric"><dt>信心</dt><dd>43%｜中低</dd></dl></div>
+              </section>
+              <section class="decision-section"><h4>操作計畫</h4><div class="decision-plan"><dl class="decision-metric"><dt>進場區</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>停損／策略失效</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>第一目標</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>第二目標</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>報酬風險比</dt><dd>0.87</dd></dl><dl class="decision-metric"><dt>部位建議</dt><dd>不建立部位</dd></dl></div></section>
+              <section class="decision-section"><h4>信心與風險</h4><div class="decision-plan"><dl class="decision-metric"><dt>追價風險</dt><dd>低</dd></dl><dl class="decision-metric"><dt>事件風險</dt><dd>中</dd></dl><dl class="decision-metric"><dt>資料完整度</dt><dd>可用</dd></dl><dl class="decision-metric"><dt>預期波動</dt><dd>5.9%</dd></dl></div></section>
+              <section class="decision-section"><h4>主要依據</h4><ul class="decision-list"><li>目前沒有足夠依據</li></ul></section>
+              <section class="decision-section"><h4>主要風險</h4><ul class="decision-list"><li>研究參考，不是下單指令。</li><li>若觸發條件未出現，不應把 setup 視為失敗交易。</li></ul></section>
+              <section class="decision-section"><h4>操作劇本</h4><p>等待有效突破壓力並確認量能；未站穩突破區不追價，跌回失效區取消。</p></section>
+              <details class="decision-details"><summary>技術與資料細節</summary><div class="decision-details__body"><h4>資料來源狀態</h4><table class="decision-table"><tbody><tr><th>資料來源</th><td>資料不足</td></tr></tbody></table><h4>分數構成</h4><table class="decision-table"><tbody><tr><th>分數構成</th><td>資料不足</td></tr></tbody></table></div></details>
     
-              <details class="news-block" open><summary>Bilingual News / 雙語新聞</summary><p><strong>EN:</strong> 資料待接</p><p><strong>中:</strong> 無可驗證重大新聞</p><p>未取得可安全引用新聞；不產生假新聞。</p><p>Vocabulary：資料待接</p></details>
-              <details class="review-block"><summary>Prediction Review / 檢討</summary><p>檢討資料待接</p></details>
+              <section class="decision-section"><h4>主要依據</h4><ul class="decision-list"><li>MA/RSI/MACD/Bollinger computed from 251 daily OHLCV rows.</li><li>SEC / 官方事件：10-Q｜有近期 8-K</li></ul></section>
+              <section class="decision-section"><h4>主要風險</h4><ul class="decision-list"><li>資料新鮮度：SEC/yfinance/news metadata checked</li><li>事件風險與缺漏資料仍需依 artifact provenance 判讀。</li></ul></section>
+              <details class="decision-details" open><summary>Material News & Bilingual Reading / 雙語新聞</summary><div class="decision-details__body"><p><strong>EN:</strong> 資料待接</p><p><strong>中:</strong> 無可驗證重大新聞</p><p>未取得可安全引用新聞；不產生假新聞。</p><p>Vocabulary：資料待接</p></div></details>
+              <details class="decision-details"><summary>策略檢討</summary><div class="decision-details__body"><p>待檢討</p></div></details>
             </article>
             
 
-            <article class="stock-card us-stock-card" data-market="US">
-              <div class="card-kicker">美股盤前 20:00｜US</div>
-              <h3>TSLA Tesla</h3>
-              <dl>
-                <div><dt>交易所</dt><dd>NMS</dd></div>
-                <div><dt>USD 價格</dt><dd>407.76</dd></div>
-                <div><dt>評等 / 動作 / 信心</dt><dd>C級 / 中性觀察 / 39.8</dd></div>
-                <div><dt>本次預測區間</dt><dd>388.56 ～ 426.96</dd></div>
-                <div><dt>下次預測區間</dt><dd>382.84 ～ 432.68</dd></div>
-                <div><dt>1M / 3M 趨勢</dt><dd>neutral / bullish</dd></div>
-                <div><dt>技術摘要</dt><dd>MA/RSI/MACD/Bollinger computed from 251 daily OHLCV rows.</dd></div>
-                <div><dt>財務品質</dt><dd>成長與獲利同步改善</dd></div>
-                <div><dt>盈餘 / 指引</dt><dd>available_reference / unavailable</dd></div>
-                <div><dt>SEC 最新 filing</dt><dd>10-Q</dd></div>
-                <div><dt>官方事件</dt><dd>有近期 8-K</dd></div>
-                <div><dt>研究因子</dt><dd>57.73 / research_neutral</dd></div>
-                <div><dt>策略版本</dt><dd>research_position / daily_tactical</dd></div>
-                <div><dt>資料狀態</dt><dd>live market data fetched</dd></div>
-                <div><dt>來源新鮮度</dt><dd>SEC/yfinance/news metadata checked</dd></div>
-              </dl>
+            <article class="stock-card decision-card us-stock-card" data-market="US">
+              <div class="decision-card__head"><div><div class="decision-card__market">美股盤前 20:00｜US</div><h3>TSLA Tesla</h3></div><span class="decision-badge">C級</span></div>
+              <section class="decision-section"><h4>今日結論</h4><div class="decision-plan"><dl class="decision-metric"><dt>評等 / 動作</dt><dd>C級 / 中性觀察</dd></dl><dl class="decision-metric"><dt>信心</dt><dd>39%｜中低</dd></dl><dl class="decision-metric"><dt>USD 價格</dt><dd>407.76</dd></dl><dl class="decision-metric"><dt>資料狀態</dt><dd>live market data fetched</dd></dl></div></section>
+              <section class="decision-section"><h4>Research / Position Strategy</h4><div class="decision-plan"><dl class="decision-metric"><dt>1M 趨勢</dt><dd>中性</dd></dl><dl class="decision-metric"><dt>3M 趨勢</dt><dd>偏多</dd></dl><dl class="decision-metric"><dt>財務品質</dt><dd>成長與獲利同步改善</dd></dl><dl class="decision-metric"><dt>盈餘 / 指引</dt><dd>參考資料可用 / 尚未接入</dd></dl></div></section>
               
-              <section class="strategy-pair" data-strategy="dual">
+              <section class="decision-section strategy-pair" data-strategy="dual">
                 <h4>Research / Position Strategy</h4>
-                <p>Score / Rating / Action / Confidence：60.82 / C級 / 中性觀察 / 39.8</p>
-                <p>Horizon：days_to_months; 1M/3M trend</p>
-                <h4>Daily Tactical Strategy</h4>
-                <p>方向 / Setup / Action：mildly_bullish / breakout / 突破確認後偏多</p>
-                <p>分數 / 等級 / 信心：64.84 / B-Tactical / 33.2</p>
-                <p>進場區：400.88 ～ 410.46｜停損/失效：390.06｜目標一：425.78 ～ 432.09</p>
-                <p>預期波動 / 報酬風險：24.33 / 1.49｜追高風險：medium｜事件風險：medium</p>
-                <p class="risk-note">Daily Tactical 為研究參考，不是交易指令；未觸發 setup 不算自動失敗。</p>
+                <table class="decision-table"><tbody><tr><th>Score / Rating</th><td>59.57 / C級</td></tr><tr><th>Action</th><td>中性觀察</td></tr><tr><th>Confidence</th><td>39%｜中低</td></tr><tr><th>Horizon</th><td>days_to_months; 1M/3M trend</td></tr></tbody></table>
               </section>
+              <section class="decision-section">
+                <h4>Daily Tactical Strategy</h4>
+                <div class="decision-plan"><dl class="decision-metric"><dt>今日建議</dt><dd>暫不操作</dd></dl><dl class="decision-metric"><dt>方向</dt><dd>溫和偏多</dd></dl><dl class="decision-metric"><dt>策略</dt><dd>突破</dd></dl><dl class="decision-metric"><dt>信心</dt><dd>32%｜中低</dd></dl></div>
+              </section>
+              <section class="decision-section"><h4>操作計畫</h4><div class="decision-plan"><dl class="decision-metric"><dt>進場區</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>停損／策略失效</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>第一目標</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>第二目標</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>報酬風險比</dt><dd>1.49</dd></dl><dl class="decision-metric"><dt>部位建議</dt><dd>不建立部位</dd></dl></div></section>
+              <section class="decision-section"><h4>信心與風險</h4><div class="decision-plan"><dl class="decision-metric"><dt>追價風險</dt><dd>中</dd></dl><dl class="decision-metric"><dt>事件風險</dt><dd>中</dd></dl><dl class="decision-metric"><dt>資料完整度</dt><dd>可用</dd></dl><dl class="decision-metric"><dt>預期波動</dt><dd>24.3%</dd></dl></div></section>
+              <section class="decision-section"><h4>主要依據</h4><ul class="decision-list"><li>目前沒有足夠依據</li></ul></section>
+              <section class="decision-section"><h4>主要風險</h4><ul class="decision-list"><li>研究參考，不是下單指令。</li><li>若觸發條件未出現，不應把 setup 視為失敗交易。</li></ul></section>
+              <section class="decision-section"><h4>操作劇本</h4><p>等待有效突破壓力並確認量能；未站穩突破區不追價，跌回失效區取消。</p></section>
+              <details class="decision-details"><summary>技術與資料細節</summary><div class="decision-details__body"><h4>資料來源狀態</h4><table class="decision-table"><tbody><tr><th>資料來源</th><td>資料不足</td></tr></tbody></table><h4>分數構成</h4><table class="decision-table"><tbody><tr><th>分數構成</th><td>資料不足</td></tr></tbody></table></div></details>
     
-              <details class="news-block" open><summary>Bilingual News / 雙語新聞</summary><p><strong>EN:</strong> 資料待接</p><p><strong>中:</strong> 無可驗證重大新聞</p><p>未取得可安全引用新聞；不產生假新聞。</p><p>Vocabulary：資料待接</p></details>
-              <details class="review-block"><summary>Prediction Review / 檢討</summary><p>檢討資料待接</p></details>
+              <section class="decision-section"><h4>主要依據</h4><ul class="decision-list"><li>MA/RSI/MACD/Bollinger computed from 251 daily OHLCV rows.</li><li>SEC / 官方事件：10-Q｜有近期 8-K</li></ul></section>
+              <section class="decision-section"><h4>主要風險</h4><ul class="decision-list"><li>資料新鮮度：SEC/yfinance/news metadata checked</li><li>事件風險與缺漏資料仍需依 artifact provenance 判讀。</li></ul></section>
+              <details class="decision-details" open><summary>Material News & Bilingual Reading / 雙語新聞</summary><div class="decision-details__body"><p><strong>EN:</strong> 資料待接</p><p><strong>中:</strong> 無可驗證重大新聞</p><p>未取得可安全引用新聞；不產生假新聞。</p><p>Vocabulary：資料待接</p></div></details>
+              <details class="decision-details"><summary>策略檢討</summary><div class="decision-details__body"><p>待檢討</p></div></details>
             </article>
             
 
-            <article class="stock-card us-stock-card" data-market="US">
-              <div class="card-kicker">美股盤前 20:00｜US</div>
-              <h3>GOOGL Google</h3>
-              <dl>
-                <div><dt>交易所</dt><dd>NMS</dd></div>
-                <div><dt>USD 價格</dt><dd>357.18</dd></div>
-                <div><dt>評等 / 動作 / 信心</dt><dd>D級 / 保守觀望 / 34.8</dd></div>
-                <div><dt>本次預測區間</dt><dd>344.73 ～ 367.41</dd></div>
-                <div><dt>下次預測區間</dt><dd>341.02 ～ 370.46</dd></div>
-                <div><dt>1M / 3M 趨勢</dt><dd>bearish / neutral</dd></div>
-                <div><dt>技術摘要</dt><dd>MA/RSI/MACD/Bollinger computed from 251 daily OHLCV rows.</dd></div>
-                <div><dt>財務品質</dt><dd>成長與獲利同步改善</dd></div>
-                <div><dt>盈餘 / 指引</dt><dd>available_reference / unavailable</dd></div>
-                <div><dt>SEC 最新 filing</dt><dd>資料待接</dd></div>
-                <div><dt>官方事件</dt><dd>有近期 8-K</dd></div>
-                <div><dt>研究因子</dt><dd>56.09 / research_neutral</dd></div>
-                <div><dt>策略版本</dt><dd>research_position / daily_tactical</dd></div>
-                <div><dt>資料狀態</dt><dd>live market data fetched</dd></div>
-                <div><dt>來源新鮮度</dt><dd>SEC/yfinance/news metadata checked</dd></div>
-              </dl>
+            <article class="stock-card decision-card us-stock-card" data-market="US">
+              <div class="decision-card__head"><div><div class="decision-card__market">美股盤前 20:00｜US</div><h3>GOOGL Google</h3></div><span class="decision-badge">D級</span></div>
+              <section class="decision-section"><h4>今日結論</h4><div class="decision-plan"><dl class="decision-metric"><dt>評等 / 動作</dt><dd>D級 / 保守觀望</dd></dl><dl class="decision-metric"><dt>信心</dt><dd>34%｜中低</dd></dl><dl class="decision-metric"><dt>USD 價格</dt><dd>357.18</dd></dl><dl class="decision-metric"><dt>資料狀態</dt><dd>live market data fetched</dd></dl></div></section>
+              <section class="decision-section"><h4>Research / Position Strategy</h4><div class="decision-plan"><dl class="decision-metric"><dt>1M 趨勢</dt><dd>偏空</dd></dl><dl class="decision-metric"><dt>3M 趨勢</dt><dd>中性</dd></dl><dl class="decision-metric"><dt>財務品質</dt><dd>成長與獲利同步改善</dd></dl><dl class="decision-metric"><dt>盈餘 / 指引</dt><dd>參考資料可用 / 尚未接入</dd></dl></div></section>
               
-              <section class="strategy-pair" data-strategy="dual">
+              <section class="decision-section strategy-pair" data-strategy="dual">
                 <h4>Research / Position Strategy</h4>
-                <p>Score / Rating / Action / Confidence：53.83 / D級 / 保守觀望 / 34.8</p>
-                <p>Horizon：days_to_months; 1M/3M trend</p>
-                <h4>Daily Tactical Strategy</h4>
-                <p>方向 / Setup / Action：neutral / range_trade / 等待止穩</p>
-                <p>分數 / 等級 / 信心：45.84 / C-Tactical / 35.3</p>
-                <p>進場區：353.47 ～ 357.88｜停損/失效：342.86｜目標一：360.89 ～ 363.54</p>
-                <p>預期波動 / 報酬風險：6.36 / 0.51｜追高風險：low｜事件風險：medium</p>
-                <p class="risk-note">Daily Tactical 為研究參考，不是交易指令；未觸發 setup 不算自動失敗。</p>
+                <table class="decision-table"><tbody><tr><th>Score / Rating</th><td>52.59 / D級</td></tr><tr><th>Action</th><td>保守觀望</td></tr><tr><th>Confidence</th><td>34%｜中低</td></tr><tr><th>Horizon</th><td>days_to_months; 1M/3M trend</td></tr></tbody></table>
               </section>
+              <section class="decision-section">
+                <h4>Daily Tactical Strategy</h4>
+                <div class="decision-plan"><dl class="decision-metric"><dt>今日建議</dt><dd>暫不操作</dd></dl><dl class="decision-metric"><dt>方向</dt><dd>觀望</dd></dl><dl class="decision-metric"><dt>策略</dt><dd>區間操作</dd></dl><dl class="decision-metric"><dt>信心</dt><dd>36%｜中低</dd></dl></div>
+              </section>
+              <section class="decision-section"><h4>操作計畫</h4><div class="decision-plan"><dl class="decision-metric"><dt>進場區</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>停損／策略失效</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>第一目標</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>第二目標</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>報酬風險比</dt><dd>0.51</dd></dl><dl class="decision-metric"><dt>部位建議</dt><dd>不建立部位</dd></dl></div></section>
+              <section class="decision-section"><h4>信心與風險</h4><div class="decision-plan"><dl class="decision-metric"><dt>追價風險</dt><dd>低</dd></dl><dl class="decision-metric"><dt>事件風險</dt><dd>中</dd></dl><dl class="decision-metric"><dt>資料完整度</dt><dd>可用</dd></dl><dl class="decision-metric"><dt>預期波動</dt><dd>6.4%</dd></dl></div></section>
+              <section class="decision-section"><h4>主要依據</h4><ul class="decision-list"><li>目前沒有足夠依據</li></ul></section>
+              <section class="decision-section"><h4>主要風險</h4><ul class="decision-list"><li>研究參考，不是下單指令。</li><li>若觸發條件未出現，不應把 setup 視為失敗交易。</li></ul></section>
+              <section class="decision-section"><h4>操作劇本</h4><p>接近區間支撐才具備操作價值；接近壓力不追價，跌破區間下緣取消。</p></section>
+              <details class="decision-details"><summary>技術與資料細節</summary><div class="decision-details__body"><h4>資料來源狀態</h4><table class="decision-table"><tbody><tr><th>資料來源</th><td>資料不足</td></tr></tbody></table><h4>分數構成</h4><table class="decision-table"><tbody><tr><th>分數構成</th><td>資料不足</td></tr></tbody></table></div></details>
     
-              <details class="news-block" open><summary>Bilingual News / 雙語新聞</summary><p><strong>EN:</strong> 資料待接</p><p><strong>中:</strong> 無可驗證重大新聞</p><p>未取得可安全引用新聞；不產生假新聞。</p><p>Vocabulary：資料待接</p></details>
-              <details class="review-block"><summary>Prediction Review / 檢討</summary><p>檢討資料待接</p></details>
+              <section class="decision-section"><h4>主要依據</h4><ul class="decision-list"><li>MA/RSI/MACD/Bollinger computed from 251 daily OHLCV rows.</li><li>SEC / 官方事件：資料待接｜有近期 8-K</li></ul></section>
+              <section class="decision-section"><h4>主要風險</h4><ul class="decision-list"><li>資料新鮮度：SEC/yfinance/news metadata checked</li><li>事件風險與缺漏資料仍需依 artifact provenance 判讀。</li></ul></section>
+              <details class="decision-details" open><summary>Material News & Bilingual Reading / 雙語新聞</summary><div class="decision-details__body"><p><strong>EN:</strong> 資料待接</p><p><strong>中:</strong> 無可驗證重大新聞</p><p>未取得可安全引用新聞；不產生假新聞。</p><p>Vocabulary：資料待接</p></div></details>
+              <details class="decision-details"><summary>策略檢討</summary><div class="decision-details__body"><p>待檢討</p></div></details>
             </article>
             
 
-            <article class="stock-card us-stock-card" data-market="US">
-              <div class="card-kicker">美股盤前 20:00｜US</div>
-              <h3>SPCX Space X</h3>
-              <dl>
-                <div><dt>交易所</dt><dd>NMS</dd></div>
-                <div><dt>USD 價格</dt><dd>145.3</dd></div>
-                <div><dt>評等 / 動作 / 信心</dt><dd>資料不足 / 保守觀望 / 資料待接</dd></div>
-                <div><dt>本次預測區間</dt><dd>資料不足</dd></div>
-                <div><dt>下次預測區間</dt><dd>資料不足</dd></div>
-                <div><dt>1M / 3M 趨勢</dt><dd>insufficient_data / insufficient_data</dd></div>
-                <div><dt>技術摘要</dt><dd>MA/RSI/MACD/Bollinger computed from 19 daily OHLCV rows.</dd></div>
-                <div><dt>財務品質</dt><dd>成長或獲利承壓</dd></div>
-                <div><dt>盈餘 / 指引</dt><dd>available_reference / unavailable</dd></div>
-                <div><dt>SEC 最新 filing</dt><dd>資料待接</dd></div>
-                <div><dt>官方事件</dt><dd>有近期 8-K</dd></div>
-                <div><dt>研究因子</dt><dd>54.3 / research_neutral</dd></div>
-                <div><dt>策略版本</dt><dd>research_position / daily_tactical</dd></div>
-                <div><dt>資料狀態</dt><dd>live market data fetched</dd></div>
-                <div><dt>來源新鮮度</dt><dd>SEC/yfinance/news metadata checked</dd></div>
-              </dl>
+            <article class="stock-card decision-card us-stock-card" data-market="US">
+              <div class="decision-card__head"><div><div class="decision-card__market">美股盤前 20:00｜US</div><h3>SPCX Space X</h3></div><span class="decision-badge">資料不足</span></div>
+              <section class="decision-section"><h4>今日結論</h4><div class="decision-plan"><dl class="decision-metric"><dt>評等 / 動作</dt><dd>資料不足 / 保守觀望</dd></dl><dl class="decision-metric"><dt>信心</dt><dd>資料不足</dd></dl><dl class="decision-metric"><dt>USD 價格</dt><dd>145.3</dd></dl><dl class="decision-metric"><dt>資料狀態</dt><dd>live market data fetched</dd></dl></div></section>
+              <section class="decision-section"><h4>Research / Position Strategy</h4><div class="decision-plan"><dl class="decision-metric"><dt>1M 趨勢</dt><dd>資料不足</dd></dl><dl class="decision-metric"><dt>3M 趨勢</dt><dd>資料不足</dd></dl><dl class="decision-metric"><dt>財務品質</dt><dd>成長或獲利承壓</dd></dl><dl class="decision-metric"><dt>盈餘 / 指引</dt><dd>參考資料可用 / 尚未接入</dd></dl></div></section>
               
-              <section class="strategy-pair" data-strategy="dual">
+              <section class="decision-section strategy-pair" data-strategy="dual">
                 <h4>Research / Position Strategy</h4>
-                <p>Score / Rating / Action / Confidence：資料待接 / 資料不足 / 保守觀望 / 資料待接</p>
-                <p>Horizon：days_to_months; 1M/3M trend</p>
-                <h4>Daily Tactical Strategy</h4>
-                <p>方向 / Setup / Action：neutral / insufficient_data / 資料不足</p>
-                <p>分數 / 等級 / 信心：資料待接 / 資料不足 / 資料待接</p>
-                <p>進場區：資料不足｜停損/失效：資料待接｜目標一：資料不足</p>
-                <p>預期波動 / 報酬風險：資料待接 / 資料待接｜追高風險：low｜事件風險：medium</p>
-                <p class="risk-note">Daily Tactical 為研究參考，不是交易指令；未觸發 setup 不算自動失敗。</p>
+                <table class="decision-table"><tbody><tr><th>Score / Rating</th><td>資料不足 / 資料不足</td></tr><tr><th>Action</th><td>保守觀望</td></tr><tr><th>Confidence</th><td>資料不足</td></tr><tr><th>Horizon</th><td>days_to_months; 1M/3M trend</td></tr></tbody></table>
               </section>
+              <section class="decision-section">
+                <h4>Daily Tactical Strategy</h4>
+                <div class="decision-plan"><dl class="decision-metric"><dt>今日建議</dt><dd>暫不操作</dd></dl><dl class="decision-metric"><dt>方向</dt><dd>觀望</dd></dl><dl class="decision-metric"><dt>策略</dt><dd>資料不足</dd></dl><dl class="decision-metric"><dt>信心</dt><dd>資料不足</dd></dl></div>
+              </section>
+              <section class="decision-section"><h4>操作計畫</h4><div class="decision-plan"><dl class="decision-metric"><dt>進場區</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>停損／策略失效</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>第一目標</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>第二目標</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>報酬風險比</dt><dd>資料不足</dd></dl><dl class="decision-metric"><dt>部位建議</dt><dd>不建立部位</dd></dl></div></section>
+              <section class="decision-section"><h4>信心與風險</h4><div class="decision-plan"><dl class="decision-metric"><dt>追價風險</dt><dd>低</dd></dl><dl class="decision-metric"><dt>事件風險</dt><dd>中</dd></dl><dl class="decision-metric"><dt>資料完整度</dt><dd>資料不足</dd></dl><dl class="decision-metric"><dt>預期波動</dt><dd>暫無</dd></dl></div></section>
+              <section class="decision-section"><h4>主要依據</h4><ul class="decision-list"><li>目前沒有足夠依據</li></ul></section>
+              <section class="decision-section"><h4>主要風險</h4><ul class="decision-list"><li>研究參考，不是下單指令。</li><li>若觸發條件未出現，不應把 setup 視為失敗交易。</li></ul></section>
+              <section class="decision-section"><h4>操作劇本</h4><p>目前缺乏合理進場結構、資料品質不足或報酬風險不合格，暫不建立戰術部位。</p></section>
+              <details class="decision-details"><summary>技術與資料細節</summary><div class="decision-details__body"><h4>資料來源狀態</h4><table class="decision-table"><tbody><tr><th>資料來源</th><td>資料不足</td></tr></tbody></table><h4>分數構成</h4><table class="decision-table"><tbody><tr><th>分數構成</th><td>資料不足</td></tr></tbody></table></div></details>
     
-              <details class="news-block" open><summary>Bilingual News / 雙語新聞</summary><p><strong>EN:</strong> 資料待接</p><p><strong>中:</strong> 無可驗證重大新聞</p><p>未取得可安全引用新聞；不產生假新聞。</p><p>Vocabulary：資料待接</p></details>
-              <details class="review-block"><summary>Prediction Review / 檢討</summary><p>檢討資料待接</p></details>
+              <section class="decision-section"><h4>主要依據</h4><ul class="decision-list"><li>MA/RSI/MACD/Bollinger computed from 19 daily OHLCV rows.</li><li>SEC / 官方事件：資料待接｜有近期 8-K</li></ul></section>
+              <section class="decision-section"><h4>主要風險</h4><ul class="decision-list"><li>資料新鮮度：SEC/yfinance/news metadata checked</li><li>事件風險與缺漏資料仍需依 artifact provenance 判讀。</li></ul></section>
+              <details class="decision-details" open><summary>Material News & Bilingual Reading / 雙語新聞</summary><div class="decision-details__body"><p><strong>EN:</strong> 資料待接</p><p><strong>中:</strong> 無可驗證重大新聞</p><p>未取得可安全引用新聞；不產生假新聞。</p><p>Vocabulary：資料待接</p></div></details>
+              <details class="decision-details"><summary>策略檢討</summary><div class="decision-details__body"><p>待檢討</p></div></details>
             </article>
             
 
-            <article class="stock-card us-stock-card" data-market="US">
-              <div class="card-kicker">美股盤前 20:00｜US</div>
-              <h3>TSM TSMC</h3>
-              <dl>
-                <div><dt>交易所</dt><dd>NYQ</dd></div>
-                <div><dt>USD 價格</dt><dd>434.11</dd></div>
-                <div><dt>評等 / 動作 / 信心</dt><dd>C級 / 中性觀察 / 36.8</dd></div>
-                <div><dt>本次預測區間</dt><dd>415.77 ～ 452.45</dd></div>
-                <div><dt>下次預測區間</dt><dd>410.31 ～ 457.91</dd></div>
-                <div><dt>1M / 3M 趨勢</dt><dd>neutral / bullish</dd></div>
-                <div><dt>技術摘要</dt><dd>MA/RSI/MACD/Bollinger computed from 251 daily OHLCV rows.</dd></div>
-                <div><dt>財務品質</dt><dd>成長與獲利同步改善</dd></div>
-                <div><dt>盈餘 / 指引</dt><dd>available_reference / unavailable</dd></div>
-                <div><dt>SEC 最新 filing</dt><dd>6-K</dd></div>
-                <div><dt>官方事件</dt><dd>無近期重大 8-K metadata</dd></div>
-                <div><dt>研究因子</dt><dd>57.73 / research_neutral</dd></div>
-                <div><dt>策略版本</dt><dd>research_position / daily_tactical</dd></div>
-                <div><dt>資料狀態</dt><dd>live market data fetched</dd></div>
-                <div><dt>來源新鮮度</dt><dd>SEC/yfinance/news metadata checked</dd></div>
-              </dl>
+            <article class="stock-card decision-card us-stock-card" data-market="US">
+              <div class="decision-card__head"><div><div class="decision-card__market">美股盤前 20:00｜US</div><h3>TSM TSMC</h3></div><span class="decision-badge">C級</span></div>
+              <section class="decision-section"><h4>今日結論</h4><div class="decision-plan"><dl class="decision-metric"><dt>評等 / 動作</dt><dd>C級 / 中性觀察</dd></dl><dl class="decision-metric"><dt>信心</dt><dd>36%｜中低</dd></dl><dl class="decision-metric"><dt>USD 價格</dt><dd>434.11</dd></dl><dl class="decision-metric"><dt>資料狀態</dt><dd>live market data fetched</dd></dl></div></section>
+              <section class="decision-section"><h4>Research / Position Strategy</h4><div class="decision-plan"><dl class="decision-metric"><dt>1M 趨勢</dt><dd>中性</dd></dl><dl class="decision-metric"><dt>3M 趨勢</dt><dd>偏多</dd></dl><dl class="decision-metric"><dt>財務品質</dt><dd>成長與獲利同步改善</dd></dl><dl class="decision-metric"><dt>盈餘 / 指引</dt><dd>參考資料可用 / 尚未接入</dd></dl></div></section>
               
-              <section class="strategy-pair" data-strategy="dual">
+              <section class="decision-section strategy-pair" data-strategy="dual">
                 <h4>Research / Position Strategy</h4>
-                <p>Score / Rating / Action / Confidence：56.62 / C級 / 中性觀察 / 36.8</p>
-                <p>Horizon：days_to_months; 1M/3M trend</p>
-                <h4>Daily Tactical Strategy</h4>
-                <p>方向 / Setup / Action：neutral / range_trade / 等待止穩</p>
-                <p>分數 / 等級 / 信心：45.84 / C-Tactical / 27.3</p>
-                <p>進場區：427.93 ～ 440.29｜停損/失效：410.26｜目標一：440.29 ～ 444.71</p>
-                <p>預期波動 / 報酬風險：10.6 / 0.35｜追高風險：medium｜事件風險：medium</p>
-                <p class="risk-note">Daily Tactical 為研究參考，不是交易指令；未觸發 setup 不算自動失敗。</p>
+                <table class="decision-table"><tbody><tr><th>Score / Rating</th><td>55.37 / C級</td></tr><tr><th>Action</th><td>中性觀察</td></tr><tr><th>Confidence</th><td>36%｜中低</td></tr><tr><th>Horizon</th><td>days_to_months; 1M/3M trend</td></tr></tbody></table>
               </section>
-    
-              <details class="news-block" open><summary>Bilingual News / 雙語新聞</summary><p><strong>EN:</strong> 資料待接</p><p><strong>中:</strong> 無可驗證重大新聞</p><p>未取得可安全引用新聞；不產生假新聞。</p><p>Vocabulary：資料待接</p></details>
-              <details class="review-block"><summary>Prediction Review / 檢討</summary><p>檢討資料待接</p></details>
-            </article>
-            
-
-            <article class="stock-card us-stock-card" data-market="US">
-              <div class="card-kicker">美股盤中 23:00｜US</div>
-              <h3>AAPL Apple</h3>
-              <dl>
-                <div><dt>交易所</dt><dd>NMS</dd></div>
-                <div><dt>USD 價格</dt><dd>315.32</dd></div>
-                <div><dt>評等 / 動作 / 信心</dt><dd>C級 / 中性觀察 / 40.5</dd></div>
-                <div><dt>本次預測區間</dt><dd>307.92 ～ 322.72</dd></div>
-                <div><dt>下次預測區間</dt><dd>305.71 ～ 324.93</dd></div>
-                <div><dt>1M / 3M 趨勢</dt><dd>neutral / bullish</dd></div>
-                <div><dt>技術摘要</dt><dd>MA/RSI/MACD/Bollinger computed from 251 daily OHLCV rows.</dd></div>
-                <div><dt>財務品質</dt><dd>成長與獲利同步改善</dd></div>
-                <div><dt>盈餘 / 指引</dt><dd>available_reference / unavailable</dd></div>
-                <div><dt>SEC 最新 filing</dt><dd>10-Q</dd></div>
-                <div><dt>官方事件</dt><dd>有近期 8-K</dd></div>
-                <div><dt>研究因子</dt><dd>59.55 / research_neutral</dd></div>
-                <div><dt>策略版本</dt><dd>research_position / daily_tactical</dd></div>
-                <div><dt>資料狀態</dt><dd>live market data fetched</dd></div>
-                <div><dt>來源新鮮度</dt><dd>SEC/yfinance/news metadata checked</dd></div>
-              </dl>
-              
-              <section class="strategy-pair" data-strategy="dual">
-                <h4>Research / Position Strategy</h4>
-                <p>Score / Rating / Action / Confidence：61.86 / C級 / 中性觀察 / 40.5</p>
-                <p>Horizon：days_to_months; 1M/3M trend</p>
+              <section class="decision-section">
                 <h4>Daily Tactical Strategy</h4>
-                <p>方向 / Setup / Action：mildly_bullish / breakout / 突破確認後偏多</p>
-                <p>分數 / 等級 / 信心：68.84 / B-Tactical / 43.4</p>
-                <p>進場區：311.76 ～ 316.51｜停損/失效：306.22｜目標一：321.2 ～ 323.97</p>
-                <p>預期波動 / 報酬風險：8.65 / 1.07｜追高風險：low｜事件風險：medium</p>
-                <p class="risk-note">Daily Tactical 為研究參考，不是交易指令；未觸發 setup 不算自動失敗。</p>
+                <div class="decision-plan"><dl class="decision-metric"><dt>今日建議</dt><dd>暫不操作</dd></dl><dl class="decision-metric"><dt>方向</dt><dd>觀望</dd></dl><dl class="decision-metric"><dt>策略</dt><dd>區間操作</dd></dl><dl class="decision-metric"><dt>信心</dt><dd>28%｜偏低</dd></dl></div>
               </section>
+              <section class="decision-section"><h4>操作計畫</h4><div class="decision-plan"><dl class="decision-metric"><dt>進場區</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>停損／策略失效</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>第一目標</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>第二目標</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>報酬風險比</dt><dd>0.35</dd></dl><dl class="decision-metric"><dt>部位建議</dt><dd>不建立部位</dd></dl></div></section>
+              <section class="decision-section"><h4>信心與風險</h4><div class="decision-plan"><dl class="decision-metric"><dt>追價風險</dt><dd>中</dd></dl><dl class="decision-metric"><dt>事件風險</dt><dd>中</dd></dl><dl class="decision-metric"><dt>資料完整度</dt><dd>可用</dd></dl><dl class="decision-metric"><dt>預期波動</dt><dd>10.6%</dd></dl></div></section>
+              <section class="decision-section"><h4>主要依據</h4><ul class="decision-list"><li>目前沒有足夠依據</li></ul></section>
+              <section class="decision-section"><h4>主要風險</h4><ul class="decision-list"><li>研究參考，不是下單指令。</li><li>若觸發條件未出現，不應把 setup 視為失敗交易。</li></ul></section>
+              <section class="decision-section"><h4>操作劇本</h4><p>接近區間支撐才具備操作價值；接近壓力不追價，跌破區間下緣取消。</p></section>
+              <details class="decision-details"><summary>技術與資料細節</summary><div class="decision-details__body"><h4>資料來源狀態</h4><table class="decision-table"><tbody><tr><th>資料來源</th><td>資料不足</td></tr></tbody></table><h4>分數構成</h4><table class="decision-table"><tbody><tr><th>分數構成</th><td>資料不足</td></tr></tbody></table></div></details>
     
-              <details class="news-block" open><summary>Bilingual News / 雙語新聞</summary><p><strong>EN:</strong> 資料待接</p><p><strong>中:</strong> 無可驗證重大新聞</p><p>未取得可安全引用新聞；不產生假新聞。</p><p>Vocabulary：資料待接</p></details>
-              <details class="review-block"><summary>Prediction Review / 檢討</summary><p>檢討資料待接</p></details>
-            </article>
-            
-
-            <article class="stock-card us-stock-card" data-market="US">
-              <div class="card-kicker">美股盤中 23:00｜US</div>
-              <h3>NVDA Nvidia</h3>
-              <dl>
-                <div><dt>交易所</dt><dd>NMS</dd></div>
-                <div><dt>USD 價格</dt><dd>210.96</dd></div>
-                <div><dt>評等 / 動作 / 信心</dt><dd>C級 / 中性觀察 / 40.5</dd></div>
-                <div><dt>本次預測區間</dt><dd>205.28 ～ 216.64</dd></div>
-                <div><dt>下次預測區間</dt><dd>203.59 ～ 218.33</dd></div>
-                <div><dt>1M / 3M 趨勢</dt><dd>neutral / bullish</dd></div>
-                <div><dt>技術摘要</dt><dd>MA/RSI/MACD/Bollinger computed from 251 daily OHLCV rows.</dd></div>
-                <div><dt>財務品質</dt><dd>成長與獲利同步改善</dd></div>
-                <div><dt>盈餘 / 指引</dt><dd>available_reference / unavailable</dd></div>
-                <div><dt>SEC 最新 filing</dt><dd>10-Q</dd></div>
-                <div><dt>官方事件</dt><dd>有近期 8-K</dd></div>
-                <div><dt>研究因子</dt><dd>59.55 / research_neutral</dd></div>
-                <div><dt>策略版本</dt><dd>research_position / daily_tactical</dd></div>
-                <div><dt>資料狀態</dt><dd>live market data fetched</dd></div>
-                <div><dt>來源新鮮度</dt><dd>SEC/yfinance/news metadata checked</dd></div>
-              </dl>
-              
-              <section class="strategy-pair" data-strategy="dual">
-                <h4>Research / Position Strategy</h4>
-                <p>Score / Rating / Action / Confidence：61.86 / C級 / 中性觀察 / 40.5</p>
-                <p>Horizon：days_to_months; 1M/3M trend</p>
-                <h4>Daily Tactical Strategy</h4>
-                <p>方向 / Setup / Action：mildly_bullish / breakout / 突破確認後偏多</p>
-                <p>分數 / 等級 / 信心：68.84 / B-Tactical / 43.4</p>
-                <p>進場區：208.02 ～ 211.94｜停損/失效：203.44｜目標一：214.56 ～ 216.85</p>
-                <p>預期波動 / 報酬風險：5.89 / 0.87｜追高風險：low｜事件風險：medium</p>
-                <p class="risk-note">Daily Tactical 為研究參考，不是交易指令；未觸發 setup 不算自動失敗。</p>
-              </section>
-    
-              <details class="news-block" open><summary>Bilingual News / 雙語新聞</summary><p><strong>EN:</strong> 資料待接</p><p><strong>中:</strong> 無可驗證重大新聞</p><p>未取得可安全引用新聞；不產生假新聞。</p><p>Vocabulary：資料待接</p></details>
-              <details class="review-block"><summary>Prediction Review / 檢討</summary><p>檢討資料待接</p></details>
-            </article>
-            
-
-            <article class="stock-card us-stock-card" data-market="US">
-              <div class="card-kicker">美股盤中 23:00｜US</div>
-              <h3>TSLA Tesla</h3>
-              <dl>
-                <div><dt>交易所</dt><dd>NMS</dd></div>
-                <div><dt>USD 價格</dt><dd>407.76</dd></div>
-                <div><dt>評等 / 動作 / 信心</dt><dd>C級 / 中性觀察 / 39.8</dd></div>
-                <div><dt>本次預測區間</dt><dd>391.44 ～ 424.08</dd></div>
-                <div><dt>下次預測區間</dt><dd>386.58 ～ 428.94</dd></div>
-                <div><dt>1M / 3M 趨勢</dt><dd>neutral / bullish</dd></div>
-                <div><dt>技術摘要</dt><dd>MA/RSI/MACD/Bollinger computed from 251 daily OHLCV rows.</dd></div>
-                <div><dt>財務品質</dt><dd>成長與獲利同步改善</dd></div>
-                <div><dt>盈餘 / 指引</dt><dd>available_reference / unavailable</dd></div>
-                <div><dt>SEC 最新 filing</dt><dd>10-Q</dd></div>
-                <div><dt>官方事件</dt><dd>有近期 8-K</dd></div>
-                <div><dt>研究因子</dt><dd>57.73 / research_neutral</dd></div>
-                <div><dt>策略版本</dt><dd>research_position / daily_tactical</dd></div>
-                <div><dt>資料狀態</dt><dd>live market data fetched</dd></div>
-                <div><dt>來源新鮮度</dt><dd>SEC/yfinance/news metadata checked</dd></div>
-              </dl>
-              
-              <section class="strategy-pair" data-strategy="dual">
-                <h4>Research / Position Strategy</h4>
-                <p>Score / Rating / Action / Confidence：60.82 / C級 / 中性觀察 / 39.8</p>
-                <p>Horizon：days_to_months; 1M/3M trend</p>
-                <h4>Daily Tactical Strategy</h4>
-                <p>方向 / Setup / Action：mildly_bullish / breakout / 突破確認後偏多</p>
-                <p>分數 / 等級 / 信心：64.84 / B-Tactical / 33.2</p>
-                <p>進場區：400.88 ～ 410.46｜停損/失效：390.06｜目標一：425.78 ～ 432.09</p>
-                <p>預期波動 / 報酬風險：24.33 / 1.49｜追高風險：medium｜事件風險：medium</p>
-                <p class="risk-note">Daily Tactical 為研究參考，不是交易指令；未觸發 setup 不算自動失敗。</p>
-              </section>
-    
-              <details class="news-block" open><summary>Bilingual News / 雙語新聞</summary><p><strong>EN:</strong> 資料待接</p><p><strong>中:</strong> 無可驗證重大新聞</p><p>未取得可安全引用新聞；不產生假新聞。</p><p>Vocabulary：資料待接</p></details>
-              <details class="review-block"><summary>Prediction Review / 檢討</summary><p>檢討資料待接</p></details>
-            </article>
-            
-
-            <article class="stock-card us-stock-card" data-market="US">
-              <div class="card-kicker">美股盤中 23:00｜US</div>
-              <h3>GOOGL Google</h3>
-              <dl>
-                <div><dt>交易所</dt><dd>NMS</dd></div>
-                <div><dt>USD 價格</dt><dd>357.18</dd></div>
-                <div><dt>評等 / 動作 / 信心</dt><dd>D級 / 保守觀望 / 34.8</dd></div>
-                <div><dt>本次預測區間</dt><dd>346.59 ～ 365.88</dd></div>
-                <div><dt>下次預測區間</dt><dd>343.44 ～ 368.47</dd></div>
-                <div><dt>1M / 3M 趨勢</dt><dd>bearish / neutral</dd></div>
-                <div><dt>技術摘要</dt><dd>MA/RSI/MACD/Bollinger computed from 251 daily OHLCV rows.</dd></div>
-                <div><dt>財務品質</dt><dd>成長與獲利同步改善</dd></div>
-                <div><dt>盈餘 / 指引</dt><dd>available_reference / unavailable</dd></div>
-                <div><dt>SEC 最新 filing</dt><dd>資料待接</dd></div>
-                <div><dt>官方事件</dt><dd>有近期 8-K</dd></div>
-                <div><dt>研究因子</dt><dd>56.09 / research_neutral</dd></div>
-                <div><dt>策略版本</dt><dd>research_position / daily_tactical</dd></div>
-                <div><dt>資料狀態</dt><dd>live market data fetched</dd></div>
-                <div><dt>來源新鮮度</dt><dd>SEC/yfinance/news metadata checked</dd></div>
-              </dl>
-              
-              <section class="strategy-pair" data-strategy="dual">
-                <h4>Research / Position Strategy</h4>
-                <p>Score / Rating / Action / Confidence：53.83 / D級 / 保守觀望 / 34.8</p>
-                <p>Horizon：days_to_months; 1M/3M trend</p>
-                <h4>Daily Tactical Strategy</h4>
-                <p>方向 / Setup / Action：neutral / range_trade / 等待止穩</p>
-                <p>分數 / 等級 / 信心：45.84 / C-Tactical / 35.3</p>
-                <p>進場區：353.47 ～ 357.88｜停損/失效：342.86｜目標一：360.89 ～ 363.54</p>
-                <p>預期波動 / 報酬風險：6.36 / 0.51｜追高風險：low｜事件風險：medium</p>
-                <p class="risk-note">Daily Tactical 為研究參考，不是交易指令；未觸發 setup 不算自動失敗。</p>
-              </section>
-    
-              <details class="news-block" open><summary>Bilingual News / 雙語新聞</summary><p><strong>EN:</strong> 資料待接</p><p><strong>中:</strong> 無可驗證重大新聞</p><p>未取得可安全引用新聞；不產生假新聞。</p><p>Vocabulary：資料待接</p></details>
-              <details class="review-block"><summary>Prediction Review / 檢討</summary><p>檢討資料待接</p></details>
-            </article>
-            
-
-            <article class="stock-card us-stock-card" data-market="US">
-              <div class="card-kicker">美股盤中 23:00｜US</div>
-              <h3>SPCX Space X</h3>
-              <dl>
-                <div><dt>交易所</dt><dd>NMS</dd></div>
-                <div><dt>USD 價格</dt><dd>145.3</dd></div>
-                <div><dt>評等 / 動作 / 信心</dt><dd>資料不足 / 保守觀望 / 資料待接</dd></div>
-                <div><dt>本次預測區間</dt><dd>資料不足</dd></div>
-                <div><dt>下次預測區間</dt><dd>資料不足</dd></div>
-                <div><dt>1M / 3M 趨勢</dt><dd>insufficient_data / insufficient_data</dd></div>
-                <div><dt>技術摘要</dt><dd>MA/RSI/MACD/Bollinger computed from 19 daily OHLCV rows.</dd></div>
-                <div><dt>財務品質</dt><dd>成長或獲利承壓</dd></div>
-                <div><dt>盈餘 / 指引</dt><dd>available_reference / unavailable</dd></div>
-                <div><dt>SEC 最新 filing</dt><dd>資料待接</dd></div>
-                <div><dt>官方事件</dt><dd>有近期 8-K</dd></div>
-                <div><dt>研究因子</dt><dd>54.3 / research_neutral</dd></div>
-                <div><dt>策略版本</dt><dd>research_position / daily_tactical</dd></div>
-                <div><dt>資料狀態</dt><dd>live market data fetched</dd></div>
-                <div><dt>來源新鮮度</dt><dd>SEC/yfinance/news metadata checked</dd></div>
-              </dl>
-              
-              <section class="strategy-pair" data-strategy="dual">
-                <h4>Research / Position Strategy</h4>
-                <p>Score / Rating / Action / Confidence：資料待接 / 資料不足 / 保守觀望 / 資料待接</p>
-                <p>Horizon：days_to_months; 1M/3M trend</p>
-                <h4>Daily Tactical Strategy</h4>
-                <p>方向 / Setup / Action：neutral / insufficient_data / 資料不足</p>
-                <p>分數 / 等級 / 信心：資料待接 / 資料不足 / 資料待接</p>
-                <p>進場區：資料不足｜停損/失效：資料待接｜目標一：資料不足</p>
-                <p>預期波動 / 報酬風險：資料待接 / 資料待接｜追高風險：low｜事件風險：medium</p>
-                <p class="risk-note">Daily Tactical 為研究參考，不是交易指令；未觸發 setup 不算自動失敗。</p>
-              </section>
-    
-              <details class="news-block" open><summary>Bilingual News / 雙語新聞</summary><p><strong>EN:</strong> 資料待接</p><p><strong>中:</strong> 無可驗證重大新聞</p><p>未取得可安全引用新聞；不產生假新聞。</p><p>Vocabulary：資料待接</p></details>
-              <details class="review-block"><summary>Prediction Review / 檢討</summary><p>檢討資料待接</p></details>
-            </article>
-            
-
-            <article class="stock-card us-stock-card" data-market="US">
-              <div class="card-kicker">美股盤中 23:00｜US</div>
-              <h3>TSM TSMC</h3>
-              <dl>
-                <div><dt>交易所</dt><dd>NYQ</dd></div>
-                <div><dt>USD 價格</dt><dd>434.11</dd></div>
-                <div><dt>評等 / 動作 / 信心</dt><dd>C級 / 中性觀察 / 36.8</dd></div>
-                <div><dt>本次預測區間</dt><dd>418.52 ～ 449.7</dd></div>
-                <div><dt>下次預測區間</dt><dd>413.88 ～ 454.34</dd></div>
-                <div><dt>1M / 3M 趨勢</dt><dd>neutral / bullish</dd></div>
-                <div><dt>技術摘要</dt><dd>MA/RSI/MACD/Bollinger computed from 251 daily OHLCV rows.</dd></div>
-                <div><dt>財務品質</dt><dd>成長與獲利同步改善</dd></div>
-                <div><dt>盈餘 / 指引</dt><dd>available_reference / unavailable</dd></div>
-                <div><dt>SEC 最新 filing</dt><dd>6-K</dd></div>
-                <div><dt>官方事件</dt><dd>無近期重大 8-K metadata</dd></div>
-                <div><dt>研究因子</dt><dd>57.73 / research_neutral</dd></div>
-                <div><dt>策略版本</dt><dd>research_position / daily_tactical</dd></div>
-                <div><dt>資料狀態</dt><dd>live market data fetched</dd></div>
-                <div><dt>來源新鮮度</dt><dd>SEC/yfinance/news metadata checked</dd></div>
-              </dl>
-              
-              <section class="strategy-pair" data-strategy="dual">
-                <h4>Research / Position Strategy</h4>
-                <p>Score / Rating / Action / Confidence：56.62 / C級 / 中性觀察 / 36.8</p>
-                <p>Horizon：days_to_months; 1M/3M trend</p>
-                <h4>Daily Tactical Strategy</h4>
-                <p>方向 / Setup / Action：neutral / range_trade / 等待止穩</p>
-                <p>分數 / 等級 / 信心：45.84 / C-Tactical / 27.3</p>
-                <p>進場區：427.93 ～ 440.29｜停損/失效：410.26｜目標一：440.29 ～ 444.71</p>
-                <p>預期波動 / 報酬風險：10.6 / 0.35｜追高風險：medium｜事件風險：medium</p>
-                <p class="risk-note">Daily Tactical 為研究參考，不是交易指令；未觸發 setup 不算自動失敗。</p>
-              </section>
-    
-              <details class="news-block" open><summary>Bilingual News / 雙語新聞</summary><p><strong>EN:</strong> 資料待接</p><p><strong>中:</strong> 無可驗證重大新聞</p><p>未取得可安全引用新聞；不產生假新聞。</p><p>Vocabulary：資料待接</p></details>
-              <details class="review-block"><summary>Prediction Review / 檢討</summary><p>檢討資料待接</p></details>
+              <section class="decision-section"><h4>主要依據</h4><ul class="decision-list"><li>MA/RSI/MACD/Bollinger computed from 251 daily OHLCV rows.</li><li>SEC / 官方事件：6-K｜無近期重大 8-K metadata</li></ul></section>
+              <section class="decision-section"><h4>主要風險</h4><ul class="decision-list"><li>資料新鮮度：SEC/yfinance/news metadata checked</li><li>事件風險與缺漏資料仍需依 artifact provenance 判讀。</li></ul></section>
+              <details class="decision-details" open><summary>Material News & Bilingual Reading / 雙語新聞</summary><div class="decision-details__body"><p><strong>EN:</strong> 資料待接</p><p><strong>中:</strong> 無可驗證重大新聞</p><p>未取得可安全引用新聞；不產生假新聞。</p><p>Vocabulary：資料待接</p></div></details>
+              <details class="decision-details"><summary>策略檢討</summary><div class="decision-details__body"><p>待檢討</p></div></details>
             </article>
             </div></section>
     <!-- AI-DEV-170-US-DASHBOARD-END -->

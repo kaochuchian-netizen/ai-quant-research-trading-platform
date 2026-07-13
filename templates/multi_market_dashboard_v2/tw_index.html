@@ -1,227 +1,137 @@
 <!doctype html>
 <html lang="zh-Hant">
-<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>台股 AI 決策儀表板 | 四時段 AI 決策儀表板</title><style>body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;background:#f6f7fb;color:#17202a}header.hero{padding:28px 20px;background:#102a43;color:white}.hero h1{margin:0 0 8px}.lead{max-width:900px}.status-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.status-row span,.badge{background:#eaf2ff;color:#102a43;border-radius:999px;padding:6px 10px;font-size:14px}main{max-width:1180px;margin:0 auto;padding:24px 16px}.panel,.card{background:white;border:1px solid #d6dbdf;border-radius:8px;padding:18px;margin-bottom:16px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}.stock-card{border:1px solid #e5e7eb;border-radius:8px;padding:14px}.muted{color:#667085}.debug pre{white-space:pre-wrap;overflow:auto}</style><style id="shared-market-navigation-style">.market-shared-navigation{background:white;color:#17262c}.market-shared-navigation__grid{display:grid;grid-template-columns:1fr;gap:12px;margin:14px 0 10px}.market-shared-navigation__button{display:block;width:100%;box-sizing:border-box;background:#fff;color:#0f2c33;text-decoration:none;border:1px solid #cbd8dc;border-radius:8px;padding:13px 14px;font-weight:800;text-align:left;box-shadow:0 1px 0 rgba(15,44,51,.04)}.market-shared-navigation__button[aria-current="page"]{border-color:#83aab4;background:#f4fbfd}.market-shared-navigation__subtitle{margin:10px 0 0;color:#51666d}@media(max-width:640px){.market-shared-navigation__grid{gap:10px}.market-shared-navigation__button{padding:14px 13px}}html,body{max-width:100%;overflow-x:hidden}.wrap,.section{box-sizing:border-box;max-width:100%;overflow-wrap:anywhere}.tw-tactical-grid{display:grid;width:100%;max-width:100%;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}.tw-tactical-card{min-width:0;overflow-wrap:anywhere;word-break:break-word}.tw-tactical-card dl{display:grid;gap:8px}.tw-tactical-card dd{overflow-wrap:anywhere;word-break:break-word}.tw-tactical-card details{max-width:100%;overflow-wrap:anywhere}@media(max-width:640px){.tw-tactical-grid{grid-template-columns:1fr!important}.tw-tactical-card{width:100%;box-sizing:border-box}.tw-tactical-card dl{grid-template-columns:1fr!important}}</style></head>
-<body><div class="wrap section market-shared-navigation market-shared-navigation--v1" data-shared-navigation="tw-us" data-active-market="TW"><h1>台股 AI 決策儀表板</h1><nav class="market-shared-navigation__grid market-shared-navigation__grid--responsive" aria-label="Market Dashboard Navigation"><a class="market-shared-navigation__button" href="/stock-ai-dashboard/index.html">回到總覽</a><a class="market-shared-navigation__button" href="/stock-ai-dashboard/dashboard/tw/index.html" aria-current="page">台股 Dashboard</a><a class="market-shared-navigation__button" href="/stock-ai-dashboard/dashboard/us/index.html">美股 Dashboard</a></nav><p class="market-shared-navigation__subtitle">TW 專用頁：07:00 / 13:05 / 13:35 / 15:00。美股內容不在此頁渲染。</p></div><div class="wrap section" id="ai-dev-173-tw-dual-strategy"><h2>中長期量化策略</h2><p>沿用既有 TW Research / Position scoring、評等、動作與 prediction lifecycle；不由 Daily Tactical 覆寫。</p><p>策略隔離：research_position 與 daily_tactical 分開顯示、分開檢討，不互相覆蓋。</p></div>
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>台股 AI 決策儀表板 | 四時段 AI 決策儀表板</title><style>body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;background:#f6f7fb;color:#17202a}header.hero{padding:28px 20px;background:#102a43;color:white}.hero h1{margin:0 0 8px}.lead{max-width:900px}.status-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.status-row span,.badge{background:#eaf2ff;color:#102a43;border-radius:999px;padding:6px 10px;font-size:14px}main{max-width:1180px;margin:0 auto;padding:24px 16px}.panel,.card{background:white;border:1px solid #d6dbdf;border-radius:8px;padding:18px;margin-bottom:16px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}.stock-card{border:1px solid #e5e7eb;border-radius:8px;padding:14px}.muted{color:#667085}.debug pre{white-space:pre-wrap;overflow:auto}</style><style id="shared-market-navigation-style">.market-shared-navigation{background:white;color:#17262c}.market-shared-navigation__grid{display:grid;grid-template-columns:1fr;gap:12px;margin:14px 0 10px}.market-shared-navigation__button{display:block;width:100%;box-sizing:border-box;background:#fff;color:#0f2c33;text-decoration:none;border:1px solid #cbd8dc;border-radius:8px;padding:13px 14px;font-weight:800;text-align:left;box-shadow:0 1px 0 rgba(15,44,51,.04)}.market-shared-navigation__button[aria-current="page"]{border-color:#83aab4;background:#f4fbfd}.market-shared-navigation__subtitle{margin:10px 0 0;color:#51666d}@media(max-width:640px){.market-shared-navigation__grid{gap:10px}.market-shared-navigation__button{padding:14px 13px}}html,body{max-width:100%;overflow-x:hidden}.wrap,.section{box-sizing:border-box;max-width:100%;overflow-wrap:anywhere}.decision-grid{display:grid;width:100%;max-width:100%;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}.decision-card{min-width:0;overflow-wrap:anywhere;word-break:break-word}.decision-card__head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}.decision-card__market{font-size:12px;font-weight:800;color:#51666d}.decision-badge{display:inline-block;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:800;background:#eef6f7;color:#234c55}.decision-badge--warn{background:#fff2d4;color:#7a4d00}.decision-badge--ok{background:#e9f7ed;color:#1f6b35}.decision-section{border-top:1px solid #e5eef0;margin-top:12px;padding-top:12px}.decision-section h4{margin:0 0 8px;font-size:15px}.decision-plan{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.decision-metric{background:#f7fafb;border:1px solid #dce8eb;border-radius:8px;padding:10px;min-width:0}.decision-metric dt{font-size:12px}.decision-metric dd{font-size:15px;font-weight:800;color:#14333a}.decision-list{margin:0;padding-left:18px}.decision-list li{margin:5px 0}.decision-details{margin-top:12px;border:1px solid #dce8eb;border-radius:8px;background:#fbfdfe}.decision-details summary{cursor:pointer;list-style:none;padding:12px 13px;font-weight:900;min-height:24px}.decision-details summary::-webkit-details-marker{display:none}.decision-details__body{padding:0 13px 13px}.decision-table{width:100%;border-collapse:collapse;table-layout:fixed}.decision-table th,.decision-table td{border-top:1px solid #e5eef0;text-align:left;padding:8px;vertical-align:top;overflow-wrap:anywhere}.decision-table th{color:#51666d;width:45%;font-size:13px}.decision-note{color:#51666d}.decision-compact{display:grid;gap:8px}.decision-status-low{color:#8a4b00}.decision-status-good{color:#1f6b35}@media(max-width:640px){.decision-grid{grid-template-columns:1fr!important}.decision-card{width:100%;box-sizing:border-box}.decision-plan{grid-template-columns:1fr}.decision-details summary{padding:14px 13px}.decision-table th,.decision-table td{display:block;width:100%;box-sizing:border-box}.decision-table td{border-top:0;padding-top:0}}</style></head>
+<body><div class="wrap section market-shared-navigation market-shared-navigation--v1" data-shared-navigation="tw-us" data-active-market="TW"><h1>台股 AI 決策儀表板</h1><nav class="market-shared-navigation__grid market-shared-navigation__grid--responsive" aria-label="Market Dashboard Navigation"><a class="market-shared-navigation__button" href="/stock-ai-dashboard/index.html">回到總覽</a><a class="market-shared-navigation__button" href="/stock-ai-dashboard/dashboard/tw/index.html" aria-current="page">台股 Dashboard</a><a class="market-shared-navigation__button" href="/stock-ai-dashboard/dashboard/us/index.html">美股 Dashboard</a></nav><p class="market-shared-navigation__subtitle">TW 專用頁：07:00 / 13:05 / 13:35 / 15:00。美股內容不在此頁渲染。</p></div><div class="wrap section" id="ai-dev-173-tw-dual-strategy"><h2>中長期量化策略</h2><p>保留既有 Research / Position 行為，回答是否值得持有；每日短期操作策略獨立回答今天到 1-5 個交易日的操作計畫。</p></div>
     <div class="wrap section" id="tw-daily-tactical-runtime" data-market="TW" data-strategy-type="daily_tactical">
       <h2>每日短期操作策略</h2>
-      <p>Strategy ID：tw_daily_tactical_v1｜Factor Version：tw_daily_tactical_factor_v1｜更新：2026-07-13T10:04:33+08:00</p>
-      <p>市場環境：neutral｜風險：medium｜Regime：neutral_medium_risk</p><p>Delivery readiness：{&quot;actual_stock_count&quot;: 9, &quot;blocking_reasons&quot;: [], &quot;dashboard_ready&quot;: true, &quot;email_ready&quot;: true, &quot;expected_stock_count&quot;: 9, &quot;insufficient_data_count&quot;: 9, &quot;line_ready&quot;: true, &quot;prediction_coverage&quot;: 9, &quot;research_coverage&quot;: 9, &quot;stale_artifact_count&quot;: 0, &quot;tactical_coverage&quot;: 9}</p>
-      <p>Research / Position Strategy 保持獨立；Daily Tactical 只使用台股技術、量能、籌碼/flow、波動與事件風險，不使用 US premarket / SPY / QQQ / VIX。</p>
-      <div class="grid tw-tactical-grid">
+      <p class="decision-note">更新：2026-07-12T15:56:13+08:00｜市場：觀望｜風險：中</p>
+      <p class="decision-note">主畫面優先呈現今日結論、操作計畫與風險；資料來源與分數構成收合在技術與資料細節。</p>
+      <details class="decision-details"><summary>系統準備狀態</summary><div class="decision-details__body"><table class="decision-table"><tbody><tr><th>系統準備狀態</th><td>資料不足</td></tr></tbody></table></div></details>
+      <div class="grid decision-grid tw-tactical-grid">
     
-        <article class="stock-card tw-tactical-card" data-market="TW" data-strategy-type="daily_tactical">
-          <div class="card-kicker">TW｜research_position + daily_tactical</div>
-          <h3>00878 國泰永續高股息</h3>
-          <dl>
-            <div><dt>中長期量化策略</dt><dd>Score 資料待接｜資料待接｜資料待接｜Confidence 資料待接</dd></div>
-            <div><dt>Daily Tactical Direction</dt><dd>no_trade｜no_trade｜暫不操作</dd></div>
-            <div><dt>Tactical Score / Rating / Confidence</dt><dd>21.74｜No-Trade｜15.8</dd></div>
-            <div><dt>Entry Zone</dt><dd>資料不足</dd></div>
-            <div><dt>Stop / Invalidation</dt><dd>資料待接</dd></div>
-            <div><dt>Target 1</dt><dd>資料不足</dd></div>
-            <div><dt>Target 2</dt><dd>資料不足</dd></div>
-            <div><dt>Expected Move / Reward-Risk</dt><dd>資料待接%｜資料待接</dd></div>
-            <div><dt>Chase / Event / Position</dt><dd>low｜unknown｜avoid</dd></div>
-            <div><dt>Data Quality</dt><dd>limited</dd></div>
-            <div><dt>Factor Coverage</dt><dd>{&quot;chip&quot;: &quot;not_applicable&quot;, &quot;event_news&quot;: &quot;unavailable&quot;, &quot;institutional_flow&quot;: &quot;not_applicable&quot;, &quot;margin_short&quot;: &quot;not_applicable&quot;, &quot;market_context&quot;: &quot;partial&quot;, &quot;prediction_snapshot&quot;: &quot;available&quot;, &quot;price_trend&quot;: &quot;limited&quot;, &quot;review_outcome&quot;: &quot;partial&quot;, &quot;support_resistance&quot;: &quot;partial&quot;, &quot;volume&quot;: &quot;partial&quot;}</dd></div>
-            <div><dt>Score Components</dt><dd>{&quot;chip_flow&quot;: 7.0, &quot;data_quality&quot;: 7.2, &quot;market_context&quot;: 6.0, &quot;risk_quality&quot;: 5.04, &quot;technical_setup&quot;: 7.7, &quot;volume_confirmation&quot;: 8.8}</dd></div>
-            <div><dt>Prediction Review</dt><dd>no_trade｜Entry False｜T1 資料待接｜Stop 資料待接</dd></div>
-          </dl>
-          <details open><summary>主要依據</summary><ul><li>歷史資料有限，但價格仍在 MA10 附近或上方</li><li>以區間觀察，不提高部位</li></ul></details>
-          <details><summary>主要風險</summary><ul><li>limited history below 20 bars; confidence downgraded</li><li>reward/risk below 0.8 threshold</li></ul></details>
-          <p class="risk-note">Playbook：目前缺乏合理進場結構、資料品質不足或報酬風險不合格，暫不建立戰術部位。</p>
+        <article class="stock-card decision-card tw-tactical-card" data-market="TW" data-strategy-type="daily_tactical">
+          <div class="decision-card__head"><div><div class="decision-card__market">TW｜雙策略決策</div><h3>00878 國泰永續高股息</h3></div><span class="decision-badge decision-badge--warn">暫不操作</span></div>
+          <section class="decision-section"><h4>中長期觀點</h4><table class="decision-table"><tbody><tr><th>評等</th><td>部分研究資料尚未完成</td></tr><tr><th>建議</th><td>部分研究資料尚未完成</td></tr><tr><th>信心</th><td>67%｜中等</td></tr><tr><th>1 個月</th><td>偏多</td></tr><tr><th>3 個月</th><td>不明朗</td></tr></tbody></table></section>
+          <section class="decision-section"><h4>今日結論</h4><div class="decision-plan"><dl class="decision-metric"><dt>今日建議</dt><dd>暫不操作</dd></dl><dl class="decision-metric"><dt>方向</dt><dd>暫不操作</dd></dl><dl class="decision-metric"><dt>策略</dt><dd>無適合策略</dd></dl><dl class="decision-metric"><dt>一句話</dt><dd>reward/risk below 0.8 threshold</dd></dl></div></section>
+          <section class="decision-section"><h4>操作計畫</h4><div class="decision-plan"><dl class="decision-metric"><dt>進場區</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>停損／策略失效</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>第一目標</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>第二目標</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>報酬風險比</dt><dd>資料不足</dd></dl><dl class="decision-metric"><dt>部位建議</dt><dd>不建立部位</dd></dl></div></section>
+          <section class="decision-section"><h4>信心與風險</h4><div class="decision-plan"><dl class="decision-metric"><dt>策略信心</dt><dd>34%｜中低</dd></dl><dl class="decision-metric"><dt>追價風險</dt><dd>中</dd></dl><dl class="decision-metric"><dt>事件風險</dt><dd>資料不足</dd></dl><dl class="decision-metric"><dt>資料完整度</dt><dd>部分完整</dd></dl><dl class="decision-metric"><dt>預期波動</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>Tactical 評等</dt><dd>No-Trade</dd></dl></div></section>
+          <section class="decision-section"><h4>主要依據</h4><ul class="decision-list"><li>價格位於 20 日區間中段，適合區間觀察</li></ul></section>
+          <section class="decision-section"><h4>主要風險</h4><ul class="decision-list"><li>reward/risk below 0.8 threshold</li></ul></section>
+          <section class="decision-section"><h4>操作劇本</h4><p>目前報酬風險不足或資料品質不完整，今日不建立戰術部位。</p></section>
+          <details class="decision-details"><summary>策略檢討</summary><div class="decision-details__body"><table class="decision-table"><tbody><tr><th>狀態</th><td>無交易</td></tr><tr><th>是否進場</th><td>否</td></tr><tr><th>第一目標</th><td>尚未觸發</td></tr><tr><th>第二目標</th><td>尚未觸發</td></tr><tr><th>停損</th><td>尚未觸發</td></tr><tr><th>MFE / MAE</th><td>暫無 / 暫無</td></tr></tbody></table></div></details>
+          <details class="decision-details"><summary>技術與資料細節</summary><div class="decision-details__body"><h4>資料來源狀態</h4><table class="decision-table"><tbody><tr><th>法人籌碼</th><td>部分完整</td></tr><tr><th>歷史價量</th><td>部分完整</td></tr><tr><th>融資融券</th><td>尚未接入</td></tr><tr><th>新聞事件</th><td>尚未接入</td></tr><tr><th>技術分析</th><td>部分完整</td></tr><tr><th>市場環境</th><td>部分完整</td></tr><tr><th>法人買賣超</th><td>尚未接入</td></tr></tbody></table><h4>分數構成</h4><table class="decision-table"><tbody><tr><th>分數構成</th><td>資料不足</td></tr></tbody></table><h4>Runtime metadata</h4><table class="decision-table"><tbody><tr><th>策略代號</th><td>tw_daily_tactical_v1</td></tr><tr><th>策略版本</th><td>tw_daily_tactical_v1</td></tr><tr><th>因子版本</th><td>tw_daily_tactical_factor_v1</td></tr><tr><th>產生時間</th><td>2026-07-12T15:56:13+08:00</td></tr></tbody></table></div></details>
         </article>
         
 
-        <article class="stock-card tw-tactical-card" data-market="TW" data-strategy-type="daily_tactical">
-          <div class="card-kicker">TW｜research_position + daily_tactical</div>
-          <h3>009816 凱基台灣TOP50</h3>
-          <dl>
-            <div><dt>中長期量化策略</dt><dd>Score 資料待接｜資料待接｜資料待接｜Confidence 資料待接</dd></div>
-            <div><dt>Daily Tactical Direction</dt><dd>neutral｜reversal_watch｜等待止穩</dd></div>
-            <div><dt>Tactical Score / Rating / Confidence</dt><dd>31.2｜D-Tactical｜28.8</dd></div>
-            <div><dt>Entry Zone</dt><dd>15.1 ～ 15.3</dd></div>
-            <div><dt>Stop / Invalidation</dt><dd>14.9（跌破區間下緣與 ATR 失效區，區間策略取消）</dd></div>
-            <div><dt>Target 1</dt><dd>15.4 ～ 15.5</dd></div>
-            <div><dt>Target 2</dt><dd>15.6 ～ 15.75</dd></div>
-            <div><dt>Expected Move / Reward-Risk</dt><dd>1.44%｜0.83</dd></div>
-            <div><dt>Chase / Event / Position</dt><dd>low｜unknown｜small</dd></div>
-            <div><dt>Data Quality</dt><dd>limited</dd></div>
-            <div><dt>Factor Coverage</dt><dd>{&quot;chip&quot;: &quot;not_applicable&quot;, &quot;event_news&quot;: &quot;unavailable&quot;, &quot;institutional_flow&quot;: &quot;not_applicable&quot;, &quot;margin_short&quot;: &quot;not_applicable&quot;, &quot;market_context&quot;: &quot;partial&quot;, &quot;prediction_snapshot&quot;: &quot;available&quot;, &quot;price_trend&quot;: &quot;limited&quot;, &quot;review_outcome&quot;: &quot;partial&quot;, &quot;support_resistance&quot;: &quot;partial&quot;, &quot;volume&quot;: &quot;partial&quot;}</dd></div>
-            <div><dt>Score Components</dt><dd>{&quot;chip_flow&quot;: 7.0, &quot;data_quality&quot;: 7.2, &quot;market_context&quot;: 6.0, &quot;risk_quality&quot;: 12.96, &quot;technical_setup&quot;: 9.24, &quot;volume_confirmation&quot;: 8.8}</dd></div>
-            <div><dt>Prediction Review</dt><dd>win｜Entry True｜T1 True｜Stop False</dd></div>
-          </dl>
-          <details open><summary>主要依據</summary><ul><li>歷史資料有限，僅觀察止穩訊號</li></ul></details>
-          <details><summary>主要風險</summary><ul><li>limited history below 20 bars; trend confirmation unavailable</li></ul></details>
-          <p class="risk-note">Playbook：只列為觀察，等待止穩與量能確認，未轉強前偏防守。</p>
+        <article class="stock-card decision-card tw-tactical-card" data-market="TW" data-strategy-type="daily_tactical">
+          <div class="decision-card__head"><div><div class="decision-card__market">TW｜雙策略決策</div><h3>009816 凱基台灣TOP50</h3></div><span class="decision-badge decision-badge--ok">區間操作</span></div>
+          <section class="decision-section"><h4>中長期觀點</h4><table class="decision-table"><tbody><tr><th>評等</th><td>部分研究資料尚未完成</td></tr><tr><th>建議</th><td>部分研究資料尚未完成</td></tr><tr><th>信心</th><td>66%｜中等</td></tr><tr><th>1 個月</th><td>偏空</td></tr><tr><th>3 個月</th><td>不明朗</td></tr></tbody></table></section>
+          <section class="decision-section"><h4>今日結論</h4><div class="decision-plan"><dl class="decision-metric"><dt>今日建議</dt><dd>區間操作</dd></dl><dl class="decision-metric"><dt>方向</dt><dd>觀望</dd></dl><dl class="decision-metric"><dt>策略</dt><dd>區間操作</dd></dl><dl class="decision-metric"><dt>一句話</dt><dd>價格位於 20 日區間中段，適合區間觀察</dd></dl></div></section>
+          <section class="decision-section"><h4>操作計畫</h4><div class="decision-plan"><dl class="decision-metric"><dt>進場區</dt><dd>15.1–15.29</dd></dl><dl class="decision-metric"><dt>停損／策略失效</dt><dd>14.92</dd></dl><dl class="decision-metric"><dt>第一目標</dt><dd>15.41–15.51</dd></dl><dl class="decision-metric"><dt>第二目標</dt><dd>15.59–15.73</dd></dl><dl class="decision-metric"><dt>報酬風險比</dt><dd>0.96</dd></dl><dl class="decision-metric"><dt>部位建議</dt><dd>半部位</dd></dl></div></section>
+          <section class="decision-section"><h4>信心與風險</h4><div class="decision-plan"><dl class="decision-metric"><dt>策略信心</dt><dd>33%｜中低</dd></dl><dl class="decision-metric"><dt>追價風險</dt><dd>低</dd></dl><dl class="decision-metric"><dt>事件風險</dt><dd>資料不足</dd></dl><dl class="decision-metric"><dt>資料完整度</dt><dd>部分完整</dd></dl><dl class="decision-metric"><dt>預期波動</dt><dd>1.5%</dd></dl><dl class="decision-metric"><dt>Tactical 評等</dt><dd>C-Tactical</dd></dl></div></section>
+          <section class="decision-section"><h4>主要依據</h4><ul class="decision-list"><li>價格位於 20 日區間中段，適合區間觀察</li></ul></section>
+          <section class="decision-section"><h4>主要風險</h4><ul class="decision-list"><li>追價風險未見明顯升高</li></ul></section>
+          <section class="decision-section"><h4>操作劇本</h4><p>以區間下緣到中低區觀察，接近上緣降低追價。</p></section>
+          <details class="decision-details"><summary>策略檢討</summary><div class="decision-details__body"><table class="decision-table"><tbody><tr><th>狀態</th><td>成功</td></tr><tr><th>是否進場</th><td>是</td></tr><tr><th>第一目標</th><td>已觸發</td></tr><tr><th>第二目標</th><td>已觸發</td></tr><tr><th>停損</th><td>尚未觸發</td></tr><tr><th>MFE / MAE</th><td>0.72 / -0.1</td></tr></tbody></table></div></details>
+          <details class="decision-details"><summary>技術與資料細節</summary><div class="decision-details__body"><h4>資料來源狀態</h4><table class="decision-table"><tbody><tr><th>法人籌碼</th><td>部分完整</td></tr><tr><th>歷史價量</th><td>部分完整</td></tr><tr><th>融資融券</th><td>尚未接入</td></tr><tr><th>新聞事件</th><td>尚未接入</td></tr><tr><th>技術分析</th><td>部分完整</td></tr><tr><th>市場環境</th><td>部分完整</td></tr><tr><th>法人買賣超</th><td>尚未接入</td></tr></tbody></table><h4>分數構成</h4><table class="decision-table"><tbody><tr><th>分數構成</th><td>資料不足</td></tr></tbody></table><h4>Runtime metadata</h4><table class="decision-table"><tbody><tr><th>策略代號</th><td>tw_daily_tactical_v1</td></tr><tr><th>策略版本</th><td>tw_daily_tactical_v1</td></tr><tr><th>因子版本</th><td>tw_daily_tactical_factor_v1</td></tr><tr><th>產生時間</th><td>2026-07-12T15:56:13+08:00</td></tr></tbody></table></div></details>
         </article>
         
 
-        <article class="stock-card tw-tactical-card" data-market="TW" data-strategy-type="daily_tactical">
-          <div class="card-kicker">TW｜research_position + daily_tactical</div>
-          <h3>1409 新纖</h3>
-          <dl>
-            <div><dt>中長期量化策略</dt><dd>Score 資料待接｜資料待接｜資料待接｜Confidence 資料待接</dd></div>
-            <div><dt>Daily Tactical Direction</dt><dd>neutral｜reversal_watch｜等待止穩</dd></div>
-            <div><dt>Tactical Score / Rating / Confidence</dt><dd>31.2｜D-Tactical｜28.8</dd></div>
-            <div><dt>Entry Zone</dt><dd>26.5 ～ 26.9</dd></div>
-            <div><dt>Stop / Invalidation</dt><dd>25.4（跌破區間下緣與 ATR 失效區，區間策略取消）</dd></div>
-            <div><dt>Target 1</dt><dd>27.65 ～ 28.3</dd></div>
-            <div><dt>Target 2</dt><dd>28.75 ～ 29.65</dd></div>
-            <div><dt>Expected Move / Reward-Risk</dt><dd>5.37%｜0.98</dd></div>
-            <div><dt>Chase / Event / Position</dt><dd>low｜unknown｜small</dd></div>
-            <div><dt>Data Quality</dt><dd>limited</dd></div>
-            <div><dt>Factor Coverage</dt><dd>{&quot;chip&quot;: &quot;unavailable&quot;, &quot;event_news&quot;: &quot;unavailable&quot;, &quot;institutional_flow&quot;: &quot;unavailable&quot;, &quot;margin_short&quot;: &quot;unavailable&quot;, &quot;market_context&quot;: &quot;partial&quot;, &quot;prediction_snapshot&quot;: &quot;available&quot;, &quot;price_trend&quot;: &quot;limited&quot;, &quot;review_outcome&quot;: &quot;partial&quot;, &quot;support_resistance&quot;: &quot;partial&quot;, &quot;volume&quot;: &quot;partial&quot;}</dd></div>
-            <div><dt>Score Components</dt><dd>{&quot;chip_flow&quot;: 7.0, &quot;data_quality&quot;: 7.2, &quot;market_context&quot;: 6.0, &quot;risk_quality&quot;: 12.96, &quot;technical_setup&quot;: 9.24, &quot;volume_confirmation&quot;: 8.8}</dd></div>
-            <div><dt>Prediction Review</dt><dd>win｜Entry True｜T1 True｜Stop False</dd></div>
-          </dl>
-          <details open><summary>主要依據</summary><ul><li>歷史資料有限，僅觀察止穩訊號</li></ul></details>
-          <details><summary>主要風險</summary><ul><li>limited history below 20 bars; trend confirmation unavailable</li></ul></details>
-          <p class="risk-note">Playbook：只列為觀察，等待止穩與量能確認，未轉強前偏防守。</p>
+        <article class="stock-card decision-card tw-tactical-card" data-market="TW" data-strategy-type="daily_tactical">
+          <div class="decision-card__head"><div><div class="decision-card__market">TW｜雙策略決策</div><h3>1409 新纖</h3></div><span class="decision-badge decision-badge--warn">暫不操作</span></div>
+          <section class="decision-section"><h4>中長期觀點</h4><table class="decision-table"><tbody><tr><th>評等</th><td>部分研究資料尚未完成</td></tr><tr><th>建議</th><td>部分研究資料尚未完成</td></tr><tr><th>信心</th><td>58%｜中等</td></tr><tr><th>1 個月</th><td>偏多</td></tr><tr><th>3 個月</th><td>不明朗</td></tr></tbody></table></section>
+          <section class="decision-section"><h4>今日結論</h4><div class="decision-plan"><dl class="decision-metric"><dt>今日建議</dt><dd>暫不操作</dd></dl><dl class="decision-metric"><dt>方向</dt><dd>暫不操作</dd></dl><dl class="decision-metric"><dt>策略</dt><dd>無適合策略</dd></dl><dl class="decision-metric"><dt>一句話</dt><dd>reward/risk below 0.8 threshold</dd></dl></div></section>
+          <section class="decision-section"><h4>操作計畫</h4><div class="decision-plan"><dl class="decision-metric"><dt>進場區</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>停損／策略失效</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>第一目標</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>第二目標</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>報酬風險比</dt><dd>資料不足</dd></dl><dl class="decision-metric"><dt>部位建議</dt><dd>不建立部位</dd></dl></div></section>
+          <section class="decision-section"><h4>信心與風險</h4><div class="decision-plan"><dl class="decision-metric"><dt>策略信心</dt><dd>34%｜中低</dd></dl><dl class="decision-metric"><dt>追價風險</dt><dd>低</dd></dl><dl class="decision-metric"><dt>事件風險</dt><dd>資料不足</dd></dl><dl class="decision-metric"><dt>資料完整度</dt><dd>部分完整</dd></dl><dl class="decision-metric"><dt>預期波動</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>Tactical 評等</dt><dd>No-Trade</dd></dl></div></section>
+          <section class="decision-section"><h4>主要依據</h4><ul class="decision-list"><li>價格位於 20 日區間中段，適合區間觀察</li></ul></section>
+          <section class="decision-section"><h4>主要風險</h4><ul class="decision-list"><li>reward/risk below 0.8 threshold</li></ul></section>
+          <section class="decision-section"><h4>操作劇本</h4><p>目前報酬風險不足或資料品質不完整，今日不建立戰術部位。</p></section>
+          <details class="decision-details"><summary>策略檢討</summary><div class="decision-details__body"><table class="decision-table"><tbody><tr><th>狀態</th><td>無交易</td></tr><tr><th>是否進場</th><td>否</td></tr><tr><th>第一目標</th><td>尚未觸發</td></tr><tr><th>第二目標</th><td>尚未觸發</td></tr><tr><th>停損</th><td>尚未觸發</td></tr><tr><th>MFE / MAE</th><td>暫無 / 暫無</td></tr></tbody></table></div></details>
+          <details class="decision-details"><summary>技術與資料細節</summary><div class="decision-details__body"><h4>資料來源狀態</h4><table class="decision-table"><tbody><tr><th>法人籌碼</th><td>部分完整</td></tr><tr><th>歷史價量</th><td>部分完整</td></tr><tr><th>融資融券</th><td>尚未接入</td></tr><tr><th>新聞事件</th><td>尚未接入</td></tr><tr><th>技術分析</th><td>部分完整</td></tr><tr><th>市場環境</th><td>部分完整</td></tr><tr><th>法人買賣超</th><td>尚未接入</td></tr></tbody></table><h4>分數構成</h4><table class="decision-table"><tbody><tr><th>分數構成</th><td>資料不足</td></tr></tbody></table><h4>Runtime metadata</h4><table class="decision-table"><tbody><tr><th>策略代號</th><td>tw_daily_tactical_v1</td></tr><tr><th>策略版本</th><td>tw_daily_tactical_v1</td></tr><tr><th>因子版本</th><td>tw_daily_tactical_factor_v1</td></tr><tr><th>產生時間</th><td>2026-07-12T15:56:13+08:00</td></tr></tbody></table></div></details>
         </article>
         
 
-        <article class="stock-card tw-tactical-card" data-market="TW" data-strategy-type="daily_tactical">
-          <div class="card-kicker">TW｜research_position + daily_tactical</div>
-          <h3>2305 全友</h3>
-          <dl>
-            <div><dt>中長期量化策略</dt><dd>Score 資料待接｜資料待接｜資料待接｜Confidence 資料待接</dd></div>
-            <div><dt>Daily Tactical Direction</dt><dd>neutral｜reversal_watch｜等待止穩</dd></div>
-            <div><dt>Tactical Score / Rating / Confidence</dt><dd>31.2｜D-Tactical｜28.8</dd></div>
-            <div><dt>Entry Zone</dt><dd>34.65 ～ 36.45</dd></div>
-            <div><dt>Stop / Invalidation</dt><dd>33.25（跌破區間下緣與 ATR 失效區，區間策略取消）</dd></div>
-            <div><dt>Target 1</dt><dd>37.35 ～ 38.15</dd></div>
-            <div><dt>Target 2</dt><dd>38.75 ～ 39.8</dd></div>
-            <div><dt>Expected Move / Reward-Risk</dt><dd>4.86%｜0.96</dd></div>
-            <div><dt>Chase / Event / Position</dt><dd>low｜unknown｜small</dd></div>
-            <div><dt>Data Quality</dt><dd>limited</dd></div>
-            <div><dt>Factor Coverage</dt><dd>{&quot;chip&quot;: &quot;unavailable&quot;, &quot;event_news&quot;: &quot;unavailable&quot;, &quot;institutional_flow&quot;: &quot;unavailable&quot;, &quot;margin_short&quot;: &quot;unavailable&quot;, &quot;market_context&quot;: &quot;partial&quot;, &quot;prediction_snapshot&quot;: &quot;available&quot;, &quot;price_trend&quot;: &quot;limited&quot;, &quot;review_outcome&quot;: &quot;partial&quot;, &quot;support_resistance&quot;: &quot;partial&quot;, &quot;volume&quot;: &quot;partial&quot;}</dd></div>
-            <div><dt>Score Components</dt><dd>{&quot;chip_flow&quot;: 7.0, &quot;data_quality&quot;: 7.2, &quot;market_context&quot;: 6.0, &quot;risk_quality&quot;: 12.96, &quot;technical_setup&quot;: 9.24, &quot;volume_confirmation&quot;: 8.8}</dd></div>
-            <div><dt>Prediction Review</dt><dd>win｜Entry True｜T1 True｜Stop False</dd></div>
-          </dl>
-          <details open><summary>主要依據</summary><ul><li>歷史資料有限，僅觀察止穩訊號</li></ul></details>
-          <details><summary>主要風險</summary><ul><li>limited history below 20 bars; trend confirmation unavailable</li></ul></details>
-          <p class="risk-note">Playbook：只列為觀察，等待止穩與量能確認，未轉強前偏防守。</p>
+        <article class="stock-card decision-card tw-tactical-card" data-market="TW" data-strategy-type="daily_tactical">
+          <div class="decision-card__head"><div><div class="decision-card__market">TW｜雙策略決策</div><h3>2305 全友</h3></div><span class="decision-badge decision-badge--ok">區間操作</span></div>
+          <section class="decision-section"><h4>中長期觀點</h4><table class="decision-table"><tbody><tr><th>評等</th><td>部分研究資料尚未完成</td></tr><tr><th>建議</th><td>部分研究資料尚未完成</td></tr><tr><th>信心</th><td>56%｜中等</td></tr><tr><th>1 個月</th><td>偏多</td></tr><tr><th>3 個月</th><td>不明朗</td></tr></tbody></table></section>
+          <section class="decision-section"><h4>今日結論</h4><div class="decision-plan"><dl class="decision-metric"><dt>今日建議</dt><dd>區間操作</dd></dl><dl class="decision-metric"><dt>方向</dt><dd>觀望</dd></dl><dl class="decision-metric"><dt>策略</dt><dd>區間操作</dd></dl><dl class="decision-metric"><dt>一句話</dt><dd>價格位於 20 日區間中段，適合區間觀察</dd></dl></div></section>
+          <section class="decision-section"><h4>操作計畫</h4><div class="decision-plan"><dl class="decision-metric"><dt>進場區</dt><dd>34.86–36.46</dd></dl><dl class="decision-metric"><dt>停損／策略失效</dt><dd>33.49</dd></dl><dl class="decision-metric"><dt>第一目標</dt><dd>37.37–38.14</dd></dl><dl class="decision-metric"><dt>第二目標</dt><dd>38.75–39.81</dd></dl><dl class="decision-metric"><dt>報酬風險比</dt><dd>0.96</dd></dl><dl class="decision-metric"><dt>部位建議</dt><dd>半部位</dd></dl></div></section>
+          <section class="decision-section"><h4>信心與風險</h4><div class="decision-plan"><dl class="decision-metric"><dt>策略信心</dt><dd>32%｜中低</dd></dl><dl class="decision-metric"><dt>追價風險</dt><dd>中</dd></dl><dl class="decision-metric"><dt>事件風險</dt><dd>資料不足</dd></dl><dl class="decision-metric"><dt>資料完整度</dt><dd>部分完整</dd></dl><dl class="decision-metric"><dt>預期波動</dt><dd>4.9%</dd></dl><dl class="decision-metric"><dt>Tactical 評等</dt><dd>C-Tactical</dd></dl></div></section>
+          <section class="decision-section"><h4>主要依據</h4><ul class="decision-list"><li>價格位於 20 日區間中段，適合區間觀察</li></ul></section>
+          <section class="decision-section"><h4>主要風險</h4><ul class="decision-list"><li>上攻量能未確認</li></ul></section>
+          <section class="decision-section"><h4>操作劇本</h4><p>以區間下緣到中低區觀察，接近上緣降低追價。</p></section>
+          <details class="decision-details"><summary>策略檢討</summary><div class="decision-details__body"><table class="decision-table"><tbody><tr><th>狀態</th><td>成功</td></tr><tr><th>是否進場</th><td>是</td></tr><tr><th>第一目標</th><td>已觸發</td></tr><tr><th>第二目標</th><td>已觸發</td></tr><tr><th>停損</th><td>尚未觸發</td></tr><tr><th>MFE / MAE</th><td>6.99 / -2.11</td></tr></tbody></table></div></details>
+          <details class="decision-details"><summary>技術與資料細節</summary><div class="decision-details__body"><h4>資料來源狀態</h4><table class="decision-table"><tbody><tr><th>法人籌碼</th><td>部分完整</td></tr><tr><th>歷史價量</th><td>部分完整</td></tr><tr><th>融資融券</th><td>尚未接入</td></tr><tr><th>新聞事件</th><td>尚未接入</td></tr><tr><th>技術分析</th><td>部分完整</td></tr><tr><th>市場環境</th><td>部分完整</td></tr><tr><th>法人買賣超</th><td>尚未接入</td></tr></tbody></table><h4>分數構成</h4><table class="decision-table"><tbody><tr><th>分數構成</th><td>資料不足</td></tr></tbody></table><h4>Runtime metadata</h4><table class="decision-table"><tbody><tr><th>策略代號</th><td>tw_daily_tactical_v1</td></tr><tr><th>策略版本</th><td>tw_daily_tactical_v1</td></tr><tr><th>因子版本</th><td>tw_daily_tactical_factor_v1</td></tr><tr><th>產生時間</th><td>2026-07-12T15:56:13+08:00</td></tr></tbody></table></div></details>
         </article>
         
 
-        <article class="stock-card tw-tactical-card" data-market="TW" data-strategy-type="daily_tactical">
-          <div class="card-kicker">TW｜research_position + daily_tactical</div>
-          <h3>2330 台積電</h3>
-          <dl>
-            <div><dt>中長期量化策略</dt><dd>Score 資料待接｜資料待接｜資料待接｜Confidence 資料待接</dd></div>
-            <div><dt>Daily Tactical Direction</dt><dd>no_trade｜no_trade｜暫不操作</dd></div>
-            <div><dt>Tactical Score / Rating / Confidence</dt><dd>21.74｜No-Trade｜15.8</dd></div>
-            <div><dt>Entry Zone</dt><dd>資料不足</dd></div>
-            <div><dt>Stop / Invalidation</dt><dd>資料待接</dd></div>
-            <div><dt>Target 1</dt><dd>資料不足</dd></div>
-            <div><dt>Target 2</dt><dd>資料不足</dd></div>
-            <div><dt>Expected Move / Reward-Risk</dt><dd>資料待接%｜資料待接</dd></div>
-            <div><dt>Chase / Event / Position</dt><dd>low｜unknown｜avoid</dd></div>
-            <div><dt>Data Quality</dt><dd>limited</dd></div>
-            <div><dt>Factor Coverage</dt><dd>{&quot;chip&quot;: &quot;unavailable&quot;, &quot;event_news&quot;: &quot;unavailable&quot;, &quot;institutional_flow&quot;: &quot;unavailable&quot;, &quot;margin_short&quot;: &quot;unavailable&quot;, &quot;market_context&quot;: &quot;partial&quot;, &quot;prediction_snapshot&quot;: &quot;available&quot;, &quot;price_trend&quot;: &quot;limited&quot;, &quot;review_outcome&quot;: &quot;partial&quot;, &quot;support_resistance&quot;: &quot;partial&quot;, &quot;volume&quot;: &quot;partial&quot;}</dd></div>
-            <div><dt>Score Components</dt><dd>{&quot;chip_flow&quot;: 7.0, &quot;data_quality&quot;: 7.2, &quot;market_context&quot;: 6.0, &quot;risk_quality&quot;: 5.04, &quot;technical_setup&quot;: 7.7, &quot;volume_confirmation&quot;: 8.8}</dd></div>
-            <div><dt>Prediction Review</dt><dd>no_trade｜Entry False｜T1 資料待接｜Stop 資料待接</dd></div>
-          </dl>
-          <details open><summary>主要依據</summary><ul><li>歷史資料有限，僅觀察止穩訊號</li></ul></details>
-          <details><summary>主要風險</summary><ul><li>limited history below 20 bars; trend confirmation unavailable</li><li>reward/risk below 0.8 threshold</li></ul></details>
-          <p class="risk-note">Playbook：目前缺乏合理進場結構、資料品質不足或報酬風險不合格，暫不建立戰術部位。</p>
+        <article class="stock-card decision-card tw-tactical-card" data-market="TW" data-strategy-type="daily_tactical">
+          <div class="decision-card__head"><div><div class="decision-card__market">TW｜雙策略決策</div><h3>2330 台積電</h3></div><span class="decision-badge decision-badge--warn">暫不操作</span></div>
+          <section class="decision-section"><h4>中長期觀點</h4><table class="decision-table"><tbody><tr><th>評等</th><td>部分研究資料尚未完成</td></tr><tr><th>建議</th><td>部分研究資料尚未完成</td></tr><tr><th>信心</th><td>66%｜中等</td></tr><tr><th>1 個月</th><td>偏多</td></tr><tr><th>3 個月</th><td>不明朗</td></tr></tbody></table></section>
+          <section class="decision-section"><h4>今日結論</h4><div class="decision-plan"><dl class="decision-metric"><dt>今日建議</dt><dd>暫不操作</dd></dl><dl class="decision-metric"><dt>方向</dt><dd>暫不操作</dd></dl><dl class="decision-metric"><dt>策略</dt><dd>無適合策略</dd></dl><dl class="decision-metric"><dt>一句話</dt><dd>reward/risk below 0.8 threshold</dd></dl></div></section>
+          <section class="decision-section"><h4>操作計畫</h4><div class="decision-plan"><dl class="decision-metric"><dt>進場區</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>停損／策略失效</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>第一目標</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>第二目標</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>報酬風險比</dt><dd>資料不足</dd></dl><dl class="decision-metric"><dt>部位建議</dt><dd>不建立部位</dd></dl></div></section>
+          <section class="decision-section"><h4>信心與風險</h4><div class="decision-plan"><dl class="decision-metric"><dt>策略信心</dt><dd>34%｜中低</dd></dl><dl class="decision-metric"><dt>追價風險</dt><dd>中</dd></dl><dl class="decision-metric"><dt>事件風險</dt><dd>資料不足</dd></dl><dl class="decision-metric"><dt>資料完整度</dt><dd>部分完整</dd></dl><dl class="decision-metric"><dt>預期波動</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>Tactical 評等</dt><dd>No-Trade</dd></dl></div></section>
+          <section class="decision-section"><h4>主要依據</h4><ul class="decision-list"><li>價格位於 20 日區間中段，適合區間觀察</li></ul></section>
+          <section class="decision-section"><h4>主要風險</h4><ul class="decision-list"><li>reward/risk below 0.8 threshold</li></ul></section>
+          <section class="decision-section"><h4>操作劇本</h4><p>目前報酬風險不足或資料品質不完整，今日不建立戰術部位。</p></section>
+          <details class="decision-details"><summary>策略檢討</summary><div class="decision-details__body"><table class="decision-table"><tbody><tr><th>狀態</th><td>無交易</td></tr><tr><th>是否進場</th><td>否</td></tr><tr><th>第一目標</th><td>尚未觸發</td></tr><tr><th>第二目標</th><td>尚未觸發</td></tr><tr><th>停損</th><td>尚未觸發</td></tr><tr><th>MFE / MAE</th><td>暫無 / 暫無</td></tr></tbody></table></div></details>
+          <details class="decision-details"><summary>技術與資料細節</summary><div class="decision-details__body"><h4>資料來源狀態</h4><table class="decision-table"><tbody><tr><th>法人籌碼</th><td>部分完整</td></tr><tr><th>歷史價量</th><td>部分完整</td></tr><tr><th>融資融券</th><td>尚未接入</td></tr><tr><th>新聞事件</th><td>尚未接入</td></tr><tr><th>技術分析</th><td>部分完整</td></tr><tr><th>市場環境</th><td>部分完整</td></tr><tr><th>法人買賣超</th><td>尚未接入</td></tr></tbody></table><h4>分數構成</h4><table class="decision-table"><tbody><tr><th>分數構成</th><td>資料不足</td></tr></tbody></table><h4>Runtime metadata</h4><table class="decision-table"><tbody><tr><th>策略代號</th><td>tw_daily_tactical_v1</td></tr><tr><th>策略版本</th><td>tw_daily_tactical_v1</td></tr><tr><th>因子版本</th><td>tw_daily_tactical_factor_v1</td></tr><tr><th>產生時間</th><td>2026-07-12T15:56:13+08:00</td></tr></tbody></table></div></details>
         </article>
         
 
-        <article class="stock-card tw-tactical-card" data-market="TW" data-strategy-type="daily_tactical">
-          <div class="card-kicker">TW｜research_position + daily_tactical</div>
-          <h3>2337 旺宏</h3>
-          <dl>
-            <div><dt>中長期量化策略</dt><dd>Score 資料待接｜資料待接｜資料待接｜Confidence 資料待接</dd></div>
-            <div><dt>Daily Tactical Direction</dt><dd>no_trade｜no_trade｜暫不操作</dd></div>
-            <div><dt>Tactical Score / Rating / Confidence</dt><dd>21.74｜No-Trade｜15.8</dd></div>
-            <div><dt>Entry Zone</dt><dd>資料不足</dd></div>
-            <div><dt>Stop / Invalidation</dt><dd>資料待接</dd></div>
-            <div><dt>Target 1</dt><dd>資料不足</dd></div>
-            <div><dt>Target 2</dt><dd>資料不足</dd></div>
-            <div><dt>Expected Move / Reward-Risk</dt><dd>資料待接%｜資料待接</dd></div>
-            <div><dt>Chase / Event / Position</dt><dd>low｜unknown｜avoid</dd></div>
-            <div><dt>Data Quality</dt><dd>limited</dd></div>
-            <div><dt>Factor Coverage</dt><dd>{&quot;chip&quot;: &quot;unavailable&quot;, &quot;event_news&quot;: &quot;unavailable&quot;, &quot;institutional_flow&quot;: &quot;unavailable&quot;, &quot;margin_short&quot;: &quot;unavailable&quot;, &quot;market_context&quot;: &quot;partial&quot;, &quot;prediction_snapshot&quot;: &quot;available&quot;, &quot;price_trend&quot;: &quot;limited&quot;, &quot;review_outcome&quot;: &quot;partial&quot;, &quot;support_resistance&quot;: &quot;partial&quot;, &quot;volume&quot;: &quot;partial&quot;}</dd></div>
-            <div><dt>Score Components</dt><dd>{&quot;chip_flow&quot;: 7.0, &quot;data_quality&quot;: 7.2, &quot;market_context&quot;: 6.0, &quot;risk_quality&quot;: 5.04, &quot;technical_setup&quot;: 7.7, &quot;volume_confirmation&quot;: 8.8}</dd></div>
-            <div><dt>Prediction Review</dt><dd>no_trade｜Entry False｜T1 資料待接｜Stop 資料待接</dd></div>
-          </dl>
-          <details open><summary>主要依據</summary><ul><li>歷史資料有限，僅觀察止穩訊號</li></ul></details>
-          <details><summary>主要風險</summary><ul><li>limited history below 20 bars; trend confirmation unavailable</li><li>reward/risk below 0.8 threshold</li></ul></details>
-          <p class="risk-note">Playbook：目前缺乏合理進場結構、資料品質不足或報酬風險不合格，暫不建立戰術部位。</p>
+        <article class="stock-card decision-card tw-tactical-card" data-market="TW" data-strategy-type="daily_tactical">
+          <div class="decision-card__head"><div><div class="decision-card__market">TW｜雙策略決策</div><h3>2337 旺宏</h3></div><span class="decision-badge decision-badge--warn">暫不操作</span></div>
+          <section class="decision-section"><h4>中長期觀點</h4><table class="decision-table"><tbody><tr><th>評等</th><td>部分研究資料尚未完成</td></tr><tr><th>建議</th><td>部分研究資料尚未完成</td></tr><tr><th>信心</th><td>58%｜中等</td></tr><tr><th>1 個月</th><td>偏空</td></tr><tr><th>3 個月</th><td>不明朗</td></tr></tbody></table></section>
+          <section class="decision-section"><h4>今日結論</h4><div class="decision-plan"><dl class="decision-metric"><dt>今日建議</dt><dd>暫不操作</dd></dl><dl class="decision-metric"><dt>方向</dt><dd>暫不操作</dd></dl><dl class="decision-metric"><dt>策略</dt><dd>無適合策略</dd></dl><dl class="decision-metric"><dt>一句話</dt><dd>reward/risk below 0.8 threshold</dd></dl></div></section>
+          <section class="decision-section"><h4>操作計畫</h4><div class="decision-plan"><dl class="decision-metric"><dt>進場區</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>停損／策略失效</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>第一目標</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>第二目標</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>報酬風險比</dt><dd>資料不足</dd></dl><dl class="decision-metric"><dt>部位建議</dt><dd>不建立部位</dd></dl></div></section>
+          <section class="decision-section"><h4>信心與風險</h4><div class="decision-plan"><dl class="decision-metric"><dt>策略信心</dt><dd>35%｜中低</dd></dl><dl class="decision-metric"><dt>追價風險</dt><dd>低</dd></dl><dl class="decision-metric"><dt>事件風險</dt><dd>資料不足</dd></dl><dl class="decision-metric"><dt>資料完整度</dt><dd>部分完整</dd></dl><dl class="decision-metric"><dt>預期波動</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>Tactical 評等</dt><dd>No-Trade</dd></dl></div></section>
+          <section class="decision-section"><h4>主要依據</h4><ul class="decision-list"><li>價格接近 20 日區間下緣</li><li>RSI 偏低，觀察反彈</li></ul></section>
+          <section class="decision-section"><h4>主要風險</h4><ul class="decision-list"><li>reward/risk below 0.8 threshold</li></ul></section>
+          <section class="decision-section"><h4>操作劇本</h4><p>目前報酬風險不足或資料品質不完整，今日不建立戰術部位。</p></section>
+          <details class="decision-details"><summary>策略檢討</summary><div class="decision-details__body"><table class="decision-table"><tbody><tr><th>狀態</th><td>無交易</td></tr><tr><th>是否進場</th><td>否</td></tr><tr><th>第一目標</th><td>尚未觸發</td></tr><tr><th>第二目標</th><td>尚未觸發</td></tr><tr><th>停損</th><td>尚未觸發</td></tr><tr><th>MFE / MAE</th><td>暫無 / 暫無</td></tr></tbody></table></div></details>
+          <details class="decision-details"><summary>技術與資料細節</summary><div class="decision-details__body"><h4>資料來源狀態</h4><table class="decision-table"><tbody><tr><th>法人籌碼</th><td>部分完整</td></tr><tr><th>歷史價量</th><td>部分完整</td></tr><tr><th>融資融券</th><td>尚未接入</td></tr><tr><th>新聞事件</th><td>尚未接入</td></tr><tr><th>技術分析</th><td>部分完整</td></tr><tr><th>市場環境</th><td>部分完整</td></tr><tr><th>法人買賣超</th><td>尚未接入</td></tr></tbody></table><h4>分數構成</h4><table class="decision-table"><tbody><tr><th>分數構成</th><td>資料不足</td></tr></tbody></table><h4>Runtime metadata</h4><table class="decision-table"><tbody><tr><th>策略代號</th><td>tw_daily_tactical_v1</td></tr><tr><th>策略版本</th><td>tw_daily_tactical_v1</td></tr><tr><th>因子版本</th><td>tw_daily_tactical_factor_v1</td></tr><tr><th>產生時間</th><td>2026-07-12T15:56:13+08:00</td></tr></tbody></table></div></details>
         </article>
         
 
-        <article class="stock-card tw-tactical-card" data-market="TW" data-strategy-type="daily_tactical">
-          <div class="card-kicker">TW｜research_position + daily_tactical</div>
-          <h3>2353 宏碁</h3>
-          <dl>
-            <div><dt>中長期量化策略</dt><dd>Score 資料待接｜資料待接｜資料待接｜Confidence 資料待接</dd></div>
-            <div><dt>Daily Tactical Direction</dt><dd>neutral｜range_trade｜區間操作</dd></div>
-            <div><dt>Tactical Score / Rating / Confidence</dt><dd>34.06｜D-Tactical｜28.8</dd></div>
-            <div><dt>Entry Zone</dt><dd>32.4 ～ 32.7</dd></div>
-            <div><dt>Stop / Invalidation</dt><dd>31.8（跌破區間下緣與 ATR 失效區，區間策略取消）</dd></div>
-            <div><dt>Target 1</dt><dd>33.1 ～ 33.4</dd></div>
-            <div><dt>Target 2</dt><dd>33.7 ～ 34.15</dd></div>
-            <div><dt>Expected Move / Reward-Risk</dt><dd>2.31%｜0.93</dd></div>
-            <div><dt>Chase / Event / Position</dt><dd>low｜unknown｜small</dd></div>
-            <div><dt>Data Quality</dt><dd>limited</dd></div>
-            <div><dt>Factor Coverage</dt><dd>{&quot;chip&quot;: &quot;unavailable&quot;, &quot;event_news&quot;: &quot;unavailable&quot;, &quot;institutional_flow&quot;: &quot;unavailable&quot;, &quot;margin_short&quot;: &quot;unavailable&quot;, &quot;market_context&quot;: &quot;partial&quot;, &quot;prediction_snapshot&quot;: &quot;available&quot;, &quot;price_trend&quot;: &quot;limited&quot;, &quot;review_outcome&quot;: &quot;partial&quot;, &quot;support_resistance&quot;: &quot;partial&quot;, &quot;volume&quot;: &quot;partial&quot;}</dd></div>
-            <div><dt>Score Components</dt><dd>{&quot;chip_flow&quot;: 7.0, &quot;data_quality&quot;: 7.2, &quot;market_context&quot;: 6.0, &quot;risk_quality&quot;: 12.96, &quot;technical_setup&quot;: 12.1, &quot;volume_confirmation&quot;: 8.8}</dd></div>
-            <div><dt>Prediction Review</dt><dd>loss｜Entry True｜T1 True｜Stop True</dd></div>
-          </dl>
-          <details open><summary>主要依據</summary><ul><li>歷史資料有限，但價格仍在 MA10 附近或上方</li><li>以區間觀察，不提高部位</li></ul></details>
-          <details><summary>主要風險</summary><ul><li>limited history below 20 bars; confidence downgraded</li></ul></details>
-          <p class="risk-note">Playbook：接近區間支撐才具備操作價值；接近壓力不追價，跌破區間下緣取消。</p>
+        <article class="stock-card decision-card tw-tactical-card" data-market="TW" data-strategy-type="daily_tactical">
+          <div class="decision-card__head"><div><div class="decision-card__market">TW｜雙策略決策</div><h3>2353 宏碁</h3></div><span class="decision-badge decision-badge--warn">暫不操作</span></div>
+          <section class="decision-section"><h4>中長期觀點</h4><table class="decision-table"><tbody><tr><th>評等</th><td>部分研究資料尚未完成</td></tr><tr><th>建議</th><td>部分研究資料尚未完成</td></tr><tr><th>信心</th><td>62%｜中等</td></tr><tr><th>1 個月</th><td>偏空</td></tr><tr><th>3 個月</th><td>不明朗</td></tr></tbody></table></section>
+          <section class="decision-section"><h4>今日結論</h4><div class="decision-plan"><dl class="decision-metric"><dt>今日建議</dt><dd>暫不操作</dd></dl><dl class="decision-metric"><dt>方向</dt><dd>暫不操作</dd></dl><dl class="decision-metric"><dt>策略</dt><dd>無適合策略</dd></dl><dl class="decision-metric"><dt>一句話</dt><dd>setup not confirmed</dd></dl></div></section>
+          <section class="decision-section"><h4>操作計畫</h4><div class="decision-plan"><dl class="decision-metric"><dt>進場區</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>停損／策略失效</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>第一目標</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>第二目標</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>報酬風險比</dt><dd>資料不足</dd></dl><dl class="decision-metric"><dt>部位建議</dt><dd>不建立部位</dd></dl></div></section>
+          <section class="decision-section"><h4>信心與風險</h4><div class="decision-plan"><dl class="decision-metric"><dt>策略信心</dt><dd>34%｜中低</dd></dl><dl class="decision-metric"><dt>追價風險</dt><dd>低</dd></dl><dl class="decision-metric"><dt>事件風險</dt><dd>資料不足</dd></dl><dl class="decision-metric"><dt>資料完整度</dt><dd>部分完整</dd></dl><dl class="decision-metric"><dt>預期波動</dt><dd>暫無</dd></dl><dl class="decision-metric"><dt>Tactical 評等</dt><dd>No-Trade</dd></dl></div></section>
+          <section class="decision-section"><h4>主要依據</h4><ul class="decision-list"><li>缺乏明確 setup，暫不操作</li></ul></section>
+          <section class="decision-section"><h4>主要風險</h4><ul class="decision-list"><li>setup not confirmed</li></ul></section>
+          <section class="decision-section"><h4>操作劇本</h4><p>目前報酬風險不足或資料品質不完整，今日不建立戰術部位。</p></section>
+          <details class="decision-details"><summary>策略檢討</summary><div class="decision-details__body"><table class="decision-table"><tbody><tr><th>狀態</th><td>無交易</td></tr><tr><th>是否進場</th><td>否</td></tr><tr><th>第一目標</th><td>尚未觸發</td></tr><tr><th>第二目標</th><td>尚未觸發</td></tr><tr><th>停損</th><td>尚未觸發</td></tr><tr><th>MFE / MAE</th><td>暫無 / 暫無</td></tr></tbody></table></div></details>
+          <details class="decision-details"><summary>技術與資料細節</summary><div class="decision-details__body"><h4>資料來源狀態</h4><table class="decision-table"><tbody><tr><th>法人籌碼</th><td>部分完整</td></tr><tr><th>歷史價量</th><td>部分完整</td></tr><tr><th>融資融券</th><td>尚未接入</td></tr><tr><th>新聞事件</th><td>尚未接入</td></tr><tr><th>技術分析</th><td>部分完整</td></tr><tr><th>市場環境</th><td>部分完整</td></tr><tr><th>法人買賣超</th><td>尚未接入</td></tr></tbody></table><h4>分數構成</h4><table class="decision-table"><tbody><tr><th>分數構成</th><td>資料不足</td></tr></tbody></table><h4>Runtime metadata</h4><table class="decision-table"><tbody><tr><th>策略代號</th><td>tw_daily_tactical_v1</td></tr><tr><th>策略版本</th><td>tw_daily_tactical_v1</td></tr><tr><th>因子版本</th><td>tw_daily_tactical_factor_v1</td></tr><tr><th>產生時間</th><td>2026-07-12T15:56:13+08:00</td></tr></tbody></table></div></details>
         </article>
         
 
-        <article class="stock-card tw-tactical-card" data-market="TW" data-strategy-type="daily_tactical">
-          <div class="card-kicker">TW｜research_position + daily_tactical</div>
-          <h3>4743 合一</h3>
-          <dl>
-            <div><dt>中長期量化策略</dt><dd>Score 資料待接｜資料待接｜資料待接｜Confidence 資料待接</dd></div>
-            <div><dt>Daily Tactical Direction</dt><dd>neutral｜range_trade｜區間操作</dd></div>
-            <div><dt>Tactical Score / Rating / Confidence</dt><dd>34.06｜D-Tactical｜28.8</dd></div>
-            <div><dt>Entry Zone</dt><dd>53.8 ～ 54.6</dd></div>
-            <div><dt>Stop / Invalidation</dt><dd>52.5（跌破區間下緣與 ATR 失效區，區間策略取消）</dd></div>
-            <div><dt>Target 1</dt><dd>55.5 ～ 56.2</dd></div>
-            <div><dt>Target 2</dt><dd>56.8 ～ 57.8</dd></div>
-            <div><dt>Expected Move / Reward-Risk</dt><dd>3.04%｜0.97</dd></div>
-            <div><dt>Chase / Event / Position</dt><dd>low｜unknown｜small</dd></div>
-            <div><dt>Data Quality</dt><dd>limited</dd></div>
-            <div><dt>Factor Coverage</dt><dd>{&quot;chip&quot;: &quot;unavailable&quot;, &quot;event_news&quot;: &quot;unavailable&quot;, &quot;institutional_flow&quot;: &quot;unavailable&quot;, &quot;margin_short&quot;: &quot;unavailable&quot;, &quot;market_context&quot;: &quot;partial&quot;, &quot;prediction_snapshot&quot;: &quot;available&quot;, &quot;price_trend&quot;: &quot;limited&quot;, &quot;review_outcome&quot;: &quot;partial&quot;, &quot;support_resistance&quot;: &quot;partial&quot;, &quot;volume&quot;: &quot;partial&quot;}</dd></div>
-            <div><dt>Score Components</dt><dd>{&quot;chip_flow&quot;: 7.0, &quot;data_quality&quot;: 7.2, &quot;market_context&quot;: 6.0, &quot;risk_quality&quot;: 12.96, &quot;technical_setup&quot;: 12.1, &quot;volume_confirmation&quot;: 8.8}</dd></div>
-            <div><dt>Prediction Review</dt><dd>loss｜Entry True｜T1 True｜Stop True</dd></div>
-          </dl>
-          <details open><summary>主要依據</summary><ul><li>歷史資料有限，但價格仍在 MA10 附近或上方</li><li>以區間觀察，不提高部位</li></ul></details>
-          <details><summary>主要風險</summary><ul><li>limited history below 20 bars; confidence downgraded</li></ul></details>
-          <p class="risk-note">Playbook：接近區間支撐才具備操作價值；接近壓力不追價，跌破區間下緣取消。</p>
+        <article class="stock-card decision-card tw-tactical-card" data-market="TW" data-strategy-type="daily_tactical">
+          <div class="decision-card__head"><div><div class="decision-card__market">TW｜雙策略決策</div><h3>4743 合一</h3></div><span class="decision-badge decision-badge--ok">區間操作</span></div>
+          <section class="decision-section"><h4>中長期觀點</h4><table class="decision-table"><tbody><tr><th>評等</th><td>部分研究資料尚未完成</td></tr><tr><th>建議</th><td>部分研究資料尚未完成</td></tr><tr><th>信心</th><td>63%｜中等</td></tr><tr><th>1 個月</th><td>偏多</td></tr><tr><th>3 個月</th><td>不明朗</td></tr></tbody></table></section>
+          <section class="decision-section"><h4>今日結論</h4><div class="decision-plan"><dl class="decision-metric"><dt>今日建議</dt><dd>區間操作</dd></dl><dl class="decision-metric"><dt>方向</dt><dd>觀望</dd></dl><dl class="decision-metric"><dt>策略</dt><dd>區間操作</dd></dl><dl class="decision-metric"><dt>一句話</dt><dd>價格位於 20 日區間中段，適合區間觀察</dd></dl></div></section>
+          <section class="decision-section"><h4>操作計畫</h4><div class="decision-plan"><dl class="decision-metric"><dt>進場區</dt><dd>53.84–54.63</dd></dl><dl class="decision-metric"><dt>停損／策略失效</dt><dd>52.55</dd></dl><dl class="decision-metric"><dt>第一目標</dt><dd>55.49–56.2</dd></dl><dl class="decision-metric"><dt>第二目標</dt><dd>56.77–57.78</dd></dl><dl class="decision-metric"><dt>報酬風險比</dt><dd>0.96</dd></dl><dl class="decision-metric"><dt>部位建議</dt><dd>半部位</dd></dl></div></section>
+          <section class="decision-section"><h4>信心與風險</h4><div class="decision-plan"><dl class="decision-metric"><dt>策略信心</dt><dd>31%｜中低</dd></dl><dl class="decision-metric"><dt>追價風險</dt><dd>中</dd></dl><dl class="decision-metric"><dt>事件風險</dt><dd>資料不足</dd></dl><dl class="decision-metric"><dt>資料完整度</dt><dd>部分完整</dd></dl><dl class="decision-metric"><dt>預期波動</dt><dd>3.0%</dd></dl><dl class="decision-metric"><dt>Tactical 評等</dt><dd>C-Tactical</dd></dl></div></section>
+          <section class="decision-section"><h4>主要依據</h4><ul class="decision-list"><li>價格位於 20 日區間中段，適合區間觀察</li></ul></section>
+          <section class="decision-section"><h4>主要風險</h4><ul class="decision-list"><li>已達一個 ATR 以上擴張</li><li>上攻量能未確認</li></ul></section>
+          <section class="decision-section"><h4>操作劇本</h4><p>以區間下緣到中低區觀察，接近上緣降低追價。</p></section>
+          <details class="decision-details"><summary>策略檢討</summary><div class="decision-details__body"><table class="decision-table"><tbody><tr><th>狀態</th><td>損益兩平</td></tr><tr><th>是否進場</th><td>是</td></tr><tr><th>第一目標</th><td>已觸發</td></tr><tr><th>第二目標</th><td>已觸發</td></tr><tr><th>停損</th><td>已觸發</td></tr><tr><th>MFE / MAE</th><td>8.77 / -1.94</td></tr></tbody></table></div></details>
+          <details class="decision-details"><summary>技術與資料細節</summary><div class="decision-details__body"><h4>資料來源狀態</h4><table class="decision-table"><tbody><tr><th>法人籌碼</th><td>部分完整</td></tr><tr><th>歷史價量</th><td>部分完整</td></tr><tr><th>融資融券</th><td>尚未接入</td></tr><tr><th>新聞事件</th><td>尚未接入</td></tr><tr><th>技術分析</th><td>部分完整</td></tr><tr><th>市場環境</th><td>部分完整</td></tr><tr><th>法人買賣超</th><td>尚未接入</td></tr></tbody></table><h4>分數構成</h4><table class="decision-table"><tbody><tr><th>分數構成</th><td>資料不足</td></tr></tbody></table><h4>Runtime metadata</h4><table class="decision-table"><tbody><tr><th>策略代號</th><td>tw_daily_tactical_v1</td></tr><tr><th>策略版本</th><td>tw_daily_tactical_v1</td></tr><tr><th>因子版本</th><td>tw_daily_tactical_factor_v1</td></tr><tr><th>產生時間</th><td>2026-07-12T15:56:13+08:00</td></tr></tbody></table></div></details>
         </article>
         
 
-        <article class="stock-card tw-tactical-card" data-market="TW" data-strategy-type="daily_tactical">
-          <div class="card-kicker">TW｜research_position + daily_tactical</div>
-          <h3>6873 泓德能源</h3>
-          <dl>
-            <div><dt>中長期量化策略</dt><dd>Score 資料待接｜資料待接｜資料待接｜Confidence 資料待接</dd></div>
-            <div><dt>Daily Tactical Direction</dt><dd>neutral｜range_trade｜區間操作</dd></div>
-            <div><dt>Tactical Score / Rating / Confidence</dt><dd>34.06｜D-Tactical｜28.8</dd></div>
-            <div><dt>Entry Zone</dt><dd>85.2 ～ 87.1</dd></div>
-            <div><dt>Stop / Invalidation</dt><dd>83.8（跌破區間下緣與 ATR 失效區，區間策略取消）</dd></div>
-            <div><dt>Target 1</dt><dd>88.0 ～ 88.8</dd></div>
-            <div><dt>Target 2</dt><dd>89.4 ～ 90.5</dd></div>
-            <div><dt>Expected Move / Reward-Risk</dt><dd>2.08%｜0.96</dd></div>
-            <div><dt>Chase / Event / Position</dt><dd>low｜unknown｜small</dd></div>
-            <div><dt>Data Quality</dt><dd>limited</dd></div>
-            <div><dt>Factor Coverage</dt><dd>{&quot;chip&quot;: &quot;unavailable&quot;, &quot;event_news&quot;: &quot;unavailable&quot;, &quot;institutional_flow&quot;: &quot;unavailable&quot;, &quot;margin_short&quot;: &quot;unavailable&quot;, &quot;market_context&quot;: &quot;partial&quot;, &quot;prediction_snapshot&quot;: &quot;available&quot;, &quot;price_trend&quot;: &quot;limited&quot;, &quot;review_outcome&quot;: &quot;partial&quot;, &quot;support_resistance&quot;: &quot;partial&quot;, &quot;volume&quot;: &quot;partial&quot;}</dd></div>
-            <div><dt>Score Components</dt><dd>{&quot;chip_flow&quot;: 7.0, &quot;data_quality&quot;: 7.2, &quot;market_context&quot;: 6.0, &quot;risk_quality&quot;: 12.96, &quot;technical_setup&quot;: 12.1, &quot;volume_confirmation&quot;: 8.8}</dd></div>
-            <div><dt>Prediction Review</dt><dd>loss｜Entry True｜T1 True｜Stop True</dd></div>
-          </dl>
-          <details open><summary>主要依據</summary><ul><li>歷史資料有限，但價格仍在 MA10 附近或上方</li><li>以區間觀察，不提高部位</li></ul></details>
-          <details><summary>主要風險</summary><ul><li>limited history below 20 bars; confidence downgraded</li></ul></details>
-          <p class="risk-note">Playbook：接近區間支撐才具備操作價值；接近壓力不追價，跌破區間下緣取消。</p>
+        <article class="stock-card decision-card tw-tactical-card" data-market="TW" data-strategy-type="daily_tactical">
+          <div class="decision-card__head"><div><div class="decision-card__market">TW｜雙策略決策</div><h3>6873 泓德能源</h3></div><span class="decision-badge decision-badge--ok">區間操作</span></div>
+          <section class="decision-section"><h4>中長期觀點</h4><table class="decision-table"><tbody><tr><th>評等</th><td>部分研究資料尚未完成</td></tr><tr><th>建議</th><td>部分研究資料尚未完成</td></tr><tr><th>信心</th><td>64%｜中等</td></tr><tr><th>1 個月</th><td>偏多</td></tr><tr><th>3 個月</th><td>不明朗</td></tr></tbody></table></section>
+          <section class="decision-section"><h4>今日結論</h4><div class="decision-plan"><dl class="decision-metric"><dt>今日建議</dt><dd>區間操作</dd></dl><dl class="decision-metric"><dt>方向</dt><dd>觀望</dd></dl><dl class="decision-metric"><dt>策略</dt><dd>區間操作</dd></dl><dl class="decision-metric"><dt>一句話</dt><dd>價格位於 20 日區間中段，適合區間觀察</dd></dl></div></section>
+          <section class="decision-section"><h4>操作計畫</h4><div class="decision-plan"><dl class="decision-metric"><dt>進場區</dt><dd>85.19–87.07</dd></dl><dl class="decision-metric"><dt>停損／策略失效</dt><dd>83.78</dd></dl><dl class="decision-metric"><dt>第一目標</dt><dd>88.01–88.79</dd></dl><dl class="decision-metric"><dt>第二目標</dt><dd>89.42–90.51</dd></dl><dl class="decision-metric"><dt>報酬風險比</dt><dd>0.97</dd></dl><dl class="decision-metric"><dt>部位建議</dt><dd>半部位</dd></dl></div></section>
+          <section class="decision-section"><h4>信心與風險</h4><div class="decision-plan"><dl class="decision-metric"><dt>策略信心</dt><dd>31%｜中低</dd></dl><dl class="decision-metric"><dt>追價風險</dt><dd>中</dd></dl><dl class="decision-metric"><dt>事件風險</dt><dd>資料不足</dd></dl><dl class="decision-metric"><dt>資料完整度</dt><dd>部分完整</dd></dl><dl class="decision-metric"><dt>預期波動</dt><dd>2.1%</dd></dl><dl class="decision-metric"><dt>Tactical 評等</dt><dd>C-Tactical</dd></dl></div></section>
+          <section class="decision-section"><h4>主要依據</h4><ul class="decision-list"><li>價格位於 20 日區間中段，適合區間觀察</li></ul></section>
+          <section class="decision-section"><h4>主要風險</h4><ul class="decision-list"><li>已達一個 ATR 以上擴張</li><li>上攻量能未確認</li></ul></section>
+          <section class="decision-section"><h4>操作劇本</h4><p>以區間下緣到中低區觀察，接近上緣降低追價。</p></section>
+          <details class="decision-details"><summary>策略檢討</summary><div class="decision-details__body"><table class="decision-table"><tbody><tr><th>狀態</th><td>損益兩平</td></tr><tr><th>是否進場</th><td>是</td></tr><tr><th>第一目標</th><td>已觸發</td></tr><tr><th>第二目標</th><td>已觸發</td></tr><tr><th>停損</th><td>已觸發</td></tr><tr><th>MFE / MAE</th><td>6.97 / -5.23</td></tr></tbody></table></div></details>
+          <details class="decision-details"><summary>技術與資料細節</summary><div class="decision-details__body"><h4>資料來源狀態</h4><table class="decision-table"><tbody><tr><th>法人籌碼</th><td>部分完整</td></tr><tr><th>歷史價量</th><td>部分完整</td></tr><tr><th>融資融券</th><td>尚未接入</td></tr><tr><th>新聞事件</th><td>尚未接入</td></tr><tr><th>技術分析</th><td>部分完整</td></tr><tr><th>市場環境</th><td>部分完整</td></tr><tr><th>法人買賣超</th><td>尚未接入</td></tr></tbody></table><h4>分數構成</h4><table class="decision-table"><tbody><tr><th>分數構成</th><td>資料不足</td></tr></tbody></table><h4>Runtime metadata</h4><table class="decision-table"><tbody><tr><th>策略代號</th><td>tw_daily_tactical_v1</td></tr><tr><th>策略版本</th><td>tw_daily_tactical_v1</td></tr><tr><th>因子版本</th><td>tw_daily_tactical_factor_v1</td></tr><tr><th>產生時間</th><td>2026-07-12T15:56:13+08:00</td></tr></tbody></table></div></details>
         </article>
         </div></div>
 
