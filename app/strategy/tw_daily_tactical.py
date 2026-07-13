@@ -405,24 +405,11 @@ def prediction_snapshot(tactical: dict[str, Any], prediction_date: str) -> dict[
 def review_snapshot(tactical: dict[str, Any], rows: list[dict[str, Any]], windows: list[int] | None = None) -> dict[str, Any]:
     windows = windows or [1, 3, 5]
     base = {"market": "TW", "strategy_type": "daily_tactical", "strategy_id": TW_TACTICAL_VERSION, "strategy_version": "v1", "factor_version": TW_TACTICAL_FACTOR_VERSION, "stock_id": tactical.get("stock_id"), "stock_name": tactical.get("stock_name"), "evaluation_windows": [f"{w}D" for w in windows], "trigger_aware": True, "same_bar_policy": "conservative_stop_first", "not_triggered_is_not_loss": True}
-    if tactical.get("setup_type") == "no_trade": return {**base, "review_status": "no_trade", "status": "no_trade", "reason": "No Trade setup intentionally avoided", "entry_triggered": False, "counted_as_win_loss": False}
-    if not rows or not tactical.get("entry_zone"): return {**base, "review_status": "insufficient_data", "status": "insufficient_data", "reason": "Missing outcome rows or entry zone"}
-    future = rows[-max(windows):]; entry = tactical["entry_zone"]; stop = _stop_price(tactical.get("stop_invalidation")); t1 = tactical.get("target_1") or {}; t2 = tactical.get("target_2") or {}
-    entry_low, entry_high = _num(entry.get("low")), _num(entry.get("high"))
-    if entry_low is None or entry_high is None or stop is None: return {**base, "review_status": "insufficient_data", "status": "insufficient_data", "reason": "Missing deterministic levels"}
-    entry_idx = stop_idx = t1_idx = t2_idx = None
-    for idx, row in enumerate(future):
-        low = _num(row.get("low")); high = _num(row.get("high"))
-        if low is None or high is None: continue
-        if entry_idx is None and low <= entry_high and high >= entry_low: entry_idx = idx
-        if entry_idx is not None:
-            if stop_idx is None and low <= stop: stop_idx = idx
-            if t1_idx is None and high >= (_num(t1.get("low")) or 10**12): t1_idx = idx
-            if t2_idx is None and high >= (_num(t2.get("low")) or 10**12): t2_idx = idx
-    if entry_idx is None: return {**base, "review_status": "not_triggered", "status": "not_triggered", "entry_triggered": False, "not_triggered_is_not_loss": True, "counted_as_win_loss": False}
-    status = "loss" if stop_idx is not None and (t1_idx is None or stop_idx <= t1_idx) else "breakeven" if t1_idx is not None and stop_idx is not None else "win" if t1_idx is not None else "expired"
-    entry_mid = (entry_low + entry_high) / 2; highs = [_num(r.get("high")) for r in future if _num(r.get("high")) is not None]; lows = [_num(r.get("low")) for r in future if _num(r.get("low")) is not None]
-    return {**base, "review_status": status, "status": status, "entry_triggered": True, "entry_first_trigger_index": entry_idx, "entry_first_trigger_window": f"{entry_idx + 1}D", "stop_breached": stop_idx is not None, "stop_first_trigger_index": stop_idx, "target_1_reached": t1_idx is not None, "target_1_first_trigger_index": t1_idx, "target_2_reached": t2_idx is not None, "target_2_first_trigger_index": t2_idx, "mfe": _round(None if not highs else max(highs) - entry_mid), "mae": _round(None if not lows else min(lows) - entry_mid), "realized_reward_risk": tactical.get("reward_risk") if status in {"win", "breakeven"} else -1 if status == "loss" else None, "false_breakout": tactical.get("setup_type") == "breakout" and status == "loss", "outcome_data_quality": "partial", "counted_as_win_loss": status in {"win", "loss", "breakeven"}}
+    if tactical.get("setup_type") == "no_trade":
+        return {**base, "review_status": "no_trade", "status": "no_trade", "reason": "No Trade setup intentionally avoided", "entry_triggered": False, "counted_as_win_loss": False}
+    if not tactical.get("entry_zone"):
+        return {**base, "review_status": "insufficient_data", "status": "insufficient_data", "reason": "Missing deterministic entry zone"}
+    return {**base, "review_status": "pending", "status": "pending", "reason": "Awaiting future 1D/3D/5D outcome; current prediction is persisted but not yet reviewable", "entry_triggered": None, "stop_breached": None, "target_1_reached": None, "target_2_reached": None, "mfe": None, "mae": None, "realized_reward_risk": None, "false_breakout": None, "outcome_data_quality": "pending", "counted_as_win_loss": False}
 
 
 def build_runtime() -> dict[str, Any]:
