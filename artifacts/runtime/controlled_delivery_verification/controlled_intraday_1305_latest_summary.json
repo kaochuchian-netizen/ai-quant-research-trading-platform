@@ -1,0 +1,25 @@
+{
+  "controlled_batch": "SUCCESS",
+  "dashboard_published": false,
+  "dashboard_status": "dry_run_not_published",
+  "dashboard_url": "http://35.201.242.167/stock-ai-dashboard/dashboard/tw/index.html",
+  "dashboard_would_publish": true,
+  "delivery_result_artifact": "artifacts/runtime/controlled_delivery_verification/controlled_intraday_1305_20260713-164007.json",
+  "email_attempted": false,
+  "email_payload_url": "http://35.201.242.167/stock-ai-dashboard/dashboard/tw/index.html",
+  "email_sent": false,
+  "entrypoint": "run_stock_analysis.sh -> approved_pre_open_delivery.py --dry-run",
+  "legacy_url_found": false,
+  "line_attempted": false,
+  "line_payload_url": "http://35.201.242.167/stock-ai-dashboard/dashboard/tw/index.html",
+  "line_sent": false,
+  "log_path": "artifacts/runtime/controlled_delivery_verification/controlled_intraday_1305_20260713-164007.log",
+  "payload_evidence_paths": {
+    "delivery_result": "artifacts/runtime/controlled_delivery_verification/controlled_intraday_1305_20260713-164007.json",
+    "log": "artifacts/runtime/controlled_delivery_verification/controlled_intraday_1305_20260713-164007.log"
+  },
+  "pipeline_duration_seconds": 0,
+  "recommendation": "PASS",
+  "trading_executed": false,
+  "window": "intraday_1305"
+}

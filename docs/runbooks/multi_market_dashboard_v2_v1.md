@@ -25,6 +25,18 @@ Build preview pages:
 python3 scripts/orchestrator/build_multi_market_dashboard_v2.py --pretty
 ```
 
+Validate market isolation and PM-readable Decision Intelligence UX:
+
+```bash
+python3 scripts/orchestrator/validate_multi_market_dashboard_v2_us_link_isolation_v1.py --pretty
+python3 scripts/orchestrator/validate_decision_intelligence_ux_v1.py --pretty
+```
+
+The UX validator rebuilds the preview, inspects visible page text outside
+`script`/`style`, and fails if the main Dashboard surface exposes raw JSON-like
+fragments or raw enum tokens such as `insufficient_data`, `no_trade`,
+`entry_zone`, `reward_risk`, or `available_reference`.
+
 Publish pages after merge from `main`:
 
 ```bash
@@ -43,6 +55,11 @@ Use the rollback command returned by the publish manifest. If needed, restore th
 ## Public Marker Verification
 Check that the US page contains `美股 AI 決策儀表板`, `美股盤前`, `美股盤中`, and `美股檢討`, and does not contain Taiwan-only 9/9 stock-count wording. Check that the TW page contains `台股 AI 決策儀表板` and the TW window times.
 
+For AI-DEV-175 Decision Intelligence UX, also confirm the user-facing TW/US
+pages show PM-readable labels for trend, setup, data availability, confidence,
+risk, and review state. Raw runtime keys may remain only inside JavaScript API
+payload construction or backend artifacts, not in visible Dashboard copy.
+
 ## Diagnosis: US Page Shows TW Content
 1. Confirm LINE/Email link points to `/dashboard/us/index.html`.
 2. Run `validate_multi_market_dashboard_v2_us_link_isolation_v1.py --pretty`.
@@ -52,3 +69,9 @@ Check that the US page contains `美股 AI 決策儀表板`, `美股盤前`, `�
 
 ## Safety Boundaries
 This task does not run `python3 main.py`, does not send unscheduled LINE/Email, does not run manual rerun, does not trade, does not read secrets, does not alter Taiwan or US formulas, and does not change scheduler times.
+
+Post-merge validation should run the same validators from merged `main`, then
+perform controlled Dashboard publish with `publish_multi_market_dashboard_v2.py
+--apply --pretty`. After publishing, rerun the market isolation validator with
+`--require-public` and the UX validator. Do not publish from an unmerged feature
+branch unless a human explicitly approves that emergency path.

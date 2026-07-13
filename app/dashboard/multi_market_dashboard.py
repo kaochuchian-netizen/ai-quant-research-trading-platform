@@ -9,6 +9,28 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from app.dashboard.decision_presentation import (
+    clean_text,
+    format_availability,
+    format_confidence,
+    format_data_quality,
+    format_direction,
+    format_factor_coverage,
+    format_optional_price,
+    format_percent,
+    format_position_size,
+    format_price_zone,
+    format_ratio,
+    format_review_status,
+    format_risk_level,
+    format_score_components,
+    format_setup,
+    format_stop,
+    format_trend,
+    is_no_trade,
+    limit_items,
+)
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PUBLIC_BASE_URL = "http://35.201.242.167/stock-ai-dashboard"
 LANDING_ROUTE = "/index.html"
@@ -39,8 +61,7 @@ US_WINDOWS = {
 
 SHARED_NAVIGATION_CSS = """.market-shared-navigation{background:white;color:#17262c}.market-shared-navigation__grid{display:grid;grid-template-columns:1fr;gap:12px;margin:14px 0 10px}.market-shared-navigation__button{display:block;width:100%;box-sizing:border-box;background:#fff;color:#0f2c33;text-decoration:none;border:1px solid #cbd8dc;border-radius:8px;padding:13px 14px;font-weight:800;text-align:left;box-shadow:0 1px 0 rgba(15,44,51,.04)}.market-shared-navigation__button[aria-current="page"]{border-color:#83aab4;background:#f4fbfd}.market-shared-navigation__subtitle{margin:10px 0 0;color:#51666d}@media(max-width:640px){.market-shared-navigation__grid{gap:10px}.market-shared-navigation__button{padding:14px 13px}}"""
 
-TW_TACTICAL_CSS = """html,body{max-width:100%;overflow-x:hidden}.wrap,.section{box-sizing:border-box;max-width:100%;overflow-wrap:anywhere}.tw-tactical-grid{display:grid;width:100%;max-width:100%;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}.tw-tactical-card{min-width:0;overflow-wrap:anywhere;word-break:break-word}.tw-tactical-card dl{display:grid;gap:8px}.tw-tactical-card dd{overflow-wrap:anywhere;word-break:break-word}.tw-tactical-card details{max-width:100%;overflow-wrap:anywhere}@media(max-width:640px){.tw-tactical-grid{grid-template-columns:1fr!important}.tw-tactical-card{width:100%;box-sizing:border-box}.tw-tactical-card dl{grid-template-columns:1fr!important}}"""
-
+TW_TACTICAL_CSS = """html,body{max-width:100%;overflow-x:hidden}.wrap,.section{box-sizing:border-box;max-width:100%;overflow-wrap:anywhere}.decision-grid{display:grid;width:100%;max-width:100%;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}.decision-card{min-width:0;overflow-wrap:anywhere;word-break:break-word}.decision-card__head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}.decision-card__market{font-size:12px;font-weight:800;color:#51666d}.decision-badge{display:inline-block;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:800;background:#eef6f7;color:#234c55}.decision-badge--warn{background:#fff2d4;color:#7a4d00}.decision-badge--ok{background:#e9f7ed;color:#1f6b35}.decision-section{border-top:1px solid #e5eef0;margin-top:12px;padding-top:12px}.decision-section h4{margin:0 0 8px;font-size:15px}.decision-plan{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.decision-metric{background:#f7fafb;border:1px solid #dce8eb;border-radius:8px;padding:10px;min-width:0}.decision-metric dt{font-size:12px}.decision-metric dd{font-size:15px;font-weight:800;color:#14333a}.decision-list{margin:0;padding-left:18px}.decision-list li{margin:5px 0}.decision-details{margin-top:12px;border:1px solid #dce8eb;border-radius:8px;background:#fbfdfe}.decision-details summary{cursor:pointer;list-style:none;padding:12px 13px;font-weight:900;min-height:24px}.decision-details summary::-webkit-details-marker{display:none}.decision-details__body{padding:0 13px 13px}.decision-table{width:100%;border-collapse:collapse;table-layout:fixed}.decision-table th,.decision-table td{border-top:1px solid #e5eef0;text-align:left;padding:8px;vertical-align:top;overflow-wrap:anywhere}.decision-table th{color:#51666d;width:45%;font-size:13px}.decision-note{color:#51666d}.decision-compact{display:grid;gap:8px}.decision-status-low{color:#8a4b00}.decision-status-good{color:#1f6b35}@media(max-width:640px){.decision-grid{grid-template-columns:1fr!important}.decision-card{width:100%;box-sizing:border-box}.decision-plan{grid-template-columns:1fr}.decision-details summary{padding:14px 13px}.decision-table th,.decision-table td{display:block;width:100%;box-sizing:border-box}.decision-table td{border-top:0;padding-top:0}}"""
 def now_taipei() -> str:
     return datetime.now(ZoneInfo("Asia/Taipei")).replace(microsecond=0).isoformat()
 
@@ -82,46 +103,109 @@ def _load_tw_tactical_artifact() -> dict[str, Any] | None:
     return data
 
 
-def _tw_zone(zone: Any) -> str:
-    if not isinstance(zone, dict):
-        return "資料不足"
-    low = zone.get("low")
-    high = zone.get("high")
-    if low is None or high is None:
-        return "資料不足"
-    return f"{_escape(low)} ～ {_escape(high)}"
+
+def _html_list(items: Any, fallback: str) -> str:
+    return "".join(f"<li>{_escape(item)}</li>" for item in limit_items(items, fallback=fallback))
 
 
-
-def _tw_stop_text(stop: Any) -> str:
-    if isinstance(stop, dict):
-        price = stop.get("price")
-        reason = stop.get("reason")
-        if price is None:
-            return "資料不足"
-        return f"{_escape(price)}（{_escape(reason)}）"
-    return _escape(stop)
+def _table_rows(rows: list[tuple[str, Any]]) -> str:
+    return "".join(f"<tr><th>{_escape(label)}</th><td>{_escape(value)}</td></tr>" for label, value in rows)
 
 
-def _tw_compact_json(value: Any) -> str:
-    if value is None:
-        return "資料待接"
-    try:
-        return _escape(json.dumps(value, ensure_ascii=False, sort_keys=True))
-    except TypeError:
-        return _escape(value)
+def _metric(label: str, value: Any) -> str:
+    return f"<dl class=\"decision-metric\"><dt>{_escape(label)}</dt><dd>{_escape(value)}</dd></dl>"
 
 
-def _tw_playbook_text(value: Any) -> str:
-    if isinstance(value, dict):
-        return _escape(value.get("template") or value)
-    return _escape(value)
+def _readiness_rows(readiness: Any) -> list[tuple[str, str]]:
+    if not isinstance(readiness, dict):
+        return [("系統準備狀態", "資料不足")]
+    mapping = {
+        "dashboard_ready": "Dashboard",
+        "email_ready": "Email",
+        "line_ready": "LINE",
+        "expected_stock_count": "預期股票數",
+        "actual_stock_count": "實際股票數",
+        "tactical_coverage": "Tactical 覆蓋",
+        "prediction_coverage": "Prediction 覆蓋",
+        "insufficient_data_count": "資料不足",
+    }
+    rows: list[tuple[str, str]] = []
+    for key, label in mapping.items():
+        if key not in readiness:
+            continue
+        value = readiness.get(key)
+        if isinstance(value, bool):
+            value = "可用" if value else "未就緒"
+        rows.append((label, clean_text(value, missing="資料不足")))
+    return rows or [("系統準備狀態", "資料不足")]
 
-def _tw_list(items: Any) -> str:
-    if not isinstance(items, list) or not items:
-        return "<li>資料待接</li>"
-    return "".join(f"<li>{_escape(item)}</li>" for item in items[:4])
 
+def _playbook_text(tactical: dict[str, Any]) -> str:
+    text = clean_text(tactical.get("playbook"), missing="")
+    if text:
+        return text
+    setup = clean_text(tactical.get("setup_type"), missing="no_trade")
+    if setup == "breakout":
+        return "等待有效突破壓力並確認量能；未站穩突破區不追價，跌回失效區取消。"
+    if setup == "pullback":
+        return "等待回測支撐或短期均線止穩；量縮不破可觀察，跌破結構支撐取消。"
+    if setup == "range_trade":
+        return "接近區間支撐才具備操作價值；接近壓力不追價，跌破區間下緣取消。"
+    if setup == "mean_reversion":
+        return "僅在超跌後出現止穩訊號時觀察；若中期結構繼續轉弱，不建立部位。"
+    return "目前缺乏合理進場結構、資料品質不足或報酬風險不合格，暫不建立戰術部位。"
+
+
+def _review_rows(review: dict[str, Any]) -> list[tuple[str, Any]]:
+    status = review.get("status") or review.get("review_status")
+    return [
+        ("狀態", format_review_status(status)),
+        ("是否進場", clean_text(review.get("entry_zone_touched") or review.get("entry_triggered"), missing="否")),
+        ("第一目標", "已觸發" if review.get("target_1_reached") is True else "尚未觸發"),
+        ("第二目標", "已觸發" if review.get("target_2_reached") is True else "尚未觸發"),
+        ("停損", "已觸發" if review.get("stop_breached") is True else "尚未觸發"),
+        ("MFE / MAE", f"{clean_text(review.get('mfe'), missing='暫無')} / {clean_text(review.get('mae'), missing='暫無')}"),
+    ]
+
+
+def _research_rows(research: dict[str, Any]) -> list[tuple[str, Any]]:
+    prediction = research.get("prediction", {}) if isinstance(research.get("prediction"), dict) else {}
+    return [
+        ("評等", clean_text(research.get("rating"), missing="部分研究資料尚未完成")),
+        ("建議", clean_text(research.get("action"), missing="部分研究資料尚未完成")),
+        ("信心", format_confidence(research.get("confidence"))),
+        ("1 個月", format_trend(prediction.get("one_month_trend"))),
+        ("3 個月", format_trend(prediction.get("three_month_trend"))),
+    ]
+
+
+def _tactical_values(tactical: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "direction": tactical.get("direction") or tactical.get("tactical_direction"),
+        "setup": tactical.get("setup_type"),
+        "action": tactical.get("action"),
+        "score": tactical.get("score") or tactical.get("tactical_score"),
+        "rating": tactical.get("rating") or tactical.get("tactical_grade") or tactical.get("grade"),
+        "confidence": tactical.get("confidence") or tactical.get("tactical_confidence"),
+        "entry": tactical.get("entry_zone"),
+        "stop": tactical.get("stop_invalidation") or tactical.get("stop_reference") or tactical.get("invalidation_level"),
+        "target1": tactical.get("target_1") or tactical.get("target_zone_1"),
+        "target2": tactical.get("target_2") or tactical.get("target_zone_2"),
+        "expected": tactical.get("expected_move_pct") if tactical.get("expected_move_pct") is not None else tactical.get("expected_move"),
+        "rr": tactical.get("reward_risk") if tactical.get("reward_risk") is not None else tactical.get("reward_risk_ratio"),
+        "chase": tactical.get("chase_risk"),
+        "event": tactical.get("event_risk"),
+        "position": tactical.get("position_size"),
+        "data_quality": tactical.get("data_quality"),
+    }
+
+
+def _decision_summary(tactical: dict[str, Any]) -> str:
+    if is_no_trade(tactical):
+        risks = limit_items(tactical.get("risk_reasons"), limit=1, fallback="目前缺乏合理進場結構")
+        return risks[0]
+    reasons = limit_items(tactical.get("reasons"), limit=1, fallback="已形成可觀察的短線結構")
+    return reasons[0]
 
 def render_tw_tactical_cards(artifact: dict[str, Any] | None = None) -> str:
     artifact = artifact if artifact is not None else _load_tw_tactical_artifact()
@@ -129,13 +213,14 @@ def render_tw_tactical_cards(artifact: dict[str, Any] | None = None) -> str:
         return """<div class="wrap section" id="tw-daily-tactical-runtime" data-strategy-type="daily_tactical"><h2>每日短期操作策略</h2><p>TW Daily Tactical runtime artifact 尚未產生；不會用 Research 或 US 資料 fallback。</p></div>"""
     cards = artifact.get("cards", []) if isinstance(artifact.get("cards"), list) else []
     market_context = artifact.get("market_context", {}) if isinstance(artifact.get("market_context"), dict) else {}
+    readiness = artifact.get("delivery_readiness")
     header = f"""
     <div class="wrap section" id="tw-daily-tactical-runtime" data-market="TW" data-strategy-type="daily_tactical">
       <h2>每日短期操作策略</h2>
-      <p>Strategy ID：{_escape(artifact.get('strategy_id'))}｜Factor Version：{_escape(artifact.get('factor_version'))}｜更新：{_escape(artifact.get('generated_at'))}</p>
-      <p>市場環境：{_escape(market_context.get('market_bias'))}｜風險：{_escape(market_context.get('market_risk'))}｜Regime：{_escape(market_context.get('market_regime'))}</p><p>Delivery readiness：{_tw_compact_json(artifact.get('delivery_readiness'))}</p>
-      <p>Research / Position Strategy 保持獨立；Daily Tactical 只使用台股技術、量能、籌碼/flow、波動與事件風險，不使用 US premarket / SPY / QQQ / VIX。</p>
-      <div class="grid tw-tactical-grid">
+      <p class="decision-note">更新：{_escape(artifact.get('generated_at'))}｜市場：{_escape(format_direction(market_context.get('market_bias')))}｜風險：{_escape(format_risk_level(market_context.get('market_risk')))}</p>
+      <p class="decision-note">主畫面優先呈現今日結論、操作計畫與風險；資料來源與分數構成收合在技術與資料細節。</p>
+      <details class="decision-details"><summary>系統準備狀態</summary><div class="decision-details__body"><table class="decision-table"><tbody>{_table_rows(_readiness_rows(readiness))}</tbody></table></div></details>
+      <div class="grid decision-grid tw-tactical-grid">
     """
     rows: list[str] = []
     for card in cards:
@@ -145,28 +230,34 @@ def render_tw_tactical_cards(artifact: dict[str, Any] | None = None) -> str:
         research = strategies.get("research_position", {}) if isinstance(strategies.get("research_position"), dict) else {}
         tactical = strategies.get("daily_tactical", {}) if isinstance(strategies.get("daily_tactical"), dict) else {}
         review = card.get("review_snapshot", {}) if isinstance(card.get("review_snapshot"), dict) else {}
+        values = _tactical_values(tactical)
+        no_trade = is_no_trade(tactical)
+        action = "暫不操作" if no_trade else clean_text(values.get("action"), missing="等待確認")
+        badge_class = "decision-badge--warn" if no_trade else "decision-badge--ok"
+        entry = "暫無" if no_trade else format_price_zone(values.get("entry"))
+        stop = "暫無" if no_trade else format_stop(values.get("stop"))
+        target1 = "暫無" if no_trade else format_price_zone(values.get("target1"))
+        target2 = "暫無" if no_trade else format_price_zone(values.get("target2"))
+        factor_rows = format_factor_coverage(tactical.get("factor_coverage") or tactical.get("source_status"))
+        score_rows = format_score_components(tactical.get("score_components"))
+        detail_rows = [
+            ("策略代號", clean_text(tactical.get("strategy_id"))),
+            ("策略版本", clean_text(tactical.get("strategy_version"))),
+            ("因子版本", clean_text(tactical.get("factor_version"))),
+            ("產生時間", clean_text(tactical.get("generated_at"))),
+        ]
         rows.append(f"""
-        <article class="stock-card tw-tactical-card" data-market="TW" data-strategy-type="daily_tactical">
-          <div class="card-kicker">TW｜research_position + daily_tactical</div>
-          <h3>{_escape(card.get('stock_id'))} {_escape(card.get('stock_name'))}</h3>
-          <dl>
-            <div><dt>中長期量化策略</dt><dd>Score {_escape(research.get('score'))}｜{_escape(research.get('rating'))}｜{_escape(research.get('action'))}｜Confidence {_escape(research.get('confidence'))}</dd></div>
-            <div><dt>Daily Tactical Direction</dt><dd>{_escape(tactical.get('direction'))}｜{_escape(tactical.get('setup_type'))}｜{_escape(tactical.get('action'))}</dd></div>
-            <div><dt>Tactical Score / Rating / Confidence</dt><dd>{_escape(tactical.get('score'))}｜{_escape(tactical.get('rating'))}｜{_escape(tactical.get('confidence'))}</dd></div>
-            <div><dt>Entry Zone</dt><dd>{_tw_zone(tactical.get('entry_zone'))}</dd></div>
-            <div><dt>Stop / Invalidation</dt><dd>{_tw_stop_text(tactical.get('stop_invalidation'))}</dd></div>
-            <div><dt>Target 1</dt><dd>{_tw_zone(tactical.get('target_1'))}</dd></div>
-            <div><dt>Target 2</dt><dd>{_tw_zone(tactical.get('target_2'))}</dd></div>
-            <div><dt>Expected Move / Reward-Risk</dt><dd>{_escape(tactical.get('expected_move_pct'))}%｜{_escape(tactical.get('reward_risk'))}</dd></div>
-            <div><dt>Chase / Event / Position</dt><dd>{_escape(tactical.get('chase_risk'))}｜{_escape(tactical.get('event_risk'))}｜{_escape(tactical.get('position_size'))}</dd></div>
-            <div><dt>Data Quality</dt><dd>{_escape(tactical.get('data_quality'))}</dd></div>
-            <div><dt>Factor Coverage</dt><dd>{_tw_compact_json(tactical.get('factor_coverage', {}).get('statuses'))}</dd></div>
-            <div><dt>Score Components</dt><dd>{_tw_compact_json(tactical.get('score_components'))}</dd></div>
-            <div><dt>Prediction Review</dt><dd>{_escape(review.get('review_status'))}｜Entry {_escape(review.get('entry_triggered'))}｜T1 {_escape(review.get('target_1_reached'))}｜Stop {_escape(review.get('stop_breached'))}</dd></div>
-          </dl>
-          <details open><summary>主要依據</summary><ul>{_tw_list(tactical.get('reasons'))}</ul></details>
-          <details><summary>主要風險</summary><ul>{_tw_list(tactical.get('risk_reasons'))}</ul></details>
-          <p class="risk-note">Playbook：{_tw_playbook_text(tactical.get('playbook'))}</p>
+        <article class="stock-card decision-card tw-tactical-card" data-market="TW" data-strategy-type="daily_tactical">
+          <div class="decision-card__head"><div><div class="decision-card__market">TW｜雙策略決策</div><h3>{_escape(card.get('stock_id'))} {_escape(card.get('stock_name'))}</h3></div><span class="decision-badge {badge_class}">{_escape(action)}</span></div>
+          <section class="decision-section"><h4>中長期觀點</h4><table class="decision-table"><tbody>{_table_rows(_research_rows(research))}</tbody></table></section>
+          <section class="decision-section"><h4>今日結論</h4><div class="decision-plan">{_metric('今日建議', action)}{_metric('方向', format_direction(values.get('direction')))}{_metric('策略', format_setup(values.get('setup')))}{_metric('一句話', _decision_summary(tactical))}</div></section>
+          <section class="decision-section"><h4>操作計畫</h4><div class="decision-plan">{_metric('進場區', entry)}{_metric('停損／策略失效', stop)}{_metric('第一目標', target1)}{_metric('第二目標', target2)}{_metric('報酬風險比', format_ratio(values.get('rr')))}{_metric('部位建議', format_position_size(values.get('position')))}</div></section>
+          <section class="decision-section"><h4>信心與風險</h4><div class="decision-plan">{_metric('策略信心', format_confidence(values.get('confidence')))}{_metric('追價風險', format_risk_level(values.get('chase')))}{_metric('事件風險', format_risk_level(values.get('event')))}{_metric('資料完整度', format_data_quality(values.get('data_quality')))}{_metric('預期波動', format_percent(values.get('expected')))}{_metric('Tactical 評等', clean_text(values.get('rating'), missing='資料不足'))}</div></section>
+          <section class="decision-section"><h4>主要依據</h4><ul class="decision-list">{_html_list(tactical.get('reasons'), '目前沒有足夠依據')}</ul></section>
+          <section class="decision-section"><h4>主要風險</h4><ul class="decision-list">{_html_list(tactical.get('risk_reasons'), '目前未偵測到額外風險')}</ul></section>
+          <section class="decision-section"><h4>操作劇本</h4><p>{_escape(_playbook_text(tactical))}</p></section>
+          <details class="decision-details"><summary>策略檢討</summary><div class="decision-details__body"><table class="decision-table"><tbody>{_table_rows(_review_rows(review))}</tbody></table></div></details>
+          <details class="decision-details"><summary>技術與資料細節</summary><div class="decision-details__body"><h4>資料來源狀態</h4><table class="decision-table"><tbody>{_table_rows(factor_rows)}</tbody></table><h4>分數構成</h4><table class="decision-table"><tbody>{_table_rows(score_rows)}</tbody></table><h4>Runtime metadata</h4><table class="decision-table"><tbody>{_table_rows(detail_rows)}</tbody></table></div></details>
         </article>
         """)
     return header + "\n".join(rows) + "</div></div>"
@@ -175,18 +266,33 @@ def _strategy_html(card: dict[str, Any]) -> str:
     strategies = card.get("strategies", {}) if isinstance(card.get("strategies"), dict) else {}
     research = strategies.get("research_position") or card.get("research_position_summary") or {}
     tactical = strategies.get("daily_tactical") or card.get("daily_tactical_summary") or {}
+    values = _tactical_values(tactical if isinstance(tactical, dict) else {})
+    no_trade = is_no_trade(tactical) if isinstance(tactical, dict) else False
+    entry = "暫無" if no_trade else format_price_zone(values.get("entry"))
+    stop = "暫無" if no_trade else format_stop(values.get("stop"))
+    target1 = "暫無" if no_trade else format_price_zone(values.get("target1"))
+    target2 = "暫無" if no_trade else format_price_zone(values.get("target2"))
+    research_rows = [
+        ("Score / Rating", f"{clean_text(research.get('score'), missing='資料不足')} / {clean_text(research.get('rating'), missing='資料不足')}"),
+        ("Action", clean_text(research.get("action"), missing="資料不足")),
+        ("Confidence", format_confidence(research.get("confidence"))),
+        ("Horizon", clean_text(research.get("horizon"), missing="days to months")),
+    ]
     return f"""
-              <section class="strategy-pair" data-strategy="dual">
+              <section class="decision-section strategy-pair" data-strategy="dual">
                 <h4>Research / Position Strategy</h4>
-                <p>Score / Rating / Action / Confidence：{_escape(research.get('score'))} / {_escape(research.get('rating'))} / {_escape(research.get('action'))} / {_escape(research.get('confidence'))}</p>
-                <p>Horizon：{_escape(research.get('horizon') or 'days to months')}</p>
-                <h4>Daily Tactical Strategy</h4>
-                <p>方向 / Setup / Action：{_escape(tactical.get('tactical_direction') or tactical.get('direction'))} / {_escape(tactical.get('setup_type'))} / {_escape(tactical.get('action'))}</p>
-                <p>分數 / 等級 / 信心：{_escape(tactical.get('tactical_score') or tactical.get('score'))} / {_escape(tactical.get('tactical_grade') or tactical.get('grade'))} / {_escape(tactical.get('tactical_confidence') or tactical.get('confidence'))}</p>
-                <p>進場區：{_fmt_zone(tactical.get('entry_zone'))}｜停損/失效：{_escape(tactical.get('stop_reference') or tactical.get('invalidation_level'))}｜目標一：{_fmt_zone(tactical.get('target_zone_1'))}</p>
-                <p>預期波動 / 報酬風險：{_escape(tactical.get('expected_move'))} / {_escape(tactical.get('reward_risk_ratio'))}｜追高風險：{_escape(tactical.get('chase_risk'))}｜事件風險：{_escape(tactical.get('event_risk'))}</p>
-                <p class="risk-note">Daily Tactical 為研究參考，不是交易指令；未觸發 setup 不算自動失敗。</p>
+                <table class="decision-table"><tbody>{_table_rows(research_rows)}</tbody></table>
               </section>
+              <section class="decision-section">
+                <h4>Daily Tactical Strategy</h4>
+                <div class="decision-plan">{_metric('今日建議', '暫不操作' if no_trade else clean_text(values.get('action'), missing='等待確認'))}{_metric('方向', format_direction(values.get('direction')))}{_metric('策略', format_setup(values.get('setup')))}{_metric('信心', format_confidence(values.get('confidence')))}</div>
+              </section>
+              <section class="decision-section"><h4>操作計畫</h4><div class="decision-plan">{_metric('進場區', entry)}{_metric('停損／策略失效', stop)}{_metric('第一目標', target1)}{_metric('第二目標', target2)}{_metric('報酬風險比', format_ratio(values.get('rr')))}{_metric('部位建議', format_position_size(values.get('position')))}</div></section>
+              <section class="decision-section"><h4>信心與風險</h4><div class="decision-plan">{_metric('追價風險', format_risk_level(values.get('chase')))}{_metric('事件風險', format_risk_level(values.get('event')))}{_metric('資料完整度', format_data_quality(values.get('data_quality')))}{_metric('預期波動', format_percent(values.get('expected')))}</div></section>
+              <section class="decision-section"><h4>主要依據</h4><ul class="decision-list">{_html_list(tactical.get('reasons') if isinstance(tactical, dict) else [], '目前沒有足夠依據')}</ul></section>
+              <section class="decision-section"><h4>主要風險</h4><ul class="decision-list">{_html_list(tactical.get('risk_notes') or tactical.get('risk_reasons') if isinstance(tactical, dict) else [], '目前未偵測到額外風險')}</ul></section>
+              <section class="decision-section"><h4>操作劇本</h4><p>{_escape(_playbook_text(tactical if isinstance(tactical, dict) else {}))}</p></section>
+              <details class="decision-details"><summary>技術與資料細節</summary><div class="decision-details__body"><h4>資料來源狀態</h4><table class="decision-table"><tbody>{_table_rows(format_factor_coverage(tactical.get('factor_coverage') if isinstance(tactical, dict) else None))}</tbody></table><h4>分數構成</h4><table class="decision-table"><tbody>{_table_rows(format_score_components(tactical.get('score_components') if isinstance(tactical, dict) else None))}</tbody></table></div></details>
     """
 
 def _is_authoritative_us_artifact(data: dict[str, Any]) -> bool:
@@ -253,30 +359,17 @@ def render_us_cards(artifacts: list[dict[str, Any]]) -> str:
             seen.add(key)
             symbol = str(card.get("symbol") or "")
             news = card.get("bilingual_news_snippet", {}) if isinstance(card.get("bilingual_news_snippet"), dict) else {}
+            earnings_guidance = f"{format_availability(card.get('latest_earnings_status'))} / {format_availability(card.get('guidance_direction'))}"
             rows.append(f"""
-            <article class="stock-card us-stock-card" data-market="US">
-              <div class="card-kicker">{html.escape(window_label)}｜US</div>
-              <h3>{_escape(symbol)} {_escape(card.get('name'))}</h3>
-              <dl>
-                <div><dt>交易所</dt><dd>{_escape(card.get('exchange') or _exchange_for(artifact, symbol))}</dd></div>
-                <div><dt>USD 價格</dt><dd>{_escape(card.get('price'))}</dd></div>
-                <div><dt>評等 / 動作 / 信心</dt><dd>{_escape(card.get('rating'))} / {_escape(card.get('action'))} / {_escape(card.get('confidence'))}</dd></div>
-                <div><dt>本次預測區間</dt><dd>{_escape(card.get('session_predicted_high_low'))}</dd></div>
-                <div><dt>下次預測區間</dt><dd>{_escape(card.get('next_session_predicted_high_low'))}</dd></div>
-                <div><dt>1M / 3M 趨勢</dt><dd>{_escape(card.get('one_month_trend'))} / {_escape(card.get('three_month_trend'))}</dd></div>
-                <div><dt>技術摘要</dt><dd>{_escape(card.get('technical_summary'))}</dd></div>
-                <div><dt>財務品質</dt><dd>{_escape(card.get('financial_quality'))}</dd></div>
-                <div><dt>盈餘 / 指引</dt><dd>{_escape(card.get('latest_earnings_status'))} / {_escape(card.get('guidance_direction'))}</dd></div>
-                <div><dt>SEC 最新 filing</dt><dd>{_escape(card.get('latest_sec_filing'))}</dd></div>
-                <div><dt>官方事件</dt><dd>{_escape(card.get('official_event_warning'))}</dd></div>
-                <div><dt>研究因子</dt><dd>{_escape(card.get('research_score'))} / {_escape(card.get('research_rating'))}</dd></div>
-                <div><dt>策略版本</dt><dd>research_position / daily_tactical</dd></div>
-                <div><dt>資料狀態</dt><dd>{_escape(card.get('latest_status'))}</dd></div>
-                <div><dt>來源新鮮度</dt><dd>{_escape(card.get('source_freshness'))}</dd></div>
-              </dl>
+            <article class="stock-card decision-card us-stock-card" data-market="US">
+              <div class="decision-card__head"><div><div class="decision-card__market">{html.escape(window_label)}｜US</div><h3>{_escape(symbol)} {_escape(card.get('name'))}</h3></div><span class="decision-badge">{_escape(card.get('rating'))}</span></div>
+              <section class="decision-section"><h4>今日結論</h4><div class="decision-plan">{_metric('評等 / 動作', f"{clean_text(card.get('rating'), missing='資料不足')} / {clean_text(card.get('action'), missing='資料不足')}")}{_metric('信心', format_confidence(card.get('confidence')))}{_metric('USD 價格', clean_text(card.get('price'), missing='資料不足'))}{_metric('資料狀態', format_availability(card.get('latest_status')))}</div></section>
+              <section class="decision-section"><h4>Research / Position Strategy</h4><div class="decision-plan">{_metric('1M 趨勢', format_trend(card.get('one_month_trend')))}{_metric('3M 趨勢', format_trend(card.get('three_month_trend')))}{_metric('財務品質', clean_text(card.get('financial_quality'), missing='資料不足'))}{_metric('盈餘 / 指引', earnings_guidance)}</div></section>
               {_strategy_html(card)}
-              <details class="news-block" open><summary>Bilingual News / 雙語新聞</summary><p><strong>EN:</strong> {_escape(news.get('english_headline'))}</p><p><strong>中:</strong> {_escape(news.get('chinese_translation'))}</p><p>{_escape(news.get('investment_reading'))}</p><p>Vocabulary：{_escape(news.get('vocabulary'))}</p></details>
-              <details class="review-block"><summary>Prediction Review / 檢討</summary><p>{_escape(artifact.get('prediction_review_contract', {}).get('review_status') or '檢討資料待接')}</p></details>
+              <section class="decision-section"><h4>主要依據</h4><ul class="decision-list"><li>{_escape(card.get('technical_summary'))}</li><li>SEC / 官方事件：{_escape(card.get('latest_sec_filing'))}｜{_escape(card.get('official_event_warning'))}</li></ul></section>
+              <section class="decision-section"><h4>主要風險</h4><ul class="decision-list"><li>資料新鮮度：{_escape(card.get('source_freshness'))}</li><li>事件風險與缺漏資料仍需依 artifact provenance 判讀。</li></ul></section>
+              <details class="decision-details" open><summary>Material News & Bilingual Reading / 雙語新聞</summary><div class="decision-details__body"><p><strong>EN:</strong> {_escape(news.get('english_headline'))}</p><p><strong>中:</strong> {_escape(news.get('chinese_translation'))}</p><p>{_escape(news.get('investment_reading'))}</p><p>Vocabulary：{_escape(news.get('vocabulary'))}</p></div></details>
+              <details class="decision-details"><summary>策略檢討</summary><div class="decision-details__body"><p>{_escape(format_review_status(artifact.get('prediction_review_contract', {}).get('review_status') or 'pending'))}</p></div></details>
             </article>
             """)
     if not rows:
@@ -287,7 +380,7 @@ def base_css() -> str:
     return """
     body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f6f8f9;color:#17262c;line-height:1.55}
     header,.hero{background:#0f2c33;color:white;padding:24px 18px}.wrap{max-width:1120px;margin:0 auto;padding:18px}.nav{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.nav a,.btn{display:inline-block;background:#fff;color:#0f2c33;text-decoration:none;border-radius:8px;padding:10px 12px;font-weight:800;border:1px solid #cbd8dc}
-    """ + SHARED_NAVIGATION_CSS + """
+    """ + SHARED_NAVIGATION_CSS + TW_TACTICAL_CSS + """
     .section{background:white;border:1px solid #dce5e8;border-radius:10px;padding:16px;margin:14px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}.stock-card,.status-card{background:#fff;border:1px solid #d9e4e7;border-radius:10px;padding:14px}.card-kicker{font-weight:800;color:#35606b;font-size:13px}h1,h2,h3{margin:0 0 10px}dl{display:grid;gap:8px}dt{font-weight:800;color:#51666d}dd{margin:0}.badge{display:inline-block;border-radius:999px;padding:6px 10px;background:#e8f5e9;color:#225d28;font-weight:800}.warn{background:#fff9e8}.market-choice{display:block;text-decoration:none;color:#17262c}.market-choice h2{color:#0f5368}@media(max-width:640px){.wrap{padding:12px}.grid{grid-template-columns:1fr}.nav a{width:100%;box-sizing:border-box}}
     """
 
@@ -313,7 +406,7 @@ def render_landing_page() -> str:
 def render_tw_page(source_html: str | None = None) -> str:
     body = source_html if source_html is not None else (TW_TEMPLATE.read_text(encoding="utf-8") if TW_TEMPLATE.exists() else "<p>台股 Dashboard 資料待接</p>")
     nav = shared_market_navigation("TW", "台股 AI 決策儀表板", "TW 專用頁：07:00 / 13:05 / 13:35 / 15:00。美股內容不在此頁渲染。")
-    dual_strategy = """<div class="wrap section" id="ai-dev-173-tw-dual-strategy"><h2>中長期量化策略</h2><p>沿用既有 TW Research / Position scoring、評等、動作與 prediction lifecycle；不由 Daily Tactical 覆寫。</p><p>策略隔離：research_position 與 daily_tactical 分開顯示、分開檢討，不互相覆蓋。</p></div>""" + render_tw_tactical_cards()
+    dual_strategy = """<div class="wrap section" id="ai-dev-173-tw-dual-strategy"><h2>中長期量化策略</h2><p>保留既有 Research / Position 行為，回答是否值得持有；每日短期操作策略獨立回答今天到 1-5 個交易日的操作計畫。</p></div>""" + render_tw_tactical_cards()
     shared_style = f'<style id="shared-market-navigation-style">{SHARED_NAVIGATION_CSS}{TW_TACTICAL_CSS}</style>'
     if "</head>" in body and "shared-market-navigation-style" not in body:
         body = body.replace("</head>", shared_style + "</head>", 1)
