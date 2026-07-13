@@ -32,6 +32,7 @@ TW_PUBLIC = Path("/var/www/stock-ai-dashboard/dashboard/tw/index.html")
 US_PUBLIC = Path("/var/www/stock-ai-dashboard/dashboard/us/index.html")
 
 DELIVERY_CONTRACT_FILES = [
+    ROOT / "run_stock_analysis.sh",
     ROOT / "app/reports/multi_window_formatter.py",
     ROOT / "reports/line_short_formatter.py",
     ROOT / "scripts/orchestrator/approved_pre_open_delivery.py",
@@ -111,7 +112,11 @@ def validate() -> dict[str, Any]:
     tw_short_line = format_line_short({"scheduler_window": "intraday_1305"})
 
     us_source = (ROOT / "scripts/orchestrator/approved_us_stock_delivery.py").read_text(encoding="utf-8")
-    if "get_us_dashboard_url" not in us_source or "DASHBOARD_URL = get_us_dashboard_url()" not in us_source:
+    us_registry_ok = "get_us_dashboard_url" in us_source and (
+        "DASHBOARD_URL = get_us_dashboard_url()" in us_source
+        or "DASHBOARD_URL = normalize_delivery_dashboard_url(\"US\", get_us_dashboard_url())" in us_source
+    )
+    if not us_registry_ok:
         errors.append("US approved delivery must source DASHBOARD_URL from registry")
     us_artifact = sample_us_artifact()
     us_count = us_artifact["runtime_watchlist_validation"]["enabled_stock_count"]
