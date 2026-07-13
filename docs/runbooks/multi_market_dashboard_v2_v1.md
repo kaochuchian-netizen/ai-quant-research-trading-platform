@@ -30,12 +30,19 @@ Validate market isolation and PM-readable Decision Intelligence UX:
 ```bash
 python3 scripts/orchestrator/validate_multi_market_dashboard_v2_us_link_isolation_v1.py --pretty
 python3 scripts/orchestrator/validate_decision_intelligence_ux_v1.py --pretty
+python3 scripts/orchestrator/validate_decision_presentation_v2.py --pretty
 ```
 
 The UX validator rebuilds the preview, inspects visible page text outside
 `script`/`style`, and fails if the main Dashboard surface exposes raw JSON-like
 fragments or raw enum tokens such as `insufficient_data`, `no_trade`,
 `entry_zone`, `reward_risk`, or `available_reference`.
+
+AI-DEV-176 Decision Presentation V2 validation covers Dashboard, Email, and LINE
+rendering together. It confirms TW/US Dashboard cards expose Decision Summary,
+Daily Tactical, Prediction, Research, reasons, risks, and technical details
+through human-readable labels, while Email and LINE use the same presentation
+helpers instead of raw runtime dicts. LINE must include only one Dashboard URL.
 
 Publish pages after merge from `main`:
 
@@ -59,6 +66,11 @@ For AI-DEV-175 Decision Intelligence UX, also confirm the user-facing TW/US
 pages show PM-readable labels for trend, setup, data availability, confidence,
 risk, and review state. Raw runtime keys may remain only inside JavaScript API
 payload construction or backend artifacts, not in visible Dashboard copy.
+
+For AI-DEV-176, also confirm Email and LINE previews do not expose raw dicts,
+raw JSON, or raw enum keys. US Email should show `Research`, `Daily Tactical`,
+and `Prediction` blocks per stock. TW pre-open Email should include `Decision
+Presentation V2` and `Research / Daily Tactical / Prediction` sections.
 
 ## Diagnosis: US Page Shows TW Content
 1. Confirm LINE/Email link points to `/dashboard/us/index.html`.
