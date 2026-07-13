@@ -26,6 +26,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from app.reports.multi_window_formatter import line_notification_text  # noqa: E402
+from app.dashboard.dashboard_url_registry import get_tw_dashboard_url  # noqa: E402
 from app.reports.report_content_contract import build_report_content_artifact  # noqa: E402
 from app.reports.window_context import get_window_context  # noqa: E402
 from app.runtime.production_run_guard import evaluate_pre_open_run_guard  # noqa: E402
@@ -43,7 +44,7 @@ SCHEMA_VERSION = "approved_scheduler_delivery_v1"
 TASK_ID = "AI-DEV-112"
 DEFAULT_DASHBOARD_DIR = Path("/var/www/stock-ai-dashboard")
 DEFAULT_MAIL_ENV_FILE = Path("~/.config/stock-ai-orchestrator/mail.env")
-DEFAULT_DECISION_INTELLIGENCE_DASHBOARD_URL = "http://35.201.242.167/stock-ai-dashboard/dashboard/tw/index.html"
+DEFAULT_DECISION_INTELLIGENCE_DASHBOARD_URL = get_tw_dashboard_url()
 EMAIL_BODY_LIMIT = 14000
 LINE_BODY_LIMIT = 520
 TRACEBACK_MARKERS = (

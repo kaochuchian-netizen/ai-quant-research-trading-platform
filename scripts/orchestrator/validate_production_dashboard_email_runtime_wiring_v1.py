@@ -4,15 +4,20 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import sys
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
-PUBLIC_HTML = Path("/var/www/stock-ai-dashboard/dashboard/decision-intelligence/four-window-preview/index.html")
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from app.dashboard.dashboard_url_registry import get_tw_dashboard_url
+
+PUBLIC_HTML = Path("/var/www/stock-ai-dashboard/dashboard/tw/index.html")
 EMAIL_JSON = ROOT / "artifacts/runtime/email_scheduled_delivery_preview_latest.json"
 PROD_EXPORT = ROOT / "templates/four_window_dashboard_production_runtime_export.example.json"
 SNAPSHOT_INDEX = ROOT / "artifacts/archive/formal_forecast_snapshots/index/formal_forecast_snapshot_index_latest.json"
-DASHBOARD_URL = "http://35.201.242.167/stock-ai-dashboard/dashboard/decision-intelligence/four-window-preview/index.html"
+DASHBOARD_URL = get_tw_dashboard_url()
 FORBIDDEN_EMAIL = (
     "pipeline_type",
     "pipeline_run_id",

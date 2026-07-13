@@ -10,7 +10,7 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 WINDOWS = ["us_pre_market_2000", "us_intraday_2300", "us_post_close_review_0630"]
-PUBLIC_DASHBOARD = Path("/var/www/stock-ai-dashboard/dashboard/decision-intelligence/four-window-preview/index.html")
+PUBLIC_DASHBOARD = Path("/var/www/stock-ai-dashboard/dashboard/us/index.html")
 
 def run(args: list[str]) -> subprocess.CompletedProcess[str]:
     return subprocess.run(args, cwd=REPO_ROOT, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, timeout=240)
