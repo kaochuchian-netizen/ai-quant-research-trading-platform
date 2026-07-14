@@ -240,9 +240,9 @@ def build_validation() -> dict[str, Any]:
             errors.append(f"dashboard_{name}: raw JSON fragments {check['raw_json_fragments']}")
 
     required_by_channel = {
-        "tw_line": ["台股決策摘要已更新", "Daily Tactical 可觀察"],
+        "tw_line": ["台股決策摘要已更新", "短線可觀察"],
         "tw_email": ["Decision Presentation", "Research / Daily Tactical / Prediction"],
-        "us_line": ["美股決策摘要已更新", "Daily Tactical 可觀察"],
+        "us_line": ["美股決策摘要已更新", "短線可觀察"],
         "us_email": ["Research：", "Daily Tactical：", "Prediction："],
     }
     channel_checks: dict[str, Any] = {}
