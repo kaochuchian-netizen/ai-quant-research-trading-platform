@@ -30,6 +30,7 @@ from app.us_stock.constants import US_BATCH_WINDOWS
 from app.us_stock.live_pipeline import build_live_runtime_artifact
 from app.dashboard.dashboard_url_registry import get_us_dashboard_url, normalize_delivery_dashboard_url
 from app.dashboard.decision_presentation import decision_email_block_v2, decision_line_summary_v2, decision_presentation_v2
+from app.reports.window_report_contract import get_window_report_contract
 from app.us_stock.watchlist import normalize_us_watchlist_rows
 from scripts.orchestrator.notify_stage_report import build_message, load_env_file, load_mail_config, send_message
 
@@ -223,37 +224,45 @@ def publish_dashboard(artifact: dict[str, Any]) -> dict[str, Any]:
             "target": str(STATIC_DASHBOARD_PATH),
         }
 
+def _count_high_risk(cards: list[dict[str, Any]]) -> int:
+    total = 0
+    for card in cards:
+        tactical = card.get("daily_tactical_summary") or card.get("strategies", {}).get("daily_tactical", {}) if isinstance(card, dict) else {}
+        text = json.dumps(tactical, ensure_ascii=False)
+        if any(token in text for token in ["high", "高", "avoid_chasing", "no_trade"]):
+            total += 1
+    return total
+
 def build_email_body(artifact: dict[str, Any], window: str) -> str:
+    contract = get_window_report_contract("US", window)
     date = artifact.get("generated_at", "")[:10]
-    lines = [f"{EMAIL_SUBJECTS[window]} {date}", "", f"Dashboard: {DASHBOARD_URL}", "", "美股批次狀態："]
-    lines.append(f"- Window: {window}")
-    lines.append(f"- Enabled stocks: {artifact.get('runtime_watchlist_validation', {}).get('enabled_stock_count')}")
-    lines.append("- LINE: 短提醒；Email: 完整報告；Dashboard: 完整可視化。")
-    lines.append("")
+    cards = [card for card in artifact.get("dashboard_ready_contract", {}).get("cards", []) if isinstance(card, dict)]
+    lines = [f"{contract.title} {date}", "", f"Dashboard: {contract.dashboard_url}", "", contract.primary_question, "", "Window-specific sections:"]
+    for section in contract.email_sections:
+        lines.append(f"- {section}")
+    lines.extend(["", "批次摘要：", f"- Window: {window}", f"- Enabled stocks: {artifact.get('runtime_watchlist_validation', {}).get('enabled_stock_count')}", f"- 高風險數量: {_count_high_risk(cards)}", "- LINE: window-specific short summary；Email: scoped report；Dashboard: full visual state。", ""])
     lines.append("個股研究摘要：")
-    for card in artifact.get("dashboard_ready_contract", {}).get("cards", []):
-        if not isinstance(card, dict):
-            continue
+    for card in cards:
         lines.append(decision_email_block_v2(decision_presentation_v2("US", card)))
         news = card.get('bilingual_news_snippet', {}) if isinstance(card.get('bilingual_news_snippet'), dict) else {}
         if news.get('chinese_translation'):
             lines.append(f"News：{news.get('chinese_translation')}")
         lines.append("")
-    lines.extend(["", "研究情報：", "- SEC/公司 IR 為 Tier 1 official evidence；yfinance/Yahoo 為 Tier 2 market reference。", "- 財務、盈餘、指引、重大新聞與雙語閱讀以 Dashboard 為完整主畫面。", "- 不複製完整 filings、transcripts 或 copyrighted articles。"] )
     if window == "us_post_close_review_0630":
         review = artifact.get("prediction_review_contract", {})
         lines.extend(["", "預測檢討：", f"- Reviewable: {review.get('reviewable_stock_count')}", f"- Reviewed: {review.get('reviewed_stock_count')}", f"- Skipped: {review.get('skipped_stock_count')}"])
-    lines.extend(["", "僅供研究參考，非交易指令。"])
+    lines.extend(["", "研究情報：", "- SEC/公司 IR 為 Tier 1 official evidence；yfinance/Yahoo 為 Tier 2 market reference。", "- 不複製完整 filings、transcripts 或 copyrighted articles。", "", "僅供研究參考，非交易指令。"] )
     return "\n".join(lines)
 
-
 def line_text(artifact: dict[str, Any], window: str) -> str:
+    contract = get_window_report_contract("US", window)
     cards = [card for card in artifact.get("dashboard_ready_contract", {}).get("cards", []) if isinstance(card, dict)]
-    presentations = [decision_presentation_v2("US", card) for card in cards]
-    summary = decision_line_summary_v2("美股", presentations, DASHBOARD_URL) if presentations else "美股決策摘要已更新\nDaily Tactical：資料待接\nDashboard：\n" + DASHBOARD_URL
-    return LINE_LABELS[window] + "\n" + summary
-
-
+    parts = [f"【Stock AI】{contract.title}已更新", "美股決策摘要已更新"]
+    parts.extend(contract.line_summary_scope[:-1])
+    parts.append(f"短線可觀察：{len(cards)}")
+    parts.append(f"高風險：{_count_high_risk(cards)}")
+    parts.extend(["Dashboard：", contract.dashboard_url, "僅供研究參考，非交易指令。"] )
+    return "\n".join(parts)
 def send_email_if_allowed(artifact: dict[str, Any], window: str, production_approved: bool) -> dict[str, Any]:
     if not production_approved:
         return {"attempted": False, "succeeded": False, "reason": "dry_run_no_send"}
