@@ -60,7 +60,7 @@ def rejected_audit(response: dict[str, Any]) -> None:
     window = response.get("window") if response.get("window") in ALLOWED_WINDOWS else None
     audit = {
         "schema_version": "manual_rerun_runtime_bridge_audit_v1",
-        "task_id": "AI-DEV-163",
+        "task_id": "AI-DEV-178",
         "job_id": None,
         "requested_window": window,
         "executed_window": window,
@@ -152,6 +152,9 @@ def build_simulation() -> dict[str, Any]:
         "mock_correct_pin_intraday": process_manual_rerun_request(req("intraday_1305"), pin_hash_value=mock_hash, write=False),
         "mock_correct_pin_pre_close": process_manual_rerun_request(req("pre_close_1335"), pin_hash_value=mock_hash, write=False),
         "mock_correct_pin_post_close": process_manual_rerun_request(req("post_close_1500"), pin_hash_value=mock_hash, write=False),
+        "mock_correct_pin_us_pre_market": process_manual_rerun_request(req("us_pre_market_2000"), pin_hash_value=mock_hash, write=False),
+        "mock_correct_pin_us_intraday": process_manual_rerun_request(req("us_intraday_2300"), pin_hash_value=mock_hash, write=False),
+        "mock_correct_pin_us_review": process_manual_rerun_request(req("us_post_close_review_0630"), pin_hash_value=mock_hash, write=False),
         "wrong_pin_rejected": process_manual_rerun_request(req("intraday_1305", pin="".join(("13", "57", "90"))), pin_hash_value=mock_hash, write=False),
         "short_pin_rejected": process_manual_rerun_request(req("intraday_1305", pin="13579"), pin_hash_value=mock_hash, write=False),
         "long_pin_rejected": process_manual_rerun_request(req("intraday_1305", pin="1357901"), pin_hash_value=mock_hash, write=False),

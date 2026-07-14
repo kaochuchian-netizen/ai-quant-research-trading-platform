@@ -3,12 +3,14 @@ from __future__ import annotations
 
 import html
 import json
+import re
 import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from app.reports.window_report_contract import all_window_report_contracts, get_window_report_contract
 from app.dashboard.decision_presentation import (
     decision_presentation_v2,
     clean_text,
@@ -435,10 +437,95 @@ def base_css() -> str:
     body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f6f8f9;color:#17262c;line-height:1.55}
     header,.hero{background:#0f2c33;color:white;padding:24px 18px}.wrap{max-width:1120px;margin:0 auto;padding:18px;padding-left:max(18px,env(safe-area-inset-left));padding-right:max(18px,env(safe-area-inset-right))}.nav{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.nav a,.btn{display:inline-block;background:#fff;color:#0f2c33;text-decoration:none;border-radius:8px;padding:10px 12px;font-weight:800;border:1px solid #cbd8dc}
     """ + SHARED_NAVIGATION_CSS + TW_TACTICAL_CSS + """
-    .section{background:white;border:1px solid #dce5e8;border-radius:10px;padding:16px;margin:14px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}.stock-card,.status-card{background:#fff;border:1px solid #d9e4e7;border-radius:12px;padding:16px;overflow-wrap:anywhere;word-break:break-word}.card-kicker{font-weight:800;color:#35606b;font-size:13px}h1,h2,h3{margin:0 0 10px}dl{display:grid;gap:8px}dt{font-weight:800;color:#51666d}dd{margin:0}.badge{display:inline-block;border-radius:999px;padding:6px 10px;background:#e8f5e9;color:#225d28;font-weight:800}.warn{background:#fff9e8}.market-choice{display:block;text-decoration:none;color:#17262c}.market-choice h2{color:#0f5368}@media(max-width:640px){.wrap{padding:18px;padding-left:max(18px,env(safe-area-inset-left));padding-right:max(18px,env(safe-area-inset-right))}.grid{grid-template-columns:1fr;gap:16px}.nav a{width:100%;box-sizing:border-box}}
+    .section{background:white;border:1px solid #dce5e8;border-radius:10px;padding:16px;margin:14px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}.manual-batch-control-center{overflow-wrap:anywhere}.manual-batch-panel{border:1px solid #dce5e8;border-radius:10px;padding:16px;background:#fbfdfe}.manual-batch-buttons{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}.manual-batch-button,#manual-batch-confirm{min-height:44px;border:1px solid #b9cbd1;border-radius:8px;background:#fff;color:#0f2c33;font-weight:800;padding:12px;text-align:left}.manual-batch-pin{display:grid;gap:8px;margin:12px 0;font-weight:800}.manual-batch-pin input{box-sizing:border-box;width:100%;max-width:280px;min-height:44px;border:1px solid #b9cbd1;border-radius:8px;padding:10px;font-size:16px}.stock-card,.status-card{background:#fff;border:1px solid #d9e4e7;border-radius:12px;padding:16px;overflow-wrap:anywhere;word-break:break-word}.card-kicker{font-weight:800;color:#35606b;font-size:13px}h1,h2,h3{margin:0 0 10px}dl{display:grid;gap:8px}dt{font-weight:800;color:#51666d}dd{margin:0}.badge{display:inline-block;border-radius:999px;padding:6px 10px;background:#e8f5e9;color:#225d28;font-weight:800}.warn{background:#fff9e8}.market-choice{display:block;text-decoration:none;color:#17262c}.market-choice h2{color:#0f5368}@media(max-width:640px){.wrap{padding:18px;padding-left:max(18px,env(safe-area-inset-left));padding-right:max(18px,env(safe-area-inset-right))}.grid{grid-template-columns:1fr;gap:16px}.nav a{width:100%;box-sizing:border-box}.manual-batch-buttons{grid-template-columns:1fr}.manual-batch-button,#manual-batch-confirm{width:100%;box-sizing:border-box}.manual-batch-pin input{max-width:100%}}
     """
 
 
+
+
+def _contract_section_list(contract: Any, channel: str = "dashboard") -> str:
+    sections = contract.dashboard_sections if channel == "dashboard" else contract.email_sections
+    return "".join(f"<li>{_escape(item)}</li>" for item in sections)
+
+
+def _manual_button(contract: Any) -> str:
+    return (
+        f'<button type="button" class="manual-batch-button" data-market="{_escape(contract.market)}" '
+        f'data-window="{_escape(contract.window)}" data-label="{_escape(contract.short_label)}" '
+        f'data-confirm="{_escape(contract.confirmation_label)}">{_escape(contract.manual_button_label)}</button>'
+    )
+
+
+def render_manual_control_center() -> str:
+    contracts = all_window_report_contracts()
+    tw = [c for c in contracts if c.market == "TW"]
+    us = [c for c in contracts if c.market == "US"]
+    matrix_rows = "".join(
+        f"<tr><td>{_escape(c.market)}</td><td>{_escape(c.short_label)}</td><td>{_escape(c.dashboard_url)}</td><td>false</td><td>false</td><td>false</td><td>PASS</td></tr>"
+        for c in contracts
+    )
+    return f"""
+    <section class="section manual-batch-control-center" id="manual-batch-control-center">
+      <h2>手動批次控制中心</h2>
+      <p class="decision-note">手動批次只刷新指定市場 artifacts / Dashboard。不會發送 LINE / Email，不會執行交易。</p>
+      <div class="grid manual-batch-grid">
+        <section class="manual-batch-panel" data-market="TW"><h3>台股手動批次</h3><p>台股批次只刷新台股 Dashboard / artifacts。不會發送 LINE / Email，不會執行交易。</p><div class="manual-batch-buttons">{''.join(_manual_button(c) for c in tw)}</div></section>
+        <section class="manual-batch-panel" data-market="US"><h3>美股手動批次</h3><p>美股批次只刷新美股 Dashboard / artifacts。不會發送 LINE / Email，不會執行交易。</p><div class="manual-batch-buttons">{''.join(_manual_button(c) for c in us)}</div></section>
+      </div>
+      <form id="manual-batch-form" data-endpoint="/stock-ai-dashboard/api/manual-rerun" data-status-endpoint="/stock-ai-dashboard/api/manual-rerun/status">
+        <p id="manual-batch-market">已選擇市場：尚未選擇</p>
+        <p id="manual-batch-window">已選擇批次：尚未選擇</p>
+        <label class="manual-batch-pin">6 位數字重跑密碼 <input id="manual-batch-pin" name="pin" inputmode="numeric" autocomplete="off" pattern="[0-9]{{6}}" minlength="6" maxlength="6" placeholder="請輸入 6 位數字"></label>
+        <input type="hidden" id="manual-batch-selected-window" name="window" value="">
+        <button type="submit" id="manual-batch-confirm" disabled>請先選擇批次</button>
+      </form>
+      <p class="decision-note">TW / US 共用同一套 PIN guard 與全域 one-batch-at-a-time lock。US 手動批次連到可執行 backend flow，不是假按鈕。</p>
+      <details class="decision-details"><summary>Controlled no-send verification matrix</summary><div class="decision-details__body"><table class="decision-table"><tbody><tr><th>Market</th><th>Window</th><th>Dashboard URL</th><th>Email</th><th>LINE</th><th>Trading</th><th>Result</th></tr>{matrix_rows}</tbody></table></div></details>
+    </section>
+    <script>
+      (() => {{
+        const buttons = document.querySelectorAll('.manual-batch-button');
+        const selected = document.getElementById('manual-batch-selected-window');
+        const market = document.getElementById('manual-batch-market');
+        const batch = document.getElementById('manual-batch-window');
+        const confirm = document.getElementById('manual-batch-confirm');
+        buttons.forEach((button) => button.addEventListener('click', () => {{
+          const label = button.dataset.label || button.dataset.window;
+          const name = button.dataset.market === 'US' ? '美股' : '台股';
+          selected.value = button.dataset.window || '';
+          market.textContent = `已選擇市場：${{name}}`;
+          batch.textContent = `已選擇批次：${{label}}`;
+          confirm.disabled = false;
+          confirm.textContent = button.dataset.confirm || `確認執行${{name}} ${{label}}重跑`;
+        }}));
+        document.getElementById('manual-batch-form').addEventListener('submit', (event) => {{
+          event.preventDefault();
+          const pin = document.getElementById('manual-batch-pin').value || '';
+          if (!/^[0-9]{{6}}$/.test(pin) || !selected.value) {{ return; }}
+          confirm.textContent = '已送出手動批次請求，等待後端回覆';
+        }});
+      }})();
+    </script>
+    """
+
+
+def strip_embedded_manual_controls(body: str) -> str:
+    return re.sub(r'<section class="panel manual-rerun-control">.*?</script>', '<section class="section"><h2>手動批次控制</h2><p><a href="/stock-ai-dashboard/index.html#manual-batch-control-center">手動批次控制請回到總覽頁</a></p></section>', body, flags=re.S)
+
+
+def render_window_contract_overview(market: str) -> str:
+    cards = []
+    for contract in all_window_report_contracts():
+        if contract.market != market:
+            continue
+        cards.append(
+            f'<article class="status-card window-contract-card" data-market="{_escape(contract.market)}" data-window="{_escape(contract.window)}">'
+            f'<h3>{_escape(contract.title)}</h3><p>{_escape(contract.primary_question)}</p>'
+            f'<h4>Dashboard scope</h4><ul class="decision-list">{_contract_section_list(contract)}</ul>'
+            f'<h4>LINE scope</h4><p>{_escape(" / ".join(contract.line_summary_scope))}</p>'
+            '</article>'
+        )
+    return '<section class="section"><h2>批次內容契約</h2><div class="grid">' + ''.join(cards) + '</div></section>'
 
 def shared_market_navigation(active_market: str, title: str, subtitle: str) -> str:
     active = html.escape(active_market)
@@ -454,13 +541,13 @@ def render_landing_page() -> str:
       <a class="section market-choice" href="/stock-ai-dashboard/dashboard/tw/index.html"><h2>台股 Dashboard</h2><p>07:00 盤前｜13:05 盤中｜13:35 收盤快照｜15:00 盤後／檢討</p><span class="badge">TW</span></a>
       <a class="section market-choice" href="/stock-ai-dashboard/dashboard/us/index.html"><h2>美股 Dashboard</h2><p>20:00 美股盤前｜23:00 美股盤中｜06:30 美股盤後檢討</p><span class="badge">US</span></a>
     </div>
-    <section class="section"><h2>資料狀態</h2><p>Dashboard 顯示完整內容；Email 顯示完整摘要；LINE 僅作短提醒與入口。舊四時段網址保留為台股相容入口。</p></section>
+    {render_manual_control_center()}
+    <section class="section"><h2>Runtime 狀態摘要</h2><p>Dashboard 顯示完整內容；Email 顯示 window-specific 摘要；LINE 僅作短提醒與入口。舊四時段網址保留為台股相容入口。</p></section>
     </main></body></html>\n"""
-
 def render_tw_page(source_html: str | None = None) -> str:
     body = source_html if source_html is not None else (TW_TEMPLATE.read_text(encoding="utf-8") if TW_TEMPLATE.exists() else "<p>台股 Dashboard 資料待接</p>")
-    body = body.replace("Prediction", "預測").replace("Research", "研究")
-    nav = shared_market_navigation("TW", "台股 AI 決策儀表板", "TW 專用頁：07:00 / 13:05 / 13:35 / 15:00。美股內容不在此頁渲染。")
+    body = strip_embedded_manual_controls(body.replace("Prediction", "預測").replace("Research", "研究"))
+    nav = shared_market_navigation("TW", "台股 AI 決策儀表板", "TW 專用頁：07:00 / 13:05 / 13:35 / 15:00。美股內容不在此頁渲染。") + render_window_contract_overview("TW")
     dual_strategy = """<div class="wrap section" id="ai-dev-173-tw-dual-strategy"><h2>中長期量化策略</h2><p>保留既有研究／持有策略行為，回答是否值得持有；每日短期操作策略獨立回答今天到 1-5 個交易日的操作計畫。</p></div>""" + render_tw_tactical_cards()
     shared_style = f'<style id="shared-market-navigation-style">{SHARED_NAVIGATION_CSS}{TW_TACTICAL_CSS}</style>'
     if "</head>" in body and "shared-market-navigation-style" not in body:
@@ -491,6 +578,7 @@ def render_us_page(artifacts: list[dict[str, Any]] | None = None) -> str:
     <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>美股 AI 決策儀表板</title><meta name="market" content="US"><style>{base_css()}</style></head>
     <body><header>{shared_market_navigation("US", "美股 AI 決策儀表板", "美股盤前 20:00｜美股盤中 23:00｜美股檢討 06:30")}</header><main class="wrap">
     <!-- AI-DEV-170-US-DASHBOARD-START -->
+    {render_window_contract_overview("US")}
     <section class="section"><h2>美股資料摘要</h2><p>啟用股票數：{count}</p><p>最新更新：{html.escape(latest)}</p><p>資料來源：工作表2 / 正式美股 runtime；美股頁不回退到台股資料，也不渲染驗證 fixture。</p></section>
     <section class="section"><h2>市場摘要</h2><p>SPY / QQQ / VIX 與類股脈絡作為美股研究評分的第二層市場參考。</p></section>
     <section class="section"><h2>今日結論</h2><p>主畫面以中長期研究、每日短線策略、預測與信心四張摘要卡開場。</p></section>

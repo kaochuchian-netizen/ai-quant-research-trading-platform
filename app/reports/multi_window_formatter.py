@@ -7,6 +7,7 @@ from app.dashboard.dashboard_url_registry import get_tw_dashboard_url
 from app.dashboard.decision_presentation import decision_email_block_v2, decision_line_summary_v2, decision_presentation_v2
 from .report_sections import base_sections, normalize_stock_cards, review_state_cards
 from .window_context import ReportWindowContext, get_window_context
+from .window_report_contract import get_window_report_contract
 STATUS_MARK = "🟡"
 PREDICTION_PENDING_REASON = "資料待接：尚未找到正式 prediction runtime artifact，不產生假預測。"
 PRE_OPEN_PREDICTION_FIELDS = [
@@ -54,40 +55,30 @@ def prediction_field_blocks(context: ReportWindowContext) -> list[dict[str, Any]
     if context.scheduler_window != "pre_open_0700":
         return []
     return [{"label": label, "value": "資料待接", "reason": PREDICTION_PENDING_REASON, "fabricated": False} for label in PRE_OPEN_PREDICTION_FIELDS]
+def contract_sections(context: ReportWindowContext) -> list[dict[str, str]]:
+    contract = get_window_report_contract("TW", context.scheduler_window)
+    rows = [{"heading": contract.title, "body": contract.primary_question}]
+    for section in contract.email_sections:
+        rows.append({"heading": section, "body": f"{contract.title} scope：{section}。此批次不重播其他時段完整報告。"})
+    if contract.suppressed_sections:
+        rows.append({"heading": "本批次弱化 / 收合", "body": "、".join(contract.suppressed_sections)})
+    return rows
+
 def strategy_v2_sections(context: ReportWindowContext) -> list[dict[str, str]]:
     if context.scheduler_window == "pre_open_0700":
-        return [
-            {"heading": "中長期量化策略", "body": "沿用既有 TW Research / Position score、評等、動作與 prediction lifecycle，不由 Tactical 覆寫。"},
-            {"heading": "每日短期操作策略", "body": _tw_tactical_email_body()},
-            {"heading": "台股盤前預測", "body": "今日盤前主報告，包含高低價、1M/3M 趨勢、confidence、rationale、風險與 Dashboard URL。"},
-            {"heading": "台指期夜盤觀察", "body": "資料待接：夜盤觀察尚未找到正式 runtime artifact。"},
-            {"heading": "美股盤後摘要狀態", "body": "美股資料待接：尚未提供美股股票代號或正式 runtime artifact。"},
-        ]
-    if context.scheduler_window == "intraday_1305":
-        return [{"heading": "盤中分析", "body": "目前價格狀態、是否接近今日預測高低區間、量能/籌碼/ADR/外部市場與盤前假設有效性。"}]
-    if context.scheduler_window == "pre_close_1335":
-        return [{"heading": "收盤快照", "body": "今日高 / 低 / 收盤狀態與 07:00 預測區間初步比對；完整檢討待 15:00。"}]
-    if context.scheduler_window in {"post_close_1500", "prediction_review_1500"}:
-        return [{"heading": "盤後檢討 / Prediction Review", "body": "過去 7 天預測命中率、forecast vs actual、誤差來源、confidence calibration、factor effectiveness 與隔日改善建議。"}]
-    return []
-
+        return [*contract_sections(context), {"heading": "每日短期操作策略", "body": _tw_tactical_email_body()}]
+    return contract_sections(context)
 def line_notification_text(context: ReportWindowContext, dashboard_url: str) -> str:
-    templates = {
-        "pre_open_0700": ("【Stock AI】07:00 盤前決策摘要已更新", "盤前摘要、Research 與 Tactical 請看 Dashboard。"),
-        "intraday_1305": ("【Stock AI】13:05 盤中追蹤已更新", "盤中狀態、風險變化與資料完整度請看 Dashboard。"),
-        "pre_close_1335": ("【Stock AI】13:35 收盤快照已更新", "收盤快照、當日狀態與後續檢討進度請看 Dashboard。"),
-        "post_close_1500": ("【Stock AI】15:00 盤後檢討已更新", "單日檢討、7 天滾動檢討、樣本累積與校準狀態請看 Dashboard。"),
-        "prediction_review_1500": ("【Stock AI】15:00 盤後檢討已更新", "單日檢討、7 天滾動檢討、樣本累積與校準狀態請看 Dashboard。"),
-    }
-    title, body = templates.get(context.scheduler_window, templates["pre_open_0700"])
-    extra = _tw_tactical_line_summary(dashboard_url) if context.scheduler_window == "pre_open_0700" else ""
-    parts = [title, body]
-    if extra:
-        parts.append(extra)
-        return "\n".join(parts)
-    parts.extend(["Dashboard：", dashboard_url, "僅供研究參考，非交易指令。"])
+    contract = get_window_report_contract("TW", context.scheduler_window)
+    parts = [f"【Stock AI】{contract.title}已更新"]
+    parts.extend(contract.line_summary_scope[:-1])
+    if context.scheduler_window == "pre_open_0700":
+        extra = _tw_tactical_line_summary(dashboard_url)
+        if extra:
+            parts.append(extra)
+            return "\n".join(parts)
+    parts.extend(["Dashboard：", dashboard_url, "僅供研究參考，非交易指令。"] )
     return "\n".join(parts)
-
 def render_markdown_report(user_report: dict[str, Any]) -> str:
     lines = [f"# {user_report['title']}", "", str(user_report.get("subtitle", "")), "", str(user_report.get("summary", "")), ""]
     for section in user_report.get("sections", []):
@@ -109,11 +100,12 @@ def render_markdown_report(user_report: dict[str, Any]) -> str:
     return "\n".join(lines).strip() + "\n"
 def build_channel_reports(context: ReportWindowContext, user_report: dict[str, Any], dashboard_url: str | None) -> dict[str, Any]:
     url = dashboard_url or DASHBOARD_URL_FALLBACK
-    email_sections = [s.get("heading") for s in user_report.get("sections", [])]
+    contract = get_window_report_contract("TW", context.scheduler_window)
+    email_sections = list(contract.email_sections)
     return {
         "line": {"channel": "line", "mode": "link_only_notification", "line_summary_required": True, "full_report": False, "dashboard_url": url, "text": line_notification_text(context, url), "raw_logs_included": False, "notification_sent": False},
         "email": {"channel": "email", "mode": "full_report", "email_full_report_required": True, "dashboard_url": url, "sections": email_sections, "text": user_report.get("rendered_text", ""), "notification_sent": False},
-        "dashboard": {"channel": "dashboard", "mode": "full_state_freshness_missing_data", "dashboard_full_state_required": True, "dashboard_url": url, "sections": ["今日決策摘要", "四批次內容狀態", "預測資料狀態", "LINE / Email / Dashboard delivery audit summary", "資料新鮮度", "技術檢查 / Debug"], "published_by_formatter": False},
+        "dashboard": {"channel": "dashboard", "mode": "window_specific_contract", "dashboard_full_state_required": True, "dashboard_url": url, "sections": list(contract.dashboard_sections), "published_by_formatter": False},
     }
 def build_user_facing_report(context: ReportWindowContext, content_state: str, sanitized_text: str, stock_cards: list[dict[str, Any]] | None = None, dashboard_url: str | None = None) -> dict[str, Any]:
     summary = sanitized_text.strip() or context.primary_purpose
@@ -127,8 +119,8 @@ def build_user_facing_report(context: ReportWindowContext, content_state: str, s
     show_stock_cards = content_state in {"stock_analysis_reports_available", "partial", "prediction_review_pending", "prediction_review_insufficient_data"} and context.scheduler_window != "prediction_review_1500"
     sections = [*strategy_v2_sections(context), *base_sections(context.display_label, content_state, summary)]
     user_report = {
-        "title": context.display_title,
-        "subtitle": context.primary_purpose,
+        "title": get_window_report_contract("TW", context.scheduler_window).title,
+        "subtitle": get_window_report_contract("TW", context.scheduler_window).primary_question,
         "summary": summary,
         "sections": sections,
         "prediction_fields": prediction_field_blocks(context),

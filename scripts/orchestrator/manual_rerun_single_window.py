@@ -15,6 +15,8 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from app.reports.window_report_contract import manual_batch_contracts
+
 ROOT = Path(__file__).resolve().parents[2]
 MANUAL_DIR = ROOT / "artifacts/runtime/manual_rerun"
 STATUS_LATEST = MANUAL_DIR / "manual_rerun_status_latest.json"
@@ -23,10 +25,20 @@ TAIPEI = ZoneInfo("Asia/Taipei")
 PIN_RE = re.compile(r"^[0-9]{6}$")
 PIN_HASH_PREFIX = "sha256:"
 ALLOWED_WINDOWS = {
-    "pre_open_0700": {"label": "07:00 盤前", "pipeline_type": "pre_open"},
-    "intraday_1305": {"label": "13:05 盤中", "pipeline_type": "intraday"},
-    "pre_close_1335": {"label": "13:35 收盤快照", "pipeline_type": "pre_close"},
-    "post_close_1500": {"label": "15:00 盤後檢討", "pipeline_type": "post_close"},
+    window: {
+        "label": contract.short_label,
+        "market": contract.market,
+        "pipeline_type": "us_manual_batch" if contract.market == "US" else {
+            "pre_open_0700": "pre_open",
+            "intraday_1305": "intraday",
+            "pre_close_1335": "pre_close",
+            "post_close_1500": "post_close",
+        }.get(window, "manual"),
+        "dashboard_url": contract.dashboard_url,
+        "artifact_scope": contract.artifact_scope,
+        "backend_command": list(contract.backend_command),
+    }
+    for window, contract in manual_batch_contracts().items()
 }
 ALLOWED_MODE = "dashboard_refresh_only"
 REJECTED_MODES = {"full_delivery", "send_line", "send_email", "trade", "all_windows"}
@@ -116,6 +128,7 @@ def response(status: str, window: str | None = None, job_id: str | None = None, 
         "line_attempted": False,
         "email_attempted": False,
         "trading_or_order_executed": False,
+        "scheduler_changed": False,
     }
     if job_id:
         data["job_id"] = job_id
@@ -159,17 +172,23 @@ def build_audit(job_id: str, window: str, status: str, auth: str, lock_acquired:
         "mode": ALLOWED_MODE,
         "status": status,
         "pipeline_status": "not_executed_in_repo_validation",
+        "market": ALLOWED_WINDOWS[window]["market"],
+        "dashboard_url": ALLOWED_WINDOWS[window]["dashboard_url"],
+        "artifact_scope": ALLOWED_WINDOWS[window]["artifact_scope"],
+        "backend_command": ALLOWED_WINDOWS[window]["backend_command"],
         "dashboard_publish_attempted": status in {"accepted", "completed"},
         "dashboard_publish_status": "simulated" if status in {"accepted", "completed"} else "not_attempted",
         "line_attempted": False,
         "email_attempted": False,
+        "scheduler_changed": False,
+        "production_pipeline_executed": False,
         "notification_policy": "manual_rerun_dashboard_refresh_only",
         "operator_auth": auth,
         "pin_recorded": False,
         "lock_acquired": lock_acquired,
         "cooldown_checked": cooldown_checked,
         "timeout_seconds": TIMEOUT_SECONDS,
-        "safety_notes": ["single_window_only", "six_digit_pin_verified" if auth == "verified" else "pin_not_verified", "no_line_email", "no_trading"]
+        "safety_notes": ["single_window_only", "global_one_batch_lock", "six_digit_pin_verified" if auth == "verified" else "pin_not_verified", "no_line_email", "no_trading", "no_scheduler_change"]
     }
 
 
