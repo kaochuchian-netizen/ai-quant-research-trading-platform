@@ -27,6 +27,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from app.reports.multi_window_formatter import line_notification_text  # noqa: E402
 from app.dashboard.dashboard_url_registry import get_tw_dashboard_url, normalize_delivery_dashboard_url  # noqa: E402
+from app.dashboard.window_snapshot_archive import write_snapshot  # noqa: E402
 from app.reports.report_content_contract import build_report_content_artifact  # noqa: E402
 from app.reports.window_context import get_window_context  # noqa: E402
 from app.runtime.production_run_guard import evaluate_pre_open_run_guard  # noqa: E402
@@ -44,6 +45,7 @@ SCHEMA_VERSION = "approved_scheduler_delivery_v1"
 TASK_ID = "AI-DEV-112"
 DEFAULT_DASHBOARD_DIR = Path("/var/www/stock-ai-dashboard")
 DEFAULT_MAIL_ENV_FILE = Path("~/.config/stock-ai-orchestrator/mail.env")
+WINDOW_SNAPSHOT_ARCHIVE = REPO_ROOT / "artifacts/archive/window_snapshots"
 DEFAULT_DECISION_INTELLIGENCE_DASHBOARD_URL = get_tw_dashboard_url()
 EMAIL_BODY_LIMIT = 14000
 LINE_BODY_LIMIT = 520
@@ -617,6 +619,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--mail-env-file", default=str(DEFAULT_MAIL_ENV_FILE))
     parser.add_argument("--output", default="/tmp/approved_pre_open_delivery_result.json")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--manual-rerun", action="store_true")
+    parser.add_argument("--effective-trading-date")
     parser.add_argument("--timeout-seconds", type=int, default=None)
     parser.add_argument("--stale-threshold-seconds", type=int, default=None)
     parser.add_argument("--terminate-grace-seconds", type=int, default=None)
@@ -637,8 +641,12 @@ def main() -> int:
         print(stable_json(result))
         return 0 if result["ok"] else 1
 
-    if not env_enabled("STOCK_AI_APPROVED_DELIVERY"):
+    if not env_enabled("STOCK_AI_APPROVED_DELIVERY") and not args.manual_rerun:
         raise SystemExit("STOCK_AI_APPROVED_DELIVERY=1 is required for approved delivery")
+    if args.manual_rerun:
+        if not args.effective_trading_date:
+            raise SystemExit("--effective-trading-date is required for manual rerun")
+        os.environ["STOCK_AI_SUPPRESS_NOTIFICATIONS"] = "1"
 
     base_policy = timeout_policy_from_env()
     policy = TimeoutPolicy(
@@ -700,7 +708,7 @@ def main() -> int:
     pipeline_status = "completed" if completed.returncode == 0 else "failed"
     progress = write_progress_artifact(args.window, generated_at, "pipeline_completed", pipeline_status, policy.production_pipeline_timeout_seconds, pipeline_run["elapsed_seconds"])
     late = delivery_lateness(args.window)
-    if pipeline_status == "completed" and late["late"]:
+    if pipeline_status == "completed" and late["late"] and not args.manual_rerun:
         progress = write_progress_artifact(args.window, generated_at, "late_delivery_suppressed", "completed_late_delivery_suppressed", policy.production_pipeline_timeout_seconds, pipeline_run["elapsed_seconds"])
         late_artifact = late_delivery_artifact(args.window, late, now_taipei().isoformat())
         result = {
@@ -734,6 +742,34 @@ def main() -> int:
         Path(args.output).write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         print(stable_json({key: result[key] for key in ["schema_version", "task_id", "run_id", "scheduler_window", "pipeline_status", "late_delivery_suppressed", "line_attempted", "email_attempted", "ok", "decision"]}))
         return 0
+    report_contract = build_report_content_artifact(
+        args.window,
+        output_tail,
+        content_state(args.window, output_tail, pipeline_status),
+        run_id,
+        args.dashboard_url,
+    )
+    effective_trading_date = args.effective_trading_date or scheduled_datetime_taipei(args.window, generated).date().isoformat()
+    archive_write = write_snapshot(
+        WINDOW_SNAPSHOT_ARCHIVE,
+        market="TW",
+        window=args.window,
+        effective_trading_date=effective_trading_date,
+        generated_at=generated_at,
+        source_payload={
+            "schema_version": "tw_window_snapshot_payload_v1",
+            "market": "TW",
+            "window": args.window,
+            "run_id": run_id,
+            "content_state": report_contract.content_state,
+            "user_facing_report": report_contract.user_facing_report,
+            "delivery_policy": report_contract.delivery_policy,
+        },
+        status=pipeline_status,
+        run_kind="manual_rerun" if args.manual_rerun else "scheduled",
+        run_id=run_id,
+        rebuild_routes=args.manual_rerun,
+    )
     try:
         post_run_artifacts = post_delivery_artifact_wiring(window_id=args.window, generated_at=generated_at)
     except Exception as exc:
@@ -757,8 +793,17 @@ def main() -> int:
             "line_email_delivery_not_blocked": True,
         }))
     dashboard = publish_dashboard(Path(args.dashboard_publish_dir), args.window, run_id, generated_at, pipeline_status, output_tail)
+    if args.manual_rerun:
+        email = {"send_attempted": False, "send_status": "manual_rerun_no_send"}
+        line = {"send_attempted": False, "send_status": "manual_rerun_no_send"}
+        email_ok = True
+        line_ok = True
+    else:
+        email = None
+        line = None
     try:
-        email = send_delivery_email(Path(args.mail_env_file), args.window, run_id, generated_at, pipeline_status, args.dashboard_url, output_tail)
+        if email is None:
+            email = send_delivery_email(Path(args.mail_env_file), args.window, run_id, generated_at, pipeline_status, args.dashboard_url, output_tail)
         email_ok = True
     except Exception as exc:  # pragma: no cover - runtime SMTP/config failure path
         email = {
@@ -769,8 +814,9 @@ def main() -> int:
         }
         email_ok = False
     try:
-        line = send_concise_line(args.window, generated_at, pipeline_status, args.dashboard_url, output_tail)
-        line_ok = line.get("send_status") in {"sent", "handled_by_pipeline"}
+        if line is None:
+            line = send_concise_line(args.window, generated_at, pipeline_status, args.dashboard_url, output_tail)
+            line_ok = line.get("send_status") in {"sent", "handled_by_pipeline"}
     except Exception as exc:  # pragma: no cover - runtime LINE/config failure path
         line = {
             "send_attempted": True,
@@ -799,6 +845,7 @@ def main() -> int:
         },
         "fallback_state": cfg["fallback_state"],
         "post_run_artifact_wiring": post_run_artifacts,
+        "archive_write": archive_write,
         "line_delivery": line,
         "line_delivery_status": line.get("send_status"),
         "line_delivery_reason": line.get("reason"),
