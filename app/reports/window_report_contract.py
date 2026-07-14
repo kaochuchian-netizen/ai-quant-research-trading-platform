@@ -46,7 +46,7 @@ CONTRACTS: dict[tuple[str, str], WindowReportContract] = {
         ("盤後檢討主文", "7 日滾動檢討長文"),
         ("07:00 盤前決策", "今日盤前重點", "今日可觀察標的"),
         TW_DASHBOARD_URL, "重跑 07:00 盤前", "確認執行台股 07:00 盤前重跑",
-        ("./venv/bin/python", "scripts/orchestrator/approved_pre_open_delivery.py", "--window", "pre_open_0700", "--dry-run"),
+        ("./venv/bin/python", "scripts/orchestrator/approved_pre_open_delivery.py", "--window", "pre_open_0700", "--manual-rerun"),
         "TW artifacts / TW Dashboard only",
     ),
     ("TW", "intraday_1305"): WindowReportContract(
@@ -58,7 +58,7 @@ CONTRACTS: dict[tuple[str, str], WindowReportContract] = {
         ("完整中長期 Research", "完整財務體質", "完整 SEC / 基本面長文"),
         ("13:05 盤中變化", "盤中變化摘要", "已觸發 setup"),
         TW_DASHBOARD_URL, "重跑 13:05 盤中", "確認執行台股 13:05 盤中重跑",
-        ("./venv/bin/python", "scripts/orchestrator/approved_pre_open_delivery.py", "--window", "intraday_1305", "--dry-run"),
+        ("./venv/bin/python", "scripts/orchestrator/approved_pre_open_delivery.py", "--window", "intraday_1305", "--manual-rerun"),
         "TW artifacts / TW Dashboard only",
     ),
     ("TW", "pre_close_1335"): WindowReportContract(
@@ -70,7 +70,7 @@ CONTRACTS: dict[tuple[str, str], WindowReportContract] = {
         ("完整盤前操作計畫", "完整 Research 長文"),
         ("13:35 收盤快照", "收盤前快照", "不追價提醒"),
         TW_DASHBOARD_URL, "重跑 13:35 收盤快照", "確認執行台股 13:35 收盤快照重跑",
-        ("./venv/bin/python", "scripts/orchestrator/approved_pre_open_delivery.py", "--window", "pre_close_1335", "--dry-run"),
+        ("./venv/bin/python", "scripts/orchestrator/approved_pre_open_delivery.py", "--window", "pre_close_1335", "--manual-rerun"),
         "TW artifacts / TW Dashboard only",
     ),
     ("TW", "post_close_1500"): WindowReportContract(
@@ -82,7 +82,7 @@ CONTRACTS: dict[tuple[str, str], WindowReportContract] = {
         ("新的盤前建議", "盤前機會主文"),
         ("15:00 盤後檢討", "今日預測 vs 實際", "7 日滾動檢討"),
         TW_DASHBOARD_URL, "重跑 15:00 盤後檢討", "確認執行台股 15:00 盤後檢討重跑",
-        ("./venv/bin/python", "scripts/orchestrator/approved_pre_open_delivery.py", "--window", "post_close_1500", "--dry-run"),
+        ("./venv/bin/python", "scripts/orchestrator/approved_pre_open_delivery.py", "--window", "post_close_1500", "--manual-rerun"),
         "TW artifacts / TW Dashboard only",
     ),
     ("US", "us_pre_market_2000"): WindowReportContract(
@@ -94,7 +94,7 @@ CONTRACTS: dict[tuple[str, str], WindowReportContract] = {
         ("盤後 outcome 長文", "完整 review 表格"),
         ("20:00 美股盤前", "Premarket / gap 狀態", "今日 Tactical setup"),
         US_DASHBOARD_URL, "重跑 20:00 美股盤前", "確認執行美股 20:00 盤前重跑",
-        ("./venv/bin/python", "scripts/orchestrator/approved_us_stock_delivery.py", "--window", "us_pre_market_2000", "--dry-run", "--production-artifact", "--pretty"),
+        ("./venv/bin/python", "scripts/orchestrator/approved_us_stock_delivery.py", "--window", "us_pre_market_2000", "--dry-run", "--production-artifact", "--manual-rerun", "--pretty"),
         "US artifacts / US Dashboard only",
     ),
     ("US", "us_intraday_2300"): WindowReportContract(
@@ -106,7 +106,7 @@ CONTRACTS: dict[tuple[str, str], WindowReportContract] = {
         ("完整 Research 長文", "完整財務卡片", "完整 SEC 長列表"),
         ("23:00 美股盤中", "Gap follow-through", "Volume confirmation"),
         US_DASHBOARD_URL, "重跑 23:00 美股盤中", "確認執行美股 23:00 盤中重跑",
-        ("./venv/bin/python", "scripts/orchestrator/approved_us_stock_delivery.py", "--window", "us_intraday_2300", "--dry-run", "--production-artifact", "--pretty"),
+        ("./venv/bin/python", "scripts/orchestrator/approved_us_stock_delivery.py", "--window", "us_intraday_2300", "--dry-run", "--production-artifact", "--manual-rerun", "--pretty"),
         "US artifacts / US Dashboard only",
     ),
     ("US", "us_post_close_review_0630"): WindowReportContract(
@@ -118,7 +118,7 @@ CONTRACTS: dict[tuple[str, str], WindowReportContract] = {
         ("盤前機會主文", "premarket 追價建議"),
         ("06:30 美股檢討", "預測檢討", "隔日觀察"),
         US_DASHBOARD_URL, "重跑 06:30 美股檢討", "確認執行美股 06:30 檢討重跑",
-        ("./venv/bin/python", "scripts/orchestrator/approved_us_stock_delivery.py", "--window", "us_post_close_review_0630", "--dry-run", "--production-artifact", "--pretty"),
+        ("./venv/bin/python", "scripts/orchestrator/approved_us_stock_delivery.py", "--window", "us_post_close_review_0630", "--dry-run", "--production-artifact", "--manual-rerun", "--pretty"),
         "US artifacts / US Dashboard only",
     ),
 }

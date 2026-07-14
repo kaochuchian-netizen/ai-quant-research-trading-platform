@@ -33,6 +33,7 @@ from app.dashboard.decision_presentation import (
     is_no_trade,
     limit_items,
 )
+from app.dashboard.window_snapshot_archive import MARKET_WINDOWS, resolve_snapshots, same_window_change
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PUBLIC_BASE_URL = "http://35.201.242.167/stock-ai-dashboard"
@@ -46,6 +47,7 @@ LANDING_URL = PUBLIC_BASE_URL + LANDING_ROUTE
 STATIC_ROOT = Path("/var/www/stock-ai-dashboard")
 TW_TEMPLATE = REPO_ROOT / "templates/four_window_dashboard_route_preview.example.html"
 OUTPUT_DIR = REPO_ROOT / "templates/multi_market_dashboard_v2"
+WINDOW_SNAPSHOT_ARCHIVE = REPO_ROOT / "artifacts/archive/window_snapshots"
 TW_DAILY_TACTICAL_RUNTIME = REPO_ROOT / "artifacts/runtime/tw_daily_tactical/tw_daily_tactical_latest.json"
 US_RUNTIME_FILES = [
     REPO_ROOT / "artifacts/runtime/us_stock/us_pre_market_2000_latest.json",
@@ -743,6 +745,10 @@ def shared_market_navigation(active_market: str, title: str, subtitle: str) -> s
     return f"""<div class="wrap section market-shared-navigation market-shared-navigation--v1" data-shared-navigation="tw-us" data-active-market="{active}"><h1>{html.escape(title)}</h1><nav class="market-shared-navigation__grid market-shared-navigation__grid--responsive" aria-label="Market Dashboard Navigation"><a class="market-shared-navigation__button" href="/stock-ai-dashboard/index.html">回到總覽</a><a class="market-shared-navigation__button" href="/stock-ai-dashboard/dashboard/tw/index.html"{current_tw}>台股 Dashboard</a><a class="market-shared-navigation__button" href="/stock-ai-dashboard/dashboard/us/index.html"{current_us}>美股 Dashboard</a></nav><p class="market-shared-navigation__subtitle">{html.escape(subtitle)}</p></div>"""
 
 def render_landing_page() -> str:
+    archive_buttons = "".join(
+        f'<a class="market-shared-navigation__button archive-browser-button" data-market="{market}" data-window="{window}" data-selection="{selection}" href="/stock-ai-dashboard/dashboard/archive/{market.lower()}/{window}/{selection}/index.html">{market}｜{window}｜{selection}</a>'
+        for market, windows in MARKET_WINDOWS.items() for window in windows for selection in ("latest", "previous")
+    )
     return f"""<!doctype html>
     <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>AI Multi-Market Decision Intelligence</title><style>{base_css()}</style></head>
     <body><header><div class="wrap"><h1>AI Multi-Market Decision Intelligence</h1><p>台股與美股分流入口；LINE/Email 依市場連到正確 Dashboard。</p></div></header><main class="wrap">
@@ -750,6 +756,7 @@ def render_landing_page() -> str:
       <a class="section market-choice" href="/stock-ai-dashboard/dashboard/tw/index.html"><h2>台股 Dashboard</h2><p>07:00 盤前｜13:05 盤中｜13:35 收盤快照｜15:00 盤後／檢討</p><span class="badge">TW</span></a>
       <a class="section market-choice" href="/stock-ai-dashboard/dashboard/us/index.html"><h2>美股 Dashboard</h2><p>20:00 美股盤前｜23:00 美股盤中｜06:30 美股盤後檢討</p><span class="badge">US</span></a>
     </div>
+    <section class="section" id="snapshot-archive-browser"><h2>Snapshot Archive 瀏覽</h2><p>固定路由只顯示 resolver 選出的 immutable snapshot；previous 必須跨有效交易日。</p><div class="market-shared-navigation__grid">{archive_buttons}</div></section>
     {render_manual_control_center()}
     <section class="section"><h2>Runtime 狀態摘要</h2><p>Dashboard 顯示完整內容；Email 顯示 window-specific 摘要；LINE 僅作短提醒與入口。舊四時段網址保留為台股相容入口。</p></section>
     </main></body></html>\n"""
@@ -797,9 +804,20 @@ def build_pages(output_dir: Path = OUTPUT_DIR) -> dict[str, Any]:
     }
     for key, path in paths.items():
         path.write_text(stable_html(pages[key]), encoding="utf-8")
+    archive_routes: dict[str, str] = {}
+    for market, windows in MARKET_WINDOWS.items():
+        for window in windows:
+            selection = resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, market, window)
+            comparison = same_window_change(selection.latest, selection.previous)
+            for name, snapshot in (("latest", selection.latest), ("previous", selection.previous)):
+                route = f"dashboard/archive/{market.lower()}/{window}/{name}/index.html"
+                target = output_dir / route
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(stable_html(render_snapshot_archive_page(market, window, name, snapshot, comparison)), encoding="utf-8")
+                archive_routes[f"{market}:{window}:{name}"] = str(target)
     manifest = {
         "schema_version": "multi_market_dashboard_v2_build_v1",
-        "task_id": "AI-DEV-170",
+        "task_id": "AI-DEV-179",
         "generated_at": now_taipei(),
         "landing_url": LANDING_URL,
         "tw_url": TW_URL,
@@ -808,9 +826,27 @@ def build_pages(output_dir: Path = OUTPUT_DIR) -> dict[str, Any]:
         "us_stock_count": us_stock_count(artifacts),
         "market_isolation": {"tw_reads_us_artifacts": False, "us_reads_tw_artifacts": False, "cross_market_fallback": False},
         "paths": {key: str(path) for key, path in paths.items()},
+        "archive_routes": archive_routes,
+        "archive_route_count": len(archive_routes),
     }
     (output_dir / "manifest.json").write_text(stable_json(manifest), encoding="utf-8")
     return manifest
+
+
+def render_snapshot_archive_page(market: str, window: str, selection: str, snapshot: dict[str, Any] | None, comparison: dict[str, Any]) -> str:
+    if snapshot is None:
+        body = '<section class="section archive-empty-state"><h2>尚無可用 snapshot</h2><p>找不到符合正式、完整、非 fixture / validator 且同市場同時段的 immutable snapshot。</p></section>'
+        identity = ""
+    else:
+        immutable_payload = snapshot["payload"]
+        identity = f'data-snapshot-id="{_escape(snapshot.get("snapshot_id"))}" data-effective-trading-date="{_escape(snapshot.get("effective_trading_date"))}"'
+        body = f'<section class="section immutable-snapshot-payload"><h2>Snapshot payload</h2><p>有效交易日：{_escape(snapshot.get("effective_trading_date"))}｜revision：{_escape(snapshot.get("revision", 0))}</p><pre>{html.escape(json.dumps(immutable_payload, ensure_ascii=False, indent=2, sort_keys=True))}</pre></section>'
+    if comparison.get("available"):
+        rows = "".join(f'<tr><th>{_escape(item["field"])}</th><td>{_escape(item["previous"])}</td><td>{_escape(item["current"])}</td></tr>' for item in comparison["changes"])
+        change = f'<section class="section same-window-change"><h2>同時段跨交易日變化</h2><table class="decision-table"><tbody>{rows or "<tr><td>內容無變化</td></tr>"}</tbody></table></section>'
+    else:
+        change = f'<section class="section same-window-change archive-empty-state"><h2>同時段跨交易日變化</h2><p>{_escape(comparison.get("empty_state"))}</p></section>'
+    return f'<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{_escape(market)} {_escape(window)} {_escape(selection)}</title><style>{base_css()}</style></head><body {identity}><header>{shared_market_navigation(market, f"{market} Snapshot Archive", f"{window}｜{selection}")}</header><main class="wrap">{body}{change}</main></body></html>\n'
 
 def publish_pages(static_root: Path = STATIC_ROOT, source_dir: Path = OUTPUT_DIR) -> dict[str, Any]:
     manifest = build_pages(source_dir)
@@ -836,6 +872,14 @@ def publish_pages(static_root: Path = STATIC_ROOT, source_dir: Path = OUTPUT_DIR
             shutil.copy2(target, dest)
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(sources[key], target)
+    archive_source = source_dir / "dashboard/archive"
+    archive_target = static_root / "dashboard/archive"
+    if archive_source.exists():
+        for source in sorted(archive_source.rglob("index.html")):
+            relative = source.relative_to(archive_source)
+            target = archive_target / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
     result = {
         **manifest,
         "published": True,
@@ -843,6 +887,7 @@ def publish_pages(static_root: Path = STATIC_ROOT, source_dir: Path = OUTPUT_DIR
         "backup_path": str(backup),
         "notification_sent": False,
         "production_pipeline_executed": False,
+        "archive_route_count": manifest.get("archive_route_count", 0),
         "rollback_command": f"cp {backup}/landing.before_ai_dev_170.html {static_root}/index.html 2>/dev/null || true; cp {backup}/tw.before_ai_dev_170.html {static_root}/dashboard/tw/index.html 2>/dev/null || true; cp {backup}/us.before_ai_dev_170.html {static_root}/dashboard/us/index.html 2>/dev/null || true; cp {backup}/old_compat.before_ai_dev_170.html {static_root}/dashboard/decision-intelligence/four-window-preview/index.html 2>/dev/null || true",
     }
     (static_root / ".ai_dev_170_publish_latest.json").write_text(stable_json(result), encoding="utf-8")

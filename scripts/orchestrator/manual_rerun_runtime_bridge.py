@@ -10,9 +10,12 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import subprocess
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
@@ -29,6 +32,7 @@ from scripts.orchestrator.manual_rerun_single_window import (  # noqa: E402
     stable,
     write_audit,
 )
+from app.dashboard.window_snapshot_archive import resolve_snapshots
 
 PIN_HASH_ENV = "STOCK_AI_MANUAL_RERUN_PIN_HASH"
 PIN_HASH_FILE = Path.home() / ".config/stock-ai/manual_rerun_pin_hash"
@@ -85,7 +89,53 @@ def process_manual_rerun_request(request: dict[str, Any], *, pin_hash_value: str
     response = sanitize_response(response)
     if write and not response.get("accepted"):
         rejected_audit(response)
+    if write and response.get("accepted"):
+        response = execute_manual_backend(response)
     return response
+
+
+def execute_manual_backend(response: dict[str, Any]) -> dict[str, Any]:
+    window = str(response["window"])
+    contract = ALLOWED_WINDOWS[window]
+    market = str(contract["market"])
+    reference = datetime.now(ZoneInfo("Asia/Taipei")).replace(microsecond=0)
+    selected = resolve_snapshots(ROOT / "artifacts/archive/window_snapshots", market, window)
+    market_date = reference.date().isoformat() if market == "TW" else reference.astimezone(ZoneInfo("America/New_York")).date().isoformat()
+    effective_date = str(selected.latest.get("effective_trading_date")) if selected.latest else market_date
+    command = list(contract["backend_command"])
+    if market == "TW":
+        command.extend(["--effective-trading-date", effective_date])
+    else:
+        command.extend(["--as-of", reference.isoformat()])
+    completed = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=600, check=False)
+    success = completed.returncode == 0
+    audit = {
+        "schema_version": "manual_rerun_runtime_bridge_audit_v2",
+        "task_id": "AI-DEV-179",
+        "job_id": response.get("job_id"),
+        "requested_window": window,
+        "executed_window": window,
+        "market": market,
+        "effective_trading_date": effective_date,
+        "mode": ALLOWED_MODE,
+        "status": "completed" if success else "failed",
+        "pipeline_status": "completed" if success else "failed",
+        "backend_returncode": completed.returncode,
+        "backend_output_recorded": False,
+        "dashboard_publish_attempted": success,
+        "dashboard_publish_status": "completed" if success else "failed",
+        "archive_write_expected": success,
+        "manual_revision_metadata": True,
+        "line_attempted": False,
+        "email_attempted": False,
+        "production_pipeline_executed": False,
+        "operator_auth": "verified",
+        "pin_recorded": False,
+        "finished_at": reference.isoformat(),
+        "safety_notes": ["single_window_only", "dashboard_refresh_only", "no_line_email", "no_trading", "existing_latest_effective_date_preserved_for_revision" if selected.latest else "first_snapshot_uses_market_session_date"],
+    }
+    write_audit(audit)
+    return {**response, "accepted": success, "status": audit["status"], "effective_trading_date": effective_date, "archive_write_expected": success, "line_attempted": False, "email_attempted": False}
 
 
 def status_payload(job_id: str | None = None) -> dict[str, Any]:

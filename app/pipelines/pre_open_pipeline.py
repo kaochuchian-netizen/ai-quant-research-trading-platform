@@ -88,7 +88,7 @@ def send_reports_in_batches(reports, batch_size=LINE_BATCH_SIZE, dry_run=False):
 
         print("LINE link-only reminder prepared; per-stock details are available on Dashboard only")
 
-        if dry_run:
+        if dry_run or os.environ.get("STOCK_AI_SUPPRESS_NOTIFICATIONS") == "1":
             print("dry-run 模式：略過 LINE 推播，短提醒內容如下")
             print(message)
             break

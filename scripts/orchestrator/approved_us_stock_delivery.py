@@ -30,6 +30,7 @@ from app.us_stock.constants import US_BATCH_WINDOWS
 from app.us_stock.live_pipeline import build_live_runtime_artifact
 from app.dashboard.dashboard_url_registry import get_us_dashboard_url, normalize_delivery_dashboard_url
 from app.dashboard.decision_presentation import decision_email_block_v2, decision_line_summary_v2, decision_presentation_v2
+from app.dashboard.window_snapshot_archive import write_snapshot
 from app.reports.window_report_contract import get_window_report_contract
 from app.us_stock.watchlist import normalize_us_watchlist_rows
 from scripts.orchestrator.notify_stage_report import build_message, load_env_file, load_mail_config, send_message
@@ -46,6 +47,7 @@ US_STATUS_PATH = US_RUNTIME_DIR / "delivery_status_latest.json"
 STATIC_DASHBOARD_PATH = Path("/var/www/stock-ai-dashboard/dashboard/us/index.html")
 MAIL_ENV_FILE = Path("~/.config/stock-ai-orchestrator/mail.env")
 LOCK_PATH = Path("/tmp/stock_ai_us_stock_batch.lock")
+WINDOW_SNAPSHOT_ARCHIVE = REPO_ROOT / "artifacts/archive/window_snapshots"
 
 WINDOW_OUTPUTS = {
     "us_pre_market_2000": US_RUNTIME_DIR / "us_pre_market_2000_latest.json",
@@ -339,6 +341,7 @@ def release_lock() -> None:
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
     started = now_taipei()
+    batch_reference = datetime.fromisoformat(args.as_of).astimezone(TAIPEI) if args.as_of else started
     production_approved = bool(args.production_approved and not args.dry_run)
     production_artifact = bool(args.production_artifact and not args.production_approved)
     if args.window not in WINDOWS:
@@ -346,13 +349,28 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if not acquire_lock():
         return {"ok": False, "status": "lock_busy", "window": args.window, "line_attempted": False, "email_attempted": False}
     try:
-        artifact = build_runtime_artifact(args.window, dry_run=not production_approved, reference=started, live_data=args.live_data, production_artifact=production_artifact)
+        artifact = build_runtime_artifact(args.window, dry_run=not production_approved, reference=batch_reference, live_data=args.live_data, production_artifact=production_artifact)
         artifact["generated_at"] = started.isoformat()
         out_path = WINDOW_OUTPUTS[args.window]
         write_json(out_path, artifact)
         legacy_path = LEGACY_WINDOW_OUTPUTS.get(args.window)
         if legacy_path and legacy_path != out_path:
             write_json(legacy_path, artifact)
+        archive_result = {"written": False, "reason": "dry_run_or_fixture_not_admitted"}
+        if production_approved or production_artifact:
+            archive_result = write_snapshot(
+                WINDOW_SNAPSHOT_ARCHIVE,
+                market="US",
+                window=args.window,
+                effective_trading_date=batch_reference.astimezone(NEW_YORK).date().isoformat(),
+                generated_at=started.isoformat(),
+                source_payload=artifact,
+                status="completed",
+                run_kind="manual_rerun" if args.manual_rerun else "scheduled",
+                run_id=f"us-{args.window}-{started.strftime('%Y%m%d-%H%M%S')}",
+                source_artifact_path=str(out_path),
+                rebuild_routes=args.manual_rerun,
+            )
         dashboard_result = publish_dashboard(artifact) if production_approved or args.publish_dashboard else {"attempted": False, "succeeded": False, "reason": "dry_run_no_publish"}
         idem = idempotency_path(args.window, started)
         delivery_skipped_duplicate = production_approved and idem.exists()
@@ -391,12 +409,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "idempotency_key": str(idem),
             "duplicate_delivery_suppressed": delivery_skipped_duplicate,
             "dry_run": not production_approved,
+            "archive_write": archive_result,
             "python3_main_executed": False,
             "secret_values_printed": False,
         }
         write_json(STATUS_PATH, status)
         write_json(US_STATUS_PATH, status)
-        return {"ok": True, "status": status, "dashboard": dashboard_result, "email": email_result, "line": line_result, "line_payload_preview": status["line_payload_preview"], "email_payload_preview": status["email_payload_preview"], "dashboard_url": DASHBOARD_URL}
+        return {"ok": True, "status": status, "archive_write": archive_result, "dashboard": dashboard_result, "email": email_result, "line": line_result, "line_payload_preview": status["line_payload_preview"], "email_payload_preview": status["email_payload_preview"], "dashboard_url": DASHBOARD_URL}
     except Exception as exc:
         error = {"ok": False, "status": "failed", "window": args.window, "error_type": type(exc).__name__, "error_message": str(exc)[:240], "line_attempted": False, "email_attempted": False, "trading_or_order_executed": False, "production_pipeline_executed": False}
         write_json(STATUS_PATH, error)
@@ -416,6 +435,7 @@ def main() -> int:
     parser.add_argument("--publish-dashboard", action="store_true")
     parser.add_argument("--pretty", action="store_true")
     parser.add_argument("--as-of")
+    parser.add_argument("--manual-rerun", action="store_true")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     result = run(args)

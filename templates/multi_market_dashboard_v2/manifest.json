@@ -1,5 +1,22 @@
 {
-  "generated_at": "2026-07-14T16:51:43+08:00",
+  "archive_route_count": 14,
+  "archive_routes": {
+    "TW:intraday_1305:latest": "/home/kaochuchian/stock-ai/templates/multi_market_dashboard_v2/dashboard/archive/tw/intraday_1305/latest/index.html",
+    "TW:intraday_1305:previous": "/home/kaochuchian/stock-ai/templates/multi_market_dashboard_v2/dashboard/archive/tw/intraday_1305/previous/index.html",
+    "TW:post_close_1500:latest": "/home/kaochuchian/stock-ai/templates/multi_market_dashboard_v2/dashboard/archive/tw/post_close_1500/latest/index.html",
+    "TW:post_close_1500:previous": "/home/kaochuchian/stock-ai/templates/multi_market_dashboard_v2/dashboard/archive/tw/post_close_1500/previous/index.html",
+    "TW:pre_close_1335:latest": "/home/kaochuchian/stock-ai/templates/multi_market_dashboard_v2/dashboard/archive/tw/pre_close_1335/latest/index.html",
+    "TW:pre_close_1335:previous": "/home/kaochuchian/stock-ai/templates/multi_market_dashboard_v2/dashboard/archive/tw/pre_close_1335/previous/index.html",
+    "TW:pre_open_0700:latest": "/home/kaochuchian/stock-ai/templates/multi_market_dashboard_v2/dashboard/archive/tw/pre_open_0700/latest/index.html",
+    "TW:pre_open_0700:previous": "/home/kaochuchian/stock-ai/templates/multi_market_dashboard_v2/dashboard/archive/tw/pre_open_0700/previous/index.html",
+    "US:us_intraday_2300:latest": "/home/kaochuchian/stock-ai/templates/multi_market_dashboard_v2/dashboard/archive/us/us_intraday_2300/latest/index.html",
+    "US:us_intraday_2300:previous": "/home/kaochuchian/stock-ai/templates/multi_market_dashboard_v2/dashboard/archive/us/us_intraday_2300/previous/index.html",
+    "US:us_post_close_review_0630:latest": "/home/kaochuchian/stock-ai/templates/multi_market_dashboard_v2/dashboard/archive/us/us_post_close_review_0630/latest/index.html",
+    "US:us_post_close_review_0630:previous": "/home/kaochuchian/stock-ai/templates/multi_market_dashboard_v2/dashboard/archive/us/us_post_close_review_0630/previous/index.html",
+    "US:us_pre_market_2000:latest": "/home/kaochuchian/stock-ai/templates/multi_market_dashboard_v2/dashboard/archive/us/us_pre_market_2000/latest/index.html",
+    "US:us_pre_market_2000:previous": "/home/kaochuchian/stock-ai/templates/multi_market_dashboard_v2/dashboard/archive/us/us_pre_market_2000/previous/index.html"
+  },
+  "generated_at": "2026-07-14T18:56:40+08:00",
   "landing_url": "http://35.201.242.167/stock-ai-dashboard/index.html",
   "market_isolation": {
     "cross_market_fallback": false,
@@ -14,7 +31,7 @@
     "us": "/home/kaochuchian/stock-ai/templates/multi_market_dashboard_v2/us_index.html"
   },
   "schema_version": "multi_market_dashboard_v2_build_v1",
-  "task_id": "AI-DEV-170",
+  "task_id": "AI-DEV-179",
   "tw_url": "http://35.201.242.167/stock-ai-dashboard/dashboard/tw/index.html",
   "us_stock_count": 6,
   "us_url": "http://35.201.242.167/stock-ai-dashboard/dashboard/us/index.html"

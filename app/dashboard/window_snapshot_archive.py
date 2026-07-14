@@ -1,0 +1,185 @@
+"""Immutable window snapshot archive schema and resolver."""
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+from dataclasses import dataclass
+from datetime import date
+from pathlib import Path
+from typing import Any
+
+SCHEMA_VERSION = "window_snapshot_archive_v1"
+MARKET_WINDOWS = {
+    "TW": ("pre_open_0700", "intraday_1305", "pre_close_1335", "post_close_1500"),
+    "US": ("us_pre_market_2000", "us_intraday_2300", "us_post_close_review_0630"),
+}
+REJECTED_RUN_KINDS = {"fixture", "validator", "test", "failed", "incomplete"}
+
+
+@dataclass(frozen=True)
+class SnapshotSelection:
+    market: str
+    window: str
+    latest: dict[str, Any] | None
+    previous: dict[str, Any] | None
+
+
+def canonical_snapshot(payload: dict[str, Any]) -> dict[str, Any]:
+    """Return the immutable renderer payload, detached from mutable runtime files."""
+    return json.loads(json.dumps(payload, ensure_ascii=False, sort_keys=True))
+
+
+def snapshot_id(payload: dict[str, Any]) -> str:
+    raw = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def admission_errors(payload: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    market = payload.get("market")
+    window = payload.get("window") or payload.get("scheduler_window")
+    trading_date = payload.get("effective_trading_date")
+    if payload.get("schema_version") != SCHEMA_VERSION:
+        errors.append("schema_version")
+    if market not in MARKET_WINDOWS:
+        errors.append("market")
+    elif window not in MARKET_WINDOWS[market]:
+        errors.append("window")
+    try:
+        date.fromisoformat(str(trading_date))
+    except ValueError:
+        errors.append("effective_trading_date")
+    if payload.get("status") not in {"complete", "success"}:
+        errors.append("status")
+    if payload.get("run_kind") in REJECTED_RUN_KINDS or payload.get("is_fixture") is True:
+        errors.append("run_kind")
+    if not isinstance(payload.get("payload"), dict):
+        errors.append("payload")
+    if not payload.get("generated_at"):
+        errors.append("generated_at")
+    return errors
+
+
+def load_admitted_snapshots(archive_root: Path) -> list[dict[str, Any]]:
+    admitted: list[dict[str, Any]] = []
+    if not archive_root.exists():
+        return admitted
+    for path in sorted(archive_root.rglob("*.json")):
+        try:
+            item = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(item, dict) or admission_errors(item):
+            continue
+        item = canonical_snapshot(item)
+        item["snapshot_id"] = item.get("snapshot_id") or snapshot_id(item)
+        item["archive_path"] = str(path)
+        admitted.append(item)
+    return admitted
+
+
+def resolve_snapshots(archive_root: Path, market: str, window: str) -> SnapshotSelection:
+    candidates = [
+        item for item in load_admitted_snapshots(archive_root)
+        if item.get("market") == market and (item.get("window") or item.get("scheduler_window")) == window
+    ]
+    by_date: dict[str, dict[str, Any]] = {}
+    for item in candidates:
+        trading_date = str(item["effective_trading_date"])
+        rank = (int(item.get("revision") or 0), str(item.get("generated_at") or ""), str(item["snapshot_id"]))
+        current = by_date.get(trading_date)
+        current_rank = (-1, "", "") if current is None else (
+            int(current.get("revision") or 0), str(current.get("generated_at") or ""), str(current["snapshot_id"])
+        )
+        if rank > current_rank:
+            by_date[trading_date] = item
+    dates = sorted(by_date, reverse=True)
+    return SnapshotSelection(
+        market=market,
+        window=window,
+        latest=by_date[dates[0]] if dates else None,
+        previous=by_date[dates[1]] if len(dates) > 1 else None,
+    )
+
+
+def same_window_change(current: dict[str, Any] | None, previous: dict[str, Any] | None) -> dict[str, Any]:
+    if not current or not previous:
+        return {"available": False, "empty_state": "尚無同市場、同時段、不同有效交易日的 previous snapshot。", "changes": []}
+    left = current.get("payload", {})
+    right = previous.get("payload", {})
+    keys = sorted(set(left) | set(right))
+    changes = [{"field": key, "previous": right.get(key), "current": left.get(key)} for key in keys if left.get(key) != right.get(key)]
+    return {"available": True, "previous_trading_date": previous["effective_trading_date"], "current_trading_date": current["effective_trading_date"], "changes": changes}
+
+
+def _source_is_admissible(source: dict[str, Any], status: str) -> bool:
+    rejected_flags = ("fixture", "is_fixture", "validation_only", "validator", "incomplete")
+    mode = " ".join(str(source.get(key) or "") for key in ("artifact_type", "artifact_mode", "runtime_mode", "data_source_mode", "run_kind")).lower()
+    return (
+        status in {"complete", "completed", "success"}
+        and not any(source.get(key) is True for key in rejected_flags)
+        and not any(token in mode for token in REJECTED_RUN_KINDS)
+    )
+
+
+def write_snapshot(
+    archive_root: Path,
+    *,
+    market: str,
+    window: str,
+    effective_trading_date: str,
+    generated_at: str,
+    source_payload: dict[str, Any],
+    status: str,
+    run_kind: str = "scheduled",
+    run_id: str | None = None,
+    source_artifact_path: str | None = None,
+    rebuild_routes: bool = False,
+) -> dict[str, Any]:
+    """Admit and atomically write one immutable snapshot; never infers batch date from wall clock."""
+    canonical_window = "post_close_1500" if market == "TW" and window == "prediction_review_1500" else window
+    if market not in MARKET_WINDOWS or canonical_window not in MARKET_WINDOWS[market]:
+        return {"written": False, "reason": "unsupported_market_window"}
+    try:
+        date.fromisoformat(effective_trading_date)
+    except ValueError:
+        return {"written": False, "reason": "invalid_effective_trading_date"}
+    if run_kind not in {"scheduled", "manual_rerun", "backfill"}:
+        return {"written": False, "reason": "rejected_run_kind"}
+    if not _source_is_admissible(source_payload, status):
+        return {"written": False, "reason": "source_not_admissible"}
+    existing = [
+        item for item in load_admitted_snapshots(archive_root)
+        if item.get("market") == market
+        and (item.get("window") or item.get("scheduler_window")) == canonical_window
+        and item.get("effective_trading_date") == effective_trading_date
+    ]
+    revision = max([int(item.get("revision") or 0) for item in existing] or [-1]) + 1
+    snapshot = {
+        "schema_version": SCHEMA_VERSION,
+        "market": market,
+        "window": canonical_window,
+        "effective_trading_date": effective_trading_date,
+        "generated_at": generated_at,
+        "revision": revision,
+        "status": "complete",
+        "run_kind": run_kind,
+        "run_id": run_id,
+        "source_artifact_path": source_artifact_path,
+        "effective_batch_time_policy": "explicit_batch_reference_not_write_time",
+        "payload": canonical_snapshot(source_payload),
+    }
+    snapshot["snapshot_id"] = snapshot_id(snapshot)
+    errors = admission_errors(snapshot)
+    if errors:
+        return {"written": False, "reason": "admission_failed", "errors": errors}
+    target = archive_root / market.lower() / canonical_window / effective_trading_date / f"revision-{revision:04d}.json"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    temporary = target.with_suffix(f".tmp-{os.getpid()}")
+    temporary.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    temporary.replace(target)
+    if rebuild_routes:
+        from app.dashboard.multi_market_dashboard import build_pages
+        build_pages()
+    return {"written": True, "path": str(target), "snapshot_id": snapshot["snapshot_id"], "revision": revision, "market": market, "window": canonical_window, "effective_trading_date": effective_trading_date, "routes_rebuilt": rebuild_routes}
