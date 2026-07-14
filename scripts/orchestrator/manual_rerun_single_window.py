@@ -15,9 +15,12 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 from app.reports.window_report_contract import manual_batch_contracts
 
-ROOT = Path(__file__).resolve().parents[2]
 MANUAL_DIR = ROOT / "artifacts/runtime/manual_rerun"
 STATUS_LATEST = MANUAL_DIR / "manual_rerun_status_latest.json"
 AUDIT_LATEST = MANUAL_DIR / "manual_rerun_latest.json"

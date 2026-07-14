@@ -233,19 +233,52 @@ def _count_high_risk(cards: list[dict[str, Any]]) -> int:
             total += 1
     return total
 
+
+def _compact_us_email_block(card: dict[str, Any], window: str) -> str:
+    presentation = decision_presentation_v2("US", card)
+    symbol = str(card.get("symbol") or "")
+    name = str(card.get("name") or "")
+    tactical = presentation.get("daily_tactical", {})
+    prediction = presentation.get("prediction", {})
+    reasons = presentation.get("reasons") if isinstance(presentation.get("reasons"), list) else []
+    risks = presentation.get("risks") if isinstance(presentation.get("risks"), list) else []
+    reason = str(reasons[0]) if reasons else "等待量價與資料確認"
+    risk = str(risks[0]) if risks else "未偵測到額外風險"
+    if window == "us_intraday_2300":
+        return "\n".join([
+            f"{symbol} {name}",
+            f"開盤後變化：{tactical.get('direction')} / {tactical.get('setup')}",
+            f"Entry trigger：{tactical.get('entry_zone')}",
+            f"Target / Stop proximity：{tactical.get('target_1')} / {tactical.get('stop')}",
+            f"Tactical adjustment：{tactical.get('action')}",
+            f"Volume / gap 確認：{reason}",
+            f"盤中風險：{risk}",
+        ])
+    if window == "us_post_close_review_0630":
+        return "\n".join([
+            f"{symbol} {name}",
+            f"Prediction review：{prediction.get('today_range')}",
+            "Entry / Stop / Target outcome：本次檢討尚待實際結果",
+            "Win / Loss / Not Triggered：本次檢討尚待實際結果",
+            "MFE / MAE：本次檢討尚待實際結果",
+            f"Overnight event update：{risk}",
+            f"Next-session watchlist：{reason}",
+        ])
+    return decision_email_block_v2(presentation)
+
 def build_email_body(artifact: dict[str, Any], window: str) -> str:
     contract = get_window_report_contract("US", window)
     date = artifact.get("generated_at", "")[:10]
     cards = [card for card in artifact.get("dashboard_ready_contract", {}).get("cards", []) if isinstance(card, dict)]
-    lines = [f"{contract.title} {date}", "", f"Dashboard: {contract.dashboard_url}", "", contract.primary_question, "", "Window-specific sections:"]
+    lines = [f"{contract.title} {date}", "", f"Dashboard: {contract.dashboard_url}", "", contract.primary_question, "", "本批次內容："]
     for section in contract.email_sections:
         lines.append(f"- {section}")
-    lines.extend(["", "批次摘要：", f"- Window: {window}", f"- Enabled stocks: {artifact.get('runtime_watchlist_validation', {}).get('enabled_stock_count')}", f"- 高風險數量: {_count_high_risk(cards)}", "- LINE: window-specific short summary；Email: scoped report；Dashboard: full visual state。", ""])
-    lines.append("個股研究摘要：")
+    lines.extend(["", "批次摘要：", f"- Window: {window}", f"- Enabled stocks: {artifact.get('runtime_watchlist_validation', {}).get('enabled_stock_count')}", f"- 高風險數量: {_count_high_risk(cards)}", "- LINE 僅短提醒；Email 僅呈現本批次需要的內容；完整狀態請看 Dashboard。", ""])
+    lines.append("個股摘要：")
     for card in cards:
-        lines.append(decision_email_block_v2(decision_presentation_v2("US", card)))
+        lines.append(_compact_us_email_block(card, window))
         news = card.get('bilingual_news_snippet', {}) if isinstance(card.get('bilingual_news_snippet'), dict) else {}
-        if news.get('chinese_translation'):
+        if window == "us_pre_market_2000" and news.get('chinese_translation'):
             lines.append(f"News：{news.get('chinese_translation')}")
         lines.append("")
     if window == "us_post_close_review_0630":
