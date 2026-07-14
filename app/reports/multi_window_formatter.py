@@ -59,9 +59,7 @@ def contract_sections(context: ReportWindowContext) -> list[dict[str, str]]:
     contract = get_window_report_contract("TW", context.scheduler_window)
     rows = [{"heading": contract.title, "body": contract.primary_question}]
     for section in contract.email_sections:
-        rows.append({"heading": section, "body": f"{contract.title} scope：{section}。此批次不重播其他時段完整報告。"})
-    if contract.suppressed_sections:
-        rows.append({"heading": "本批次弱化 / 收合", "body": "、".join(contract.suppressed_sections)})
+        rows.append({"heading": section, "body": f"{contract.title} 本段聚焦 {section}，不重播其他時段完整報告。"})
     return rows
 
 def strategy_v2_sections(context: ReportWindowContext) -> list[dict[str, str]]:
