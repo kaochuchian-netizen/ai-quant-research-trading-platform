@@ -34,7 +34,7 @@ def main() -> int:
             put("TW","intraday_1305","2026-07-13","incomplete", incomplete=True),
         ]
         tw15=resolve_snapshots(root,"TW","post_close_1500")
-        checks["tw15_latest_revision"] = bool(tw15.latest and tw15.latest["payload"]["marker"]=="tw15-revision" and tw15.latest["revision"]==1)
+        checks["tw15_latest_revision"] = bool(tw15.latest and tw15.latest["payload"]["marker"]=="tw15-revision" and tw15.latest["revision"]==2)
         checks["tw15_previous_distinct_date"] = bool(tw15.previous and tw15.previous["effective_trading_date"]=="2026-07-10")
         checks["tw15_not_1335"] = bool(tw15.latest and tw15.latest["payload"]["marker"]!="tw1335-new")
         tw1335=resolve_snapshots(root,"TW","pre_close_1335")
