@@ -103,6 +103,16 @@ def resolve_snapshots(archive_root: Path, market: str, window: str) -> SnapshotS
     )
 
 
+def revisions_for_snapshot(archive_root: Path, market: str, window: str, effective_trading_date: str) -> list[dict[str, Any]]:
+    return sorted(
+        [item for item in load_admitted_snapshots(archive_root)
+         if item.get("market") == market
+         and (item.get("window") or item.get("scheduler_window")) == window
+         and item.get("effective_trading_date") == effective_trading_date],
+        key=lambda item: (int(item.get("revision") or 0), str(item.get("revision_created_at") or item.get("generated_at") or "")),
+    )
+
+
 def same_window_change(current: dict[str, Any] | None, previous: dict[str, Any] | None) -> dict[str, Any]:
     if not current or not previous:
         return {"available": False, "empty_state": "尚無同市場、同時段、不同有效交易日的 previous snapshot。", "changes": []}
@@ -155,7 +165,11 @@ def write_snapshot(
         and (item.get("window") or item.get("scheduler_window")) == canonical_window
         and item.get("effective_trading_date") == effective_trading_date
     ]
-    revision = max([int(item.get("revision") or 0) for item in existing] or [-1]) + 1
+    revision = max([int(item.get("revision") or 0) for item in existing] or [0]) + 1
+    original_batch_time = min(
+        [str(item.get("original_batch_time") or item.get("generated_at")) for item in existing if item.get("original_batch_time") or item.get("generated_at")]
+        or [generated_at]
+    )
     snapshot = {
         "schema_version": SCHEMA_VERSION,
         "market": market,
@@ -163,6 +177,11 @@ def write_snapshot(
         "effective_trading_date": effective_trading_date,
         "generated_at": generated_at,
         "revision": revision,
+        "manual_rerun": run_kind == "manual_rerun",
+        "batch_window": canonical_window,
+        "revision_created_at": generated_at,
+        "original_batch_time": original_batch_time,
+        "is_latest_revision": True,
         "status": "complete",
         "run_kind": run_kind,
         "run_id": run_id,
@@ -180,6 +199,6 @@ def write_snapshot(
     temporary.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     temporary.replace(target)
     if rebuild_routes:
-        from app.dashboard.multi_market_dashboard import build_pages
-        build_pages()
+        from app.dashboard.multi_market_dashboard import publish_archive_latest_route
+        publish_archive_latest_route(market, canonical_window)
     return {"written": True, "path": str(target), "snapshot_id": snapshot["snapshot_id"], "revision": revision, "market": market, "window": canonical_window, "effective_trading_date": effective_trading_date, "routes_rebuilt": rebuild_routes}

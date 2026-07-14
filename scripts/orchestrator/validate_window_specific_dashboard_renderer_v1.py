@@ -12,7 +12,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from app.dashboard.multi_market_dashboard import OUTPUT_DIR, build_pages
+from app.dashboard.multi_market_dashboard import render_landing_page, render_tw_page, render_us_page
 from app.reports.multi_window_formatter import format_window_report, line_notification_text
 from app.reports.window_context import get_window_context
 from scripts.orchestrator.approved_us_stock_delivery import build_email_body, line_text
@@ -81,6 +81,8 @@ def contains_any(text: str, tokens: list[str]) -> list[str]:
 
 def fixture_us_artifact(window: str) -> dict[str, Any]:
     return {
+        "market": "US",
+        "window": window,
         "generated_at": "2026-07-14T00:00:00+08:00",
         "runtime_watchlist_validation": {"enabled_stock_count": 1},
         "dashboard_ready_contract": {
@@ -110,10 +112,9 @@ def fixture_us_artifact(window: str) -> dict[str, Any]:
 
 
 def validate_html() -> tuple[list[str], dict[str, Any]]:
-    build_pages()
-    tw_html = read(OUTPUT_DIR / "tw_index.html")
-    us_html = read(OUTPUT_DIR / "us_index.html")
-    landing_html = read(OUTPUT_DIR / "index.html")
+    tw_html = render_tw_page()
+    us_html = render_us_page([fixture_us_artifact(window) for window in ("us_pre_market_2000", "us_intraday_2300", "us_post_close_review_0630")])
+    landing_html = render_landing_page()
     errors: list[str] = []
     debug_hits = {
         "landing": contains_any(landing_html, DEBUG_TOKENS),

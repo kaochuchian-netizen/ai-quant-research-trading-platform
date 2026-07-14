@@ -33,7 +33,7 @@ from app.dashboard.decision_presentation import (
     is_no_trade,
     limit_items,
 )
-from app.dashboard.window_snapshot_archive import MARKET_WINDOWS, resolve_snapshots, same_window_change
+from app.dashboard.window_snapshot_archive import MARKET_WINDOWS, resolve_snapshots, revisions_for_snapshot, same_window_change
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PUBLIC_BASE_URL = "http://35.201.242.167/stock-ai-dashboard"
@@ -745,10 +745,30 @@ def shared_market_navigation(active_market: str, title: str, subtitle: str) -> s
     return f"""<div class="wrap section market-shared-navigation market-shared-navigation--v1" data-shared-navigation="tw-us" data-active-market="{active}"><h1>{html.escape(title)}</h1><nav class="market-shared-navigation__grid market-shared-navigation__grid--responsive" aria-label="Market Dashboard Navigation"><a class="market-shared-navigation__button" href="/stock-ai-dashboard/index.html">回到總覽</a><a class="market-shared-navigation__button" href="/stock-ai-dashboard/dashboard/tw/index.html"{current_tw}>台股 Dashboard</a><a class="market-shared-navigation__button" href="/stock-ai-dashboard/dashboard/us/index.html"{current_us}>美股 Dashboard</a></nav><p class="market-shared-navigation__subtitle">{html.escape(subtitle)}</p></div>"""
 
 def render_landing_page() -> str:
-    archive_buttons = "".join(
-        f'<a class="market-shared-navigation__button archive-browser-button" data-market="{market}" data-window="{window}" data-selection="{selection}" href="/stock-ai-dashboard/dashboard/archive/{market.lower()}/{window}/{selection}/index.html">{market}｜{window}｜{selection}</a>'
-        for market, windows in MARKET_WINDOWS.items() for window in windows for selection in ("latest", "previous")
-    )
+    archive_buttons = []
+    health_rows = []
+    for market, windows in MARKET_WINDOWS.items():
+        for window in windows:
+            selected = resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, market, window)
+            latest = selected.latest
+            previous = selected.previous
+            latest_date = str(latest.get("effective_trading_date")) if latest else "尚無資料"
+            revision = int(latest.get("revision") or 1) if latest else 0
+            updated = str(latest.get("revision_created_at") or latest.get("generated_at") or "") if latest else ""
+            updated_time = updated[11:16] if len(updated) >= 16 else ""
+            latest_meta = latest_date
+            if revision > 1:
+                latest_meta += f"｜Revision {revision}"
+            if updated_time:
+                latest_meta += f"｜最後更新 {updated_time}"
+            previous_meta = str(previous.get("effective_trading_date")) if previous else "尚無上一有效交易日"
+            archive_buttons.extend([
+                f'<a class="market-shared-navigation__button archive-browser-button" data-market="{market}" data-window="{window}" data-selection="latest" href="/stock-ai-dashboard/dashboard/archive/{market.lower()}/{window}/latest/index.html">{market}｜{window}｜Latest<br><small>{_escape(latest_meta)}</small></a>',
+                f'<a class="market-shared-navigation__button archive-browser-button" data-market="{market}" data-window="{window}" data-selection="previous" href="/stock-ai-dashboard/dashboard/archive/{market.lower()}/{window}/previous/index.html">{market}｜{window}｜Previous<br><small>{_escape(previous_meta)}</small></a>',
+            ])
+            health_rows.append(f'<tr data-market="{market}" data-window="{window}"><th>{market}｜{_escape(window)}</th><td>{_escape(latest_date)}</td><td>{revision or "—"}</td><td>{_escape(previous_meta)}</td></tr>')
+    archive_buttons_html = "".join(archive_buttons)
+    health_rows_html = "".join(health_rows)
     return f"""<!doctype html>
     <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>AI Multi-Market Decision Intelligence</title><style>{base_css()}</style></head>
     <body><header><div class="wrap"><h1>AI Multi-Market Decision Intelligence</h1><p>台股與美股分流入口；LINE/Email 依市場連到正確 Dashboard。</p></div></header><main class="wrap">
@@ -756,7 +776,8 @@ def render_landing_page() -> str:
       <a class="section market-choice" href="/stock-ai-dashboard/dashboard/tw/index.html"><h2>台股 Dashboard</h2><p>07:00 盤前｜13:05 盤中｜13:35 收盤快照｜15:00 盤後／檢討</p><span class="badge">TW</span></a>
       <a class="section market-choice" href="/stock-ai-dashboard/dashboard/us/index.html"><h2>美股 Dashboard</h2><p>20:00 美股盤前｜23:00 美股盤中｜06:30 美股盤後檢討</p><span class="badge">US</span></a>
     </div>
-    <section class="section" id="snapshot-archive-browser"><h2>Snapshot Archive 瀏覽</h2><p>固定路由只顯示 resolver 選出的 immutable snapshot；previous 必須跨有效交易日。</p><div class="market-shared-navigation__grid">{archive_buttons}</div></section>
+    <section class="section" id="snapshot-archive-browser"><h2>Snapshot Archive 瀏覽</h2><p>Latest 是最新有效交易日最高 revision；Previous 永遠是上一有效交易日最高 revision。</p><div class="market-shared-navigation__grid">{archive_buttons_html}</div></section>
+    <section class="section" id="production-operations-center"><h2>Production Operations Center</h2><table class="decision-table"><thead><tr><th>Market / Window</th><th>Latest</th><th>Revision</th><th>Previous</th></tr></thead><tbody>{health_rows_html}</tbody></table></section>
     {render_manual_control_center()}
     <section class="section"><h2>Runtime 狀態摘要</h2><p>Dashboard 顯示完整內容；Email 顯示 window-specific 摘要；LINE 僅作短提醒與入口。舊四時段網址保留為台股相容入口。</p></section>
     </main></body></html>\n"""
@@ -807,17 +828,14 @@ def build_pages(output_dir: Path = OUTPUT_DIR) -> dict[str, Any]:
     archive_routes: dict[str, str] = {}
     for market, windows in MARKET_WINDOWS.items():
         for window in windows:
-            selection = resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, market, window)
-            comparison = same_window_change(selection.latest, selection.previous)
-            for name, snapshot in (("latest", selection.latest), ("previous", selection.previous)):
+            for name in ("latest", "previous"):
                 route = f"dashboard/archive/{market.lower()}/{window}/{name}/index.html"
                 target = output_dir / route
-                target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_text(stable_html(render_snapshot_archive_page(market, window, name, snapshot, comparison)), encoding="utf-8")
+                build_archive_route(output_dir, market, window, name)
                 archive_routes[f"{market}:{window}:{name}"] = str(target)
     manifest = {
         "schema_version": "multi_market_dashboard_v2_build_v1",
-        "task_id": "AI-DEV-179",
+        "task_id": "AI-DEV-180",
         "generated_at": now_taipei(),
         "landing_url": LANDING_URL,
         "tw_url": TW_URL,
@@ -840,13 +858,41 @@ def render_snapshot_archive_page(market: str, window: str, selection: str, snaps
     else:
         immutable_payload = snapshot["payload"]
         identity = f'data-snapshot-id="{_escape(snapshot.get("snapshot_id"))}" data-effective-trading-date="{_escape(snapshot.get("effective_trading_date"))}"'
-        body = f'<section class="section immutable-snapshot-payload"><h2>Snapshot payload</h2><p>有效交易日：{_escape(snapshot.get("effective_trading_date"))}｜revision：{_escape(snapshot.get("revision", 0))}</p><pre>{html.escape(json.dumps(immutable_payload, ensure_ascii=False, indent=2, sort_keys=True))}</pre></section>'
+        revision = int(snapshot.get("revision") or 1)
+        updated = str(snapshot.get("revision_created_at") or snapshot.get("generated_at") or "")
+        revision_text = f"｜Revision {revision}" if selection == "latest" and revision > 1 else ""
+        updated_text = f"｜最後更新 {updated[11:16]}" if selection == "latest" and len(updated) >= 16 else ""
+        body = f'<section class="section immutable-snapshot-payload"><h2>Snapshot payload</h2><p>有效交易日：{_escape(snapshot.get("effective_trading_date"))}{revision_text}{updated_text}</p><pre>{html.escape(json.dumps(immutable_payload, ensure_ascii=False, indent=2, sort_keys=True))}</pre></section>'
+        if selection == "latest":
+            revisions = revisions_for_snapshot(WINDOW_SNAPSHOT_ARCHIVE, market, window, str(snapshot.get("effective_trading_date")))
+            manual_count = len([item for item in revisions if item.get("manual_rerun") is True or item.get("run_kind") == "manual_rerun"])
+            rows = "".join(f'<tr><th>Revision {int(item.get("revision") or 1)}</th><td>{_escape(str(item.get("revision_created_at") or item.get("generated_at") or "")[11:16])}</td><td>{"Manual" if item.get("manual_rerun") is True or item.get("run_kind") == "manual_rerun" else "正式批次"}</td></tr>' for item in revisions)
+            body += f'<section class="section revision-history"><h2>本交易日 Revision History</h2><p>共手動更新 {manual_count} 次</p><table class="decision-table"><tbody>{rows}</tbody></table></section>'
     if comparison.get("available"):
         rows = "".join(f'<tr><th>{_escape(item["field"])}</th><td>{_escape(item["previous"])}</td><td>{_escape(item["current"])}</td></tr>' for item in comparison["changes"])
         change = f'<section class="section same-window-change"><h2>同時段跨交易日變化</h2><table class="decision-table"><tbody>{rows or "<tr><td>內容無變化</td></tr>"}</tbody></table></section>'
     else:
         change = f'<section class="section same-window-change archive-empty-state"><h2>同時段跨交易日變化</h2><p>{_escape(comparison.get("empty_state"))}</p></section>'
     return f'<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{_escape(market)} {_escape(window)} {_escape(selection)}</title><style>{base_css()}</style></head><body {identity}><header>{shared_market_navigation(market, f"{market} Snapshot Archive", f"{window}｜{selection}")}</header><main class="wrap">{body}{change}</main></body></html>\n'
+
+
+def build_archive_route(output_dir: Path, market: str, window: str, selection_name: str) -> Path:
+    selected = resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, market, window)
+    snapshot = selected.latest if selection_name == "latest" else selected.previous
+    comparison = same_window_change(selected.latest, selected.previous)
+    target = output_dir / f"dashboard/archive/{market.lower()}/{window}/{selection_name}/index.html"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(stable_html(render_snapshot_archive_page(market, window, selection_name, snapshot, comparison)), encoding="utf-8")
+    return target
+
+
+def publish_archive_latest_route(market: str, window: str, static_root: Path = STATIC_ROOT, output_dir: Path = Path("/tmp/stock-ai-dashboard-archive-latest")) -> dict[str, Any]:
+    """Manual rerun contract: rebuild and publish this window's latest route only."""
+    source = build_archive_route(output_dir, market, window, "latest")
+    target = static_root / f"dashboard/archive/{market.lower()}/{window}/latest/index.html"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source, target)
+    return {"published": True, "selection": "latest", "market": market, "window": window, "source": str(source), "target": str(target), "previous_updated": False, "other_windows_updated": False, "notification_sent": False, "production_pipeline_executed": False}
 
 def publish_pages(static_root: Path = STATIC_ROOT, source_dir: Path = OUTPUT_DIR) -> dict[str, Any]:
     manifest = build_pages(source_dir)
