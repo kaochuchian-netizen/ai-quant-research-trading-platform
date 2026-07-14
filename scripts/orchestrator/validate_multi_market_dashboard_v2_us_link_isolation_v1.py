@@ -125,7 +125,7 @@ def build_validation(require_public: bool) -> dict[str, Any]:
             "public_tw_markers_present": "台股 AI 決策儀表板" in public_tw,
             "public_tw_shared_navigation_present": all(m in public_tw for m in ["回到總覽", "台股 Dashboard", "美股 Dashboard", 'data-shared-navigation="tw-us"']),
             "public_us_shared_navigation_present": all(m in public_us for m in ["回到總覽", "台股 Dashboard", "美股 Dashboard", 'data-shared-navigation="tw-us"']),
-            "public_us_stock_count_visible": "US enabled stock count" in public_us,
+            "public_us_stock_count_visible": "US enabled stock count" in public_us or "啟用股票數" in public_us,
         })
         for key, ok in public_route_checks.items():
             if key != "checked" and ok is not True:
