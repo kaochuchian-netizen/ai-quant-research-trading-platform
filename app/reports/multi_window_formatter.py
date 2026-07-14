@@ -36,7 +36,7 @@ def _tw_tactical_email_body() -> str:
     presentations = _tw_presentations()
     if not presentations:
         return "TW Daily Tactical runtime artifact 尚未產生；不會用 Research 或 US 資料 fallback。"
-    lines = ["Decision Presentation V2", "", "Research / Daily Tactical / Prediction"]
+    lines = ["Decision Presentation V3", "", "Research / Daily Tactical / Prediction"]
     for item in presentations[:9]:
         lines.extend(["", decision_email_block_v2(item)])
     return "\n".join(lines)
