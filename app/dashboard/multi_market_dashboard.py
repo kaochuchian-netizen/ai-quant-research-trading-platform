@@ -62,7 +62,7 @@ US_WINDOWS = {
 
 SHARED_NAVIGATION_CSS = """.market-shared-navigation{background:white;color:#17262c}.market-shared-navigation__grid{display:grid;grid-template-columns:1fr;gap:12px;margin:14px 0 10px}.market-shared-navigation__button{display:block;width:100%;box-sizing:border-box;background:#fff;color:#0f2c33;text-decoration:none;border:1px solid #cbd8dc;border-radius:8px;padding:13px 14px;font-weight:800;text-align:left;box-shadow:0 1px 0 rgba(15,44,51,.04)}.market-shared-navigation__button[aria-current="page"]{border-color:#83aab4;background:#f4fbfd}.market-shared-navigation__subtitle{margin:10px 0 0;color:#51666d}@media(max-width:640px){.market-shared-navigation__grid{gap:10px}.market-shared-navigation__button{padding:14px 13px}}"""
 
-TW_TACTICAL_CSS = """html,body{max-width:100%;overflow-x:hidden}.wrap,.section{box-sizing:border-box;max-width:100%;overflow-wrap:anywhere}.decision-grid{display:grid;width:100%;max-width:100%;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}.decision-card{min-width:0;overflow-wrap:anywhere;word-break:break-word}.decision-card__head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}.decision-card__market{font-size:12px;font-weight:800;color:#51666d}.decision-badge{display:inline-block;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:800;background:#eef6f7;color:#234c55}.decision-badge--warn{background:#fff2d4;color:#7a4d00}.decision-badge--ok{background:#e9f7ed;color:#1f6b35}.decision-section{border-top:1px solid #e5eef0;margin-top:12px;padding-top:12px}.decision-section h4{margin:0 0 8px;font-size:15px}.decision-summary-v2{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.decision-summary-card{background:#f7fafb;border:1px solid #dce8eb;border-radius:8px;padding:11px;min-width:0}.decision-summary-card__label{font-size:12px;font-weight:900;color:#51666d}.decision-summary-card__value{font-size:17px;font-weight:900;color:#14333a;overflow-wrap:anywhere}.decision-summary-card__sub{font-size:13px;color:#51666d;overflow-wrap:anywhere}.decision-plan{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.decision-metric{background:#f7fafb;border:1px solid #dce8eb;border-radius:8px;padding:10px;min-width:0}.decision-metric dt{font-size:12px}.decision-metric dd{font-size:15px;font-weight:800;color:#14333a}.decision-list{margin:0;padding-left:18px}.decision-list li{margin:5px 0}.decision-details{margin-top:12px;border:1px solid #dce8eb;border-radius:8px;background:#fbfdfe}.decision-details summary{cursor:pointer;list-style:none;padding:12px 13px;font-weight:900;min-height:24px}.decision-details summary::-webkit-details-marker{display:none}.decision-details__body{padding:0 13px 13px}.decision-table{width:100%;border-collapse:collapse;table-layout:fixed}.decision-table th,.decision-table td{border-top:1px solid #e5eef0;text-align:left;padding:8px;vertical-align:top;overflow-wrap:anywhere}.decision-table th{color:#51666d;width:45%;font-size:13px}.decision-note{color:#51666d}.decision-compact{display:grid;gap:8px}.decision-status-low{color:#8a4b00}.decision-status-good{color:#1f6b35}@media(max-width:640px){.decision-grid{grid-template-columns:1fr!important}.decision-summary-v2{grid-template-columns:1fr}.decision-card{width:100%;box-sizing:border-box}.decision-plan{grid-template-columns:1fr}.decision-details summary{padding:14px 13px}.decision-table th,.decision-table td{display:block;width:100%;box-sizing:border-box}.decision-table td{border-top:0;padding-top:0}}"""
+TW_TACTICAL_CSS = """html,body{max-width:100%;overflow-x:hidden}.wrap,.section{box-sizing:border-box;max-width:100%;overflow-wrap:anywhere}.wrap,main.wrap{padding-left:max(18px,env(safe-area-inset-left));padding-right:max(18px,env(safe-area-inset-right))}.decision-grid{display:grid;width:100%;max-width:100%;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}.decision-card{min-width:0;overflow-wrap:anywhere;word-break:break-word;padding:16px;border-radius:12px}.decision-card__head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}.decision-card__market{font-size:12px;font-weight:800;color:#51666d}.decision-badge{display:inline-block;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:800;background:#eef6f7;color:#234c55}.decision-badge--warn{background:#fff2d4;color:#7a4d00}.decision-badge--ok{background:#e9f7ed;color:#1f6b35}.decision-section{border-top:1px solid #e5eef0;margin-top:12px;padding-top:12px}.decision-section h4{margin:0 0 8px;font-size:15px}.decision-summary-v2{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.decision-summary-card{background:#f7fafb;border:1px solid #dce8eb;border-radius:8px;padding:12px;min-width:0}.decision-summary-card__label{font-size:12px;font-weight:900;color:#51666d}.decision-summary-card__value{font-size:17px;font-weight:900;color:#14333a;overflow-wrap:anywhere}.decision-summary-card__sub{font-size:13px;color:#51666d;overflow-wrap:anywhere}.decision-plan{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.decision-metric{background:#f7fafb;border:1px solid #dce8eb;border-radius:8px;padding:10px;min-width:0}.decision-metric dt{font-size:12px}.decision-metric dd{font-size:15px;font-weight:800;color:#14333a}.decision-list{margin:0;padding-left:18px}.decision-list li{margin:5px 0}.decision-details{margin-top:12px;border:1px solid #dce8eb;border-radius:8px;background:#fbfdfe;overflow-wrap:anywhere}.decision-details summary{cursor:pointer;list-style:none;padding:13px 14px;font-weight:900;min-height:24px}.decision-details summary::-webkit-details-marker{display:none}.decision-details__body{padding:0 14px 14px}.decision-table{width:100%;border-collapse:collapse;table-layout:fixed}.decision-table th,.decision-table td{border-top:1px solid #e5eef0;text-align:left;padding:8px;vertical-align:top;overflow-wrap:anywhere}.decision-table th{color:#51666d;width:45%;font-size:13px}.decision-note{color:#51666d}.decision-compact{display:grid;gap:8px}.decision-status-low{color:#8a4b00}.decision-status-good{color:#1f6b35}@media(max-width:640px){.wrap,main.wrap{padding-left:max(18px,env(safe-area-inset-left));padding-right:max(18px,env(safe-area-inset-right))}.section{padding:16px}.stock-card,.status-card,.decision-card{padding:16px}.grid,.decision-grid{grid-template-columns:1fr!important;gap:16px}.decision-summary-v2{grid-template-columns:1fr}.decision-card{width:100%;box-sizing:border-box}.decision-plan{grid-template-columns:1fr}.decision-details summary{padding:14px}.decision-details__body{padding:0 14px 14px}.decision-table th,.decision-table td{display:block;width:100%;box-sizing:border-box}.decision-table td{border-top:0;padding-top:0}}"""
 def now_taipei() -> str:
     return datetime.now(ZoneInfo("Asia/Taipei")).replace(microsecond=0).isoformat()
 
@@ -119,6 +119,15 @@ def _table_rows(rows: list[tuple[str, Any]]) -> str:
 
 def _metric(label: str, value: Any) -> str:
     return f"<dl class=\"decision-metric\"><dt>{_escape(label)}</dt><dd>{_escape(value)}</dd></dl>"
+
+
+def _source_freshness_text(value: Any) -> str:
+    text = clean_text(value, missing="資料不足")
+    return {
+        "SEC/yfinance/news metadata checked": "SEC、yfinance 與新聞來源已檢查",
+        "metadata checked": "資料來源已檢查",
+        "live market data fetched": "已取得最新市場資料",
+    }.get(text, text)
 
 
 def _readiness_rows(readiness: Any) -> list[tuple[str, str]]:
@@ -216,7 +225,7 @@ def _decision_summary(tactical: dict[str, Any]) -> str:
 def _summary_cards_v2(presentation: dict[str, Any]) -> str:
     cards = presentation.get("summary_cards", {})
     order = ["research", "daily_tactical", "prediction", "confidence"]
-    labels = {"research": "Research", "daily_tactical": "Daily Tactical", "prediction": "Prediction", "confidence": "Confidence"}
+    labels = {"research": "中長期研究", "daily_tactical": "每日短線策略", "prediction": "預測", "confidence": "信心"}
     blocks = []
     for key in order:
         card = cards.get(key, {}) if isinstance(cards, dict) else {}
@@ -227,32 +236,37 @@ def _summary_cards_v2(presentation: dict[str, Any]) -> str:
             f"<div class=\"decision-summary-card__sub\">{_escape(card.get('subvalue'))}</div>"
             "</div>"
         )
-    return f"<section class=\"decision-section\"><h4>Decision Summary</h4><div class=\"decision-summary-v2\">{''.join(blocks)}</div></section>"
+    return f"<section class=\"decision-section\"><h4>今日結論</h4><div class=\"decision-summary-v2\">{''.join(blocks)}</div></section>"
 
 
 def _decision_sections_v2(presentation: dict[str, Any], review: dict[str, Any] | None = None, detail_rows: list[tuple[str, Any]] | None = None) -> str:
     tactical = presentation.get("daily_tactical", {})
     prediction = presentation.get("prediction", {})
     research = presentation.get("research", {})
+    research_v3 = presentation.get("research_v3", {})
     detail = presentation.get("technical_detail", {})
     review = review or {}
     detail_rows = detail_rows or []
     daily = f"""
-          <section class="decision-section"><h4>Daily Tactical</h4><div class="decision-plan">{_metric('Direction', tactical.get('direction'))}{_metric('Setup', tactical.get('setup'))}{_metric('Action', tactical.get('action'))}{_metric('Entry Zone', tactical.get('entry_zone'))}{_metric('Stop', tactical.get('stop'))}{_metric('Target 1', tactical.get('target_1'))}{_metric('Target 2', tactical.get('target_2'))}{_metric('Expected Move', tactical.get('expected_move'))}{_metric('Reward / Risk', tactical.get('reward_risk'))}{_metric('Confidence', tactical.get('confidence'))}{_metric('Risk', tactical.get('risk'))}{_metric("Today's Tactical Conclusion", tactical.get('conclusion'))}</div></section>
+          <section class="decision-section"><h4>每日短線策略</h4><div class="decision-plan">{_metric('方向', tactical.get('direction'))}{_metric('策略型態', tactical.get('setup'))}{_metric('操作建議', tactical.get('action'))}{_metric('進場區', tactical.get('entry_zone'))}{_metric('停損／失效價', tactical.get('stop'))}{_metric('第一目標', tactical.get('target_1'))}{_metric('第二目標', tactical.get('target_2'))}{_metric('預期波動', tactical.get('expected_move'))}{_metric('報酬風險比', tactical.get('reward_risk'))}{_metric('信心', tactical.get('confidence'))}{_metric('風險', tactical.get('risk'))}{_metric('今日操作結論', tactical.get('conclusion'))}</div></section>
     """
     pred = f"""
-          <section class="decision-section"><h4>Prediction</h4><div class="decision-plan">{_metric("Today's Prediction", prediction.get('today_range'))}{_metric('Tomorrow Prediction', prediction.get('tomorrow_range'))}{_metric('Expected Range', prediction.get('expected_range'))}{_metric('Expected Move', prediction.get('expected_move'))}{_metric('Confidence', prediction.get('confidence'))}{_metric('Status', prediction.get('status'))}</div><p class="decision-note">{_escape(prediction.get('reason'))}</p></section>
+          <section class="decision-section"><h4>預測</h4><div class="decision-plan">{_metric("今日預測區間", prediction.get('today_range'))}{_metric('明日預測區間', prediction.get('tomorrow_range'))}{_metric('預期區間', prediction.get('expected_range'))}{_metric('預期波動', prediction.get('expected_move'))}{_metric('信心', prediction.get('confidence'))}{_metric('狀態', prediction.get('status'))}</div><p class="decision-note">{_escape(prediction.get('reason'))}</p></section>
     """
+    news_events = research_v3.get("news_events", {}) if isinstance(research_v3.get("news_events"), dict) else {}
     research_html = f"""
-          <section class="decision-section"><h4>Research</h4><div class="decision-plan">{_metric('1M', research.get('one_month'))}{_metric('3M', research.get('three_month'))}{_metric('Financial Quality', research.get('financial_quality'))}{_metric('Research Rating', research.get('rating'))}{_metric('Official Events', research.get('official_events'))}{_metric('Material News', research.get('material_news'))}{_metric('SEC', research.get('sec'))}{_metric('Research Conclusion', research.get('conclusion'))}</div></section>
+          <section class="decision-section"><h4>中長期研究</h4><div class="decision-plan">{_metric('一句話結論', research_v3.get('one_line_conclusion') or research.get('conclusion'))}{_metric('基本面評等', research_v3.get('research_rating') or research.get('rating'))}{_metric('財務體質', research.get('financial_quality'))}{_metric('財報', research_v3.get('earnings') or research.get('earnings'))}{_metric('最近官方文件（SEC）', research_v3.get('sec') or research.get('sec'))}{_metric('策略檢討摘要', research_v3.get('review') or research.get('review'))}{_metric('研究結論', research_v3.get('research_conclusion') or research.get('conclusion'))}{_metric('1 個月趨勢', research.get('one_month'))}{_metric('3 個月趨勢', research.get('three_month'))}</div></section>
     """
-    reasons = f"<section class=\"decision-section\"><h4>主要依據</h4><ul class=\"decision-list\">{''.join(f'<li>{_escape(item)}</li>' for item in presentation.get('reasons', []))}</ul></section>"
-    risks = f"<section class=\"decision-section\"><h4>主要風險</h4><ul class=\"decision-list\">{''.join(f'<li>{_escape(item)}</li>' for item in presentation.get('risks', []))}</ul></section>"
+    news_html = f"""
+          <section class="decision-section"><h4>近期新聞與事件</h4><div class="decision-plan">{_metric('重大官方事件', news_events.get('official'))}{_metric('近期市場新聞', news_events.get('market'))}{_metric('新聞資料狀態', news_events.get('status'))}</div></section>
+    """
+    reasons = f"<section class=\"decision-section\"><h4>主要依據（股票專屬）</h4><ul class=\"decision-list\">{''.join(f'<li>{_escape(item)}</li>' for item in presentation.get('reasons', []))}</ul></section>"
+    risks = f"<section class=\"decision-section\"><h4>主要風險（股票專屬）</h4><ul class=\"decision-list\">{''.join(f'<li>{_escape(item)}</li>' for item in presentation.get('risks', []))}</ul></section>"
     details = f"""
-          <details class="decision-details"><summary>Technical Detail</summary><div class="decision-details__body"><h4>資料來源狀態</h4><table class="decision-table"><tbody>{_table_rows(detail.get('factor_coverage', []))}</tbody></table><h4>分數構成</h4><table class="decision-table"><tbody>{_table_rows(detail.get('score_components', []))}</tbody></table><h4>Runtime Metadata</h4><table class="decision-table"><tbody>{_table_rows(detail_rows + [('Strategy ID', detail.get('strategy_id')), ('Factor Version', detail.get('factor_version'))])}</tbody></table></div></details>
+          <details class="decision-details"><summary>技術與系統細節</summary><div class="decision-details__body"><h4>資料來源</h4><table class="decision-table"><tbody>{_table_rows(detail.get('factor_coverage', []))}</tbody></table><h4>分數構成</h4><table class="decision-table"><tbody>{_table_rows(detail.get('score_components', []))}</tbody></table><h4>系統資料細節</h4><table class="decision-table"><tbody>{_table_rows(detail_rows + [('策略代碼', detail.get('strategy_id')), ('因子版本', detail.get('factor_version'))])}</tbody></table></div></details>
     """
     review_html = f"<details class=\"decision-details\"><summary>策略檢討</summary><div class=\"decision-details__body\"><table class=\"decision-table\"><tbody>{_table_rows(_review_rows(review))}</tbody></table></div></details>"
-    return daily + pred + research_html + reasons + risks + review_html + details
+    return daily + pred + research_html + reasons + risks + news_html + review_html + details
 
 def render_tw_tactical_cards(artifact: dict[str, Any] | None = None) -> str:
     artifact = artifact if artifact is not None else _load_tw_tactical_artifact()
@@ -299,8 +313,8 @@ def render_tw_tactical_cards(artifact: dict[str, Any] | None = None) -> str:
             ("資料完整度", format_data_quality(tactical.get("data_quality"))),
         ]
         rows.append(f"""
-        <article class="stock-card decision-card tw-tactical-card" data-market="TW" data-strategy-type="daily_tactical" data-presentation-version="decision_presentation_v2">
-          <div class="decision-card__head"><div><div class="decision-card__market">TW｜Decision Presentation V2</div><h3>{_escape(card.get('stock_id'))} {_escape(card.get('stock_name'))}</h3></div><span class="decision-badge {'decision-badge--warn' if is_no_trade(tactical) else 'decision-badge--ok'}">{_escape(presentation['daily_tactical']['action'])}</span></div>
+        <article class="stock-card decision-card tw-tactical-card" data-market="TW" data-strategy-type="daily_tactical" data-presentation-version="decision_presentation_v3">
+          <div class="decision-card__head"><div><div class="decision-card__market">TW｜決策呈現 V3</div><h3>{_escape(card.get('stock_id'))} {_escape(card.get('stock_name'))}</h3></div><span class="decision-badge {'decision-badge--warn' if is_no_trade(tactical) else 'decision-badge--ok'}">{_escape(presentation['daily_tactical']['action'])}</span></div>
           {_summary_cards_v2(presentation)}
           {_decision_sections_v2(presentation, review, detail_rows)}
         </article>
@@ -403,15 +417,13 @@ def render_us_cards(artifacts: list[dict[str, Any]]) -> str:
                 continue
             seen.add(key)
             symbol = str(card.get("symbol") or "")
-            news = card.get("bilingual_news_snippet", {}) if isinstance(card.get("bilingual_news_snippet"), dict) else {}
             earnings_guidance = f"{format_availability(card.get('latest_earnings_status'))} / {format_availability(card.get('guidance_direction'))}"
             presentation = decision_presentation_v2("US", card)
             rows.append(f"""
-            <article class="stock-card decision-card us-stock-card" data-market="US" data-presentation-version="decision_presentation_v2">
-              <div class="decision-card__head"><div><div class="decision-card__market">{html.escape(window_label)}｜US｜Decision Presentation V2</div><h3>{_escape(symbol)} {_escape(card.get('name'))}</h3></div><span class="decision-badge">{_escape(presentation['research']['rating'])}</span></div>
+            <article class="stock-card decision-card us-stock-card" data-market="US" data-presentation-version="decision_presentation_v3">
+              <div class="decision-card__head"><div><div class="decision-card__market">{html.escape(window_label)}｜US｜決策呈現 V3</div><h3>{_escape(symbol)} {_escape(card.get('name'))}</h3></div><span class="decision-badge">{_escape(presentation['research']['rating'])}</span></div>
               {_summary_cards_v2(presentation)}
-              {_decision_sections_v2(presentation, {"status": artifact.get('prediction_review_contract', {}).get('review_status')}, [("Window", window_label), ("Source Freshness", clean_text(card.get('source_freshness'), missing='資料不足'))])}
-              <details class="decision-details" open><summary>Material News & Bilingual Reading / 雙語新聞</summary><div class="decision-details__body"><p><strong>EN:</strong> {_escape(news.get('english_headline'))}</p><p><strong>中:</strong> {_escape(news.get('chinese_translation'))}</p><p>{_escape(news.get('investment_reading'))}</p><p>Vocabulary：{_escape(news.get('vocabulary'))}</p></div></details>
+              {_decision_sections_v2(presentation, {"status": artifact.get('prediction_review_contract', {}).get('review_status')}, [("批次", window_label), ("資料新鮮度", _source_freshness_text(card.get('source_freshness')))])}
             </article>
             """)
     if not rows:
@@ -421,9 +433,9 @@ def render_us_cards(artifacts: list[dict[str, Any]]) -> str:
 def base_css() -> str:
     return """
     body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f6f8f9;color:#17262c;line-height:1.55}
-    header,.hero{background:#0f2c33;color:white;padding:24px 18px}.wrap{max-width:1120px;margin:0 auto;padding:18px}.nav{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.nav a,.btn{display:inline-block;background:#fff;color:#0f2c33;text-decoration:none;border-radius:8px;padding:10px 12px;font-weight:800;border:1px solid #cbd8dc}
+    header,.hero{background:#0f2c33;color:white;padding:24px 18px}.wrap{max-width:1120px;margin:0 auto;padding:18px;padding-left:max(18px,env(safe-area-inset-left));padding-right:max(18px,env(safe-area-inset-right))}.nav{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.nav a,.btn{display:inline-block;background:#fff;color:#0f2c33;text-decoration:none;border-radius:8px;padding:10px 12px;font-weight:800;border:1px solid #cbd8dc}
     """ + SHARED_NAVIGATION_CSS + TW_TACTICAL_CSS + """
-    .section{background:white;border:1px solid #dce5e8;border-radius:10px;padding:16px;margin:14px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}.stock-card,.status-card{background:#fff;border:1px solid #d9e4e7;border-radius:10px;padding:14px}.card-kicker{font-weight:800;color:#35606b;font-size:13px}h1,h2,h3{margin:0 0 10px}dl{display:grid;gap:8px}dt{font-weight:800;color:#51666d}dd{margin:0}.badge{display:inline-block;border-radius:999px;padding:6px 10px;background:#e8f5e9;color:#225d28;font-weight:800}.warn{background:#fff9e8}.market-choice{display:block;text-decoration:none;color:#17262c}.market-choice h2{color:#0f5368}@media(max-width:640px){.wrap{padding:12px}.grid{grid-template-columns:1fr}.nav a{width:100%;box-sizing:border-box}}
+    .section{background:white;border:1px solid #dce5e8;border-radius:10px;padding:16px;margin:14px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}.stock-card,.status-card{background:#fff;border:1px solid #d9e4e7;border-radius:12px;padding:16px;overflow-wrap:anywhere;word-break:break-word}.card-kicker{font-weight:800;color:#35606b;font-size:13px}h1,h2,h3{margin:0 0 10px}dl{display:grid;gap:8px}dt{font-weight:800;color:#51666d}dd{margin:0}.badge{display:inline-block;border-radius:999px;padding:6px 10px;background:#e8f5e9;color:#225d28;font-weight:800}.warn{background:#fff9e8}.market-choice{display:block;text-decoration:none;color:#17262c}.market-choice h2{color:#0f5368}@media(max-width:640px){.wrap{padding:18px;padding-left:max(18px,env(safe-area-inset-left));padding-right:max(18px,env(safe-area-inset-right))}.grid{grid-template-columns:1fr;gap:16px}.nav a{width:100%;box-sizing:border-box}}
     """
 
 
@@ -442,13 +454,14 @@ def render_landing_page() -> str:
       <a class="section market-choice" href="/stock-ai-dashboard/dashboard/tw/index.html"><h2>台股 Dashboard</h2><p>07:00 盤前｜13:05 盤中｜13:35 收盤快照｜15:00 盤後／檢討</p><span class="badge">TW</span></a>
       <a class="section market-choice" href="/stock-ai-dashboard/dashboard/us/index.html"><h2>美股 Dashboard</h2><p>20:00 美股盤前｜23:00 美股盤中｜06:30 美股盤後檢討</p><span class="badge">US</span></a>
     </div>
-    <section class="section"><h2>Runtime Status</h2><p>Dashboard 顯示完整內容；Email 顯示完整摘要；LINE 僅作短提醒與入口。舊四時段網址保留為台股相容入口。</p></section>
+    <section class="section"><h2>資料狀態</h2><p>Dashboard 顯示完整內容；Email 顯示完整摘要；LINE 僅作短提醒與入口。舊四時段網址保留為台股相容入口。</p></section>
     </main></body></html>\n"""
 
 def render_tw_page(source_html: str | None = None) -> str:
     body = source_html if source_html is not None else (TW_TEMPLATE.read_text(encoding="utf-8") if TW_TEMPLATE.exists() else "<p>台股 Dashboard 資料待接</p>")
+    body = body.replace("Prediction", "預測").replace("Research", "研究")
     nav = shared_market_navigation("TW", "台股 AI 決策儀表板", "TW 專用頁：07:00 / 13:05 / 13:35 / 15:00。美股內容不在此頁渲染。")
-    dual_strategy = """<div class="wrap section" id="ai-dev-173-tw-dual-strategy"><h2>中長期量化策略</h2><p>保留既有 Research / Position 行為，回答是否值得持有；每日短期操作策略獨立回答今天到 1-5 個交易日的操作計畫。</p></div>""" + render_tw_tactical_cards()
+    dual_strategy = """<div class="wrap section" id="ai-dev-173-tw-dual-strategy"><h2>中長期量化策略</h2><p>保留既有研究／持有策略行為，回答是否值得持有；每日短期操作策略獨立回答今天到 1-5 個交易日的操作計畫。</p></div>""" + render_tw_tactical_cards()
     shared_style = f'<style id="shared-market-navigation-style">{SHARED_NAVIGATION_CSS}{TW_TACTICAL_CSS}</style>'
     if "</head>" in body and "shared-market-navigation-style" not in body:
         body = body.replace("</head>", shared_style + "</head>", 1)
@@ -478,16 +491,16 @@ def render_us_page(artifacts: list[dict[str, Any]] | None = None) -> str:
     <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>美股 AI 決策儀表板</title><meta name="market" content="US"><style>{base_css()}</style></head>
     <body><header>{shared_market_navigation("US", "美股 AI 決策儀表板", "美股盤前 20:00｜美股盤中 23:00｜美股檢討 06:30")}</header><main class="wrap">
     <!-- AI-DEV-170-US-DASHBOARD-START -->
-    <section class="section"><h2>美股 Runtime Summary</h2><p>US enabled stock count：{count}</p><p>最新更新：{html.escape(latest)}</p><p>資料來源：工作表2 / live production US runtime artifacts；US Dashboard 不回退到台股資料，也不渲染 validation fixture。</p></section>
-    <section class="section"><h2>Market Summary</h2><p>SPY / QQQ / VIX / sector context feeds the US research score as Tier 2 market reference.</p></section>
-    <section class="section"><h2>Decision Summary</h2><p>今日結論以 Research、Daily Tactical、Prediction、Confidence 四張摘要卡開場。</p></section>
-    <section class="section"><h2>Daily Tactical Strategy</h2><p>操作計畫 uses gap, momentum, relative volume, trend, volatility, benchmark/sector context, earnings/event risk and deterministic entry/stop/target levels for current/next session and 1-5 trading days.</p></section>
-    <section class="section"><h2>Research / Position Strategy</h2><p>US Research preserves technical, SEC, fundamentals, earnings/guidance, official events, market context, and us_research_factor_v1 evidence for days-to-months positioning.</p></section>
-    <section class="section"><h2>Financial Quality</h2><p>Revenue, margins, cash flow, leverage and missing-data quality are shown per stock when available.</p></section>
-    <section class="section"><h2>Earnings / Guidance</h2><p>Company-reported actuals, company guidance, and third-party estimates are separated. Missing verified guidance stays unavailable.</p></section>
-    <section class="section"><h2>SEC / Official Events</h2><p>SEC EDGAR filings and company IR/newsroom metadata are Tier 1 official evidence. yfinance remains reference data.</p></section>
-    <section class="section"><h2>Material News & Bilingual Reading</h2><p>Headline metadata is classified, deduplicated, and displayed with Traditional Chinese learning support. No full articles are stored.</p></section>
-    <section class="section"><h2>Prediction / Review</h2><p>Predictions are deterministic and event-adjusted; reviews attribute misses to technical, market, news, official-event and data-quality causes when data exists.</p></section>
+    <section class="section"><h2>美股資料摘要</h2><p>啟用股票數：{count}</p><p>最新更新：{html.escape(latest)}</p><p>資料來源：工作表2 / 正式美股 runtime；美股頁不回退到台股資料，也不渲染驗證 fixture。</p></section>
+    <section class="section"><h2>市場摘要</h2><p>SPY / QQQ / VIX 與類股脈絡作為美股研究評分的第二層市場參考。</p></section>
+    <section class="section"><h2>今日結論</h2><p>主畫面以中長期研究、每日短線策略、預測與信心四張摘要卡開場。</p></section>
+    <section class="section"><h2>每日短線策略</h2><p>操作計畫使用跳空、動能、量能、趨勢、波動、指數與類股脈絡、財報與事件風險，以及既有 runtime 產生的進場、停損與目標價位。</p></section>
+    <section class="section"><h2>中長期研究</h2><p>保留技術、SEC、基本面、財報與指引、官方事件、市場脈絡等證據，用於數日到數月的持有判斷。</p></section>
+    <section class="section"><h2>財務體質</h2><p>營收、利潤率、現金流、槓桿與資料品質會在資料可用時依股票呈現。</p></section>
+    <section class="section"><h2>財報與指引</h2><p>公司已公布結果、公司指引與第三方估計分開呈現；未驗證的指引不會被編造。</p></section>
+    <section class="section"><h2>SEC / 官方事件</h2><p>SEC EDGAR 文件與公司 IR / 新聞室紀錄屬於第一層官方證據；yfinance 保留為市場參考資料。</p></section>
+    <section class="section"><h2>近期新聞與事件</h2><p>新聞標題來源經分類、去重後呈現；不儲存完整文章，也不產生假新聞。</p></section>
+    <section class="section"><h2>預測與檢討</h2><p>預測與檢討使用既有 runtime 結果；若資料存在，會區分技術、市場、新聞、官方事件與資料品質因素。</p></section>
     <section class="section"><h2>美股個股卡</h2><div class="grid">{cards}</div></section>
     <!-- AI-DEV-170-US-DASHBOARD-END -->
     </main></body></html>\n"""

@@ -48,6 +48,10 @@ FORBIDDEN_VISIBLE_TOKENS = [
     "target_zone_1",
     "daily_tactical_summary",
     "research_position_summary",
+    "live market data fetched",
+    "metadata checked",
+    "news metadata",
+    "available_reference",
 ]
 
 
@@ -225,7 +229,7 @@ def build_validation() -> dict[str, Any]:
 
     for name, path in DASHBOARD_PAGES.items():
         text = visible_text(path.read_text(encoding="utf-8"))
-        required = ["Decision Presentation V2"] if name in {"tw", "us"} else ["AI Multi-Market Decision Intelligence"]
+        required = ["決策呈現"] if name in {"tw", "us"} else ["AI Multi-Market Decision Intelligence"]
         check = check_surface(f"dashboard_{name}", text, required)
         page_checks[name] = check
         if not check["required_markers_present"]:
@@ -237,7 +241,7 @@ def build_validation() -> dict[str, Any]:
 
     required_by_channel = {
         "tw_line": ["台股決策摘要已更新", "Daily Tactical 可觀察"],
-        "tw_email": ["Decision Presentation V2", "Research / Daily Tactical / Prediction"],
+        "tw_email": ["Decision Presentation", "Research / Daily Tactical / Prediction"],
         "us_line": ["美股決策摘要已更新", "Daily Tactical 可觀察"],
         "us_email": ["Research：", "Daily Tactical：", "Prediction："],
     }

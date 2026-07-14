@@ -51,6 +51,30 @@ presentation-only; it does not change strategy engines, scores, confidence,
 prediction, scheduler, runtime artifacts, data sources, LINE contract, or Email
 contract.
 
+AI-DEV-177 adds Data Completeness Audit and Presentation V3. The compatibility
+entry point remains `decision_presentation_v2()`, but the object schema reports
+`decision_presentation_v3`. V3 must preserve existing runtime values through
+Dashboard, Email, and LINE for Reason, Risk, Entry, Stop, Target, Reward/Risk,
+Review, News, and SEC. It must not invent strategy values or modify Research,
+Tactical, Prediction, Score, Runtime Calculation, Scheduler, or Notification
+behavior.
+
+V3 Research cards must show stock-specific `今日研究摘要`, `一句話結論`,
+`主要依據`, `主要風險`, `重大事件`, `財報`, `SEC`, and `研究結論`. Technical
+information stays collapsed by default under `技術資訊`. Material News and SEC
+must be human-readable: runtime metadata phrases such as `live market data
+fetched`, `metadata checked`, `available_reference`, and `news metadata` may not
+appear in visible Dashboard/Email/LINE copy; SEC forms must be rendered as
+descriptions such as `10-Q 季報` and `8-K 重大事件公告`.
+
+Additional AI-DEV-177 validators:
+
+```bash
+python3 scripts/orchestrator/validate_decision_data_completeness_v1.py --pretty
+python3 scripts/orchestrator/validate_decision_presentation_uniqueness_v1.py --pretty
+python3 scripts/orchestrator/validate_runtime_to_dashboard_mapping_v1.py --pretty
+```
+
 Publish pages after merge from `main`:
 
 ```bash

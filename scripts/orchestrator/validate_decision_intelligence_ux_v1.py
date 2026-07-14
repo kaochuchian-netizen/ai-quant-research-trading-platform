@@ -38,12 +38,15 @@ FORBIDDEN_VISIBLE_TOKENS = [
     "reward_risk",
     "score_components",
     "factor_coverage",
+    "live market data fetched",
+    "metadata checked",
+    "news metadata",
 ]
 
 REQUIRED_VISIBLE_MARKERS = {
     "landing": ["AI Multi-Market Decision Intelligence", "台股 Dashboard", "美股 Dashboard"],
     "tw": ["台股 AI 決策儀表板", "每日短期操作策略", "今日結論", "操作計畫", "主要風險"],
-    "us": ["美股 AI 決策儀表板", "今日結論", "操作計畫", "Material News", "策略檢討"],
+    "us": ["美股 AI 決策儀表板", "今日結論", "操作計畫", "近期新聞與事件", "策略檢討"],
 }
 
 
