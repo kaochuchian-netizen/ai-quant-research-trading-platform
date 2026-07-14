@@ -207,7 +207,7 @@ def publish_dashboard(artifact: dict[str, Any]) -> dict[str, Any]:
     try:
         from app.dashboard.multi_market_dashboard import US_URL, publish_pages
 
-        result = publish_pages()
+        result = publish_pages(source_dir=Path("/tmp/stock-ai-dashboard-us-scheduled"))
         return {
             "attempted": True,
             "succeeded": bool(result.get("published")),
