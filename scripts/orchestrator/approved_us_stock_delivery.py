@@ -34,6 +34,7 @@ from app.reports.decision_intelligence_v4 import compact_summary, project_decisi
 from app.dashboard.window_snapshot_archive import write_snapshot
 from app.reports.window_report_contract import get_window_report_contract
 from app.us_stock.watchlist import normalize_us_watchlist_rows
+from app.us_stock.runtime_provenance import ADMITTED_PROVENANCE, RuntimeProvenance, provenance_admission
 from scripts.orchestrator.notify_stage_report import build_message, load_env_file, load_mail_config, send_message
 
 WINDOWS = tuple(US_BATCH_WINDOWS.keys())
@@ -354,13 +355,27 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     try:
         artifact = build_runtime_artifact(args.window, dry_run=not production_approved, reference=batch_reference, live_data=args.live_data, production_artifact=production_artifact)
         artifact["generated_at"] = started.isoformat()
+        if args.manual_rerun and (production_approved or production_artifact):
+            runtime_provenance = RuntimeProvenance.MANUAL_RERUN.value
+        elif production_approved or production_artifact:
+            runtime_provenance = RuntimeProvenance.SCHEDULED_PRODUCTION.value
+        elif args.live_data:
+            runtime_provenance = RuntimeProvenance.CONTROLLED_NO_SEND.value
+        else:
+            runtime_provenance = RuntimeProvenance.DRY_RUN.value
+        artifact["runtime_provenance"] = runtime_provenance
+        artifact["provenance_source"] = "approved_us_stock_delivery_cli_contract"
+        artifact["run_kind"] = "manual_rerun" if args.manual_rerun else "scheduled" if runtime_provenance == RuntimeProvenance.SCHEDULED_PRODUCTION.value else runtime_provenance
+        admission = provenance_admission(artifact, run_kind=artifact["run_kind"])
+        persist_formal_runtime = admission["admitted"] and runtime_provenance in ADMITTED_PROVENANCE
         out_path = WINDOW_OUTPUTS[args.window]
-        write_json(out_path, artifact)
         legacy_path = LEGACY_WINDOW_OUTPUTS.get(args.window)
-        if legacy_path and legacy_path != out_path:
-            write_json(legacy_path, artifact)
-        archive_result = {"written": False, "reason": "dry_run_or_fixture_not_admitted"}
-        if production_approved or production_artifact:
+        if persist_formal_runtime:
+            write_json(out_path, artifact)
+            if legacy_path and legacy_path != out_path:
+                write_json(legacy_path, artifact)
+        archive_result = {"written": False, "reason": admission["admission_reason"], **admission}
+        if persist_formal_runtime:
             archive_result = write_snapshot(
                 WINDOW_SNAPSHOT_ARCHIVE,
                 market="US",
@@ -374,7 +389,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 source_artifact_path=str(out_path),
                 rebuild_routes=args.manual_rerun,
             )
-        dashboard_result = publish_dashboard(artifact) if production_approved or args.publish_dashboard else {"attempted": False, "succeeded": False, "reason": "dry_run_no_publish"}
+        dashboard_result = publish_dashboard(artifact) if persist_formal_runtime and (production_approved or args.publish_dashboard) else {"attempted": False, "succeeded": False, "reason": "provenance_not_publishable"}
         idem = idempotency_path(args.window, started)
         delivery_skipped_duplicate = production_approved and idem.exists()
         if delivery_skipped_duplicate:
@@ -395,7 +410,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "finished_at": finished.isoformat(),
             "status": "completed",
             "stock_counts": artifact.get("runtime_watchlist_validation", {}),
-            "artifact_path": str(out_path),
+            "artifact_path": str(out_path) if persist_formal_runtime else None,
+            "runtime_provenance": runtime_provenance,
+            "provenance_admitted": admission["admitted"],
+            "formal_runtime_persisted": persist_formal_runtime,
             "dashboard_publish_attempted": dashboard_result.get("attempted", False),
             "dashboard_publish_succeeded": dashboard_result.get("succeeded", False),
             "email_attempted": email_result.get("attempted", False),
@@ -416,13 +434,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "python3_main_executed": False,
             "secret_values_printed": False,
         }
-        write_json(STATUS_PATH, status)
-        write_json(US_STATUS_PATH, status)
+        if persist_formal_runtime:
+            write_json(STATUS_PATH, status)
+            write_json(US_STATUS_PATH, status)
         return {"ok": True, "status": status, "archive_write": archive_result, "dashboard": dashboard_result, "email": email_result, "line": line_result, "line_payload_preview": status["line_payload_preview"], "email_payload_preview": status["email_payload_preview"], "dashboard_url": DASHBOARD_URL}
     except Exception as exc:
         error = {"ok": False, "status": "failed", "window": args.window, "error_type": type(exc).__name__, "error_message": str(exc)[:240], "line_attempted": False, "email_attempted": False, "trading_or_order_executed": False, "production_pipeline_executed": False}
-        write_json(STATUS_PATH, error)
-        write_json(US_STATUS_PATH, error)
+        if production_approved or production_artifact:
+            write_json(STATUS_PATH, error)
+            write_json(US_STATUS_PATH, error)
         return error
     finally:
         release_lock()

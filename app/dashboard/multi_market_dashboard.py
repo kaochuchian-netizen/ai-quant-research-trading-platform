@@ -35,6 +35,7 @@ from app.dashboard.decision_presentation import (
     limit_items,
 )
 from app.dashboard.window_snapshot_archive import MARKET_WINDOWS, resolve_snapshots, revisions_for_snapshot, same_window_change
+from app.us_stock.runtime_provenance import classify_runtime_provenance, is_dashboard_eligible
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PUBLIC_BASE_URL = "http://35.201.242.167/stock-ai-dashboard"
@@ -360,14 +361,7 @@ def _strategy_html(card: dict[str, Any]) -> str:
     """
 
 def _is_authoritative_us_artifact(data: dict[str, Any]) -> bool:
-    return (
-        data.get("market") == "US"
-        and data.get("artifact_kind") == "us_stock_runtime"
-        and data.get("data_source_mode") == "live"
-        and data.get("fixture") is False
-        and data.get("artifact_mode") == "production_runtime"
-        and data.get("validation_only") is False
-    )
+    return is_dashboard_eligible(data)
 
 
 def _load_us_artifacts() -> list[dict[str, Any]]:
@@ -382,7 +376,10 @@ def _load_us_artifacts() -> list[dict[str, Any]]:
         window = str(data.get("window") or path.name)
         if window in seen_windows:
             continue
-        data["_source_path"] = str(path.relative_to(REPO_ROOT))
+        try:
+            data["_source_path"] = str(path.relative_to(REPO_ROOT))
+        except ValueError:
+            data["_source_path"] = str(path)
         artifacts.append(data)
         seen_windows.add(window)
     return artifacts
@@ -395,6 +392,15 @@ def us_stock_count(artifacts: list[dict[str, Any]]) -> int:
             if symbol:
                 symbols.add(str(symbol))
     return len(symbols)
+
+
+def _operations_runtime_provenance(market: str, window: str, latest: dict[str, Any] | None) -> str:
+    if market == "US":
+        for path in US_RUNTIME_FILES:
+            data = read_json(path)
+            if data and str(data.get("window")) == window:
+                return classify_runtime_provenance(data)
+    return str(latest.get("runtime_provenance")) if latest else "尚無正式 Runtime"
 
 def _exchange_for(artifact: dict[str, Any], symbol: str) -> str:
     for item in artifact.get("us_watchlist", []):
@@ -814,13 +820,15 @@ def render_landing_page() -> str:
             if updated_time:
                 latest_meta += f"｜最後更新 {updated_time}"
             previous_meta = str(previous.get("effective_trading_date")) if previous else "尚無上一有效交易日"
+            runtime_provenance = _operations_runtime_provenance(market, window, latest)
+            provenance_label = "Validation Only" if runtime_provenance in {"fixture", "validator", "preview", "dry_run", "controlled_no_send"} else runtime_provenance
             archive_buttons.extend([
                 f'<a class="market-shared-navigation__button archive-browser-button" data-market="{market}" data-window="{window}" data-selection="latest" href="/stock-ai-dashboard/dashboard/archive/{market.lower()}/{window}/latest/index.html">{market}｜{window}｜Latest<br><small>{_escape(latest_meta)}</small></a>',
                 f'<a class="market-shared-navigation__button archive-browser-button" data-market="{market}" data-window="{window}" data-selection="previous" href="/stock-ai-dashboard/dashboard/archive/{market.lower()}/{window}/previous/index.html">{market}｜{window}｜Previous<br><small>{_escape(previous_meta)}</small></a>',
             ])
             archive_status = "已累積" if latest else "等待首筆正式資料"
             overall_status = "可用" if latest else "等待資料（非失敗）"
-            health_rows.append(f'<tr data-market="{market}" data-window="{window}"><th>{market}｜{_escape(window)}</th><td>{_escape(latest_date)}</td><td>{revision or "—"}</td><td>{_escape(previous_meta)}</td><td>設定維持</td><td>依正式批次</td><td>可建置</td><td>{_escape(archive_status)}</td><td>未發送</td><td>未發送</td><td>{_escape(overall_status)}</td></tr>')
+            health_rows.append(f'<tr data-market="{market}" data-window="{window}"><th>{market}｜{_escape(window)}</th><td>{_escape(latest_date)}</td><td>{revision or "—"}</td><td>{_escape(previous_meta)}</td><td>{_escape(provenance_label)}</td><td>設定維持</td><td>依正式批次</td><td>可建置</td><td>{_escape(archive_status)}</td><td>未發送</td><td>未發送</td><td>{_escape(overall_status)}</td></tr>')
     archive_buttons_html = "".join(archive_buttons)
     health_rows_html = "".join(health_rows)
     return f"""<!doctype html>
@@ -831,7 +839,7 @@ def render_landing_page() -> str:
       <a class="section market-choice" href="/stock-ai-dashboard/dashboard/us/index.html"><h2>美股 Dashboard</h2><p>20:00 美股盤前｜23:00 美股盤中｜06:30 美股盤後檢討</p><span class="badge">US</span></a>
     </div>
     <section class="section" id="snapshot-archive-browser"><h2>Snapshot Archive 瀏覽</h2><p>Latest 是最新有效交易日最高 revision；Previous 永遠是上一有效交易日最高 revision。</p><div class="market-shared-navigation__grid">{archive_buttons_html}</div></section>
-    <section class="section" id="production-operations-center"><h2>Production Operations Center</h2><p class="decision-note">內容投影不改變既有 health source；archive empty state 是等待資料，不是批次失敗。</p><table class="decision-table"><thead><tr><th>Market / Window</th><th>Latest</th><th>Revision</th><th>Previous</th><th>Scheduler</th><th>Pipeline</th><th>Dashboard</th><th>Archive</th><th>LINE</th><th>Email</th><th>Overall</th></tr></thead><tbody>{health_rows_html}</tbody></table></section>
+    <section class="section" id="production-operations-center"><h2>Production Operations Center</h2><p class="decision-note">內容投影不改變既有 health source；archive empty state 是等待資料，不是批次失敗。</p><table class="decision-table"><thead><tr><th>Market / Window</th><th>Latest</th><th>Revision</th><th>Previous</th><th>Runtime Provenance</th><th>Scheduler</th><th>Pipeline</th><th>Dashboard</th><th>Archive</th><th>LINE</th><th>Email</th><th>Overall</th></tr></thead><tbody>{health_rows_html}</tbody></table></section>
     {render_manual_control_center()}
     <section class="section"><h2>Runtime 狀態摘要</h2><p>Dashboard 顯示完整內容；Email 顯示 window-specific 摘要；LINE 僅作短提醒與入口。舊四時段網址保留為台股相容入口。</p></section>
     </main></body></html>\n"""
@@ -933,7 +941,8 @@ def render_snapshot_archive_page(market: str, window: str, selection: str, snaps
         updated_text = f"｜最後更新 {updated[11:16]}" if selection == "latest" and len(updated) >= 16 else ""
         payload_marker = immutable_payload.get("marker")
         marker_text = f'<p class="decision-note">內容識別：{_escape(payload_marker)}</p>' if payload_marker else ""
-        body = f'<section class="section immutable-snapshot-payload"><h2>Snapshot 決策內容</h2><p>有效交易日：{_escape(snapshot.get("effective_trading_date"))}{revision_text}{updated_text}</p>{marker_text}{_decision_intelligence_v4_html(market, window, immutable_payload)}<p class="decision-note">本頁只使用 resolver 選出的 immutable snapshot payload；不讀取全域 latest runtime。</p></section>'
+        provenance_text = f'<p class="decision-note">Runtime Provenance：{_escape(snapshot.get("runtime_provenance"))}｜Admission：{_escape(snapshot.get("admission_reason"))}｜Admitted：{str(snapshot.get("admitted") is True).lower()}</p>'
+        body = f'<section class="section immutable-snapshot-payload"><h2>Snapshot 決策內容</h2><p>有效交易日：{_escape(snapshot.get("effective_trading_date"))}{revision_text}{updated_text}</p>{provenance_text}{marker_text}{_decision_intelligence_v4_html(market, window, immutable_payload)}<p class="decision-note">本頁只使用 resolver 選出的 immutable snapshot payload；不讀取全域 latest runtime。</p></section>'
         if selection == "latest":
             revisions = revisions_for_snapshot(WINDOW_SNAPSHOT_ARCHIVE, market, window, str(snapshot.get("effective_trading_date")))
             manual_count = len([item for item in revisions if item.get("manual_rerun") is True or item.get("run_kind") == "manual_rerun"])

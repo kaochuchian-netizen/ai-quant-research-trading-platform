@@ -82,7 +82,8 @@ def fixture_payload(market: str, window: str, day: str, marker: str) -> dict[str
     cards = [fixture_card(market, window, index) for index in range(3)]
     payload: dict[str, Any] = {
         "schema_version": "deterministic_content_fixture_v1", "market": market, "window": window,
-        "generated_at": f"{day}T12:00:00+08:00", "artifact_mode": "controlled_no_send",
+        "generated_at": f"{day}T12:00:00+08:00", "artifact_mode": "production_runtime",
+        "runtime_provenance": "scheduled_production",
         "verification_scope": "temporary_non_production_archive", "marker": marker,
         "notification_sent": False, "production_pipeline_executed": False,
     }
