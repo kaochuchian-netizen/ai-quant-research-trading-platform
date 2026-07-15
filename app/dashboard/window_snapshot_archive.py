@@ -9,6 +9,8 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from app.us_stock.runtime_provenance import ADMITTED_PROVENANCE, provenance_admission
+
 SCHEMA_VERSION = "window_snapshot_archive_v1"
 MARKET_WINDOWS = {
     "TW": ("pre_open_0700", "intraday_1305", "pre_close_1335", "post_close_1500"),
@@ -58,7 +60,26 @@ def admission_errors(payload: dict[str, Any]) -> list[str]:
         errors.append("payload")
     if not payload.get("generated_at"):
         errors.append("generated_at")
+    provenance = provenance_admission(payload.get("payload"), run_kind=str(payload.get("run_kind") or ""))
+    recorded_provenance = str(payload.get("runtime_provenance") or provenance["runtime_provenance"])
+    recorded_admitted = payload.get("admitted", provenance["admitted"])
+    if (
+        provenance["admitted"] is not True
+        or recorded_admitted is not True
+        or recorded_provenance not in ADMITTED_PROVENANCE
+        or recorded_provenance != provenance["runtime_provenance"]
+    ):
+        errors.append("runtime_provenance")
     return errors
+
+
+def _normalized_admission_metadata(item: dict[str, Any]) -> dict[str, Any]:
+    normalized = canonical_snapshot(item)
+    decision = provenance_admission(normalized.get("payload"), run_kind=str(normalized.get("run_kind") or ""))
+    normalized.setdefault("runtime_provenance", decision["runtime_provenance"])
+    normalized.setdefault("admission_reason", decision["admission_reason"])
+    normalized.setdefault("admitted", decision["admitted"])
+    return normalized
 
 
 def load_admitted_snapshots(archive_root: Path) -> list[dict[str, Any]]:
@@ -70,9 +91,11 @@ def load_admitted_snapshots(archive_root: Path) -> list[dict[str, Any]]:
             item = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             continue
-        if not isinstance(item, dict) or admission_errors(item):
+        if not isinstance(item, dict):
             continue
-        item = canonical_snapshot(item)
+        item = _normalized_admission_metadata(item)
+        if admission_errors(item):
+            continue
         item["snapshot_id"] = item.get("snapshot_id") or snapshot_id(item)
         item["archive_path"] = str(path)
         admitted.append(item)
@@ -123,13 +146,15 @@ def same_window_change(current: dict[str, Any] | None, previous: dict[str, Any] 
     return {"available": True, "previous_trading_date": previous["effective_trading_date"], "current_trading_date": current["effective_trading_date"], "changes": changes}
 
 
-def _source_is_admissible(source: dict[str, Any], status: str) -> bool:
+def _source_is_admissible(source: dict[str, Any], status: str, run_kind: str) -> bool:
     rejected_flags = ("fixture", "is_fixture", "validation_only", "validator", "incomplete")
     mode = " ".join(str(source.get(key) or "") for key in ("artifact_type", "artifact_mode", "runtime_mode", "data_source_mode", "run_kind")).lower()
+    decision = provenance_admission(source, run_kind=run_kind)
     return (
         status in {"complete", "completed", "success"}
         and not any(source.get(key) is True for key in rejected_flags)
         and not any(token in mode for token in REJECTED_RUN_KINDS)
+        and decision["runtime_provenance"] not in {"fixture", "validator", "preview", "dry_run", "controlled_no_send", "unclassified"}
     )
 
 
@@ -157,7 +182,7 @@ def write_snapshot(
         return {"written": False, "reason": "invalid_effective_trading_date"}
     if run_kind not in {"scheduled", "manual_rerun", "backfill"}:
         return {"written": False, "reason": "rejected_run_kind"}
-    if not _source_is_admissible(source_payload, status):
+    if not _source_is_admissible(source_payload, status, run_kind):
         return {"written": False, "reason": "source_not_admissible"}
     existing = [
         item for item in load_admitted_snapshots(archive_root)
@@ -170,6 +195,12 @@ def write_snapshot(
         [str(item.get("original_batch_time") or item.get("generated_at")) for item in existing if item.get("original_batch_time") or item.get("generated_at")]
         or [generated_at]
     )
+    source_for_admission = canonical_snapshot(source_payload)
+    if run_kind == "manual_rerun":
+        source_for_admission["runtime_provenance"] = "manual_rerun"
+    elif not source_for_admission.get("runtime_provenance"):
+        source_for_admission["runtime_provenance"] = "scheduled_production"
+    admission = provenance_admission(source_for_admission, run_kind=run_kind)
     snapshot = {
         "schema_version": SCHEMA_VERSION,
         "market": market,
@@ -184,10 +215,13 @@ def write_snapshot(
         "is_latest_revision": True,
         "status": "complete",
         "run_kind": run_kind,
+        "runtime_provenance": admission["runtime_provenance"],
+        "admission_reason": admission["admission_reason"],
+        "admitted": admission["admitted"],
         "run_id": run_id,
         "source_artifact_path": source_artifact_path,
         "effective_batch_time_policy": "explicit_batch_reference_not_write_time",
-        "payload": canonical_snapshot(source_payload),
+        "payload": source_for_admission,
     }
     snapshot["snapshot_id"] = snapshot_id(snapshot)
     errors = admission_errors(snapshot)
