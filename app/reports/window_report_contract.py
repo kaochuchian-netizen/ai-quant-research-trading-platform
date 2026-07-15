@@ -35,6 +35,10 @@ class WindowReportContract:
 
 TW_DASHBOARD_URL = get_tw_dashboard_url()
 US_DASHBOARD_URL = get_us_dashboard_url()
+TW_POST_CLOSE_LATEST_URL = (
+    "http://35.201.242.167/stock-ai-dashboard/"
+    "dashboard/archive/tw/post_close_1500/latest/index.html"
+)
 
 CONTRACTS: dict[tuple[str, str], WindowReportContract] = {
     ("TW", "pre_open_0700"): WindowReportContract(
@@ -81,7 +85,7 @@ CONTRACTS: dict[tuple[str, str], WindowReportContract] = {
         ("盤後檢討摘要", "今日命中 / 未觸發 / 失敗 數量", "7 日檢討狀態", "TW Dashboard URL"),
         ("新的盤前建議", "盤前機會主文"),
         ("15:00 盤後檢討", "今日預測 vs 實際", "7 日滾動檢討"),
-        TW_DASHBOARD_URL, "重跑 15:00 盤後檢討", "確認執行台股 15:00 盤後檢討重跑",
+        TW_POST_CLOSE_LATEST_URL, "重跑 15:00 盤後檢討", "確認執行台股 15:00 盤後檢討重跑",
         ("./venv/bin/python", "scripts/orchestrator/approved_pre_open_delivery.py", "--window", "post_close_1500", "--manual-rerun"),
         "TW artifacts / TW Dashboard only",
     ),

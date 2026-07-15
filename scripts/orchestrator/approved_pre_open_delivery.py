@@ -26,10 +26,12 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from app.reports.multi_window_formatter import line_notification_text  # noqa: E402
+from app.reports.decision_intelligence_v4 import delivery_summary_lines, project_decision_intelligence_v4  # noqa: E402
 from app.dashboard.dashboard_url_registry import get_tw_dashboard_url, normalize_delivery_dashboard_url  # noqa: E402
 from app.dashboard.window_snapshot_archive import write_snapshot  # noqa: E402
 from app.reports.report_content_contract import build_report_content_artifact  # noqa: E402
 from app.reports.window_context import get_window_context  # noqa: E402
+from app.reports.window_report_contract import get_window_report_contract  # noqa: E402
 from app.runtime.production_run_guard import evaluate_pre_open_run_guard  # noqa: E402
 from app.runtime.runtime_diagnostics import build_guard_result, write_json  # noqa: E402
 from app.runtime.timeout_policy import TimeoutPolicy, timeout_policy_from_env  # noqa: E402
@@ -360,6 +362,20 @@ def _load_json(path: Path) -> dict[str, Any]:
         return {}
 
 
+def _tw_delivery_projection(window_id: str) -> tuple[dict[str, Any], dict[str, Any]]:
+    payload = _load_json(REPO_ROOT / "artifacts/runtime/tw_daily_tactical/tw_daily_tactical_latest.json")
+    review = _load_json(REPO_ROOT / "artifacts/runtime/formal_prediction_review_runtime_latest.json")
+    normalized_window = "post_close_1500" if window_id == "prediction_review_1500" else window_id
+    return project_decision_intelligence_v4("TW", normalized_window, payload), review
+
+
+def _delivery_dashboard_url(window_id: str, requested_url: str) -> str:
+    normalized_window = "post_close_1500" if window_id == "prediction_review_1500" else window_id
+    if normalized_window == "post_close_1500":
+        return get_window_report_contract("TW", normalized_window).dashboard_url
+    return normalize_delivery_dashboard_url("TW", requested_url)
+
+
 def _production_email_summary() -> dict[str, Any]:
     export = _load_json(REPO_ROOT / "templates/four_window_dashboard_production_runtime_export.example.json")
     prediction = _load_json(REPO_ROOT / "artifacts/runtime/formal_prediction_runtime_latest.json")
@@ -389,8 +405,9 @@ def _production_email_summary() -> dict[str, Any]:
 
 
 def build_email_body(window_id: str, run_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str) -> str:
-    dashboard_url = normalize_delivery_dashboard_url("TW", dashboard_url)
+    dashboard_url = _delivery_dashboard_url(window_id, dashboard_url)
     summary = _production_email_summary()
+    projection, review = _tw_delivery_projection(window_id)
     titles = {
         "pre_open_0700": "【Stock AI】07:00 盤前決策摘要已更新",
         "intraday_1305": "【Stock AI】13:05 盤中追蹤已更新",
@@ -418,6 +435,7 @@ def build_email_body(window_id: str, run_id: str, generated_at: str, pipeline_st
         f"- Snapshot 累積：prediction {summary['prediction_snapshots']}、actual outcome {summary['actual_snapshots']}、review {summary['review_snapshots']}",
         f"- Calibration gate：{summary['calibration_gate']}",
     ]
+    lines += ["", "批次決策摘要：", *[f"- {line}" for line in delivery_summary_lines(projection, review_payload=review)]]
     top = [s for s in summary["top_signals"] if s.get("rating") and s.get("total_score")]
     if top:
         lines += ["", "今日摘要 Top Signals："]
@@ -454,9 +472,18 @@ def build_line_message(window_id: str, generated_at: str, pipeline_status: str, 
     Runtime diagnostics, pipeline state, stock details, and raw artifact keys stay out
     of LINE. The full decision content belongs on the Dashboard.
     """
-    dashboard_url = normalize_delivery_dashboard_url("TW", dashboard_url)
+    dashboard_url = _delivery_dashboard_url(window_id, dashboard_url)
     context = get_window_context(window_id)
-    return tail_text(line_notification_text(context, dashboard_url or DEFAULT_DECISION_INTELLIGENCE_DASHBOARD_URL), LINE_BODY_LIMIT)
+    projection, review = _tw_delivery_projection(window_id)
+    return tail_text(
+        line_notification_text(
+            context,
+            dashboard_url or DEFAULT_DECISION_INTELLIGENCE_DASHBOARD_URL,
+            projection,
+            review,
+        ),
+        LINE_BODY_LIMIT,
+    )
 
 
 def send_concise_line(window_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str) -> dict[str, Any]:
@@ -633,7 +660,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    args.dashboard_url = normalize_delivery_dashboard_url("TW", args.dashboard_url)
+    args.dashboard_url = _delivery_dashboard_url(args.window, args.dashboard_url)
     cfg = window_config(args.window)
     generated = now_taipei()
     generated_at = generated.isoformat()

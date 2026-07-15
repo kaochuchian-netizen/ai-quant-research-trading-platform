@@ -257,6 +257,53 @@ def compact_summary(projection: dict[str, Any], channel: str) -> str:
     return f"{prefix}：{body}"
 
 
+def seven_day_review_summary(review_payload: dict[str, Any] | None) -> dict[str, Any]:
+    """Summarize only explicit seven-day review values; missing data stays pending."""
+    stocks = review_payload.get("stocks", []) if isinstance(review_payload, dict) else []
+    rates: list[float] = []
+    for stock in stocks if isinstance(stocks, list) else []:
+        if not isinstance(stock, dict):
+            continue
+        value = stock.get("seven_day_hit_rate")
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            rates.append(float(value))
+    hit_rate = (sum(rates) / len(rates)) if rates else None
+    return {
+        "sample_count": len(rates),
+        "hit_rate": hit_rate,
+        "status": "available" if rates else "pending_insufficient_sample",
+        "invented_values": False,
+    }
+
+
+def delivery_summary_lines(
+    projection: dict[str, Any],
+    *,
+    review_payload: dict[str, Any] | None = None,
+) -> list[str]:
+    """Render actual delivery values, never contract field names or N placeholders."""
+    if projection.get("market") == "TW" and projection.get("window") == "post_close_1500":
+        dist = projection.get("outcome_distribution", {})
+        outcome_line = (
+            "今日結果："
+            f"命中 {int(dist.get('win', 0))}、"
+            f"未觸發 {int(dist.get('not_triggered', 0))}、"
+            f"失敗 {int(dist.get('loss', 0))}、"
+            f"無交易 {int(dist.get('no_trade', 0))}、"
+            f"待確認 {int(dist.get('pending', 0))}"
+        )
+        seven_day = seven_day_review_summary(review_payload)
+        if seven_day["hit_rate"] is None:
+            review_line = f"7 日檢討：待累積（有效樣本 {seven_day['sample_count']}，命中率待確認）"
+        else:
+            review_line = (
+                f"7 日檢討：有效樣本 {seven_day['sample_count']}，"
+                f"平均命中率 {seven_day['hit_rate']:.1%}"
+            )
+        return [outcome_line, review_line]
+    return [compact_summary(projection, "line")]
+
+
 def inventory_rows() -> list[dict[str, Any]]:
     return [
         {"market": market, "window": window, **spec}

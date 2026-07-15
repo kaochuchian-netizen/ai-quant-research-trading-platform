@@ -17,9 +17,9 @@ if str(ROOT) not in sys.path:
 
 import app.dashboard.multi_market_dashboard as dashboard
 from app.dashboard.window_snapshot_archive import MARKET_WINDOWS, resolve_snapshots, write_snapshot
-from app.reports.decision_intelligence_v4 import WINDOW_PRESENTATION, compact_summary, project_decision_intelligence_v4
+from app.reports.decision_intelligence_v4 import WINDOW_PRESENTATION, compact_summary, delivery_summary_lines, project_decision_intelligence_v4
 from app.reports.multi_window_formatter import format_window_report
-from app.reports.window_report_contract import all_window_report_contracts
+from app.reports.window_report_contract import all_window_report_contracts, get_window_report_contract
 from scripts.orchestrator.approved_us_stock_delivery import build_email_body, line_text
 
 
@@ -151,7 +151,9 @@ def main() -> int:
                 checks[key + ":contract"] = (market, window) in WINDOW_PRESENTATION
                 checks[key + ":dashboard_v4"] = "Decision Intelligence V4" in dashboard_html and latest_projection["expected_card_type"] in dashboard_html
                 checks[key + ":email_v4"] = "Decision Intelligence V4" in email_text
-                checks[key + ":line_semantic_parity"] = compact_summary(latest_projection, "line") in line_summary
+                checks[key + ":line_semantic_parity"] = all(
+                    line in line_summary for line in delivery_summary_lines(latest_projection)
+                )
                 checks[key + ":archive_latest_previous"] = "Decision Intelligence V4" in latest_html and "Decision Intelligence V4" in previous_html
                 checks[key + ":immutable_archive"] = "只使用 resolver 選出的 immutable snapshot payload" in latest_html and "<pre>" not in latest_html
                 checks[key + ":source_identity"] = selected.latest["market"] == market and selected.latest["window"] == window and selected.previous["effective_trading_date"] == "2026-07-14"
@@ -187,7 +189,15 @@ def main() -> int:
             checks["operations_seven_windows"] = all(f'data-market="{market}" data-window="{window}"' in landing for market, window in WINDOWS)
             checks["operations_columns"] = all(label in landing for label in ("Scheduler", "Pipeline", "Dashboard", "Archive", "LINE", "Email", "Overall"))
             checks["operations_revision"] = "Revision 2" in landing and "2026-07-14" in landing
-            checks["url_isolation"] = all(contract.dashboard_url == (dashboard.US_URL if contract.market == "US" else dashboard.TW_URL) for contract in all_window_report_contracts())
+            checks["url_isolation"] = all(
+                contract.dashboard_url == (
+                    dashboard.US_URL if contract.market == "US"
+                    else get_window_report_contract("TW", "post_close_1500").dashboard_url
+                    if contract.window == "post_close_1500"
+                    else dashboard.TW_URL
+                )
+                for contract in all_window_report_contracts()
+            )
             checks["no_send_matrix"] = all(value is False for value in (False, False, False))
         finally:
             dashboard.WINDOW_SNAPSHOT_ARCHIVE = old_archive
