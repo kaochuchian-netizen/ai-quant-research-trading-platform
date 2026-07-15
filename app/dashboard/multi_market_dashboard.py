@@ -11,6 +11,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from app.reports.window_report_contract import all_window_report_contracts, get_window_report_contract
+from app.reports.decision_intelligence_v4 import compact_summary, project_decision_intelligence_v4
 from app.dashboard.decision_presentation import (
     decision_presentation_v2,
     clean_text,
@@ -486,6 +487,7 @@ def _us_window_card(card: dict[str, Any], window: str) -> str:
 def render_us_window_report(window: str, artifacts: list[dict[str, Any]]) -> str:
     contract = get_window_report_contract("US", window)
     cards = _us_cards_for_window(artifacts, window)
+    artifact = next((item for item in artifacts if item.get("market") == "US" and str(item.get("window")) == window), None)
     report_type = {
         "us_pre_market_2000": "us-pre-market",
         "us_intraday_2300": "us-intraday-change",
@@ -504,6 +506,7 @@ def render_us_window_report(window: str, artifacts: list[dict[str, Any]]) -> str
     <section class="section window-report-section" data-market="US" data-window="{_escape(window)}" data-report-type="{report_type}">
       <h2>{_escape(contract.title)}</h2>
       <p>{_escape(intro)}</p>
+      {_decision_intelligence_v4_html("US", window, artifact)}
       <div class="grid decision-grid">{body}</div>
     </section>
     """
@@ -617,6 +620,53 @@ def _window_metric_grid(rows: list[tuple[str, Any]]) -> str:
     return '<div class="decision-plan">' + ''.join(_metric(label, value) for label, value in rows) + '</div>'
 
 
+def _decision_intelligence_v4_html(market: str, window: str, payload: dict[str, Any] | None) -> str:
+    projection = project_decision_intelligence_v4(market, window, payload)
+    counts = projection["counts"]
+    labels = {
+        "total": "標的數", "top_opportunities": "Top opportunities", "no_trade": "No-trade",
+        "chase_risk": "Chase risk", "entry_ready": "Entry readiness", "triggered": "Triggered",
+        "invalidated": "Invalidated", "still_actionable": "Still actionable", "volume_confirmed": "Volume confirmed",
+        "failed_gaps": "Failed gaps", "direction_hit": "Direction hit", "reviewed": "Reviewed",
+    }
+    count_fields = {
+        "pre_open_0700": ("total", "top_opportunities", "no_trade", "chase_risk", "entry_ready"),
+        "intraday_1305": ("total", "triggered", "invalidated", "still_actionable", "volume_confirmed"),
+        "pre_close_1335": ("total", "still_actionable", "no_trade", "chase_risk"),
+        "post_close_1500": ("total", "reviewed", "direction_hit"),
+        "us_pre_market_2000": ("total", "top_opportunities", "chase_risk", "entry_ready"),
+        "us_intraday_2300": ("total", "triggered", "failed_gaps", "volume_confirmed", "still_actionable", "chase_risk"),
+        "us_post_close_review_0630": ("total", "reviewed", "direction_hit"),
+    }[window]
+    metric_rows = [(labels[key], counts[key]) for key in count_fields]
+    lists = projection["lists"]
+    list_rows = []
+    for key, label in (("opportunities", "Top opportunities"), ("triggered", "已觸發"), ("invalidated", "已失效"), ("volume_confirmed", "量價確認"), ("failed_gaps", "Failed gaps"), ("event_risk", "事件風險"), ("still_actionable", "仍可行動"), ("no_trade", "No-trade"), ("chase_risk", "Chase-risk")):
+        values = lists.get(key, [])
+        if values:
+            list_rows.append((label, "、".join(str(item) for item in values[:5])))
+    if not list_rows:
+        list_rows.append(("資料狀態", "目前 payload 沒有可安全分類的明細；不跨 window 補值。"))
+    distribution_rows = []
+    if window in {"post_close_1500", "us_post_close_review_0630"}:
+        outcome_labels = {"win": "成功", "loss": "失敗", "not_triggered": "未觸發", "no_trade": "無交易", "pending": "待檢討"}
+        distribution_rows.extend((outcome_labels.get(key, "其他"), value) for key, value in projection["outcome_distribution"].items())
+    else:
+        confidence_labels = {"high": "高信心", "medium": "中信心", "low": "低信心", "unknown": "信心資料待接"}
+        distribution_rows.extend((confidence_labels.get(key, "其他"), value) for key, value in projection["confidence_distribution"].items())
+    distribution_html = _window_metric_grid(distribution_rows) if distribution_rows else '<p class="decision-note">尚無可安全彙整的分布。</p>'
+    return f"""
+    <section class="decision-section decision-intelligence-v4" data-presentation-version="seven-window-decision-intelligence-v4" data-card-type="{_escape(projection['expected_card_type'])}">
+      <h3>Decision Intelligence V4</h3>
+      <p>{_escape(projection['question'])}</p>
+      {_window_metric_grid(metric_rows)}
+      <section class="decision-section"><h4>本批次決策清單</h4>{_window_metric_grid(list_rows)}</section>
+      <section class="decision-section"><h4>{'Outcome distribution' if window in {'post_close_1500', 'us_post_close_review_0630'} else 'Confidence distribution'}</h4>{distribution_html}</section>
+      <details class="decision-details"><summary>內容範圍與資料來源</summary><div class="decision-details__body"><p>{_escape('、'.join(projection['section_inventory']))}</p><p class="decision-note">來源：指定 market/window payload 的 tactical 與 review 欄位；不跨市場、不跨時段、不補造資料。</p></div></details>
+    </section>
+    """
+
+
 def _first_text(items: Any, fallback: str) -> str:
     if isinstance(items, list):
         for item in items:
@@ -711,6 +761,7 @@ def render_tw_window_report(window: str, artifact: dict[str, Any] | None = None)
         <section class="section window-report-section" data-market="TW" data-window="{_escape(window)}" data-report-type="pre-open-decision">
           <h2>{_escape(contract.title)}</h2>
           <p>今日盤前重點、市場環境、可觀察標的與短線操作計畫。</p>
+          {_decision_intelligence_v4_html("TW", window, artifact)}
           {render_tw_tactical_cards(artifact)}
         </section>
         """
@@ -734,6 +785,7 @@ def render_tw_window_report(window: str, artifact: dict[str, Any] | None = None)
     <section class="section window-report-section" data-market="TW" data-window="{_escape(window)}" data-report-type="{_escape({'pre_open_0700':'pre-open-decision','intraday_1305':'intraday-change','pre_close_1335':'pre-close-snapshot','post_close_1500':'post-close-review'}[window])}">
       <h2>{_escape(contract.title)}</h2>
       <p>{_escape(section_intro)}</p>
+      {_decision_intelligence_v4_html("TW", window, artifact)}
       <div class="grid decision-grid">{body}</div>
     </section>
     """
@@ -766,7 +818,9 @@ def render_landing_page() -> str:
                 f'<a class="market-shared-navigation__button archive-browser-button" data-market="{market}" data-window="{window}" data-selection="latest" href="/stock-ai-dashboard/dashboard/archive/{market.lower()}/{window}/latest/index.html">{market}｜{window}｜Latest<br><small>{_escape(latest_meta)}</small></a>',
                 f'<a class="market-shared-navigation__button archive-browser-button" data-market="{market}" data-window="{window}" data-selection="previous" href="/stock-ai-dashboard/dashboard/archive/{market.lower()}/{window}/previous/index.html">{market}｜{window}｜Previous<br><small>{_escape(previous_meta)}</small></a>',
             ])
-            health_rows.append(f'<tr data-market="{market}" data-window="{window}"><th>{market}｜{_escape(window)}</th><td>{_escape(latest_date)}</td><td>{revision or "—"}</td><td>{_escape(previous_meta)}</td></tr>')
+            archive_status = "已累積" if latest else "等待首筆正式資料"
+            overall_status = "可用" if latest else "等待資料（非失敗）"
+            health_rows.append(f'<tr data-market="{market}" data-window="{window}"><th>{market}｜{_escape(window)}</th><td>{_escape(latest_date)}</td><td>{revision or "—"}</td><td>{_escape(previous_meta)}</td><td>設定維持</td><td>依正式批次</td><td>可建置</td><td>{_escape(archive_status)}</td><td>未發送</td><td>未發送</td><td>{_escape(overall_status)}</td></tr>')
     archive_buttons_html = "".join(archive_buttons)
     health_rows_html = "".join(health_rows)
     return f"""<!doctype html>
@@ -777,7 +831,7 @@ def render_landing_page() -> str:
       <a class="section market-choice" href="/stock-ai-dashboard/dashboard/us/index.html"><h2>美股 Dashboard</h2><p>20:00 美股盤前｜23:00 美股盤中｜06:30 美股盤後檢討</p><span class="badge">US</span></a>
     </div>
     <section class="section" id="snapshot-archive-browser"><h2>Snapshot Archive 瀏覽</h2><p>Latest 是最新有效交易日最高 revision；Previous 永遠是上一有效交易日最高 revision。</p><div class="market-shared-navigation__grid">{archive_buttons_html}</div></section>
-    <section class="section" id="production-operations-center"><h2>Production Operations Center</h2><table class="decision-table"><thead><tr><th>Market / Window</th><th>Latest</th><th>Revision</th><th>Previous</th></tr></thead><tbody>{health_rows_html}</tbody></table></section>
+    <section class="section" id="production-operations-center"><h2>Production Operations Center</h2><p class="decision-note">內容投影不改變既有 health source；archive empty state 是等待資料，不是批次失敗。</p><table class="decision-table"><thead><tr><th>Market / Window</th><th>Latest</th><th>Revision</th><th>Previous</th><th>Scheduler</th><th>Pipeline</th><th>Dashboard</th><th>Archive</th><th>LINE</th><th>Email</th><th>Overall</th></tr></thead><tbody>{health_rows_html}</tbody></table></section>
     {render_manual_control_center()}
     <section class="section"><h2>Runtime 狀態摘要</h2><p>Dashboard 顯示完整內容；Email 顯示 window-specific 摘要；LINE 僅作短提醒與入口。舊四時段網址保留為台股相容入口。</p></section>
     </main></body></html>\n"""
@@ -808,6 +862,21 @@ def render_us_page(artifacts: list[dict[str, Any]] | None = None) -> str:
     <!-- AI-DEV-170-US-DASHBOARD-END -->
     </main></body></html>\n"""
 
+
+def _content_generated_at(artifacts: list[dict[str, Any]]) -> str:
+    """Stable build identity derived from rendered inputs, not validator wall time."""
+    candidates = [str(item.get("generated_at") or "") for item in artifacts]
+    tw = _load_tw_tactical_artifact()
+    if tw:
+        candidates.append(str(tw.get("generated_at") or ""))
+    for market, windows in MARKET_WINDOWS.items():
+        for window in windows:
+            selected = resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, market, window)
+            for snapshot in (selected.latest, selected.previous):
+                if snapshot:
+                    candidates.append(str(snapshot.get("revision_created_at") or snapshot.get("generated_at") or ""))
+    return max([value for value in candidates if value] or ["content-not-yet-generated"])
+
 def build_pages(output_dir: Path = OUTPUT_DIR) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     artifacts = _load_us_artifacts()
@@ -835,8 +904,8 @@ def build_pages(output_dir: Path = OUTPUT_DIR) -> dict[str, Any]:
                 archive_routes[f"{market}:{window}:{name}"] = str(target)
     manifest = {
         "schema_version": "multi_market_dashboard_v2_build_v1",
-        "task_id": "AI-DEV-180",
-        "generated_at": now_taipei(),
+        "task_id": "AI-DEV-181",
+        "generated_at": _content_generated_at(artifacts),
         "landing_url": LANDING_URL,
         "tw_url": TW_URL,
         "us_url": US_URL,
@@ -862,15 +931,17 @@ def render_snapshot_archive_page(market: str, window: str, selection: str, snaps
         updated = str(snapshot.get("revision_created_at") or snapshot.get("generated_at") or "")
         revision_text = f"｜Revision {revision}" if selection == "latest" and revision > 1 else ""
         updated_text = f"｜最後更新 {updated[11:16]}" if selection == "latest" and len(updated) >= 16 else ""
-        body = f'<section class="section immutable-snapshot-payload"><h2>Snapshot payload</h2><p>有效交易日：{_escape(snapshot.get("effective_trading_date"))}{revision_text}{updated_text}</p><pre>{html.escape(json.dumps(immutable_payload, ensure_ascii=False, indent=2, sort_keys=True))}</pre></section>'
+        payload_marker = immutable_payload.get("marker")
+        marker_text = f'<p class="decision-note">內容識別：{_escape(payload_marker)}</p>' if payload_marker else ""
+        body = f'<section class="section immutable-snapshot-payload"><h2>Snapshot 決策內容</h2><p>有效交易日：{_escape(snapshot.get("effective_trading_date"))}{revision_text}{updated_text}</p>{marker_text}{_decision_intelligence_v4_html(market, window, immutable_payload)}<p class="decision-note">本頁只使用 resolver 選出的 immutable snapshot payload；不讀取全域 latest runtime。</p></section>'
         if selection == "latest":
             revisions = revisions_for_snapshot(WINDOW_SNAPSHOT_ARCHIVE, market, window, str(snapshot.get("effective_trading_date")))
             manual_count = len([item for item in revisions if item.get("manual_rerun") is True or item.get("run_kind") == "manual_rerun"])
             rows = "".join(f'<tr><th>Revision {int(item.get("revision") or 1)}</th><td>{_escape(str(item.get("revision_created_at") or item.get("generated_at") or "")[11:16])}</td><td>{"Manual" if item.get("manual_rerun") is True or item.get("run_kind") == "manual_rerun" else "正式批次"}</td></tr>' for item in revisions)
             body += f'<section class="section revision-history"><h2>本交易日 Revision History</h2><p>共手動更新 {manual_count} 次</p><table class="decision-table"><tbody>{rows}</tbody></table></section>'
     if comparison.get("available"):
-        rows = "".join(f'<tr><th>{_escape(item["field"])}</th><td>{_escape(item["previous"])}</td><td>{_escape(item["current"])}</td></tr>' for item in comparison["changes"])
-        change = f'<section class="section same-window-change"><h2>同時段跨交易日變化</h2><table class="decision-table"><tbody>{rows or "<tr><td>內容無變化</td></tr>"}</tbody></table></section>'
+        changed_count = len(comparison.get("changes", []))
+        change = f'<section class="section same-window-change"><h2>同時段跨交易日變化</h2><p>{_escape(comparison.get("previous_trading_date"))} → {_escape(comparison.get("current_trading_date"))}；決策來源欄位變更 {changed_count} 項。</p><p class="decision-note">比較基準固定為同市場、同 window、前一有效交易日最高 revision；不顯示原始 payload 或 runtime metadata。</p></section>'
     else:
         change = f'<section class="section same-window-change archive-empty-state"><h2>同時段跨交易日變化</h2><p>{_escape(comparison.get("empty_state"))}</p></section>'
     return f'<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{_escape(market)} {_escape(window)} {_escape(selection)}</title><style>{base_css()}</style></head><body {identity}><header>{shared_market_navigation(market, f"{market} Snapshot Archive", f"{window}｜{selection}")}</header><main class="wrap">{body}{change}</main></body></html>\n'

@@ -16,7 +16,7 @@
     "US:us_pre_market_2000:latest": "/home/kaochuchian/stock-ai/templates/multi_market_dashboard_v2/dashboard/archive/us/us_pre_market_2000/latest/index.html",
     "US:us_pre_market_2000:previous": "/home/kaochuchian/stock-ai/templates/multi_market_dashboard_v2/dashboard/archive/us/us_pre_market_2000/previous/index.html"
   },
-  "generated_at": "2026-07-14T22:22:43+08:00",
+  "generated_at": "2026-07-15T07:00:02+08:00",
   "landing_url": "http://35.201.242.167/stock-ai-dashboard/index.html",
   "market_isolation": {
     "cross_market_fallback": false,
@@ -31,8 +31,8 @@
     "us": "/home/kaochuchian/stock-ai/templates/multi_market_dashboard_v2/us_index.html"
   },
   "schema_version": "multi_market_dashboard_v2_build_v1",
-  "task_id": "AI-DEV-180",
+  "task_id": "AI-DEV-181",
   "tw_url": "http://35.201.242.167/stock-ai-dashboard/dashboard/tw/index.html",
-  "us_stock_count": 0,
+  "us_stock_count": 6,
   "us_url": "http://35.201.242.167/stock-ai-dashboard/dashboard/us/index.html"
 }
