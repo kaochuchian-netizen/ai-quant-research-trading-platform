@@ -44,6 +44,7 @@ from scripts.orchestrator.notify_stage_report import (  # noqa: E402
 SCHEMA_VERSION = "approved_scheduler_delivery_v1"
 TASK_ID = "AI-DEV-112"
 DEFAULT_DASHBOARD_DIR = Path("/var/www/stock-ai-dashboard")
+LEGACY_DEBUG_ROUTE = Path("debug/legacy")
 DEFAULT_MAIL_ENV_FILE = Path("~/.config/stock-ai-orchestrator/mail.env")
 WINDOW_SNAPSHOT_ARCHIVE = REPO_ROOT / "artifacts/archive/window_snapshots"
 DEFAULT_DECISION_INTELLIGENCE_DASHBOARD_URL = get_tw_dashboard_url()
@@ -320,13 +321,16 @@ def render_dashboard(window_id: str, run_id: str, generated_at: str, pipeline_st
 <body><main><section><h1>Stock AI Legacy / Debug Landing</h1><p>正式決策入口已移至四時段 Decision Intelligence Dashboard。此頁只保留 legacy/debug 狀態入口，不再呈現 raw pipeline report content。</p><p><a href=\"{html.escape(dashboard_url)}\">前往正式四時段 Decision Intelligence Dashboard</a></p></section><section><h2>本次批次狀態</h2><table>{body}</table><p>Raw logs / pipeline details stay in artifacts and diagnostics only.</p></section></main></body></html>"""
 
 def publish_dashboard(publish_dir: Path, window_id: str, run_id: str, generated_at: str, pipeline_status: str, output_tail: str) -> dict[str, Any]:
-    publish_dir.mkdir(parents=True, exist_ok=True)
-    index_path = publish_dir / "index.html"
-    manifest_path = publish_dir / "publish_manifest.json"
-    index_path.write_text(
-        render_dashboard(window_id, run_id, generated_at, pipeline_status, output_tail),
-        encoding="utf-8",
-    )
+    # Route ownership contract: scheduler diagnostics never own the production
+    # root index. The CLI argument is the static root; legacy output is always
+    # isolated below /debug/legacy.
+    target_dir = publish_dir / LEGACY_DEBUG_ROUTE
+    target_dir.mkdir(parents=True, exist_ok=True)
+    index_path = target_dir / "index.html"
+    manifest_path = target_dir / "publish_manifest.json"
+    staged_index = target_dir / ".index.html.ai-dev-181d.tmp"
+    staged_index.write_text(render_dashboard(window_id, run_id, generated_at, pipeline_status, output_tail), encoding="utf-8")
+    os.replace(staged_index, index_path)
     manifest = {
         "schema_version": "approved_scheduler_dashboard_manifest_v1",
         "task_id": TASK_ID,
@@ -564,7 +568,7 @@ def post_delivery_artifact_wiring(*, window_id: str, generated_at: str) -> dict[
     commands.extend([
         ["scripts/orchestrator/build_four_window_dashboard_production_runtime_export_v1.py", "--pretty"],
         ["scripts/orchestrator/build_four_window_dashboard_route_preview.py", "--pretty"],
-        ["scripts/orchestrator/publish_four_window_dashboard_preview_v1.py", "--pretty"],
+        ["scripts/orchestrator/publish_four_window_dashboard_preview_v1.py", "--no-index-link", "--pretty"],
     ])
     results = [_run_internal_artifact_command(cmd) for cmd in commands]
     return {"ok": all(item["ok"] for item in results), "window_id": window_id, "run_date": run_date, "actual_send_performed": False, "scheduler_modified": False, "commands": results}

@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import html
+import hashlib
 import json
+import os
 import re
 import shutil
 from datetime import datetime
@@ -43,6 +45,8 @@ LANDING_ROUTE = "/index.html"
 TW_ROUTE = "/dashboard/tw/index.html"
 US_ROUTE = "/dashboard/us/index.html"
 OLD_ROUTE = "/dashboard/decision-intelligence/four-window-preview/index.html"
+LEGACY_DEBUG_ROUTE = "/debug/legacy/index.html"
+PRODUCTION_LANDING_OWNER = "app.dashboard.multi_market_dashboard.publish_pages"
 TW_URL = PUBLIC_BASE_URL + TW_ROUTE
 US_URL = PUBLIC_BASE_URL + US_ROUTE
 LANDING_URL = PUBLIC_BASE_URL + LANDING_ROUTE
@@ -522,7 +526,7 @@ def base_css() -> str:
     body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f6f8f9;color:#17262c;line-height:1.55}
     header,.hero{background:#0f2c33;color:white;padding:24px 18px}.wrap{max-width:1120px;margin:0 auto;padding:18px;padding-left:max(18px,env(safe-area-inset-left));padding-right:max(18px,env(safe-area-inset-right))}.nav{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.nav a,.btn{display:inline-block;background:#fff;color:#0f2c33;text-decoration:none;border-radius:8px;padding:10px 12px;font-weight:800;border:1px solid #cbd8dc}
     """ + SHARED_NAVIGATION_CSS + TW_TACTICAL_CSS + """
-    .section{background:white;border:1px solid #dce5e8;border-radius:10px;padding:16px;margin:14px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}.manual-batch-control-center{overflow-wrap:anywhere}.manual-batch-panel{border:1px solid #dce5e8;border-radius:10px;padding:16px;background:#fbfdfe}.manual-batch-buttons{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}.manual-batch-button,#manual-batch-confirm{min-height:44px;border:1px solid #b9cbd1;border-radius:8px;background:#fff;color:#0f2c33;font-weight:800;padding:12px;text-align:left}.manual-batch-pin{display:grid;gap:8px;margin:12px 0;font-weight:800}.manual-batch-pin input{box-sizing:border-box;width:100%;max-width:280px;min-height:44px;border:1px solid #b9cbd1;border-radius:8px;padding:10px;font-size:16px}.stock-card,.status-card{background:#fff;border:1px solid #d9e4e7;border-radius:12px;padding:16px;overflow-wrap:anywhere;word-break:break-word}.card-kicker{font-weight:800;color:#35606b;font-size:13px}h1,h2,h3{margin:0 0 10px}dl{display:grid;gap:8px}dt{font-weight:800;color:#51666d}dd{margin:0}.badge{display:inline-block;border-radius:999px;padding:6px 10px;background:#e8f5e9;color:#225d28;font-weight:800}.warn{background:#fff9e8}.market-choice{display:block;text-decoration:none;color:#17262c}.market-choice h2{color:#0f5368}@media(max-width:640px){.wrap{padding:18px;padding-left:max(18px,env(safe-area-inset-left));padding-right:max(18px,env(safe-area-inset-right))}.grid{grid-template-columns:1fr;gap:16px}.nav a{width:100%;box-sizing:border-box}.manual-batch-buttons{grid-template-columns:1fr}.manual-batch-button,#manual-batch-confirm{width:100%;box-sizing:border-box}.manual-batch-pin input{max-width:100%}}
+    .section{background:white;border:1px solid #dce5e8;border-radius:10px;padding:16px;margin:14px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}.archive-market-group{margin-top:18px}.operations-table-scroll{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}.operations-table{min-width:980px}.manual-batch-control-center{overflow-wrap:anywhere}.manual-batch-panel{border:1px solid #dce5e8;border-radius:10px;padding:16px;background:#fbfdfe}.manual-batch-buttons{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}.manual-batch-button,#manual-batch-confirm{min-height:44px;border:1px solid #b9cbd1;border-radius:8px;background:#fff;color:#0f2c33;font-weight:800;padding:12px;text-align:left}.manual-batch-pin{display:grid;gap:8px;margin:12px 0;font-weight:800}.manual-batch-pin input{box-sizing:border-box;width:100%;max-width:280px;min-height:44px;border:1px solid #b9cbd1;border-radius:8px;padding:10px;font-size:16px}.stock-card,.status-card{background:#fff;border:1px solid #d9e4e7;border-radius:12px;padding:16px;overflow-wrap:anywhere;word-break:break-word}.card-kicker{font-weight:800;color:#35606b;font-size:13px}h1,h2,h3{margin:0 0 10px}dl{display:grid;gap:8px}dt{font-weight:800;color:#51666d}dd{margin:0}.badge{display:inline-block;border-radius:999px;padding:6px 10px;background:#e8f5e9;color:#225d28;font-weight:800}.warn{background:#fff9e8}.market-choice{display:block;text-decoration:none;color:#17262c}.market-choice h2{color:#0f5368}@media(max-width:640px){.wrap{padding:18px;padding-left:max(18px,env(safe-area-inset-left));padding-right:max(18px,env(safe-area-inset-right))}.grid{grid-template-columns:1fr;gap:16px}.nav a{width:100%;box-sizing:border-box}.manual-batch-buttons{grid-template-columns:1fr}.manual-batch-button,#manual-batch-confirm{width:100%;box-sizing:border-box}.manual-batch-pin input{max-width:100%}}
     """
 
 
@@ -803,7 +807,7 @@ def shared_market_navigation(active_market: str, title: str, subtitle: str) -> s
     return f"""<div class="wrap section market-shared-navigation market-shared-navigation--v1" data-shared-navigation="tw-us" data-active-market="{active}"><h1>{html.escape(title)}</h1><nav class="market-shared-navigation__grid market-shared-navigation__grid--responsive" aria-label="Market Dashboard Navigation"><a class="market-shared-navigation__button" href="/stock-ai-dashboard/index.html">回到總覽</a><a class="market-shared-navigation__button" href="/stock-ai-dashboard/dashboard/tw/index.html"{current_tw}>台股 Dashboard</a><a class="market-shared-navigation__button" href="/stock-ai-dashboard/dashboard/us/index.html"{current_us}>美股 Dashboard</a></nav><p class="market-shared-navigation__subtitle">{html.escape(subtitle)}</p></div>"""
 
 def render_landing_page() -> str:
-    archive_buttons = []
+    archive_buttons: dict[str, list[str]] = {"TW": [], "US": []}
     health_rows = []
     for market, windows in MARKET_WINDOWS.items():
         for window in windows:
@@ -822,14 +826,17 @@ def render_landing_page() -> str:
             previous_meta = str(previous.get("effective_trading_date")) if previous else "尚無上一有效交易日"
             runtime_provenance = _operations_runtime_provenance(market, window, latest)
             provenance_label = "Validation Only" if runtime_provenance in {"fixture", "validator", "preview", "dry_run", "controlled_no_send"} else runtime_provenance
-            archive_buttons.extend([
+            archive_buttons[market].extend([
                 f'<a class="market-shared-navigation__button archive-browser-button" data-market="{market}" data-window="{window}" data-selection="latest" href="/stock-ai-dashboard/dashboard/archive/{market.lower()}/{window}/latest/index.html">{market}｜{window}｜Latest<br><small>{_escape(latest_meta)}</small></a>',
                 f'<a class="market-shared-navigation__button archive-browser-button" data-market="{market}" data-window="{window}" data-selection="previous" href="/stock-ai-dashboard/dashboard/archive/{market.lower()}/{window}/previous/index.html">{market}｜{window}｜Previous<br><small>{_escape(previous_meta)}</small></a>',
             ])
             archive_status = "已累積" if latest else "等待首筆正式資料"
             overall_status = "可用" if latest else "等待資料（非失敗）"
             health_rows.append(f'<tr data-market="{market}" data-window="{window}"><th>{market}｜{_escape(window)}</th><td>{_escape(latest_date)}</td><td>{revision or "—"}</td><td>{_escape(previous_meta)}</td><td>{_escape(provenance_label)}</td><td>設定維持</td><td>依正式批次</td><td>可建置</td><td>{_escape(archive_status)}</td><td>未發送</td><td>未發送</td><td>{_escape(overall_status)}</td></tr>')
-    archive_buttons_html = "".join(archive_buttons)
+    archive_buttons_html = "".join(
+        f'<section class="archive-market-group" data-market="{market}"><h3>{"台股批次" if market == "TW" else "美股批次"}</h3><div class="market-shared-navigation__grid">{"".join(archive_buttons[market])}</div></section>'
+        for market in ("TW", "US")
+    )
     health_rows_html = "".join(health_rows)
     return f"""<!doctype html>
     <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>AI Multi-Market Decision Intelligence</title><style>{base_css()}</style></head>
@@ -838,8 +845,8 @@ def render_landing_page() -> str:
       <a class="section market-choice" href="/stock-ai-dashboard/dashboard/tw/index.html"><h2>台股 Dashboard</h2><p>07:00 盤前｜13:05 盤中｜13:35 收盤快照｜15:00 盤後／檢討</p><span class="badge">TW</span></a>
       <a class="section market-choice" href="/stock-ai-dashboard/dashboard/us/index.html"><h2>美股 Dashboard</h2><p>20:00 美股盤前｜23:00 美股盤中｜06:30 美股盤後檢討</p><span class="badge">US</span></a>
     </div>
-    <section class="section" id="snapshot-archive-browser"><h2>Snapshot Archive 瀏覽</h2><p>Latest 是最新有效交易日最高 revision；Previous 永遠是上一有效交易日最高 revision。</p><div class="market-shared-navigation__grid">{archive_buttons_html}</div></section>
-    <section class="section" id="production-operations-center"><h2>Production Operations Center</h2><p class="decision-note">內容投影不改變既有 health source；archive empty state 是等待資料，不是批次失敗。</p><table class="decision-table"><thead><tr><th>Market / Window</th><th>Latest</th><th>Revision</th><th>Previous</th><th>Runtime Provenance</th><th>Scheduler</th><th>Pipeline</th><th>Dashboard</th><th>Archive</th><th>LINE</th><th>Email</th><th>Overall</th></tr></thead><tbody>{health_rows_html}</tbody></table></section>
+    <section class="section" id="snapshot-archive-browser"><h2>批次報告歷史</h2><p>Latest 是最新有效交易日最高 revision；Previous 永遠是上一有效交易日最高 revision。</p>{archive_buttons_html}</section>
+    <section class="section" id="production-operations-center"><h2>系統營運中心</h2><p class="decision-note">Production health 內容投影不改變既有 health source；archive empty state 是等待資料，不是批次失敗。</p><div class="operations-table-scroll" role="region" aria-label="Production Operations Center" tabindex="0"><table class="decision-table operations-table"><thead><tr><th>Market / Window</th><th>Latest</th><th>Revision</th><th>Previous</th><th>Runtime Provenance</th><th>Scheduler</th><th>Pipeline</th><th>Dashboard</th><th>Archive</th><th>LINE</th><th>Email</th><th>Overall</th></tr></thead><tbody>{health_rows_html}</tbody></table></div></section>
     {render_manual_control_center()}
     <section class="section"><h2>Runtime 狀態摘要</h2><p>Dashboard 顯示完整內容；Email 顯示 window-specific 摘要；LINE 僅作短提醒與入口。舊四時段網址保留為台股相容入口。</p></section>
     </main></body></html>\n"""
@@ -971,11 +978,45 @@ def publish_archive_latest_route(market: str, window: str, static_root: Path = S
     source = build_archive_route(output_dir, market, window, "latest")
     target = static_root / f"dashboard/archive/{market.lower()}/{window}/latest/index.html"
     target.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(source, target)
+    _atomic_copy(source, target)
     return {"published": True, "selection": "latest", "market": market, "window": window, "source": str(source), "target": str(target), "previous_updated": False, "other_windows_updated": False, "notification_sent": False, "production_pipeline_executed": False}
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _atomic_copy(source: Path, target: Path) -> None:
+    target.parent.mkdir(parents=True, exist_ok=True)
+    staged = target.with_name(f".{target.name}.ai-dev-181d.tmp")
+    shutil.copy2(source, staged)
+    os.replace(staged, target)
+
+
+def production_landing_contract_errors(page: str) -> list[str]:
+    errors = []
+    for marker in ("台股 Dashboard", "美股 Dashboard", "批次報告歷史", "台股手動批次", "美股手動批次", "系統營運中心"):
+        if marker not in page:
+            errors.append(f"missing:{marker}")
+    expected_counts = {
+        "archive_buttons": (page.count('class="market-shared-navigation__button archive-browser-button"'), 14),
+        "manual_buttons": (page.count('class="manual-batch-button"'), 7),
+        "operations_rows": (page.count('<tr data-market='), 7),
+    }
+    errors.extend(f"{name}:{actual}!={expected}" for name, (actual, expected) in expected_counts.items() if actual != expected)
+    lowered = page.lower()
+    for marker in ("stock ai legacy / debug landing", "legacy / debug landing", "raw pipeline report content", "正式決策入口已移至四時段"):
+        if marker.lower() in lowered:
+            errors.append(f"forbidden:{marker}")
+    return errors
+
 
 def publish_pages(static_root: Path = STATIC_ROOT, source_dir: Path = OUTPUT_DIR) -> dict[str, Any]:
     manifest = build_pages(source_dir)
+    landing_source = source_dir / "index.html"
+    landing_errors = production_landing_contract_errors(landing_source.read_text(encoding="utf-8"))
+    if landing_errors:
+        raise ValueError("production landing contract failed before publish: " + ", ".join(landing_errors))
     timestamp = datetime.now(ZoneInfo("Asia/Taipei")).strftime("%Y%m%d-%H%M%S")
     backup = static_root / ".ai_dev_170_rollback" / timestamp
     backup.mkdir(parents=True, exist_ok=True)
@@ -996,16 +1037,14 @@ def publish_pages(static_root: Path = STATIC_ROOT, source_dir: Path = OUTPUT_DIR
             dest = backup / (key + ".before_ai_dev_170.html")
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(target, dest)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(sources[key], target)
+        _atomic_copy(sources[key], target)
     archive_source = source_dir / "dashboard/archive"
     archive_target = static_root / "dashboard/archive"
     if archive_source.exists():
         for source in sorted(archive_source.rglob("index.html")):
             relative = source.relative_to(archive_source)
             target = archive_target / relative
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(source, target)
+            _atomic_copy(source, target)
     result = {
         **manifest,
         "published": True,
@@ -1014,6 +1053,10 @@ def publish_pages(static_root: Path = STATIC_ROOT, source_dir: Path = OUTPUT_DIR
         "notification_sent": False,
         "production_pipeline_executed": False,
         "archive_route_count": manifest.get("archive_route_count", 0),
+        "production_landing_owner": PRODUCTION_LANDING_OWNER,
+        "production_source_hash": _sha256(landing_source),
+        "staged_landing_hash": _sha256(landing_source),
+        "public_landing_hash": _sha256(static_root / "index.html"),
         "rollback_command": f"cp {backup}/landing.before_ai_dev_170.html {static_root}/index.html 2>/dev/null || true; cp {backup}/tw.before_ai_dev_170.html {static_root}/dashboard/tw/index.html 2>/dev/null || true; cp {backup}/us.before_ai_dev_170.html {static_root}/dashboard/us/index.html 2>/dev/null || true; cp {backup}/old_compat.before_ai_dev_170.html {static_root}/dashboard/decision-intelligence/four-window-preview/index.html 2>/dev/null || true",
     }
     (static_root / ".ai_dev_170_publish_latest.json").write_text(stable_json(result), encoding="utf-8")

@@ -33,6 +33,12 @@ WINDOW_MARKERS = [
     "post_close_1500", "prediction_review_1500", "盤後檢討", "Prediction Review",
 ]
 INDEX_MARKER = "AI-DEV-145 four-window decision intelligence preview"
+# Compatibility audit markers describe the isolated route, never root index.html.
+LEGACY_ROUTE_MARKERS = (
+    "Legacy / Debug Landing",
+    "不再作為正式投資決策主畫面",
+    "四時段 Decision Intelligence Dashboard",
+)
 
 
 def stable_json(payload: Any, pretty: bool) -> str:
@@ -120,55 +126,12 @@ def check_source_html(source_html: Path) -> list[str]:
 def backup_existing(root: Path, target_dir: Path, timestamp: str) -> Path:
     backup_dir = root / ".ai_dev_145_rollback" / timestamp.replace(":", "").replace("+", "_")
     backup_dir.mkdir(parents=True, exist_ok=False)
-    index = root / "index.html"
-    if index.exists():
-        shutil.copy2(index, backup_dir / "index.html.before_ai_dev_145")
     if target_dir.exists():
         shutil.copytree(target_dir, backup_dir / "four-window-preview.before_ai_dev_145")
     else:
         (backup_dir / "target_route_previously_absent.txt").write_text("target route did not exist before AI-DEV-145 publish\n", encoding="utf-8")
     return backup_dir
 
-
-def index_link_block(public_url: str) -> str:
-    return f"""<!doctype html>
-<html lang="zh-Hant">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Stock AI Legacy Dashboard Landing</title>
-  <style>
-    body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;background:#f4f7f8;color:#132227;line-height:1.6}}
-    main{{max-width:880px;margin:0 auto;padding:24px}}
-    .card{{background:#fff;border:1px solid #d8e2e6;border-radius:12px;padding:18px;margin:14px 0}}
-    a{{font-weight:800;color:#175d76}}
-    .badge{{display:inline-block;border-radius:999px;padding:6px 10px;background:#fff7e5;color:#6e4d00;font-weight:700}}
-  </style>
-</head>
-<body>
-<main>
-  <!-- {INDEX_MARKER} -->
-  <section class="card">
-    <span class="badge">Legacy / Debug Landing</span>
-    <h1>Stock AI 舊 Scheduler Dashboard 已改為 Legacy 入口</h1>
-    <p>此頁不再作為正式投資決策主畫面。正式決策內容、四時段狀態、預測、回測校準、樣本累積與 review card 請看新版 Dashboard。</p>
-    <p><a href="{public_url}">開啟四時段 Decision Intelligence Dashboard</a></p>
-  </section>
-  <section class="card">
-    <h2>Legacy / Debug 說明</h2>
-    <p>舊 Report Content、pipeline_type、pipeline_run_id、個股完整文字報告與 raw pipeline details 不應再作為正式決策入口。若未來需要保留，應放在 Debug / Legacy 區塊，不放主畫面。</p>
-    <p>本頁不發 LINE / Email，不執行 production pipeline，不修改 scheduler。</p>
-  </section>
-</main>
-</body>
-</html>
-"""
-
-
-def update_index(root: Path, relative_url: str) -> bool:
-    index = root / "index.html"
-    index.write_text(index_link_block(relative_url), encoding="utf-8")
-    return True
 
 def write_publish_files(root: Path, source_html: Path, public_base_url: str, route_path: str, timestamp: str, add_index_link: bool) -> dict[str, Any]:
     normalized_route = route_path.strip("/")
@@ -178,10 +141,10 @@ def write_publish_files(root: Path, source_html: Path, public_base_url: str, rou
     target_index = target_dir / "index.html"
     shutil.copy2(source_html, target_index)
     public_url = public_base_url.rstrip("/") + "/" + normalized_route + "/index.html"
-    relative_url = "/stock-ai-dashboard/" + normalized_route + "/index.html"
-    index_link_added = update_index(root, relative_url) if add_index_link else False
+    # Route ownership contract: legacy/compat publishing is route-local. The
+    # retained argument is ignored for backward CLI compatibility.
+    index_link_added = False
     rollback_command = (
-        f"cp {backup_dir}/index.html.before_ai_dev_145 {root}/index.html && "
         f"rm -rf {target_dir} && "
         f"if [ -d {backup_dir}/four-window-preview.before_ai_dev_145 ]; then "
         f"mkdir -p {target_dir.parent} && cp -a {backup_dir}/four-window-preview.before_ai_dev_145 {target_dir}; fi"
@@ -196,6 +159,7 @@ def write_publish_files(root: Path, source_html: Path, public_base_url: str, rou
         "backup_path": str(backup_dir),
         "rollback_command": rollback_command,
         "index_link_added": index_link_added,
+        "production_root_untouched": True,
         "safety_flags": {
             "production_dashboard_publish_executed": True,
             "dashboard_published": True,
@@ -243,7 +207,7 @@ def main() -> int:
     public_url = args.public_base_url.rstrip("/") + "/" + args.route_path.strip("/") + "/index.html"
     publish_manifest: dict[str, Any] | None = None
     if not errors and not args.plan_only:
-        publish_manifest = write_publish_files(root, source_html, args.public_base_url, args.route_path, timestamp, not args.no_index_link)  # type: ignore[arg-type]
+        publish_manifest = write_publish_files(root, source_html, args.public_base_url, args.route_path, timestamp, False)  # type: ignore[arg-type]
     result = {
         "ok": not errors,
         "schema_version": "four_window_dashboard_preview_publish_result_v1",
