@@ -56,6 +56,8 @@ def read_json(path: Path) -> dict[str, Any]:
 
 def us_cards() -> list[dict[str, Any]]:
     data = read_json(US_RUNTIME)
+    if data.get("fixture") is True or data.get("validation_only") is True or str(data.get("data_source_mode") or "").lower() == "fixture":
+        return []
     return [card for card in data.get("dashboard_ready_contract", {}).get("cards", []) if isinstance(card, dict)]
 
 
@@ -195,6 +197,8 @@ def build_validation() -> dict[str, Any]:
         "schema_version": "decision_data_completeness_validation_v1",
         "task_id": "AI-DEV-177",
         "stock_counts": {"US": len(us_cards()), "TW": len(tw_cards())},
+        "us_authoritative_runtime_available": bool(us_cards()),
+        "us_fixture_policy": "fixture/validation-only runtime excluded; deterministic seven-window coverage is enforced by validate_cross_feature_regression_matrix_v1.py",
         "runtime_to_dashboard_mapping_coverage": us_audit["coverage"],
         "per_stock": {"US": us_audit["rows"], "TW": tw_audit["rows"]},
         "duplicate_audit": duplicates,

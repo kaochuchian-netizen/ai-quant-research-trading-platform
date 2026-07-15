@@ -19,7 +19,7 @@ if str(ROOT) not in sys.path:
 from app.dashboard.multi_market_dashboard import OUTPUT_DIR, build_pages
 from app.dashboard.decision_presentation import decision_email_block_v2, decision_presentation_v2
 from app.reports.multi_window_formatter import format_window_report
-from scripts.orchestrator.approved_us_stock_delivery import build_email_body, build_runtime_artifact, line_text
+from scripts.orchestrator.approved_us_stock_delivery import build_email_body, line_text
 
 DASHBOARD_PAGES = {
     "landing": OUTPUT_DIR / "index.html",
@@ -118,11 +118,7 @@ def check_surface(name: str, text: str, required: list[str]) -> dict[str, Any]:
 
 def channel_texts() -> dict[str, str]:
     tw_report = format_window_report("pre_open_0700", "partial", "runtime dry-run summary", dashboard_url=None)
-    us_artifact = build_runtime_artifact(
-        "us_pre_market_2000",
-        dry_run=True,
-        reference=datetime.now(ZoneInfo("Asia/Taipei")),
-    )
+    us_artifact = json.loads(US_PRE_MARKET_RUNTIME.read_text(encoding="utf-8")) if US_PRE_MARKET_RUNTIME.exists() else {}
     return {
         "tw_line": tw_report["channel_reports"]["line"]["text"],
         "tw_email": tw_report["channel_reports"]["email"]["text"],
@@ -135,6 +131,8 @@ def load_us_runtime_cards() -> dict[str, dict[str, Any]]:
     if not US_PRE_MARKET_RUNTIME.exists():
         return {}
     data = json.loads(US_PRE_MARKET_RUNTIME.read_text(encoding="utf-8"))
+    if data.get("fixture") is True or data.get("validation_only") is True or str(data.get("data_source_mode") or "").lower() == "fixture":
+        return {}
     cards = data.get("dashboard_ready_contract", {}).get("cards", [])
     return {
         str(card.get("symbol")): card
@@ -166,6 +164,12 @@ def dashboard_email_parity_checks(us_html_text: str) -> tuple[dict[str, Any], li
     errors: list[str] = []
     checks: dict[str, Any] = {}
     cards_by_symbol = load_us_runtime_cards()
+    if not cards_by_symbol:
+        return ({
+            "authoritative_runtime_available": False,
+            "status": "SKIP: current US 20:00 runtime is fixture/validation-only; deterministic parity is enforced by validate_cross_feature_regression_matrix_v1.py",
+            "fixture_rendered_as_production": False,
+        }, [])
     for symbol in PARITY_SYMBOLS:
         card = cards_by_symbol.get(symbol)
         if not card:

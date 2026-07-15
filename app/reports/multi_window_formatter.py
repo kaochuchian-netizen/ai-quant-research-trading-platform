@@ -8,6 +8,7 @@ from app.dashboard.decision_presentation import decision_email_block_v2, decisio
 from .report_sections import base_sections, normalize_stock_cards, review_state_cards
 from .window_context import ReportWindowContext, get_window_context
 from .window_report_contract import get_window_report_contract
+from .decision_intelligence_v4 import compact_summary, project_decision_intelligence_v4
 STATUS_MARK = "🟡"
 PREDICTION_PENDING_REASON = "資料待接：尚未找到正式 prediction runtime artifact，不產生假預測。"
 PRE_OPEN_PREDICTION_FIELDS = [
@@ -66,9 +67,11 @@ def strategy_v2_sections(context: ReportWindowContext) -> list[dict[str, str]]:
     if context.scheduler_window == "pre_open_0700":
         return [*contract_sections(context), {"heading": "每日短期操作策略", "body": _tw_tactical_email_body()}]
     return contract_sections(context)
-def line_notification_text(context: ReportWindowContext, dashboard_url: str) -> str:
+def line_notification_text(context: ReportWindowContext, dashboard_url: str, projection: dict[str, Any] | None = None) -> str:
     contract = get_window_report_contract("TW", context.scheduler_window)
     parts = [f"【Stock AI】{contract.title}已更新"]
+    if projection:
+        parts.append(compact_summary(projection, "line"))
     parts.extend(contract.line_summary_scope[:-1])
     if context.scheduler_window == "pre_open_0700":
         extra = _tw_tactical_line_summary(dashboard_url)
@@ -79,6 +82,9 @@ def line_notification_text(context: ReportWindowContext, dashboard_url: str) -> 
     return "\n".join(parts)
 def render_markdown_report(user_report: dict[str, Any]) -> str:
     lines = [f"# {user_report['title']}", "", str(user_report.get("subtitle", "")), "", str(user_report.get("summary", "")), ""]
+    if user_report.get("decision_intelligence_v4"):
+        projection = user_report["decision_intelligence_v4"]
+        lines.extend(["## Decision Intelligence V4", compact_summary(projection, "email"), "", "內容範圍：" + "、".join(projection["section_inventory"]), ""])
     for section in user_report.get("sections", []):
         lines.extend([f"## {section.get('heading')}", str(section.get("body", "")), ""])
     if user_report.get("prediction_fields"):
@@ -101,9 +107,9 @@ def build_channel_reports(context: ReportWindowContext, user_report: dict[str, A
     contract = get_window_report_contract("TW", context.scheduler_window)
     email_sections = list(contract.email_sections)
     return {
-        "line": {"channel": "line", "mode": "link_only_notification", "line_summary_required": True, "full_report": False, "dashboard_url": url, "text": line_notification_text(context, url), "raw_logs_included": False, "notification_sent": False},
-        "email": {"channel": "email", "mode": "full_report", "email_full_report_required": True, "dashboard_url": url, "sections": email_sections, "text": user_report.get("rendered_text", ""), "notification_sent": False},
-        "dashboard": {"channel": "dashboard", "mode": "window_specific_contract", "dashboard_full_state_required": True, "dashboard_url": url, "sections": list(contract.dashboard_sections), "published_by_formatter": False},
+        "line": {"channel": "line", "mode": "link_only_notification", "line_summary_required": True, "full_report": False, "dashboard_url": url, "text": line_notification_text(context, url, user_report.get("decision_intelligence_v4")), "semantic_contract": "seven_window_decision_intelligence_v4", "raw_logs_included": False, "notification_sent": False},
+        "email": {"channel": "email", "mode": "full_report", "email_full_report_required": True, "dashboard_url": url, "sections": email_sections, "summary": compact_summary(user_report["decision_intelligence_v4"], "email"), "semantic_contract": "seven_window_decision_intelligence_v4", "text": user_report.get("rendered_text", ""), "notification_sent": False},
+        "dashboard": {"channel": "dashboard", "mode": "window_specific_contract", "dashboard_full_state_required": True, "dashboard_url": url, "sections": list(contract.dashboard_sections), "semantic_contract": "seven_window_decision_intelligence_v4", "published_by_formatter": False},
     }
 def build_user_facing_report(context: ReportWindowContext, content_state: str, sanitized_text: str, stock_cards: list[dict[str, Any]] | None = None, dashboard_url: str | None = None) -> dict[str, Any]:
     summary = sanitized_text.strip() or context.primary_purpose
@@ -129,6 +135,7 @@ def build_user_facing_report(context: ReportWindowContext, content_state: str, s
         "advisory_only": True,
         "strategy_v2_aligned": True,
         "fabricated_forecast_values": False,
+        "decision_intelligence_v4": project_decision_intelligence_v4("TW", context.scheduler_window, {"cards": stock_cards or []}),
     }
     user_report["rendered_text"] = render_markdown_report(user_report)
     user_report["channel_reports"] = build_channel_reports(context, user_report, dashboard_url)

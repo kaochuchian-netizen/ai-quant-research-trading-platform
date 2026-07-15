@@ -30,6 +30,7 @@ from app.us_stock.constants import US_BATCH_WINDOWS
 from app.us_stock.live_pipeline import build_live_runtime_artifact
 from app.dashboard.dashboard_url_registry import get_us_dashboard_url, normalize_delivery_dashboard_url
 from app.dashboard.decision_presentation import decision_email_block_v2, decision_line_summary_v2, decision_presentation_v2
+from app.reports.decision_intelligence_v4 import compact_summary, project_decision_intelligence_v4
 from app.dashboard.window_snapshot_archive import write_snapshot
 from app.reports.window_report_contract import get_window_report_contract
 from app.us_stock.watchlist import normalize_us_watchlist_rows
@@ -272,7 +273,8 @@ def build_email_body(artifact: dict[str, Any], window: str) -> str:
     contract = get_window_report_contract("US", window)
     date = artifact.get("generated_at", "")[:10]
     cards = [card for card in artifact.get("dashboard_ready_contract", {}).get("cards", []) if isinstance(card, dict)]
-    lines = [f"{contract.title} {date}", "", f"Dashboard: {contract.dashboard_url}", "", contract.primary_question, "", "本批次內容："]
+    projection = project_decision_intelligence_v4("US", window, artifact)
+    lines = [f"{contract.title} {date}", "", f"Dashboard: {contract.dashboard_url}", "", contract.primary_question, "", "Decision Intelligence V4", compact_summary(projection, "email"), "內容範圍：" + "、".join(projection["section_inventory"]), "", "本批次內容："]
     for section in contract.email_sections:
         lines.append(f"- {section}")
     lines.extend(["", "批次摘要：", f"- Window: {window}", f"- Enabled stocks: {artifact.get('runtime_watchlist_validation', {}).get('enabled_stock_count')}", f"- 高風險數量: {_count_high_risk(cards)}", "- LINE 僅短提醒；Email 僅呈現本批次需要的內容；完整狀態請看 Dashboard。", ""])
@@ -293,6 +295,7 @@ def line_text(artifact: dict[str, Any], window: str) -> str:
     contract = get_window_report_contract("US", window)
     cards = [card for card in artifact.get("dashboard_ready_contract", {}).get("cards", []) if isinstance(card, dict)]
     parts = [f"【Stock AI】{contract.title}已更新", "美股決策摘要已更新"]
+    parts.append(compact_summary(project_decision_intelligence_v4("US", window, artifact), "line"))
     parts.extend(contract.line_summary_scope[:-1])
     parts.append(f"短線可觀察：{len(cards)}")
     parts.append(f"高風險：{_count_high_risk(cards)}")

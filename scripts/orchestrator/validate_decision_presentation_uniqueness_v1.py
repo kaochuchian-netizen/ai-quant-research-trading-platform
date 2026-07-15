@@ -26,6 +26,8 @@ def read_json(path: Path) -> dict[str, Any]:
 def cards(market: str) -> list[dict[str, Any]]:
     if market == "US":
         data = read_json(US_RUNTIME)
+        if data.get("fixture") is True or data.get("validation_only") is True or str(data.get("data_source_mode") or "").lower() == "fixture":
+            return []
         return [card for card in data.get("dashboard_ready_contract", {}).get("cards", []) if isinstance(card, dict)]
     data = read_json(TW_RUNTIME)
     return [card for card in data.get("cards", []) if isinstance(card, dict)]
