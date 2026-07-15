@@ -20,6 +20,7 @@ from app.dashboard.dashboard_url_registry import (  # noqa: E402
     get_dashboard_url,
     is_legacy_dashboard_url,
 )
+from app.reports.window_report_contract import get_window_report_contract  # noqa: E402
 
 TW_WINDOWS = ["pre_open_0700", "intraday_1305", "pre_close_1335", "post_close_1500", "prediction_review_1500"]
 US_WINDOWS = ["us_pre_market_2000", "us_intraday_2300", "us_post_close_review_0630"]
@@ -79,7 +80,8 @@ def validate_tw_window(window: str, python_bin: str) -> dict[str, Any]:
     data = load_json(out)
     line = str(data.get("line_payload_preview", ""))
     email = str(data.get("email_payload_preview", ""))
-    tw_url = get_tw_dashboard_url()
+    normalized_window = "post_close_1500" if window == "prediction_review_1500" else window
+    tw_url = get_window_report_contract("TW", normalized_window).dashboard_url
     return {
         "market": "TW",
         "window": window,

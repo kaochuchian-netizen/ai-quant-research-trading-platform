@@ -8,7 +8,7 @@ from app.dashboard.decision_presentation import decision_email_block_v2, decisio
 from .report_sections import base_sections, normalize_stock_cards, review_state_cards
 from .window_context import ReportWindowContext, get_window_context
 from .window_report_contract import get_window_report_contract
-from .decision_intelligence_v4 import compact_summary, project_decision_intelligence_v4
+from .decision_intelligence_v4 import compact_summary, delivery_summary_lines, project_decision_intelligence_v4
 STATUS_MARK = "🟡"
 PREDICTION_PENDING_REASON = "資料待接：尚未找到正式 prediction runtime artifact，不產生假預測。"
 PRE_OPEN_PREDICTION_FIELDS = [
@@ -67,12 +67,18 @@ def strategy_v2_sections(context: ReportWindowContext) -> list[dict[str, str]]:
     if context.scheduler_window == "pre_open_0700":
         return [*contract_sections(context), {"heading": "每日短期操作策略", "body": _tw_tactical_email_body()}]
     return contract_sections(context)
-def line_notification_text(context: ReportWindowContext, dashboard_url: str, projection: dict[str, Any] | None = None) -> str:
+def line_notification_text(
+    context: ReportWindowContext,
+    dashboard_url: str,
+    projection: dict[str, Any] | None = None,
+    review_payload: dict[str, Any] | None = None,
+) -> str:
     contract = get_window_report_contract("TW", context.scheduler_window)
     parts = [f"【Stock AI】{contract.title}已更新"]
     if projection:
-        parts.append(compact_summary(projection, "line"))
-    parts.extend(contract.line_summary_scope[:-1])
+        parts.extend(delivery_summary_lines(projection, review_payload=review_payload))
+    else:
+        parts.append("批次摘要：資料待接，待正式 artifact 完成後更新")
     if context.scheduler_window == "pre_open_0700":
         extra = _tw_tactical_line_summary(dashboard_url)
         if extra:

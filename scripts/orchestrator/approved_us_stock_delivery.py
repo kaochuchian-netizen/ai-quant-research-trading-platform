@@ -297,7 +297,6 @@ def line_text(artifact: dict[str, Any], window: str) -> str:
     cards = [card for card in artifact.get("dashboard_ready_contract", {}).get("cards", []) if isinstance(card, dict)]
     parts = [f"【Stock AI】{contract.title}已更新", "美股決策摘要已更新"]
     parts.append(compact_summary(project_decision_intelligence_v4("US", window, artifact), "line"))
-    parts.extend(contract.line_summary_scope[:-1])
     parts.append(f"短線可觀察：{len(cards)}")
     parts.append(f"高風險：{_count_high_risk(cards)}")
     parts.extend(["Dashboard：", contract.dashboard_url, "僅供研究參考，非交易指令。"] )
