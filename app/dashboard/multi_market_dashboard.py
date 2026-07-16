@@ -37,6 +37,7 @@ from app.dashboard.decision_presentation import (
     limit_items,
 )
 from app.dashboard.window_snapshot_archive import MARKET_WINDOWS, resolve_snapshots, revisions_for_snapshot, same_window_change
+from app.dashboard.market_dashboard_alias import identity_attributes, resolve_active_snapshot, snapshot_parity_contract
 from app.us_stock.runtime_provenance import classify_runtime_provenance, is_dashboard_eligible
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -549,10 +550,6 @@ def render_manual_control_center() -> str:
     contracts = all_window_report_contracts()
     tw = [c for c in contracts if c.market == "TW"]
     us = [c for c in contracts if c.market == "US"]
-    matrix_rows = "".join(
-        f"<tr><td>{_escape(c.market)}</td><td>{_escape(c.short_label)}</td><td>{_escape(c.dashboard_url)}</td><td>false</td><td>false</td><td>false</td><td>PASS</td></tr>"
-        for c in contracts
-    )
     return f"""
     <section class="section manual-batch-control-center" id="manual-batch-control-center">
       <h2>手動批次控制中心</h2>
@@ -568,17 +565,75 @@ def render_manual_control_center() -> str:
         <input type="hidden" id="manual-batch-selected-window" name="window" value="">
         <button type="submit" id="manual-batch-confirm" disabled>請先選擇批次</button>
       </form>
-      <p class="decision-note">TW / US 共用同一套 PIN guard 與全域 one-batch-at-a-time lock。US 手動批次連到可執行 backend flow，不是假按鈕。</p>
-      <details class="decision-details"><summary>Controlled no-send verification matrix</summary><div class="decision-details__body"><table class="decision-table"><tbody><tr><th>Market</th><th>Window</th><th>Dashboard URL</th><th>Email</th><th>LINE</th><th>Trading</th><th>Result</th></tr>{matrix_rows}</tbody></table></div></details>
+      <section class="manual-rerun-status-card" aria-live="polite">
+        <h3>最近一次手動批次</h3>
+        <div class="grid">
+          <div><strong>狀態</strong><p id="manual-status-state">尚未執行</p></div>
+          <div><strong>目前階段</strong><p id="manual-status-stage">資料待接</p></div>
+          <div><strong>任務 ID</strong><p id="manual-status-task">資料待接</p></div>
+          <div><strong>批次</strong><p id="manual-status-window">資料待接</p></div>
+          <div><strong>開始／完成</strong><p id="manual-status-time">資料待接</p></div>
+          <div><strong>耗時</strong><p id="manual-status-duration">資料待接</p></div>
+          <div><strong>有效交易日／Revision</strong><p id="manual-status-revision">資料待接</p></div>
+          <div><strong>更新結果</strong><p id="manual-status-routes">資料待接</p></div>
+          <div><strong>未變更項目</strong><p id="manual-status-stable">Previous、其他 windows 維持不變</p></div>
+          <div><strong>安全狀態</strong><p id="manual-status-safety">LINE：未發送｜Email：未發送｜交易：未執行</p></div>
+        </div>
+        <p id="manual-status-message" class="decision-note">選擇批次並送出後，這裡會顯示排隊、執行、發布與完成結果。</p>
+        <p><a id="manual-status-latest-link" class="market-shared-navigation__button" href="#" hidden>查看最新報告</a><a id="manual-status-market-link" class="market-shared-navigation__button" href="#" hidden>查看市場 Dashboard</a></p>
+        <button type="button" id="manual-status-refresh">重新查詢最近任務</button>
+      </section>
+      <p class="decision-note">TW / US 共用 PIN guard 與 one-batch lock。狀態查詢最多 30 分鐘，完成、失敗或拒絕後會停止輪詢。</p>
     </section>
     <script>
       (() => {{
+        const storageKey = 'stock-ai-manual-rerun-latest-task-v1';
+        const terminal = new Set(['completed','failed','rejected','invalid_pin_format','unauthorized','manual_rerun_disabled','lock_busy','cooldown_active']);
+        const stateLabels = {{idle:'尚未執行',submitted:'已送出',queued:'等待執行',running:'執行中',publishing:'同步 Dashboard',completed:'已完成',failed:'執行失敗',rejected:'已拒絕',invalid_pin_format:'PIN 格式錯誤',unauthorized:'PIN 錯誤',manual_rerun_disabled:'尚未啟用',lock_busy:'已有批次執行中',cooldown_active:'冷卻中'}};
         const buttons = document.querySelectorAll('.manual-batch-button');
         const selected = document.getElementById('manual-batch-selected-window');
         const market = document.getElementById('manual-batch-market');
         const batch = document.getElementById('manual-batch-window');
         const confirm = document.getElementById('manual-batch-confirm');
+        const form = document.getElementById('manual-batch-form');
+        let pollTimer = null;
+        let pollStartedAt = 0;
+        let currentTaskId = localStorage.getItem(storageKey) || '';
+        const setText = (id, value) => {{ const node = document.getElementById(id); if (node) node.textContent = value || '資料待接'; }};
+        const stopPolling = () => {{ if (pollTimer) window.clearInterval(pollTimer); pollTimer = null; }};
+        const renderStatus = (data) => {{
+          const state = String(data.status || 'idle');
+          const taskId = data.task_id || data.job_id || '';
+          if (taskId) {{ currentTaskId = taskId; localStorage.setItem(storageKey, taskId); }}
+          setText('manual-status-state', stateLabels[state] || state);
+          setText('manual-status-stage', data.stage_label || data.stage || '資料待接');
+          setText('manual-status-task', taskId || '資料待接');
+          setText('manual-status-window', `${{data.market || ''}} ${{data.window || data.requested_window || ''}}`.trim());
+          setText('manual-status-time', `${{data.started_at || '尚未開始'}} → ${{data.finished_at || '尚未完成'}}`);
+          setText('manual-status-duration', Number.isFinite(data.duration_seconds) ? `${{data.duration_seconds}} 秒` : '資料待接');
+          setText('manual-status-revision', `${{data.effective_trading_date || '資料待接'}}｜${{data.revision ? `Revision ${{data.revision}}` : 'Revision 待接'}}`);
+          setText('manual-status-routes', `Latest：${{data.latest_route_updated ? '已更新' : '未更新'}}｜Market Dashboard：${{data.market_dashboard_updated ? '已同步' : '未同步'}}`);
+          setText('manual-status-stable', `Previous：${{data.previous_route_updated ? '已更新' : '未更新'}}｜其他 windows：${{data.other_windows_updated ? '已更新' : '未更新'}}`);
+          setText('manual-status-safety', `LINE：${{data.line_attempted ? '已嘗試' : '未發送'}}｜Email：${{data.email_attempted ? '已嘗試' : '未發送'}}｜交易：${{data.trading_or_order_executed ? '已執行' : '未執行'}}`);
+          setText('manual-status-message', data.message || data.error_summary || (state === 'completed' ? '手動重跑已完成。' : '狀態已更新。'));
+          const latest = document.getElementById('manual-status-latest-link');
+          const marketLink = document.getElementById('manual-status-market-link');
+          if (data.latest_url) {{ latest.href = data.latest_url; latest.hidden = false; }}
+          if (data.market_dashboard_url) {{ marketLink.href = data.market_dashboard_url; marketLink.hidden = false; }}
+          if (terminal.has(state)) stopPolling();
+          return state;
+        }};
+        const fetchStatus = async () => {{
+          if (pollStartedAt && Date.now() - pollStartedAt > 30 * 60 * 1000) {{ stopPolling(); setText('manual-status-message', '狀態查詢逾時，可按「重新查詢最近任務」繼續。'); return; }}
+          const suffix = currentTaskId ? `?job_id=${{encodeURIComponent(currentTaskId)}}` : '';
+          try {{
+            const response = await fetch(form.dataset.statusEndpoint + suffix, {{headers:{{'Accept':'application/json'}},cache:'no-store'}});
+            renderStatus(await response.json());
+          }} catch (_error) {{ stopPolling(); setText('manual-status-message', '狀態 endpoint 暫時無法連線，可稍後重新查詢。'); }}
+        }};
+        const startPolling = () => {{ stopPolling(); pollStartedAt = Date.now(); pollTimer = window.setInterval(fetchStatus, 4000); fetchStatus(); }};
         buttons.forEach((button) => button.addEventListener('click', () => {{
+          if (!button.dataset.window) return;
           const label = button.dataset.label || button.dataset.window;
           const name = button.dataset.market === 'US' ? '美股' : '台股';
           selected.value = button.dataset.window || '';
@@ -587,12 +642,23 @@ def render_manual_control_center() -> str:
           confirm.disabled = false;
           confirm.textContent = button.dataset.confirm || `確認執行${{name}} ${{label}}重跑`;
         }}));
-        document.getElementById('manual-batch-form').addEventListener('submit', (event) => {{
+        form.addEventListener('submit', async (event) => {{
           event.preventDefault();
           const pin = document.getElementById('manual-batch-pin').value || '';
           if (!/^[0-9]{{6}}$/.test(pin) || !selected.value) {{ return; }}
-          confirm.textContent = '已送出手動批次請求，等待後端回覆';
+          confirm.disabled = true;
+          renderStatus({{status:'submitted',window:selected.value,message:'已送出手動批次請求。'}});
+          try {{
+            const response = await fetch(form.dataset.endpoint, {{method:'POST',headers:{{'Content-Type':'application/json','Accept':'application/json'}},body:JSON.stringify({{window:selected.value,mode:'dashboard_refresh_only',pin,confirm_single_window_only:true,reason:'manual dashboard rerun'}})}});
+            document.getElementById('manual-batch-pin').value = '';
+            const data = await response.json();
+            renderStatus(data);
+            if (data.accepted && !terminal.has(String(data.status))) startPolling();
+          }} catch (_error) {{ renderStatus({{status:'failed',window:selected.value,error_summary:'手動重跑 endpoint 暫時無法連線；未重複送出。'}}); }}
+          finally {{ confirm.disabled = false; }}
         }});
+        document.getElementById('manual-status-refresh').addEventListener('click', () => {{ pollStartedAt = Date.now(); fetchStatus(); }});
+        if (currentTaskId) startPolling(); else fetchStatus();
       }})();
     </script>
     """
@@ -806,6 +872,45 @@ def shared_market_navigation(active_market: str, title: str, subtitle: str) -> s
     current_us = ' aria-current="page"' if active_market == "US" else ""
     return f"""<div class="wrap section market-shared-navigation market-shared-navigation--v1" data-shared-navigation="tw-us" data-active-market="{active}"><h1>{html.escape(title)}</h1><nav class="market-shared-navigation__grid market-shared-navigation__grid--responsive" aria-label="Market Dashboard Navigation"><a class="market-shared-navigation__button" href="/stock-ai-dashboard/index.html">回到總覽</a><a class="market-shared-navigation__button" href="/stock-ai-dashboard/dashboard/tw/index.html"{current_tw}>台股 Dashboard</a><a class="market-shared-navigation__button" href="/stock-ai-dashboard/dashboard/us/index.html"{current_us}>美股 Dashboard</a></nav><p class="market-shared-navigation__subtitle">{html.escape(subtitle)}</p></div>"""
 
+
+def _snapshot_decision_content(snapshot: dict[str, Any]) -> str:
+    market = str(snapshot.get("market") or "")
+    window = str(snapshot.get("window") or snapshot.get("scheduler_window") or "")
+    payload = snapshot.get("payload") if isinstance(snapshot.get("payload"), dict) else {}
+    if market == "US":
+        return render_us_window_report(window, [payload])
+    report = payload.get("user_facing_report") if isinstance(payload.get("user_facing_report"), dict) else {}
+    cards = report.get("stock_cards") if isinstance(report.get("stock_cards"), list) else []
+    cards_html = "".join(
+        f'<article class="stock-card decision-card snapshot-stock-card"><h3>{_escape(card.get("title") or card.get("stock_id"))}</h3><p>{_escape(card.get("summary"))}</p></article>'
+        for card in cards if isinstance(card, dict)
+    )
+    return (
+        _decision_intelligence_v4_html("TW", window, payload)
+        + (f'<div class="grid decision-grid">{cards_html}</div>' if cards_html else '<p class="decision-note">此 snapshot 尚無可顯示的個股卡片。</p>')
+    )
+
+
+def render_immutable_snapshot_section(snapshot: dict[str, Any], *, show_revision: bool = True) -> str:
+    contract = snapshot_parity_contract(snapshot)
+    assert contract is not None
+    updated = str(snapshot.get("revision_created_at") or snapshot.get("generated_at") or "")
+    payload = snapshot.get("payload") if isinstance(snapshot.get("payload"), dict) else {}
+    marker = payload.get("marker")
+    marker_text = f'<p class="decision-note">內容識別：{_escape(marker)}</p>' if marker else ""
+    revision_text = f'｜Revision {contract["revision"]}' if show_revision and int(contract["revision"]) > 1 else ""
+    updated_text = f'｜最後更新 {_escape(updated[11:16])}' if show_revision and len(updated) >= 16 else ""
+    provenance = f'Runtime Provenance：{_escape(snapshot.get("runtime_provenance"))}｜Admission：{_escape(snapshot.get("admission_reason"))}｜Admitted：{str(snapshot.get("admitted") is True).lower()}'
+    return f'''<section class="section immutable-snapshot-payload" {identity_attributes(snapshot)}>
+      <h2>Snapshot 決策內容</h2>
+      <p>有效交易日：{_escape(contract["effective_trading_date"])}{revision_text}{updated_text}</p>
+      <p class="decision-note">Active Window：{_escape(contract["active_window"])}｜Source Route：{_escape(contract["source_route"])}</p>
+      <p class="decision-note">{provenance}</p>
+      {marker_text}
+      {_snapshot_decision_content(snapshot)}
+      <p class="decision-note">本頁只使用 resolver 選出的 immutable snapshot payload；不讀取全域 latest runtime。</p>
+    </section>'''
+
 def render_landing_page() -> str:
     archive_buttons: dict[str, list[str]] = {"TW": [], "US": []}
     health_rows = []
@@ -852,27 +957,24 @@ def render_landing_page() -> str:
     </main></body></html>\n"""
 def render_tw_page(source_html: str | None = None) -> str:
     nav = shared_market_navigation("TW", "台股 AI 決策儀表板", "TW 專用頁：07:00 / 13:05 / 13:35 / 15:00。美股內容不在此頁渲染。")
-    artifact = _load_tw_tactical_artifact()
-    window_reports = "".join(render_tw_window_report(window, artifact) for window in ("pre_open_0700", "intraday_1305", "pre_close_1335", "post_close_1500"))
+    active = resolve_active_snapshot(WINDOW_SNAPSHOT_ARCHIVE, "TW")
+    window_reports = render_immutable_snapshot_section(active) if active else '<section class="section archive-empty-state"><h2>尚無可用 snapshot</h2><p>TW 尚無 successful admitted snapshot；不回退到 fixture、validator、preview 或 global latest runtime。</p></section>'
     manual_pointer = '<section class="section"><h2>手動批次控制</h2><p><a href="/stock-ai-dashboard/index.html#manual-batch-control-center">手動批次控制請回到總覽頁</a></p></section>'
     return f"""<!doctype html>
     <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>台股 AI 決策儀表板</title><meta name="market" content="TW"><style>{base_css()}</style></head>
-    <body><header>{nav}</header><main class="wrap">
+    <body {identity_attributes(active)}><header>{nav}</header><main class="wrap">
     {window_reports}
     {manual_pointer}
     </main></body></html>\n"""
 
 
 def render_us_page(artifacts: list[dict[str, Any]] | None = None) -> str:
-    artifacts = artifacts if artifacts is not None else _load_us_artifacts()
-    count = us_stock_count(artifacts)
-    latest = max([str(a.get("generated_at") or "") for a in artifacts] or ["資料待接"])
-    window_reports = "".join(render_us_window_report(window, artifacts) for window in ("us_pre_market_2000", "us_intraday_2300", "us_post_close_review_0630"))
+    active = resolve_active_snapshot(WINDOW_SNAPSHOT_ARCHIVE, "US")
+    window_reports = render_immutable_snapshot_section(active) if active else '<section class="section archive-empty-state"><h2>尚無可用 snapshot</h2><p>US 尚無 successful admitted snapshot；不回退到 fixture、validator、preview、dry-run 或 global latest runtime。</p></section>'
     return f"""<!doctype html>
     <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>美股 AI 決策儀表板</title><meta name="market" content="US"><style>{base_css()}</style></head>
-    <body><header>{shared_market_navigation("US", "美股 AI 決策儀表板", "美股盤前 20:00｜美股盤中 23:00｜美股檢討 06:30")}</header><main class="wrap">
+    <body {identity_attributes(active)}><header>{shared_market_navigation("US", "美股 AI 決策儀表板", "美股盤前 20:00｜美股盤中 23:00｜美股檢討 06:30")}</header><main class="wrap">
     <!-- AI-DEV-170-US-DASHBOARD-START -->
-    <section class="section"><h2>美股資料摘要</h2><p>啟用股票數：{count}</p><p>最新更新：{html.escape(latest)}</p><p>今日結論、操作計畫、近期新聞與事件會依 20:00 / 23:00 / 06:30 批次縮減呈現，不重播完整 generic stock report。</p><p>資料來源：工作表2 / 正式美股 runtime；美股頁不回退到台股資料，也不渲染驗證 fixture。</p></section>
     {window_reports}
     <!-- AI-DEV-170-US-DASHBOARD-END -->
     </main></body></html>\n"""
@@ -940,16 +1042,12 @@ def render_snapshot_archive_page(market: str, window: str, selection: str, snaps
         body = '<section class="section archive-empty-state"><h2>尚無可用 snapshot</h2><p>找不到符合正式、完整、非 fixture / validator 且同市場同時段的 immutable snapshot。</p></section>'
         identity = ""
     else:
-        immutable_payload = snapshot["payload"]
-        identity = f'data-snapshot-id="{_escape(snapshot.get("snapshot_id"))}" data-effective-trading-date="{_escape(snapshot.get("effective_trading_date"))}"'
+        identity = identity_attributes(snapshot)
         revision = int(snapshot.get("revision") or 1)
         updated = str(snapshot.get("revision_created_at") or snapshot.get("generated_at") or "")
         revision_text = f"｜Revision {revision}" if selection == "latest" and revision > 1 else ""
         updated_text = f"｜最後更新 {updated[11:16]}" if selection == "latest" and len(updated) >= 16 else ""
-        payload_marker = immutable_payload.get("marker")
-        marker_text = f'<p class="decision-note">內容識別：{_escape(payload_marker)}</p>' if payload_marker else ""
-        provenance_text = f'<p class="decision-note">Runtime Provenance：{_escape(snapshot.get("runtime_provenance"))}｜Admission：{_escape(snapshot.get("admission_reason"))}｜Admitted：{str(snapshot.get("admitted") is True).lower()}</p>'
-        body = f'<section class="section immutable-snapshot-payload"><h2>Snapshot 決策內容</h2><p>有效交易日：{_escape(snapshot.get("effective_trading_date"))}{revision_text}{updated_text}</p>{provenance_text}{marker_text}{_decision_intelligence_v4_html(market, window, immutable_payload)}<p class="decision-note">本頁只使用 resolver 選出的 immutable snapshot payload；不讀取全域 latest runtime。</p></section>'
+        body = render_immutable_snapshot_section(snapshot, show_revision=selection == "latest")
         if selection == "latest":
             revisions = revisions_for_snapshot(WINDOW_SNAPSHOT_ARCHIVE, market, window, str(snapshot.get("effective_trading_date")))
             manual_count = len([item for item in revisions if item.get("manual_rerun") is True or item.get("run_kind") == "manual_rerun"])
@@ -980,6 +1078,44 @@ def publish_archive_latest_route(market: str, window: str, static_root: Path = S
     target.parent.mkdir(parents=True, exist_ok=True)
     _atomic_copy(source, target)
     return {"published": True, "selection": "latest", "market": market, "window": window, "source": str(source), "target": str(target), "previous_updated": False, "other_windows_updated": False, "notification_sent": False, "production_pipeline_executed": False}
+
+
+def publish_market_dashboard_alias(market: str, static_root: Path = STATIC_ROOT, output_dir: Path = Path("/tmp/stock-ai-dashboard-market-alias")) -> dict[str, Any]:
+    """Publish one market wrapper from the same resolver-selected immutable payload."""
+    active = resolve_active_snapshot(WINDOW_SNAPSHOT_ARCHIVE, market)
+    if not active:
+        return {"published": False, "market": market, "reason": "no_admitted_active_snapshot"}
+    output_dir.mkdir(parents=True, exist_ok=True)
+    filename = "tw_index.html" if market == "TW" else "us_index.html"
+    source = output_dir / filename
+    source.write_text(stable_html(render_tw_page() if market == "TW" else render_us_page()), encoding="utf-8")
+    target = static_root / f"dashboard/{market.lower()}/index.html"
+    _atomic_copy(source, target)
+    parity = snapshot_parity_contract(active)
+    return {"published": True, "market": market, "source": str(source), "target": str(target), "parity": parity}
+
+
+def publish_manual_rerun_update(market: str, window: str, static_root: Path = STATIC_ROOT, output_dir: Path = Path("/tmp/stock-ai-dashboard-manual-rerun")) -> dict[str, Any]:
+    """Update target Latest and sync the market page only when the target is active."""
+    latest = publish_archive_latest_route(market, window, static_root=static_root, output_dir=output_dir / "latest")
+    active = resolve_active_snapshot(WINDOW_SNAPSHOT_ARCHIVE, market)
+    active_window = str(active.get("window") or "") if active else None
+    market_result = (
+        publish_market_dashboard_alias(market, static_root=static_root, output_dir=output_dir / "market")
+        if active_window == window else
+        {"published": False, "market": market, "reason": "manual_window_is_not_active", "active_window": active_window}
+    )
+    return {
+        "latest": latest,
+        "market_dashboard": market_result,
+        "active_window": active_window,
+        "latest_route_updated": latest.get("published") is True,
+        "market_dashboard_updated": market_result.get("published") is True,
+        "previous_route_updated": False,
+        "other_windows_updated": False,
+        "notification_sent": False,
+        "production_pipeline_executed": False,
+    }
 
 
 def _sha256(path: Path) -> str:

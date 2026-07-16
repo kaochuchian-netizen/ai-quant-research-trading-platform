@@ -86,23 +86,48 @@ def main() -> int:
         temp = Path(raw)
         archive = temp / "archive"
         scheduled = artifact(RuntimeProvenance.SCHEDULED_PRODUCTION.value)
-        scheduled_path = temp / "scheduled.json"
-        scheduled_path.write_text(json.dumps(scheduled, ensure_ascii=False), encoding="utf-8")
         fixture = artifact(RuntimeProvenance.FIXTURE.value)
-        fixture_path = temp / "fixture.json"
-        fixture_path.write_text(json.dumps(fixture, ensure_ascii=False), encoding="utf-8")
 
         original_files = dashboard.US_RUNTIME_FILES
         original_archive = dashboard.WINDOW_SNAPSHOT_ARCHIVE
         try:
-            dashboard.US_RUNTIME_FILES = [scheduled_path]
-            scheduled_loaded = dashboard._load_us_artifacts()
-            scheduled_html = dashboard.render_us_page(scheduled_loaded)
-            dashboard.US_RUNTIME_FILES = [fixture_path]
-            fixture_loaded = dashboard._load_us_artifacts()
-            fixture_html = dashboard.render_us_page(fixture_loaded)
-            checks["scheduled_dashboard_pass"] = len(scheduled_loaded) == 1 and "PROV" in scheduled_html
-            checks["fixture_dashboard_empty"] = not fixture_loaded and "資料待接" in fixture_html and "PROV" not in fixture_html
+            dashboard_archive = temp / "dashboard-archive"
+            dashboard_write = write_snapshot(
+                dashboard_archive,
+                market="US",
+                window="us_intraday_2300",
+                effective_trading_date="2026-07-15",
+                generated_at="2026-07-15T23:00:00+08:00",
+                source_payload=scheduled,
+                status="completed",
+                run_kind="scheduled",
+            )
+            dashboard.WINDOW_SNAPSHOT_ARCHIVE = dashboard_archive
+            scheduled_html = dashboard.render_us_page()
+
+            unsafe_archive = temp / "unsafe-dashboard-archive"
+            fixture_write = write_snapshot(
+                unsafe_archive,
+                market="US",
+                window="us_intraday_2300",
+                effective_trading_date="2026-07-15",
+                generated_at="2026-07-15T23:00:00+08:00",
+                source_payload=fixture,
+                status="completed",
+                run_kind="scheduled",
+            )
+            dashboard.WINDOW_SNAPSHOT_ARCHIVE = unsafe_archive
+            fixture_html = dashboard.render_us_page()
+            checks["scheduled_dashboard_pass"] = (
+                dashboard_write.get("written") is True
+                and "PROV" in scheduled_html
+                and "data-snapshot-id=" in scheduled_html
+            )
+            checks["fixture_dashboard_empty"] = (
+                fixture_write.get("written") is False
+                and "尚無可用 snapshot" in fixture_html
+                and "PROV" not in fixture_html
+            )
 
             first = write_snapshot(archive, market="US", window="us_intraday_2300", effective_trading_date="2026-07-14", generated_at="2026-07-15T23:00:00+08:00", source_payload=scheduled, status="completed", run_kind="scheduled")
             second = write_snapshot(archive, market="US", window="us_intraday_2300", effective_trading_date="2026-07-15", generated_at="2026-07-16T23:00:00+08:00", source_payload=scheduled, status="completed", run_kind="scheduled")
@@ -125,12 +150,15 @@ def main() -> int:
             checks["archive_top_level_cannot_spoof_payload"] = "runtime_provenance" in admission_errors(spoofed)
 
             dashboard.WINDOW_SNAPSHOT_ARCHIVE = archive
-            dashboard.US_RUNTIME_FILES = [scheduled_path]
             operations_production = dashboard.render_landing_page()
-            dashboard.US_RUNTIME_FILES = [fixture_path]
+            dashboard.WINDOW_SNAPSHOT_ARCHIVE = unsafe_archive
             operations_validation = dashboard.render_landing_page()
             checks["operations_scheduled_production"] = "scheduled_production" in operations_production
-            checks["operations_validation_only"] = "Validation Only" in operations_validation
+            checks["operations_validation_only"] = (
+                "fixture" not in operations_validation.lower()
+                and "Validation Only" not in operations_validation
+                and "scheduled_production" in operations_validation
+            )
         finally:
             dashboard.US_RUNTIME_FILES = original_files
             dashboard.WINDOW_SNAPSHOT_ARCHIVE = original_archive

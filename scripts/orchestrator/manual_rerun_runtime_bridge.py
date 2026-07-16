@@ -12,6 +12,8 @@ import json
 import os
 import subprocess
 import sys
+import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from datetime import datetime
@@ -33,6 +35,7 @@ from scripts.orchestrator.manual_rerun_single_window import (  # noqa: E402
     write_audit,
 )
 from app.dashboard.window_snapshot_archive import resolve_snapshots
+from app.dashboard.multi_market_dashboard import STATIC_ROOT, publish_manual_rerun_update
 
 PIN_HASH_ENV = "STOCK_AI_MANUAL_RERUN_PIN_HASH"
 PIN_HASH_FILE = Path.home() / ".config/stock-ai/manual_rerun_pin_hash"
@@ -41,6 +44,68 @@ STATUS_PATH = "/stock-ai-dashboard/api/manual-rerun/status"
 HEALTH_PATH = "/stock-ai-dashboard/api/manual-rerun/healthz"
 ACTIVATION_RESULT = ROOT / "artifacts/runtime/manual_rerun/manual_rerun_runtime_activation_latest.json"
 ACTIVATION_TRACE = ROOT / "artifacts/runtime/manual_rerun/manual_rerun_runtime_activation_trace_latest.md"
+MANUAL_STATUS_SCHEMA = "manual_rerun_status_v2"
+ACTIVE_LOCK = threading.Lock()
+ACTIVE_JOB_ID: str | None = None
+STAGE_LABELS = {
+    "submitted": "驗證請求", "queued": "等待執行", "running": "建立 Runtime",
+    "publishing": "同步市場 Dashboard", "completed": "完成", "failed": "執行失敗", "rejected": "請求被拒絕",
+}
+
+
+def _status_path(job_id: str | None, status_dir: Path | None = None) -> Path:
+    directory = status_dir or STATUS_LATEST.parent
+    return directory / (f"manual_rerun_{job_id}.json" if job_id else STATUS_LATEST.name)
+
+
+def persist_status(data: dict[str, Any], status_dir: Path | None = None) -> dict[str, Any]:
+    directory = status_dir or STATUS_LATEST.parent
+    directory.mkdir(parents=True, exist_ok=True)
+    clean = sanitize_response(data)
+    clean.setdefault("schema_version", MANUAL_STATUS_SCHEMA)
+    clean.setdefault("line_attempted", False)
+    clean.setdefault("email_attempted", False)
+    clean.setdefault("trading_or_order_executed", False)
+    clean.setdefault("previous_route_updated", False)
+    clean.setdefault("other_windows_updated", False)
+    for path in (_status_path(str(clean.get("job_id") or ""), directory), _status_path(None, directory)):
+        temporary = path.with_suffix(path.suffix + ".tmp")
+        temporary.write_text(stable(clean), encoding="utf-8")
+        temporary.replace(path)
+    return clean
+
+
+def lifecycle_status(base: dict[str, Any], status: str, **updates: Any) -> dict[str, Any]:
+    data = dict(base)
+    data.update(updates)
+    data.update({"status": status, "stage": status, "stage_label": STAGE_LABELS.get(status, status)})
+    history = list(base.get("lifecycle", [])) if isinstance(base.get("lifecycle"), list) else []
+    if not history or history[-1] != status:
+        history.append(status)
+    data["lifecycle"] = history
+    data.setdefault("task_id", data.get("job_id"))
+    data.setdefault("latest_route_updated", False)
+    data.setdefault("market_dashboard_updated", False)
+    data.setdefault("previous_route_updated", False)
+    data.setdefault("other_windows_updated", False)
+    data.setdefault("line_attempted", False)
+    data.setdefault("email_attempted", False)
+    data.setdefault("trading_or_order_executed", False)
+    return data
+
+
+def _route_hashes(market: str, window: str, static_root: Path = STATIC_ROOT) -> dict[str, Any]:
+    import hashlib
+    def digest(path: Path) -> str | None:
+        return hashlib.sha256(path.read_bytes()).hexdigest() if path.exists() else None
+    target = static_root / f"dashboard/archive/{market.lower()}/{window}/latest/index.html"
+    previous = static_root / f"dashboard/archive/{market.lower()}/{window}/previous/index.html"
+    market_page = static_root / f"dashboard/{market.lower()}/index.html"
+    others: dict[str, str | None] = {}
+    for path in sorted((static_root / "dashboard/archive").rglob("index.html")) if (static_root / "dashboard/archive").exists() else []:
+        if path not in {target, previous}:
+            others[path.relative_to(static_root).as_posix()] = digest(path)
+    return {"target_latest": digest(target), "previous": digest(previous), "market_dashboard": digest(market_page), "other_routes": others}
 
 
 def load_pin_hash(*, allow_env: bool = True, allow_file: bool = True, override: str | None = None) -> tuple[str | None, str]:
@@ -84,14 +149,48 @@ def rejected_audit(response: dict[str, Any]) -> None:
     write_audit(audit)
 
 
-def process_manual_rerun_request(request: dict[str, Any], *, pin_hash_value: str | None = None, write: bool = True) -> dict[str, Any]:
-    response = handle_request(request, pin_hash_value=pin_hash_value, write=write)
+def process_manual_rerun_request(request: dict[str, Any], *, pin_hash_value: str | None = None, write: bool = True, execute_async: bool = True) -> dict[str, Any]:
+    global ACTIVE_JOB_ID
+    response = handle_request(request, pin_hash_value=pin_hash_value, write=False)
     response = sanitize_response(response)
     if write and not response.get("accepted"):
         rejected_audit(response)
-    if write and response.get("accepted"):
-        response = execute_manual_backend(response)
+        rejected = lifecycle_status({**response, "requested_window": response.get("window")}, "rejected", error_summary=response.get("reason"), message="手動重跑請求被拒絕；未更新任何 route。")
+        persist_status(rejected)
+        return rejected
+    if not response.get("accepted"):
+        return response
+    response = lifecycle_status({
+        **response,
+        "task_id": response.get("job_id"),
+        "requested_window": response.get("window"),
+        "market": ALLOWED_WINDOWS[str(response.get("window"))]["market"],
+        "submitted_at": datetime.now(ZoneInfo("Asia/Taipei")).replace(microsecond=0).isoformat(),
+        "message": "已送出手動批次請求。",
+    }, "submitted")
+    if write:
+        with ACTIVE_LOCK:
+            if ACTIVE_JOB_ID:
+                rejected = lifecycle_status(response, "rejected", accepted=False, reason="another_manual_rerun_in_progress", error_summary="已有手動批次執行中。")
+                persist_status(rejected)
+                return rejected
+            ACTIVE_JOB_ID = str(response.get("job_id"))
+        persist_status(response)
+        if execute_async:
+            threading.Thread(target=_execute_and_release, args=(response,), name=f"manual-rerun-{response.get('job_id')}", daemon=True).start()
+        else:
+            response = _execute_and_release(response)
     return response
+
+
+def _execute_and_release(response: dict[str, Any]) -> dict[str, Any]:
+    global ACTIVE_JOB_ID
+    try:
+        return execute_manual_backend(response)
+    finally:
+        with ACTIVE_LOCK:
+            if ACTIVE_JOB_ID == str(response.get("job_id")):
+                ACTIVE_JOB_ID = None
 
 
 def execute_manual_backend(response: dict[str, Any]) -> dict[str, Any]:
@@ -99,7 +198,13 @@ def execute_manual_backend(response: dict[str, Any]) -> dict[str, Any]:
     contract = ALLOWED_WINDOWS[window]
     market = str(contract["market"])
     reference = datetime.now(ZoneInfo("Asia/Taipei")).replace(microsecond=0)
+    started_monotonic = time.monotonic()
+    started_at = reference.isoformat()
+    base = lifecycle_status(response, "queued", started_at=None, message="等待執行。")
+    persist_status(base)
     selected = resolve_snapshots(ROOT / "artifacts/archive/window_snapshots", market, window)
+    before_snapshot = selected.latest
+    before_hashes = _route_hashes(market, window)
     market_date = reference.date().isoformat() if market == "TW" else reference.astimezone(ZoneInfo("America/New_York")).date().isoformat()
     effective_date = str(selected.latest.get("effective_trading_date")) if selected.latest else market_date
     command = list(contract["backend_command"])
@@ -107,8 +212,29 @@ def execute_manual_backend(response: dict[str, Any]) -> dict[str, Any]:
         command.extend(["--effective-trading-date", effective_date])
     else:
         command.extend(["--as-of", reference.isoformat()])
-    completed = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=600, check=False)
+    running_state = lifecycle_status(base, "running", started_at=started_at, message="正在建立 Runtime 並更新 Archive。")
+    persist_status(running_state)
+    try:
+        completed = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=1800, check=False)
+    except subprocess.TimeoutExpired:
+        finished = datetime.now(ZoneInfo("Asia/Taipei")).replace(microsecond=0)
+        failed = lifecycle_status(running_state, "failed", started_at=started_at, finished_at=finished.isoformat(), duration_seconds=int(time.monotonic() - started_monotonic), error_stage="建立 Runtime", error_summary="手動批次執行逾時。", message="手動重跑失敗；Archive、Latest、Previous 與市場 Dashboard 不應更新。", hash_evidence={"before": before_hashes, "after": _route_hashes(market, window)})
+        return persist_status(failed)
     success = completed.returncode == 0
+    after_selection = resolve_snapshots(ROOT / "artifacts/archive/window_snapshots", market, window)
+    latest = after_selection.latest
+    publish_result: dict[str, Any] = {}
+    if success and latest and latest.get("snapshot_id") != (before_snapshot or {}).get("snapshot_id"):
+        publishing_state = lifecycle_status(running_state, "publishing", started_at=started_at, effective_trading_date=latest.get("effective_trading_date"), revision=latest.get("revision"), message="Archive 已更新，正在重建 Latest Route 並同步 active 市場 Dashboard。")
+        persist_status(publishing_state)
+        publish_result = publish_manual_rerun_update(market, window)
+    else:
+        publishing_state = running_state
+        success = False
+    finished = datetime.now(ZoneInfo("Asia/Taipei")).replace(microsecond=0)
+    after_hashes = _route_hashes(market, window)
+    latest_url = f"/stock-ai-dashboard/dashboard/archive/{market.lower()}/{window}/latest/index.html"
+    market_url = f"/stock-ai-dashboard/dashboard/{market.lower()}/index.html"
     audit = {
         "schema_version": "manual_rerun_runtime_bridge_audit_v2",
         "task_id": "AI-DEV-179",
@@ -131,19 +257,37 @@ def execute_manual_backend(response: dict[str, Any]) -> dict[str, Any]:
         "production_pipeline_executed": False,
         "operator_auth": "verified",
         "pin_recorded": False,
-        "finished_at": reference.isoformat(),
+        "submitted_at": response.get("submitted_at"),
+        "started_at": started_at,
+        "finished_at": finished.isoformat(),
+        "duration_seconds": int(time.monotonic() - started_monotonic),
+        "revision": latest.get("revision") if success and latest else None,
+        "snapshot_id": latest.get("snapshot_id") if success and latest else None,
+        "latest_route_updated": publish_result.get("latest_route_updated") is True,
+        "market_dashboard_updated": publish_result.get("market_dashboard_updated") is True,
+        "market_dashboard_sync_reason": (publish_result.get("market_dashboard") or {}).get("reason"),
+        "previous_route_updated": False,
+        "other_windows_updated": False,
+        "latest_url": latest_url,
+        "market_dashboard_url": market_url,
+        "hash_evidence": {"before": before_hashes, "after": after_hashes},
+        "error_stage": None if success else "建立 Runtime / Archive admission",
+        "error_summary": None if success else f"backend return code {completed.returncode}; 未確認新的 admitted revision。",
+        "message": f"{contract['label']} 手動重跑已完成。" if success else "手動重跑失敗；未確認新的 admitted revision。",
+        "lifecycle": publishing_state.get("lifecycle", []),
         "safety_notes": ["single_window_only", "dashboard_refresh_only", "no_line_email", "no_trading", "existing_latest_effective_date_preserved_for_revision" if selected.latest else "first_snapshot_uses_market_session_date"],
     }
-    write_audit(audit)
-    return {**response, "accepted": success, "status": audit["status"], "effective_trading_date": effective_date, "archive_write_expected": success, "line_attempted": False, "email_attempted": False}
+    persist_status(lifecycle_status(audit, audit["status"]))
+    return sanitize_response(audit)
 
 
-def status_payload(job_id: str | None = None) -> dict[str, Any]:
-    if STATUS_LATEST.exists():
-        data = json.loads(STATUS_LATEST.read_text(encoding="utf-8"))
+def status_payload(job_id: str | None = None, status_dir: Path | None = None) -> dict[str, Any]:
+    path = _status_path(job_id, status_dir) if job_id else _status_path(None, status_dir)
+    if path.exists():
+        data = json.loads(path.read_text(encoding="utf-8"))
     else:
-        data = {"schema_version": "manual_rerun_status_v1", "status": "manual_rerun_disabled"}
-    if job_id and data.get("job_id") not in {job_id, None}:
+        data = {"schema_version": MANUAL_STATUS_SCHEMA, "status": "idle", "message": "目前沒有手動重跑任務。"}
+    if job_id and data.get("job_id") != job_id:
         return {"status": "not_found", "job_id": job_id, "line_attempted": False, "email_attempted": False}
     return sanitize_response(data)
 
