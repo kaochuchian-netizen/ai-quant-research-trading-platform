@@ -2,7 +2,7 @@
 from __future__ import annotations
 from typing import Any
 def normalize_stock_cards(raw_cards: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
-    cards = raw_cards if raw_cards is not None else [{"stock_id": "2330", "stock_name": "台積電", "signal": "中性", "summary": "樣本資料，僅供內容契約驗證。", "advisory_only": True}]
+    cards = raw_cards or []
     return [{"stock_id": str(c.get("stock_id", "unknown")), "stock_name": str(c.get("stock_name", "unknown")), "signal": str(c.get("signal", "中性")), "summary": str(c.get("summary", "資料不足，維持觀察。")), "advisory_only": bool(c.get("advisory_only", True))} for c in cards]
 def review_state_cards(content_state: str) -> list[dict[str, Any]]:
     if content_state == "prediction_review_available":

@@ -141,7 +141,7 @@ def validate_html() -> tuple[list[str], dict[str, Any]]:
         "tw_pre_open": render_tw_window_report("pre_open_0700", tw_fixture),
         "tw_intraday": render_tw_window_report("intraday_1305", tw_fixture),
         "tw_pre_close": render_tw_window_report("pre_close_1335", tw_fixture),
-        "tw_post_close": render_tw_window_report("post_close_1500", tw_fixture),
+        "tw_post_close": render_tw_window_report("post_close_1500", {**tw_fixture, "structured_review_cards": tw_fixture["cards"]}),
         "us_pre": render_us_window_report("us_pre_market_2000", [fixture_us_artifact("us_pre_market_2000")]),
         "us_intraday": render_us_window_report("us_intraday_2300", [fixture_us_artifact("us_intraday_2300")]),
         "us_review": render_us_window_report("us_post_close_review_0630", [fixture_us_artifact("us_post_close_review_0630")]),

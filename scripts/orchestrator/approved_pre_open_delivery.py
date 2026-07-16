@@ -28,11 +28,13 @@ if str(REPO_ROOT) not in sys.path:
 from app.reports.multi_window_formatter import line_notification_text  # noqa: E402
 from app.reports.decision_intelligence_v4 import delivery_summary_lines, project_decision_intelligence_v4  # noqa: E402
 from app.dashboard.dashboard_url_registry import get_delivery_dashboard_url, get_tw_dashboard_url  # noqa: E402
-from app.dashboard.window_snapshot_archive import write_snapshot  # noqa: E402
+from app.dashboard.market_dashboard_alias import payload_hash  # noqa: E402
+from app.dashboard.window_snapshot_archive import resolve_snapshots, write_snapshot  # noqa: E402
 from app.reports.report_content_contract import build_report_content_artifact  # noqa: E402
 from app.reports.window_context import get_window_context  # noqa: E402
 from app.reports.window_report_contract import get_window_report_contract  # noqa: E402
 from app.reports.tw_1335_snapshot_delivery import render_email as render_tw_1335_email, render_line as render_tw_1335_line, resolve_context as resolve_tw_1335_context  # noqa: E402
+from app.reports.tw_post_close_review import build_structured_review_payload, render_email as render_tw_1500_email, render_line as render_tw_1500_line  # noqa: E402
 from app.runtime.production_run_guard import evaluate_pre_open_run_guard  # noqa: E402
 from app.runtime.runtime_diagnostics import build_guard_result, write_json  # noqa: E402
 from app.runtime.timeout_policy import TimeoutPolicy, timeout_policy_from_env  # noqa: E402
@@ -372,7 +374,26 @@ def _tw_delivery_projection(window_id: str) -> tuple[dict[str, Any], dict[str, A
     payload = _load_json(REPO_ROOT / "artifacts/runtime/tw_daily_tactical/tw_daily_tactical_latest.json")
     review = _load_json(REPO_ROOT / "artifacts/runtime/formal_prediction_review_runtime_latest.json")
     normalized_window = "post_close_1500" if window_id == "prediction_review_1500" else window_id
+    if normalized_window == "post_close_1500":
+        selected = resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, "TW", "post_close_1500").latest
+        snapshot_payload = selected.get("payload") if isinstance(selected, dict) and isinstance(selected.get("payload"), dict) else {}
+        if isinstance(snapshot_payload.get("structured_review_cards"), list):
+            return project_decision_intelligence_v4("TW", normalized_window, {"cards": snapshot_payload["structured_review_cards"]}), snapshot_payload
+        current = build_structured_review_payload(review, _load_json(TW_WINDOW_RUNTIME_DIR / "post_close_1500_latest.json"))
+        return project_decision_intelligence_v4("TW", normalized_window, {"cards": current["structured_review_cards"]}), current
     return project_decision_intelligence_v4("TW", normalized_window, payload), review
+
+
+def _latest_post_close_context() -> tuple[dict[str, Any], dict[str, Any]]:
+    snapshot = resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, "TW", "post_close_1500").latest or {}
+    payload = snapshot.get("payload") if isinstance(snapshot.get("payload"), dict) else {}
+    if not isinstance(payload.get("structured_review_cards"), list):
+        payload = build_structured_review_payload(
+            _load_json(REPO_ROOT / "artifacts/runtime/formal_prediction_review_runtime_latest.json"),
+            _load_json(TW_WINDOW_RUNTIME_DIR / "post_close_1500_latest.json"),
+        )
+        snapshot = {}
+    return payload, snapshot
 
 
 def _delivery_dashboard_url(window_id: str, requested_url: str) -> str:
@@ -425,6 +446,15 @@ def build_email_body(window_id: str, run_id: str, generated_at: str, pipeline_st
         context = resolve_tw_1335_context(WINDOW_SNAPSHOT_ARCHIVE)
         if context:
             return render_tw_1335_email(context)
+    if window_id in {"post_close_1500", "prediction_review_1500"}:
+        payload, snapshot = _latest_post_close_context()
+        return render_tw_1500_email(
+            payload,
+            dashboard_url,
+            snapshot_id=str(snapshot.get("snapshot_id") or ""),
+            revision=int(snapshot.get("revision") or 1),
+            payload_hash=payload_hash(payload),
+        )
     summary = _production_email_summary()
     projection, review = _tw_delivery_projection(window_id)
     titles = {
@@ -496,6 +526,9 @@ def build_line_message(window_id: str, generated_at: str, pipeline_status: str, 
         context = resolve_tw_1335_context(WINDOW_SNAPSHOT_ARCHIVE)
         if context:
             return tail_text(render_tw_1335_line(context), LINE_BODY_LIMIT)
+    if window_id in {"post_close_1500", "prediction_review_1500"}:
+        payload, _snapshot = _latest_post_close_context()
+        return tail_text(render_tw_1500_line(payload, dashboard_url), LINE_BODY_LIMIT)
     context = get_window_context(window_id)
     projection, review = _tw_delivery_projection(window_id)
     return tail_text(
@@ -606,14 +639,15 @@ def _run_internal_artifact_command(args: list[str]) -> dict[str, Any]:
     return {"command": "python " + " ".join(args), "returncode": proc.returncode, "ok": proc.returncode == 0, "started_at": started, "stdout_tail": tail_text(proc.stdout, 3000), "stderr_tail": tail_text(proc.stderr, 3000)}
 
 
-def post_delivery_artifact_wiring(*, window_id: str, generated_at: str) -> dict[str, Any]:
+def post_delivery_artifact_wiring(*, window_id: str, generated_at: str, review_already_built: bool = False) -> dict[str, Any]:
     run_date = generated_at[:10]
     commands: list[list[str]] = []
     if window_id == "pre_open_0700":
         commands.append(["scripts/orchestrator/build_formal_prediction_runtime_artifact.py", "--date", run_date, "--pretty"])
         commands.append(["scripts/orchestrator/archive_formal_forecast_daily_snapshot.py", "--date", run_date, "--pretty"])
     elif window_id == "post_close_1500":
-        commands.append(["scripts/orchestrator/build_formal_prediction_review_runtime_artifact.py", "--date", run_date, "--pretty"])
+        if not review_already_built:
+            commands.append(["scripts/orchestrator/build_formal_prediction_review_runtime_artifact.py", "--date", run_date, "--pretty"])
         commands.append(["scripts/orchestrator/archive_formal_forecast_daily_snapshot.py", "--date", run_date, "--pretty"])
     commands.extend([
         ["scripts/orchestrator/build_four_window_dashboard_production_runtime_export_v1.py", "--pretty"],
@@ -799,13 +833,29 @@ def main() -> int:
     window_runtime = _window_runtime(args.window, output)
     report_generated_at = now_taipei().isoformat()
     effective_batch_time = scheduled_datetime_taipei(args.window, generated).isoformat()
+    structured_review: dict[str, Any] = {}
+    review_build: dict[str, Any] | None = None
+    snapshot_cards = window_runtime.get("cards") if isinstance(window_runtime.get("cards"), list) else []
+    if args.window in {"post_close_1500", "prediction_review_1500"} and pipeline_status == "completed":
+        review_build = _run_internal_artifact_command([
+            "scripts/orchestrator/build_formal_prediction_review_runtime_artifact.py",
+            "--date", (args.effective_trading_date or generated_at[:10]), "--pretty",
+        ])
+        review_runtime = _load_json(REPO_ROOT / "artifacts/runtime/formal_prediction_review_runtime_latest.json") if review_build["ok"] else {}
+        structured_review = build_structured_review_payload(
+            review_runtime,
+            window_runtime,
+            effective_batch_time=effective_batch_time,
+            generated_at=report_generated_at,
+        )
+        snapshot_cards = structured_review["structured_review_cards"]
     report_contract = build_report_content_artifact(
         args.window,
         output_tail,
         content_state(args.window, output_tail, pipeline_status),
         run_id,
         args.dashboard_url,
-        stock_cards=window_runtime.get("cards") if isinstance(window_runtime.get("cards"), list) else [],
+        stock_cards=snapshot_cards,
     )
     effective_trading_date = args.effective_trading_date or scheduled_datetime_taipei(args.window, generated).date().isoformat()
     archive_write = write_snapshot(
@@ -822,7 +872,16 @@ def main() -> int:
             "content_state": report_contract.content_state,
             "user_facing_report": report_contract.user_facing_report,
             "delivery_policy": report_contract.delivery_policy,
-            "cards": window_runtime.get("cards") if isinstance(window_runtime.get("cards"), list) else [],
+            "cards": snapshot_cards,
+            "structured_review_cards": structured_review.get("structured_review_cards", []),
+            "structured_review": structured_review,
+            "tracking_stock_count": structured_review.get("tracking_stock_count", len(snapshot_cards)),
+            "rendered_review_card_count": structured_review.get("rendered_review_card_count", len(snapshot_cards)),
+            "outcome_counts": structured_review.get("outcome_counts", {}),
+            "review_content_hash": structured_review.get("review_content_hash"),
+            "seven_day_sample_count": structured_review.get("seven_day_sample_count", 0),
+            "seven_day_hit_rate": structured_review.get("seven_day_hit_rate"),
+            "effective_trading_date": effective_trading_date,
             "effective_batch_time": effective_batch_time,
             "source_data_time": window_runtime.get("source_data_time"),
             "source_data_date": (window_runtime.get("source_data_dates") or [None])[-1],
@@ -830,7 +889,7 @@ def main() -> int:
             "source_data_time_status": window_runtime.get("source_data_time_status") or "unavailable",
             "generated_at": report_generated_at,
             "prediction_available": None,
-            "prediction_total": len(window_runtime.get("cards") or []),
+            "prediction_total": len(snapshot_cards),
         },
         status=pipeline_status,
         run_kind="manual_rerun" if args.manual_rerun else "scheduled",
@@ -840,7 +899,13 @@ def main() -> int:
         effective_batch_time=effective_batch_time,
     )
     try:
-        post_run_artifacts = post_delivery_artifact_wiring(window_id=args.window, generated_at=generated_at)
+        post_run_artifacts = post_delivery_artifact_wiring(
+            window_id=args.window,
+            generated_at=generated_at,
+            review_already_built=bool(review_build and review_build.get("ok")),
+        )
+        if review_build is not None:
+            post_run_artifacts["pre_snapshot_review_build"] = review_build
     except Exception as exc:
         post_run_artifacts = {
             "status": "failed_non_blocking",
