@@ -21,7 +21,7 @@ from app.dashboard.market_dashboard_alias import payload_hash
 from app.dashboard.window_snapshot_archive import resolve_snapshots, write_snapshot
 from app.reports.tw_post_close_review import build_structured_review_payload, render_email
 
-FORBIDDEN = ("樣本資料", "contract validation", "2330 sample")
+FORBIDDEN = ("樣本資料", "fixture", "contract validation", "2330 sample")
 
 
 def _fixture(day: str, revision_marker: str) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -93,6 +93,7 @@ def validate() -> dict[str, Any]:
         latest_html = (pages / "dashboard/archive/tw/post_close_1500/latest/index.html").read_text(encoding="utf-8")
         previous_html = (pages / "dashboard/archive/tw/post_close_1500/previous/index.html").read_text(encoding="utf-8")
         landing = (pages / "index.html").read_text(encoding="utf-8")
+        all_archive_html = "".join(path.read_text(encoding="utf-8") for path in (pages / "dashboard/archive").rglob("index.html"))
         counts = latest_payload.get("outcome_counts", {})
         checks.update({
             "structured_cards_9": len(latest_payload.get("structured_review_cards", [])) == 9,
@@ -105,7 +106,7 @@ def validate() -> dict[str, Any]:
             "dashboard_archive_payload_hash": payload_hash(latest_payload) in market_html and payload_hash(latest_payload) in latest_html,
             "previous_immutable": str(previous.get("snapshot_id")) in previous_html and str(previous.get("snapshot_id")) != str(latest.get("snapshot_id")),
             "operations_identity": str(latest.get("snapshot_id")) in landing and payload_hash(latest_payload) in landing,
-            "forbidden_absent": not any(marker.lower() in (market_html + latest_html + previous_html).lower() for marker in FORBIDDEN),
+            "forbidden_absent": not any(marker.lower() in (market_html + all_archive_html).lower() for marker in FORBIDDEN),
             "canonical_url": "/dashboard/archive/tw/post_close_1500/latest/index.html" in email,
             "build_14_routes": build.get("archive_route_count") == 14,
         })
