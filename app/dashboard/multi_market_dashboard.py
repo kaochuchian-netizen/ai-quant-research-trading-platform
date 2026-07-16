@@ -832,13 +832,17 @@ def _tw_post_close_card(card: dict[str, Any]) -> str:
 def render_tw_window_report(window: str, artifact: dict[str, Any] | None = None) -> str:
     contract = get_window_report_contract("TW", window)
     artifact = artifact if artifact is not None else _load_tw_tactical_artifact()
-    cards = artifact.get("cards", []) if isinstance(artifact, dict) and isinstance(artifact.get("cards"), list) else []
+    cards_key = "structured_review_cards" if window == "post_close_1500" else "cards"
+    cards = artifact.get(cards_key, []) if isinstance(artifact, dict) and isinstance(artifact.get(cards_key), list) else []
+    presentation_artifact = dict(artifact) if isinstance(artifact, dict) else {}
+    if window == "post_close_1500":
+        presentation_artifact["cards"] = cards
     if window == "pre_open_0700":
         return f"""
         <section class="section window-report-section" data-market="TW" data-window="{_escape(window)}" data-report-type="pre-open-decision">
           <h2>{_escape(contract.title)}</h2>
           <p>今日盤前重點、市場環境、可觀察標的與短線操作計畫。</p>
-          {_decision_intelligence_v4_html("TW", window, artifact)}
+          {_decision_intelligence_v4_html("TW", window, presentation_artifact)}
           {render_tw_tactical_cards(artifact)}
         </section>
         """
@@ -849,7 +853,9 @@ def render_tw_window_report(window: str, artifact: dict[str, Any] | None = None)
     }
     renderer = card_renderers[window]
     if not cards:
-        body = '<article class="status-card warn"><h3>資料待接</h3><p>本批次資料尚未產生，不回退到完整 generic stock report。</p></article>'
+        body = ('<article class="status-card warn official-review-empty-state" data-review-state="official-empty">'
+                '<h3>正式 Review Payload 尚未建立</h3><p>本批次尚未建立正式 Review Payload。'
+                '不跨 window 補值，不使用範例或測試資料。</p></article>') if window == "post_close_1500" else '<article class="status-card warn"><h3>資料待接</h3><p>本批次資料尚未產生，不回退到完整 generic stock report。</p></article>'
     else:
         body = ''.join(renderer(card) for card in cards if isinstance(card, dict))
     section_intro = {
@@ -862,7 +868,8 @@ def render_tw_window_report(window: str, artifact: dict[str, Any] | None = None)
     <section class="section window-report-section" data-market="TW" data-window="{_escape(window)}" data-report-type="{_escape({'pre_open_0700':'pre-open-decision','intraday_1305':'intraday-change','pre_close_1335':'pre-close-snapshot','post_close_1500':'post-close-review'}[window])}">
       <h2>{_escape(contract.title)}</h2>
       <p>{_escape(section_intro)}</p>
-      {_decision_intelligence_v4_html("TW", window, artifact)}
+      {_decision_intelligence_v4_html("TW", window, presentation_artifact)}
+      {('<p class="decision-note review-card-count" data-tracking-stock-count="' + str(artifact.get('tracking_stock_count', len(cards))) + '" data-rendered-review-card-count="' + str(len(cards)) + '">Tracking ' + str(artifact.get('tracking_stock_count', len(cards))) + '｜Rendered ' + str(len(cards)) + '</p>') if window == 'post_close_1500' else ''}
       <div class="grid decision-grid">{body}</div>
     </section>
     """
@@ -880,6 +887,8 @@ def _snapshot_decision_content(snapshot: dict[str, Any]) -> str:
     payload = snapshot.get("payload") if isinstance(snapshot.get("payload"), dict) else {}
     if market == "US":
         return render_us_window_report(window, [payload])
+    if window == "post_close_1500":
+        return render_tw_window_report(window, payload)
     report = payload.get("user_facing_report") if isinstance(payload.get("user_facing_report"), dict) else {}
     cards = report.get("stock_cards") if isinstance(report.get("stock_cards"), list) else []
     cards_html = "".join(
@@ -938,7 +947,9 @@ def render_landing_page() -> str:
             ])
             archive_status = "已累積" if latest else "等待首筆正式資料"
             overall_status = "可用" if latest else "等待資料（非失敗）"
-            health_rows.append(f'<tr data-market="{market}" data-window="{window}"><th>{market}｜{_escape(window)}</th><td>{_escape(latest_date)}</td><td>{revision or "—"}</td><td>{_escape(previous_meta)}</td><td>{_escape(provenance_label)}</td><td>設定維持</td><td>依正式批次</td><td>可建置</td><td>{_escape(archive_status)}</td><td>未發送</td><td>未發送</td><td>{_escape(overall_status)}</td></tr>')
+            parity = snapshot_parity_contract(latest) or {}
+            latest_payload = latest.get("payload") if isinstance(latest, dict) and isinstance(latest.get("payload"), dict) else {}
+            health_rows.append(f'<tr data-market="{market}" data-window="{window}" data-snapshot-id="{_escape(parity.get("snapshot_id"))}" data-payload-hash="{_escape(parity.get("payload_hash"))}" data-tracking-stock-count="{_escape(latest_payload.get("tracking_stock_count"))}"><th>{market}｜{_escape(window)}</th><td>{_escape(latest_date)}</td><td>{revision or "—"}</td><td>{_escape(previous_meta)}</td><td>{_escape(provenance_label)}</td><td>設定維持</td><td>依正式批次</td><td>可建置</td><td>{_escape(archive_status)}</td><td>未發送</td><td>未發送</td><td>{_escape(overall_status)}</td></tr>')
     archive_buttons_html = "".join(
         f'<section class="archive-market-group" data-market="{market}"><h3>{"台股批次" if market == "TW" else "美股批次"}</h3><div class="market-shared-navigation__grid">{"".join(archive_buttons[market])}</div></section>'
         for market in ("TW", "US")

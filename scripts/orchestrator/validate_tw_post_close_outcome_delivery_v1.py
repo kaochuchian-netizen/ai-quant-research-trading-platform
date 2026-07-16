@@ -22,6 +22,7 @@ from app.reports.decision_intelligence_v4 import (
     seven_day_review_summary,
 )
 from app.reports.window_report_contract import all_window_report_contracts
+from app.reports.tw_post_close_review import build_structured_review_payload
 
 CANONICAL_URL = (
     "http://35.201.242.167/stock-ai-dashboard/"
@@ -131,11 +132,16 @@ def main() -> int:
 
     tw = matrix.get("TW:post_close_1500", {})
     tw_line, tw_email = tw.get("line", ""), tw.get("email", "")
-    current_payload = json.loads((ROOT / "artifacts/runtime/tw_daily_tactical/tw_daily_tactical_latest.json").read_text(encoding="utf-8"))
     current_review = json.loads((ROOT / "artifacts/runtime/formal_prediction_review_runtime_latest.json").read_text(encoding="utf-8"))
-    current_projection = project_decision_intelligence_v4("TW", "post_close_1500", current_payload)
-    expected_counts, expected_review = delivery_summary_lines(current_projection, review_payload=current_review)
-    checks["tw_1500_actual_counts_line_email"] = expected_counts in tw_line and expected_counts in tw_email
+    current_window = json.loads((ROOT / "artifacts/runtime/tw_window_decision/post_close_1500_latest.json").read_text(encoding="utf-8"))
+    structured = build_structured_review_payload(current_review, current_window)
+    counts = structured["outcome_counts"]
+    expected_tokens = [f"命中 {counts['hit']}", f"未觸發 {counts['not_triggered']}", f"失敗 {counts['fail']}", f"無交易 {counts['no_trade']}", f"待確認 {counts['pending']}"]
+    checks["tw_1500_actual_counts_line_email"] = all(token in tw_line and token in tw_email for token in expected_tokens)
+    if structured.get("seven_day_hit_rate") is None:
+        expected_review = "7 日檢討：待累積"
+    else:
+        expected_review = f"7 日檢討：有效樣本 {structured['seven_day_sample_count']}｜平均命中率 {structured['seven_day_hit_rate']:.1%}"
     checks["tw_1500_seven_day_line_email_parity"] = expected_review in tw_line and expected_review in tw_email
     checks["tw_1500_canonical_url"] = CANONICAL_URL in tw_line and CANONICAL_URL in tw_email
     checks["tw_1500_unbuilt_url_absent"] = LEGACY_UNBUILT_URL not in tw_line + tw_email
