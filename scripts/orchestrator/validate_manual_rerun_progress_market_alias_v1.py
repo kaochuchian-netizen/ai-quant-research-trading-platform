@@ -138,6 +138,10 @@ def main() -> int:
             checks["lifecycle_complete"] = recovered.get("lifecycle") == ["submitted", "queued", "running", "publishing", "completed"]
             checks["completion_contract"] = all(recovered.get(key) is not None for key in ("revision", "finished_at", "duration_seconds", "latest_url")) and recovered.get("previous_route_updated") is False and recovered.get("line_attempted") is False and recovered.get("email_attempted") is False
             checks["refresh_restart_recovery"] = recovered.get("job_id") == "progress-job" and status_payload(None, status_dir).get("status") == "completed"
+            legacy_path = status_dir / "manual_rerun_legacy-job.json"
+            legacy_path.write_text(json.dumps({"schema_version": "manual_rerun_status_v1", "job_id": "legacy-job", "status": "unauthorized"}), encoding="utf-8")
+            legacy = status_payload("legacy-job", status_dir)
+            checks["legacy_status_normalized"] = legacy.get("schema_version") == "manual_rerun_status_v2" and legacy.get("status") == "rejected" and legacy.get("reason") == "unauthorized"
             rejected = lifecycle_status({"market": "TW", "window": "pre_open_0700"}, "rejected", error_summary="invalid pin")
             checks["rejected_terminal"] = rejected["status"] == "rejected" and rejected["latest_route_updated"] is False
             landing = dashboard.render_landing_page()
