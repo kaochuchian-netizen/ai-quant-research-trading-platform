@@ -16,6 +16,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import app.dashboard.multi_market_dashboard as dashboard
+from app.dashboard.dashboard_url_registry import get_window_archive_url
 from app.dashboard.window_snapshot_archive import MARKET_WINDOWS, resolve_snapshots, write_snapshot
 from app.reports.decision_intelligence_v4 import WINDOW_PRESENTATION, compact_summary, delivery_summary_lines, project_decision_intelligence_v4
 from app.reports.multi_window_formatter import format_window_report
@@ -190,12 +191,7 @@ def main() -> int:
             checks["operations_columns"] = all(label in landing for label in ("Scheduler", "Pipeline", "Dashboard", "Archive", "LINE", "Email", "Overall"))
             checks["operations_revision"] = "Revision 2" in landing and "2026-07-14" in landing
             checks["url_isolation"] = all(
-                contract.dashboard_url == (
-                    dashboard.US_URL if contract.market == "US"
-                    else get_window_report_contract("TW", "post_close_1500").dashboard_url
-                    if contract.window == "post_close_1500"
-                    else dashboard.TW_URL
-                )
+                contract.dashboard_url == get_window_archive_url(contract.market, contract.window)
                 for contract in all_window_report_contracts()
             )
             checks["no_send_matrix"] = all(value is False for value in (False, False, False))

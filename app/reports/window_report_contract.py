@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any
 
-from app.dashboard.dashboard_url_registry import get_tw_dashboard_url, get_us_dashboard_url
+from app.dashboard.dashboard_url_registry import get_window_archive_url
 
 SCHEMA_VERSION = "window_report_contract_v1"
 
@@ -33,12 +33,11 @@ class WindowReportContract:
         return data
 
 
-TW_DASHBOARD_URL = get_tw_dashboard_url()
-US_DASHBOARD_URL = get_us_dashboard_url()
-TW_POST_CLOSE_LATEST_URL = (
-    "http://35.201.242.167/stock-ai-dashboard/"
-    "dashboard/archive/tw/post_close_1500/latest/index.html"
-)
+def _url(market: str, window: str) -> str:
+    return get_window_archive_url(market, window)
+
+
+TW_POST_CLOSE_LATEST_URL = _url("TW", "post_close_1500")
 
 CONTRACTS: dict[tuple[str, str], WindowReportContract] = {
     ("TW", "pre_open_0700"): WindowReportContract(
@@ -49,7 +48,7 @@ CONTRACTS: dict[tuple[str, str], WindowReportContract] = {
         ("台股盤前摘要", "研究統計", "每日短線策略統計", "高風險數量", "TW Dashboard URL"),
         ("盤後檢討主文", "7 日滾動檢討長文"),
         ("07:00 盤前決策", "今日盤前重點", "今日可觀察標的"),
-        TW_DASHBOARD_URL, "重跑 07:00 盤前", "確認執行台股 07:00 盤前重跑",
+        _url("TW", "pre_open_0700"), "重跑 07:00 盤前", "確認執行台股 07:00 盤前重跑",
         ("./venv/bin/python", "scripts/orchestrator/approved_pre_open_delivery.py", "--window", "pre_open_0700", "--manual-rerun"),
         "TW artifacts / TW Dashboard only",
     ),
@@ -61,7 +60,7 @@ CONTRACTS: dict[tuple[str, str], WindowReportContract] = {
         ("盤中追蹤摘要", "已觸發 setup：N", "接近 target：N", "接近 stop：N", "TW Dashboard URL"),
         ("完整中長期 Research", "完整財務體質", "完整 SEC / 基本面長文"),
         ("13:05 盤中變化", "盤中變化摘要", "已觸發 setup"),
-        TW_DASHBOARD_URL, "重跑 13:05 盤中", "確認執行台股 13:05 盤中重跑",
+        _url("TW", "intraday_1305"), "重跑 13:05 盤中", "確認執行台股 13:05 盤中重跑",
         ("./venv/bin/python", "scripts/orchestrator/approved_pre_open_delivery.py", "--window", "intraday_1305", "--manual-rerun"),
         "TW artifacts / TW Dashboard only",
     ),
@@ -73,7 +72,7 @@ CONTRACTS: dict[tuple[str, str], WindowReportContract] = {
         ("收盤快照摘要", "尾盤高風險：N", "明日觀察：N", "不追價提醒", "TW Dashboard URL"),
         ("完整盤前操作計畫", "完整 Research 長文"),
         ("13:35 收盤快照", "收盤前快照", "不追價提醒"),
-        TW_DASHBOARD_URL, "重跑 13:35 收盤快照", "確認執行台股 13:35 收盤快照重跑",
+        _url("TW", "pre_close_1335"), "重跑 13:35 收盤快照", "確認執行台股 13:35 收盤快照重跑",
         ("./venv/bin/python", "scripts/orchestrator/approved_pre_open_delivery.py", "--window", "pre_close_1335", "--manual-rerun"),
         "TW artifacts / TW Dashboard only",
     ),
@@ -85,7 +84,7 @@ CONTRACTS: dict[tuple[str, str], WindowReportContract] = {
         ("盤後檢討摘要", "今日命中 / 未觸發 / 失敗 數量", "7 日檢討狀態", "TW Dashboard URL"),
         ("新的盤前建議", "盤前機會主文"),
         ("15:00 盤後檢討", "今日預測 vs 實際", "7 日滾動檢討"),
-        TW_POST_CLOSE_LATEST_URL, "重跑 15:00 盤後檢討", "確認執行台股 15:00 盤後檢討重跑",
+        _url("TW", "post_close_1500"), "重跑 15:00 盤後檢討", "確認執行台股 15:00 盤後檢討重跑",
         ("./venv/bin/python", "scripts/orchestrator/approved_pre_open_delivery.py", "--window", "post_close_1500", "--manual-rerun"),
         "TW artifacts / TW Dashboard only",
     ),
@@ -97,7 +96,7 @@ CONTRACTS: dict[tuple[str, str], WindowReportContract] = {
         ("美股盤前摘要", "可觀察：N", "高風險：N", "重大事件：N", "US Dashboard URL"),
         ("盤後 outcome 長文", "完整 review 表格"),
         ("20:00 美股盤前", "Premarket / gap 狀態", "今日 Tactical setup"),
-        US_DASHBOARD_URL, "重跑 20:00 美股盤前", "確認執行美股 20:00 盤前重跑",
+        _url("US", "us_pre_market_2000"), "重跑 20:00 美股盤前", "確認執行美股 20:00 盤前重跑",
         ("./venv/bin/python", "scripts/orchestrator/approved_us_stock_delivery.py", "--window", "us_pre_market_2000", "--dry-run", "--production-artifact", "--manual-rerun", "--pretty"),
         "US artifacts / US Dashboard only",
     ),
@@ -109,7 +108,7 @@ CONTRACTS: dict[tuple[str, str], WindowReportContract] = {
         ("美股盤中摘要", "已確認 setup：N", "接近 target：N", "接近 stop：N", "US Dashboard URL"),
         ("完整 Research 長文", "完整財務卡片", "完整 SEC 長列表"),
         ("23:00 美股盤中", "Gap follow-through", "Volume confirmation"),
-        US_DASHBOARD_URL, "重跑 23:00 美股盤中", "確認執行美股 23:00 盤中重跑",
+        _url("US", "us_intraday_2300"), "重跑 23:00 美股盤中", "確認執行美股 23:00 盤中重跑",
         ("./venv/bin/python", "scripts/orchestrator/approved_us_stock_delivery.py", "--window", "us_intraday_2300", "--dry-run", "--production-artifact", "--manual-rerun", "--pretty"),
         "US artifacts / US Dashboard only",
     ),
@@ -121,7 +120,7 @@ CONTRACTS: dict[tuple[str, str], WindowReportContract] = {
         ("美股檢討摘要", "今日 review 結果", "隔日觀察", "US Dashboard URL"),
         ("盤前機會主文", "premarket 追價建議"),
         ("06:30 美股檢討", "預測檢討", "隔日觀察"),
-        US_DASHBOARD_URL, "重跑 06:30 美股檢討", "確認執行美股 06:30 檢討重跑",
+        _url("US", "us_post_close_review_0630"), "重跑 06:30 美股檢討", "確認執行美股 06:30 檢討重跑",
         ("./venv/bin/python", "scripts/orchestrator/approved_us_stock_delivery.py", "--window", "us_post_close_review_0630", "--dry-run", "--production-artifact", "--manual-rerun", "--pretty"),
         "US artifacts / US Dashboard only",
     ),

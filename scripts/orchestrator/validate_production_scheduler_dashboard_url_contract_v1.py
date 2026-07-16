@@ -113,7 +113,7 @@ def validate_us_window(window: str, python_bin: str) -> dict[str, Any]:
         data = load_json(out)
     line = str(data.get("line_payload_preview") or data.get("status", {}).get("line_payload_preview", ""))
     email = str(data.get("email_payload_preview") or data.get("status", {}).get("email_payload_preview", ""))
-    us_url = get_us_dashboard_url()
+    us_url = get_window_report_contract("US", window).dashboard_url
     status = data.get("status", {}) if isinstance(data.get("status"), dict) else {}
     return {
         "market": "US",

@@ -171,6 +171,7 @@ def write_snapshot(
     run_id: str | None = None,
     source_artifact_path: str | None = None,
     rebuild_routes: bool = False,
+    effective_batch_time: str | None = None,
 ) -> dict[str, Any]:
     """Admit and atomically write one immutable snapshot; never infers batch date from wall clock."""
     canonical_window = "post_close_1500" if market == "TW" and window == "prediction_review_1500" else window
@@ -193,7 +194,7 @@ def write_snapshot(
     revision = max([int(item.get("revision") or 0) for item in existing] or [0]) + 1
     original_batch_time = min(
         [str(item.get("original_batch_time") or item.get("generated_at")) for item in existing if item.get("original_batch_time") or item.get("generated_at")]
-        or [generated_at]
+        or [effective_batch_time or generated_at]
     )
     source_for_admission = canonical_snapshot(source_payload)
     if run_kind == "manual_rerun":

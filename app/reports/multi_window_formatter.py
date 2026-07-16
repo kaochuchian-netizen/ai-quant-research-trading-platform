@@ -109,8 +109,8 @@ def render_markdown_report(user_report: dict[str, Any]) -> str:
     lines.extend(["", "advisory_only: true"])
     return "\n".join(lines).strip() + "\n"
 def build_channel_reports(context: ReportWindowContext, user_report: dict[str, Any], dashboard_url: str | None) -> dict[str, Any]:
-    url = dashboard_url or DASHBOARD_URL_FALLBACK
     contract = get_window_report_contract("TW", context.scheduler_window)
+    url = dashboard_url or contract.dashboard_url
     email_sections = list(contract.email_sections)
     return {
         "line": {"channel": "line", "mode": "link_only_notification", "line_summary_required": True, "full_report": False, "dashboard_url": url, "text": line_notification_text(context, url, user_report.get("decision_intelligence_v4")), "semantic_contract": "seven_window_decision_intelligence_v4", "raw_logs_included": False, "notification_sent": False},
@@ -137,7 +137,7 @@ def build_user_facing_report(context: ReportWindowContext, content_state: str, s
         "stock_cards": [format_stock_card(card, context) for card in normalized] if show_stock_cards else [],
         "review_cards": review_state_cards(content_state) if context.pipeline_type in {"post_close", "prediction_review"} else [],
         "warnings": warnings,
-        "dashboard_url": dashboard_url or DASHBOARD_URL_FALLBACK,
+        "dashboard_url": dashboard_url or get_window_report_contract("TW", context.scheduler_window).dashboard_url,
         "advisory_only": True,
         "strategy_v2_aligned": True,
         "fabricated_forecast_values": False,
