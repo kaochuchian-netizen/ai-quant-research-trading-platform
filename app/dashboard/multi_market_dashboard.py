@@ -891,6 +891,12 @@ def _snapshot_decision_content(snapshot: dict[str, Any]) -> str:
         return render_tw_window_report(window, payload)
     report = payload.get("user_facing_report") if isinstance(payload.get("user_facing_report"), dict) else {}
     cards = report.get("stock_cards") if isinstance(report.get("stock_cards"), list) else []
+    forbidden_card_markers = ("樣本資料", "fixture", "contract validation", "example", "demo")
+    cards = [
+        card for card in cards
+        if isinstance(card, dict)
+        and not any(marker in " ".join(str(value) for value in card.values()).lower() for marker in forbidden_card_markers)
+    ]
     cards_html = "".join(
         f'<article class="stock-card decision-card snapshot-stock-card"><h3>{_escape(card.get("title") or card.get("stock_id"))}</h3><p>{_escape(card.get("summary"))}</p></article>'
         for card in cards if isinstance(card, dict)
@@ -1051,7 +1057,7 @@ def build_pages(output_dir: Path = OUTPUT_DIR) -> dict[str, Any]:
 
 def render_snapshot_archive_page(market: str, window: str, selection: str, snapshot: dict[str, Any] | None, comparison: dict[str, Any]) -> str:
     if snapshot is None:
-        body = '<section class="section archive-empty-state"><h2>尚無可用 snapshot</h2><p>找不到符合正式、完整、非 fixture / validator 且同市場同時段的 immutable snapshot。</p></section>'
+        body = '<section class="section archive-empty-state"><h2>尚無可用 snapshot</h2><p>找不到符合正式、完整 admission policy 且同市場同時段的 immutable snapshot。</p></section>'
         identity = ""
     else:
         identity = identity_attributes(snapshot)
