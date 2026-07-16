@@ -421,7 +421,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "line_succeeded": line_result.get("succeeded", False),
             "line_payload_preview": line_text(artifact, args.window),
             "email_payload_preview": build_email_body(artifact, args.window),
-            "dashboard_url": DASHBOARD_URL,
+            "dashboard_url": get_window_report_contract("US", args.window).dashboard_url,
             "production_pipeline_executed": False,
             "trading_or_order_executed": False,
             "error_type": None,
@@ -436,7 +436,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if persist_formal_runtime:
             write_json(STATUS_PATH, status)
             write_json(US_STATUS_PATH, status)
-        return {"ok": True, "status": status, "archive_write": archive_result, "dashboard": dashboard_result, "email": email_result, "line": line_result, "line_payload_preview": status["line_payload_preview"], "email_payload_preview": status["email_payload_preview"], "dashboard_url": DASHBOARD_URL}
+        return {"ok": True, "status": status, "archive_write": archive_result, "dashboard": dashboard_result, "email": email_result, "line": line_result, "line_payload_preview": status["line_payload_preview"], "email_payload_preview": status["email_payload_preview"], "dashboard_url": get_window_report_contract("US", args.window).dashboard_url}
     except Exception as exc:
         error = {"ok": False, "status": "failed", "window": args.window, "error_type": type(exc).__name__, "error_message": str(exc)[:240], "line_attempted": False, "email_attempted": False, "trading_or_order_executed": False, "production_pipeline_executed": False}
         if production_approved or production_artifact:

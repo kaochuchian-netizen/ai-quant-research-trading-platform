@@ -27,11 +27,12 @@ if str(REPO_ROOT) not in sys.path:
 
 from app.reports.multi_window_formatter import line_notification_text  # noqa: E402
 from app.reports.decision_intelligence_v4 import delivery_summary_lines, project_decision_intelligence_v4  # noqa: E402
-from app.dashboard.dashboard_url_registry import get_tw_dashboard_url, normalize_delivery_dashboard_url  # noqa: E402
+from app.dashboard.dashboard_url_registry import get_delivery_dashboard_url, get_tw_dashboard_url  # noqa: E402
 from app.dashboard.window_snapshot_archive import write_snapshot  # noqa: E402
 from app.reports.report_content_contract import build_report_content_artifact  # noqa: E402
 from app.reports.window_context import get_window_context  # noqa: E402
 from app.reports.window_report_contract import get_window_report_contract  # noqa: E402
+from app.reports.tw_1335_snapshot_delivery import render_email as render_tw_1335_email, render_line as render_tw_1335_line, resolve_context as resolve_tw_1335_context  # noqa: E402
 from app.runtime.production_run_guard import evaluate_pre_open_run_guard  # noqa: E402
 from app.runtime.runtime_diagnostics import build_guard_result, write_json  # noqa: E402
 from app.runtime.timeout_policy import TimeoutPolicy, timeout_policy_from_env  # noqa: E402
@@ -48,7 +49,8 @@ TASK_ID = "AI-DEV-112"
 DEFAULT_DASHBOARD_DIR = Path("/var/www/stock-ai-dashboard")
 LEGACY_DEBUG_ROUTE = Path("debug/legacy")
 DEFAULT_MAIL_ENV_FILE = Path("~/.config/stock-ai-orchestrator/mail.env")
-WINDOW_SNAPSHOT_ARCHIVE = REPO_ROOT / "artifacts/archive/window_snapshots"
+WINDOW_SNAPSHOT_ARCHIVE = Path(os.environ.get("STOCK_AI_WINDOW_SNAPSHOT_ARCHIVE", REPO_ROOT / "artifacts/archive/window_snapshots"))
+TW_WINDOW_RUNTIME_DIR = REPO_ROOT / "artifacts/runtime/tw_window_decision"
 DEFAULT_DECISION_INTELLIGENCE_DASHBOARD_URL = get_tw_dashboard_url()
 EMAIL_BODY_LIMIT = 14000
 LINE_BODY_LIMIT = 520
@@ -363,6 +365,10 @@ def _load_json(path: Path) -> dict[str, Any]:
 
 
 def _tw_delivery_projection(window_id: str) -> tuple[dict[str, Any], dict[str, Any]]:
+    if window_id == "pre_close_1335":
+        context = resolve_tw_1335_context(WINDOW_SNAPSHOT_ARCHIVE)
+        if context:
+            return context["projection"], {}
     payload = _load_json(REPO_ROOT / "artifacts/runtime/tw_daily_tactical/tw_daily_tactical_latest.json")
     review = _load_json(REPO_ROOT / "artifacts/runtime/formal_prediction_review_runtime_latest.json")
     normalized_window = "post_close_1500" if window_id == "prediction_review_1500" else window_id
@@ -371,9 +377,18 @@ def _tw_delivery_projection(window_id: str) -> tuple[dict[str, Any], dict[str, A
 
 def _delivery_dashboard_url(window_id: str, requested_url: str) -> str:
     normalized_window = "post_close_1500" if window_id == "prediction_review_1500" else window_id
-    if normalized_window == "post_close_1500":
-        return get_window_report_contract("TW", normalized_window).dashboard_url
-    return normalize_delivery_dashboard_url("TW", requested_url)
+    return get_delivery_dashboard_url("TW", normalized_window, requested_url)
+
+
+def _window_runtime(window_id: str, output: str) -> dict[str, Any]:
+    path = TW_WINDOW_RUNTIME_DIR / f"{window_id}_latest.json"
+    payload = _load_json(path)
+    pipeline_run_id = str(payload.get("pipeline_run_id") or "")
+    if payload.get("market") != "TW" or payload.get("window") != window_id:
+        return {}
+    if not pipeline_run_id or pipeline_run_id not in output:
+        return {}
+    return payload
 
 
 def _production_email_summary() -> dict[str, Any]:
@@ -406,6 +421,10 @@ def _production_email_summary() -> dict[str, Any]:
 
 def build_email_body(window_id: str, run_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str) -> str:
     dashboard_url = _delivery_dashboard_url(window_id, dashboard_url)
+    if window_id == "pre_close_1335":
+        context = resolve_tw_1335_context(WINDOW_SNAPSHOT_ARCHIVE)
+        if context:
+            return render_tw_1335_email(context)
     summary = _production_email_summary()
     projection, review = _tw_delivery_projection(window_id)
     titles = {
@@ -473,6 +492,10 @@ def build_line_message(window_id: str, generated_at: str, pipeline_status: str, 
     of LINE. The full decision content belongs on the Dashboard.
     """
     dashboard_url = _delivery_dashboard_url(window_id, dashboard_url)
+    if window_id == "pre_close_1335":
+        context = resolve_tw_1335_context(WINDOW_SNAPSHOT_ARCHIVE)
+        if context:
+            return tail_text(render_tw_1335_line(context), LINE_BODY_LIMIT)
     context = get_window_context(window_id)
     projection, review = _tw_delivery_projection(window_id)
     return tail_text(
@@ -773,12 +796,16 @@ def main() -> int:
         Path(args.output).write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         print(stable_json({key: result[key] for key in ["schema_version", "task_id", "run_id", "scheduler_window", "pipeline_status", "late_delivery_suppressed", "line_attempted", "email_attempted", "ok", "decision"]}))
         return 0
+    window_runtime = _window_runtime(args.window, output)
+    report_generated_at = now_taipei().isoformat()
+    effective_batch_time = scheduled_datetime_taipei(args.window, generated).isoformat()
     report_contract = build_report_content_artifact(
         args.window,
         output_tail,
         content_state(args.window, output_tail, pipeline_status),
         run_id,
         args.dashboard_url,
+        stock_cards=window_runtime.get("cards") if isinstance(window_runtime.get("cards"), list) else [],
     )
     effective_trading_date = args.effective_trading_date or scheduled_datetime_taipei(args.window, generated).date().isoformat()
     archive_write = write_snapshot(
@@ -786,7 +813,7 @@ def main() -> int:
         market="TW",
         window=args.window,
         effective_trading_date=effective_trading_date,
-        generated_at=generated_at,
+        generated_at=report_generated_at,
         source_payload={
             "schema_version": "tw_window_snapshot_payload_v1",
             "market": "TW",
@@ -795,11 +822,22 @@ def main() -> int:
             "content_state": report_contract.content_state,
             "user_facing_report": report_contract.user_facing_report,
             "delivery_policy": report_contract.delivery_policy,
+            "cards": window_runtime.get("cards") if isinstance(window_runtime.get("cards"), list) else [],
+            "effective_batch_time": effective_batch_time,
+            "source_data_time": window_runtime.get("source_data_time"),
+            "source_data_date": (window_runtime.get("source_data_dates") or [None])[-1],
+            "source_data_dates": window_runtime.get("source_data_dates") or [],
+            "source_data_time_status": window_runtime.get("source_data_time_status") or "unavailable",
+            "generated_at": report_generated_at,
+            "prediction_available": None,
+            "prediction_total": len(window_runtime.get("cards") or []),
         },
         status=pipeline_status,
         run_kind="manual_rerun" if args.manual_rerun else "scheduled",
         run_id=run_id,
+        source_artifact_path=str(TW_WINDOW_RUNTIME_DIR / f"{args.window}_latest.json") if window_runtime else None,
         rebuild_routes=args.manual_rerun,
+        effective_batch_time=effective_batch_time,
     )
     try:
         post_run_artifacts = post_delivery_artifact_wiring(window_id=args.window, generated_at=generated_at)

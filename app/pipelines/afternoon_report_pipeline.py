@@ -1,6 +1,7 @@
 import json
 import os
 from datetime import datetime
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from app.database.analysis_result_repository import save_analysis_result
@@ -18,6 +19,55 @@ from analysis.news_scoring_engine import calculate_news_score
 from analysis.total_scoring_engine import calculate_total_score
 from indicators.indicator_engine_v2 import build_indicator_result
 from reports.report_formatter_v2 import format_stock_report_v2
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+WINDOW_BY_PIPELINE = {"intraday": "intraday_1305", "pre_close": "pre_close_1335", "post_close": "post_close_1500"}
+
+
+def _decision_state(action):
+    text = str(action or "")
+    return {
+        "hold_candidate": any(token in text for token in ("續抱", "加碼")),
+        "avoid_hold": "降低追價" in text,
+        "no_trade": any(token in text for token in ("中性觀察", "保守觀望", "暫不操作")),
+        "late_session_risk": any(token in text for token in ("降低追價", "保守觀望")),
+        "tomorrow_watch": any(token in text for token in ("續抱", "加碼", "中性觀察")),
+        "near_target": None,
+        "near_stop": None,
+        "setup_triggered": None,
+        "setup_invalidated": None,
+    }
+
+
+def _write_window_runtime(pipeline_type, context, cards, runtime_dir=None):
+    window = WINDOW_BY_PIPELINE[pipeline_type]
+    source_dates = sorted({str(card.get("source_data_date")) for card in cards if card.get("source_data_date")})
+    payload = {
+        "schema_version": "tw_window_decision_runtime_v1",
+        "artifact_type": "tw_window_decision_runtime",
+        "artifact_mode": "production_runtime",
+        "runtime_provenance": "scheduled_production",
+        "fixture": False,
+        "validator": False,
+        "validation_only": False,
+        "market": "TW",
+        "window": window,
+        "pipeline_type": pipeline_type,
+        "pipeline_run_id": context["pipeline_run_id"],
+        "generated_at": datetime.now(ZoneInfo("Asia/Taipei")).replace(microsecond=0).isoformat(),
+        "source_data_time": None,
+        "source_data_dates": source_dates,
+        "source_data_time_status": "unavailable_no_intraday_timestamp",
+        "cards": cards,
+        "stock_count": len(cards),
+        "trading_or_order_executed": False,
+    }
+    target = Path(runtime_dir) / f"{window}_latest.json" if runtime_dir else REPO_ROOT / "artifacts/runtime/tw_window_decision" / f"{window}_latest.json"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    temporary = target.with_suffix(".json.tmp")
+    temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    temporary.replace(target)
+    return target
 
 
 def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
@@ -47,6 +97,7 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
     print(f"{pipeline_type} full LINE report disabled; concise scheduler reminder is handled by approved wrapper")
 
     daily_reports = []
+    decision_cards = []
     failed_reports = []
     stock_name_warnings = []
 
@@ -137,12 +188,37 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
 
             print(report)
             daily_reports.append(report)
+            action = total_score_result.get("action")
+            decision_cards.append({
+                "stock_id": stock_id,
+                "stock_name": stock_name,
+                "source_data_date": indicator_result.get("date"),
+                "source_data_time": None,
+                "current_price": indicator_result.get("close"),
+                "rating": total_score_result.get("rating"),
+                "total_score": total_score_result.get("total_score"),
+                "action": action,
+                "decision_state": _decision_state(action),
+                "strategies": {"daily_tactical": {
+                    "action": action,
+                    "rating": total_score_result.get("rating"),
+                    "score": total_score_result.get("total_score"),
+                    "confidence": total_score_result.get("total_score"),
+                    "entry_zone": None,
+                    "target_1": None,
+                    "target_2": None,
+                    "stop_invalidation": None,
+                    "source_data_date": indicator_result.get("date"),
+                    "source_data_time": None,
+                }},
+            })
 
         except Exception as exc:
             reason = exc.__class__.__name__
             print(f"分析失敗：{stock_name}({stock_id})，原因類型：{reason}")
             failed_reports.append({"stock_id": stock_id, "stock_name": stock_name, "reason": reason})
 
+    runtime_path = None if dry_run else _write_window_runtime(pipeline_type, context, decision_cards)
     result = {
         "pipeline_type": context["pipeline_type"],
         "pipeline_run_id": context["pipeline_run_id"],
@@ -156,6 +232,8 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
         "stock_name_warnings": stock_name_warnings,
         "full_line_report_disabled": True,
         "trading_order_portfolio_action": False,
+        "window_runtime_path": str(runtime_path) if runtime_path else None,
+        "window_runtime_card_count": len(decision_cards),
     }
     print("pipeline_report_summary:")
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))

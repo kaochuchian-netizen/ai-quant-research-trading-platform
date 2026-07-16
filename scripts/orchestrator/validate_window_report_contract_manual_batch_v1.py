@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.dashboard.dashboard_url_registry import get_tw_dashboard_url, get_us_dashboard_url, is_legacy_dashboard_url
+from app.dashboard.dashboard_url_registry import get_window_archive_url, is_legacy_dashboard_url
 from app.dashboard.multi_market_dashboard import OUTPUT_DIR, build_pages
 from app.reports.window_report_contract import TW_POST_CLOSE_LATEST_URL, all_window_report_contracts, get_window_report_contract, no_send_matrix
 from scripts.orchestrator.manual_rerun_single_window import ALLOWED_WINDOWS, ALLOWED_MODE, handle_request, pin_hash
@@ -104,11 +104,8 @@ def validate() -> dict[str, object]:
         no_send_rows.append(row)
         if row["result"] != "PASS":
             errors.append(f"no-send manual verification failed: {contract.market} {contract.window}")
-        expected_tw_url = TW_POST_CLOSE_LATEST_URL if contract.window == "post_close_1500" else get_tw_dashboard_url()
-        if contract.market == "TW" and contract.dashboard_url != expected_tw_url:
-            errors.append(f"TW URL mismatch: {contract.window}")
-        if contract.market == "US" and contract.dashboard_url != get_us_dashboard_url():
-            errors.append(f"US URL mismatch: {contract.window}")
+        if contract.dashboard_url != get_window_archive_url(contract.market, contract.window):
+            errors.append(f"canonical archive URL mismatch: {contract.market} {contract.window}")
         if is_legacy_dashboard_url(contract.dashboard_url):
             errors.append(f"legacy dashboard URL in contract: {contract.window}")
         if any(is_legacy_dashboard_url(str(x)) for x in meta.values()) if (meta := ALLOWED_WINDOWS.get(contract.window)) else False:

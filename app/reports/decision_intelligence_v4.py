@@ -120,6 +120,7 @@ def _explicit_bool(card: dict[str, Any], tactical: dict[str, Any], review: dict[
 
 def _classify(card: dict[str, Any]) -> dict[str, Any]:
     tactical, review = _tactical(card), _review(card)
+    decision = card.get("decision_state") if isinstance(card.get("decision_state"), dict) else {}
     action_text = _text(tactical.get("action"), tactical.get("direction"), tactical.get("setup_type"), review.get("status"), review.get("result"), card.get("action"), card.get("latest_status"))
     no_trade = any(token in action_text for token in ("no_trade", "no trade", "暫不操作", "避免", "觀望"))
     invalidated = any(token in action_text for token in ("invalid", "failed", "失效", "failure", "loss", "停損"))
@@ -148,6 +149,14 @@ def _classify(card: dict[str, Any]) -> dict[str, Any]:
     else:
         outcome = "pending"
     has_entry = tactical.get("entry_zone") is not None or tactical.get("entry_zone_low") is not None
+    def decision_bool(key: str) -> bool | None:
+        value = decision.get(key)
+        return value if isinstance(value, bool) else None
+    hold_candidate = decision_bool("hold_candidate")
+    avoid_hold = decision_bool("avoid_hold")
+    explicit_no_trade = decision_bool("no_trade")
+    if explicit_no_trade is not None:
+        no_trade = explicit_no_trade
     return {
         "id": _identifier(card), "no_trade": no_trade, "invalidated": invalidated,
         "triggered": bool(triggered), "still_actionable": bool(has_entry and not no_trade and not invalidated),
@@ -157,6 +166,14 @@ def _classify(card: dict[str, Any]) -> dict[str, Any]:
         "entry_ready": bool(has_entry and not no_trade),
         "target": tactical.get("target_zone_1") or tactical.get("target_1") or tactical.get("target1"),
         "stop": tactical.get("stop_reference") or tactical.get("stop") or tactical.get("stop_invalidation"),
+        "hold_candidate": hold_candidate,
+        "avoid_hold": avoid_hold,
+        "near_target": decision_bool("near_target"),
+        "near_stop": decision_bool("near_stop"),
+        "late_session_risk": decision_bool("late_session_risk"),
+        "tomorrow_watch": decision_bool("tomorrow_watch"),
+        "setup_triggered_explicit": decision_bool("setup_triggered"),
+        "setup_invalidated_explicit": decision_bool("setup_invalidated"),
         "source": "cards[].strategies.daily_tactical / review_snapshot / review_result",
     }
 
@@ -206,6 +223,38 @@ def project_decision_intelligence_v4(
     }
     prior_counts = previous_projection.get("counts", {}) if isinstance(previous_projection, dict) else {}
     deltas = {key: counts[key] - int(prior_counts[key]) for key in counts if key in prior_counts and isinstance(prior_counts[key], int)}
+    def optional_count(key: str) -> int | None:
+        values = [row.get(key) for row in rows]
+        return sum(value is True for value in values) if any(isinstance(value, bool) for value in values) else None
+    pre_close_decision = None
+    if market == "TW" and window == "pre_close_1335":
+        pre_close_decision = {
+            "stock_count": len(rows),
+            "hold_candidate_count": optional_count("hold_candidate"),
+            "avoid_hold_count": optional_count("avoid_hold"),
+            "no_trade_count": optional_count("no_trade"),
+            "near_target_count": optional_count("near_target"),
+            "near_stop_count": optional_count("near_stop"),
+            "late_session_risk_count": optional_count("late_session_risk"),
+            "setup_triggered_count": optional_count("setup_triggered_explicit"),
+            "setup_invalidated_count": optional_count("setup_invalidated_explicit"),
+            "tomorrow_watch_count": optional_count("tomorrow_watch"),
+            "top_hold_candidates": _ids(rows, "hold_candidate"),
+            "top_avoid_candidates": _ids(rows, "avoid_hold"),
+            "near_target_cases": _ids(rows, "near_target"),
+            "near_stop_cases": _ids(rows, "near_stop"),
+            "late_session_risk_cases": _ids(rows, "late_session_risk"),
+            "tomorrow_watch": _ids(rows, "tomorrow_watch"),
+            "ranking": [row["id"] for row in sorted(rows, key=lambda row: (
+                0 if row.get("late_session_risk") else 1,
+                0 if row.get("near_stop") else 1,
+                0 if row.get("near_target") else 1,
+                0 if row.get("hold_candidate") else 1,
+                0 if row.get("avoid_hold") else 1,
+                row["id"],
+            ))],
+            "unavailable_is_not_zero": True,
+        }
     return {
         "schema_version": SCHEMA_VERSION,
         "market": market,
@@ -230,6 +279,7 @@ def project_decision_intelligence_v4(
         },
         "outcome_distribution": outcomes,
         "confidence_distribution": _confidence_distribution(rows),
+        "pre_close_decision": pre_close_decision,
         "same_window_change": {"available": bool(previous_projection), "count_deltas": deltas, "policy": "same_market_same_window_previous_effective_trading_date"},
         "provenance": {
             "payload": "function argument: immutable snapshot payload or current window artifact",

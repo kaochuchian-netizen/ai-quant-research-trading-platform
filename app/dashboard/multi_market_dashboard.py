@@ -39,6 +39,7 @@ from app.dashboard.decision_presentation import (
 from app.dashboard.window_snapshot_archive import MARKET_WINDOWS, resolve_snapshots, revisions_for_snapshot, same_window_change
 from app.dashboard.market_dashboard_alias import identity_attributes, resolve_active_snapshot, snapshot_parity_contract
 from app.us_stock.runtime_provenance import classify_runtime_provenance, is_dashboard_eligible
+from app.reports.tw_1335_snapshot_delivery import context_for_snapshot as tw_1335_context_for_snapshot, render_dashboard as render_tw_1335_dashboard
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PUBLIC_BASE_URL = "http://35.201.242.167/stock-ai-dashboard"
@@ -1048,6 +1049,8 @@ def render_snapshot_archive_page(market: str, window: str, selection: str, snaps
         revision_text = f"｜Revision {revision}" if selection == "latest" and revision > 1 else ""
         updated_text = f"｜最後更新 {updated[11:16]}" if selection == "latest" and len(updated) >= 16 else ""
         body = render_immutable_snapshot_section(snapshot, show_revision=selection == "latest")
+        if market == "TW" and window == "pre_close_1335":
+            body += render_tw_1335_dashboard(tw_1335_context_for_snapshot(WINDOW_SNAPSHOT_ARCHIVE, snapshot))
         if selection == "latest":
             revisions = revisions_for_snapshot(WINDOW_SNAPSHOT_ARCHIVE, market, window, str(snapshot.get("effective_trading_date")))
             manual_count = len([item for item in revisions if item.get("manual_rerun") is True or item.get("run_kind") == "manual_rerun"])

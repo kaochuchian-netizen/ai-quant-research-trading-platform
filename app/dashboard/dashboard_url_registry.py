@@ -14,6 +14,14 @@ TW_DASHBOARD_PATH = "/dashboard/tw/index.html"
 US_DASHBOARD_PATH = "/dashboard/us/index.html"
 LANDING_DASHBOARD_PATH = "/index.html"
 LEGACY_FOUR_WINDOW_PATH_FRAGMENT = "dashboard/decision-intelligence/four-window-preview"
+WINDOW_ALIASES = {
+    ("TW", "prediction_review_1500"): "post_close_1500",
+    ("US", "us_review_0630"): "us_post_close_review_0630",
+}
+WINDOWS = {
+    "TW": {"pre_open_0700", "intraday_1305", "pre_close_1335", "post_close_1500"},
+    "US": {"us_pre_market_2000", "us_intraday_2300", "us_post_close_review_0630"},
+}
 
 
 @dataclass(frozen=True)
@@ -79,7 +87,24 @@ def normalize_delivery_dashboard_url(market: str, candidate: str | None = None) 
     return canonical
 
 
+def get_window_archive_path(market: str, window: str, position: str = "latest") -> str:
+    normalized_market = get_dashboard_route(market).market
+    normalized_window = WINDOW_ALIASES.get((normalized_market, str(window)), str(window))
+    if normalized_window not in WINDOWS[normalized_market]:
+        raise ValueError(f"unsupported delivery window: {normalized_market} {window!r}")
+    if position not in {"latest", "previous"}:
+        raise ValueError(f"unsupported archive position: {position!r}")
+    return f"/dashboard/archive/{normalized_market.lower()}/{normalized_window}/{position}/index.html"
+
+
+def get_window_archive_url(market: str, window: str, position: str = "latest") -> str:
+    """Return the immutable canonical archive route for one delivery window."""
+    return _join(get_window_archive_path(market, window, position))
+
+
 def get_delivery_dashboard_url(market: str, window: str | None = None, candidate: str | None = None) -> str:
+    if window:
+        return get_window_archive_url(market, window, "latest")
     return normalize_delivery_dashboard_url(market, candidate)
 
 
@@ -88,4 +113,5 @@ def dashboard_url_registry() -> dict[str, str]:
         "landing": get_landing_dashboard_url(),
         "TW": get_tw_dashboard_url(),
         "US": get_us_dashboard_url(),
+        **{f"{market}:{window}:latest": get_window_archive_url(market, window) for market, windows in WINDOWS.items() for window in sorted(windows)},
     }

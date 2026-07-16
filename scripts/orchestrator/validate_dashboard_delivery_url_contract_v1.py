@@ -16,9 +16,11 @@ from app.dashboard.dashboard_url_registry import (  # noqa: E402
     get_dashboard_url,
     get_tw_dashboard_url,
     get_us_dashboard_url,
+    get_window_archive_url,
 )
 from app.reports.multi_window_formatter import format_window_report  # noqa: E402
 from reports.line_short_formatter import format_line_short  # noqa: E402
+from scripts.orchestrator.approved_us_stock_delivery import build_email_body as build_us_email_body, line_text as build_us_line  # noqa: E402
 from scripts.orchestrator.approved_pre_open_delivery import (  # noqa: E402
     DEFAULT_DECISION_INTELLIGENCE_DASHBOARD_URL,
     build_email_body as build_tw_email_body,
@@ -110,6 +112,7 @@ def validate() -> dict[str, Any]:
     tw_approved_line = build_tw_line_message("intraday_1305", "2026-07-13T13:05:00+08:00", "completed", "", "")
     tw_approved_email = build_tw_email_body("intraday_1305", "dry-run", "2026-07-13T13:05:00+08:00", "completed", DEFAULT_DECISION_INTELLIGENCE_DASHBOARD_URL, "")
     tw_short_line = format_line_short({"scheduler_window": "intraday_1305"})
+    tw_window_url = get_window_archive_url("TW", "intraday_1305")
 
     us_source = (ROOT / "scripts/orchestrator/approved_us_stock_delivery.py").read_text(encoding="utf-8")
     us_registry_ok = "get_us_dashboard_url" in us_source and (
@@ -120,17 +123,18 @@ def validate() -> dict[str, Any]:
         errors.append("US approved delivery must source DASHBOARD_URL from registry")
     us_artifact = sample_us_artifact()
     us_count = us_artifact["runtime_watchlist_validation"]["enabled_stock_count"]
-    us_line = "\n".join(["美股盤前報告已更新", f"美股追蹤：{us_count} 檔", "Dashboard：", US_URL, "僅供研究參考，非交易指令。"])
-    us_email = "\n".join(["[美股盤前報告] 2026-07-13", "", f"Dashboard: {US_URL}", "", "美股批次狀態：", f"- Enabled stocks: {us_count}", "- LINE: 短提醒；Email: 完整報告；Dashboard: 完整可視化。", "", "僅供研究參考，非交易指令。"])
+    us_line = build_us_line(us_artifact, "us_pre_market_2000")
+    us_email = build_us_email_body(us_artifact, "us_pre_market_2000")
+    us_window_url = get_window_archive_url("US", "us_pre_market_2000")
 
     payload_checks = {
-        "tw_report_email_url": tw_report_email_url == TW_URL,
-        "tw_report_line_url": TW_URL in tw_report_line and US_URL not in tw_report_line,
-        "tw_approved_line_url": TW_URL in tw_approved_line and US_URL not in tw_approved_line,
-        "tw_approved_email_url": TW_URL in tw_approved_email and US_URL not in tw_approved_email,
-        "tw_short_line_url": TW_URL in tw_short_line and US_URL not in tw_short_line,
-        "us_line_url": US_URL in us_line and TW_URL not in us_line,
-        "us_email_url": US_URL in us_email and TW_URL not in us_email,
+        "tw_report_email_url": tw_report_email_url == tw_window_url,
+        "tw_report_line_url": tw_window_url in tw_report_line and US_URL not in tw_report_line,
+        "tw_approved_line_url": tw_window_url in tw_approved_line and US_URL not in tw_approved_line,
+        "tw_approved_email_url": tw_window_url in tw_approved_email and US_URL not in tw_approved_email,
+        "tw_short_line_url": tw_window_url in tw_short_line and US_URL not in tw_short_line,
+        "us_line_url": us_window_url in us_line and TW_URL not in us_line,
+        "us_email_url": us_window_url in us_email and TW_URL not in us_email,
         "tw_no_old_route": not any(contains_old_route(x) for x in [tw_report_line, tw_approved_line, tw_approved_email, tw_short_line]),
         "us_no_old_route": not any(contains_old_route(x) for x in [us_line, us_email]),
     }
