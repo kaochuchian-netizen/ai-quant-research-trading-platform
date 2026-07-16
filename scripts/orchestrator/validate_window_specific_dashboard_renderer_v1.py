@@ -12,7 +12,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from app.dashboard.multi_market_dashboard import render_landing_page, render_tw_page, render_us_page
+from app.dashboard.multi_market_dashboard import render_landing_page, render_tw_page, render_us_page, render_tw_window_report, render_us_window_report
 from app.reports.multi_window_formatter import format_window_report, line_notification_text
 from app.reports.window_context import get_window_context
 from scripts.orchestrator.approved_us_stock_delivery import build_email_body, line_text
@@ -111,6 +111,17 @@ def fixture_us_artifact(window: str) -> dict[str, Any]:
     }
 
 
+def fixture_tw_artifact() -> dict[str, Any]:
+    return {
+        "market": "TW", "window": "pre_open_0700",
+        "cards": [{
+            "stock_id": "2330", "stock_name": "台積電", "close": 1200,
+            "strategies": {"daily_tactical": {"direction": "偏多", "setup_type": "breakout", "action": "等待確認", "entry_zone": {"low": 1190, "high": 1200}, "stop_invalidation": 1170, "target_1": {"low": 1230, "high": 1240}, "target_2": {"low": 1260, "high": 1280}, "confidence": 62}},
+            "review_snapshot": {"status": "win", "entry_result": "triggered", "target_1_result": "hit", "target_2_result": "not_triggered", "stop_result": "not_triggered", "mfe": 3.2, "mae": -1.1},
+        }],
+    }
+
+
 def validate_html() -> tuple[list[str], dict[str, Any]]:
     tw_html = render_tw_page()
     us_html = render_us_page([fixture_us_artifact(window) for window in ("us_pre_market_2000", "us_intraday_2300", "us_post_close_review_0630")])
@@ -125,14 +136,15 @@ def validate_html() -> tuple[list[str], dict[str, Any]]:
         for hit in hits:
             errors.append(f"{page}: debug contract token leaked: {hit}")
 
+    tw_fixture = fixture_tw_artifact()
     reports = {
-        "tw_pre_open": extract_report(tw_html, "pre-open-decision"),
-        "tw_intraday": extract_report(tw_html, "intraday-change"),
-        "tw_pre_close": extract_report(tw_html, "pre-close-snapshot"),
-        "tw_post_close": extract_report(tw_html, "post-close-review"),
-        "us_pre": extract_report(us_html, "us-pre-market"),
-        "us_intraday": extract_report(us_html, "us-intraday-change"),
-        "us_review": extract_report(us_html, "us-post-close-review"),
+        "tw_pre_open": render_tw_window_report("pre_open_0700", tw_fixture),
+        "tw_intraday": render_tw_window_report("intraday_1305", tw_fixture),
+        "tw_pre_close": render_tw_window_report("pre_close_1335", tw_fixture),
+        "tw_post_close": render_tw_window_report("post_close_1500", tw_fixture),
+        "us_pre": render_us_window_report("us_pre_market_2000", [fixture_us_artifact("us_pre_market_2000")]),
+        "us_intraday": render_us_window_report("us_intraday_2300", [fixture_us_artifact("us_intraday_2300")]),
+        "us_review": render_us_window_report("us_post_close_review_0630", [fixture_us_artifact("us_post_close_review_0630")]),
     }
     for name, html in reports.items():
         if not html:

@@ -45,12 +45,15 @@ def validate() -> dict[str, object]:
 
     contracts = all_window_report_contracts()
     by_market = {"TW": [c for c in contracts if c.market == "TW"], "US": [c for c in contracts if c.market == "US"]}
-    for marker in TW_MARKERS:
-        if marker not in tw:
-            errors.append(f"TW marker missing: {marker}")
-    for marker in US_MARKERS:
-        if marker not in us:
-            errors.append(f"US marker missing: {marker}")
+    for contract in contracts:
+        route = OUTPUT_DIR / f"dashboard/archive/{contract.market.lower()}/{contract.window}/latest/index.html"
+        route_text = route.read_text(encoding="utf-8") if route.exists() else ""
+        if f'data-window="{contract.window}"' not in route_text:
+            errors.append(f"archive latest renderer missing: {contract.market} {contract.window}")
+    if 'data-snapshot-id=' not in tw or 'data-payload-hash=' not in tw:
+        errors.append("TW market Dashboard missing active snapshot identity")
+    if 'data-snapshot-id=' not in us or 'data-payload-hash=' not in us:
+        errors.append("US market Dashboard missing active snapshot identity")
     for marker in LANDING_MARKERS:
         if marker not in landing:
             errors.append(f"Landing marker missing: {marker}")

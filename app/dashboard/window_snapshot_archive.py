@@ -233,6 +233,8 @@ def write_snapshot(
     temporary.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     temporary.replace(target)
     if rebuild_routes:
-        from app.dashboard.multi_market_dashboard import publish_archive_latest_route
-        publish_archive_latest_route(market, canonical_window)
-    return {"written": True, "path": str(target), "snapshot_id": snapshot["snapshot_id"], "revision": revision, "market": market, "window": canonical_window, "effective_trading_date": effective_trading_date, "routes_rebuilt": rebuild_routes}
+        from app.dashboard.multi_market_dashboard import publish_manual_rerun_update
+        publish_result = publish_manual_rerun_update(market, canonical_window)
+    else:
+        publish_result = None
+    return {"written": True, "path": str(target), "snapshot_id": snapshot["snapshot_id"], "revision": revision, "market": market, "window": canonical_window, "effective_trading_date": effective_trading_date, "routes_rebuilt": rebuild_routes, "publish_result": publish_result}
