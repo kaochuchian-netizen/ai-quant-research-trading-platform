@@ -289,7 +289,17 @@ def status_payload(job_id: str | None = None, status_dir: Path | None = None) ->
         data = {"schema_version": MANUAL_STATUS_SCHEMA, "status": "idle", "message": "目前沒有手動重跑任務。"}
     if job_id and data.get("job_id") != job_id:
         return {"status": "not_found", "job_id": job_id, "line_attempted": False, "email_attempted": False}
-    return sanitize_response(data)
+    raw_status = str(data.get("status") or "idle")
+    rejected_states = {"invalid_pin_format", "unauthorized", "manual_rerun_disabled", "lock_busy", "cooldown_active"}
+    normalized_status = "rejected" if raw_status in rejected_states else raw_status
+    if normalized_status not in {"idle", "submitted", "queued", "running", "publishing", "completed", "failed", "rejected"}:
+        normalized_status = "failed"
+    normalized = lifecycle_status(data, normalized_status)
+    normalized["schema_version"] = MANUAL_STATUS_SCHEMA
+    if raw_status != normalized_status:
+        normalized.setdefault("reason", raw_status)
+        normalized.setdefault("error_summary", "既存任務狀態已轉換為目前 lifecycle contract。")
+    return sanitize_response(normalized)
 
 
 def write_activation_result(result: dict[str, Any]) -> None:
