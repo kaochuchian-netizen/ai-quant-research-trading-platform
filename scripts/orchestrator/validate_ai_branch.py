@@ -70,6 +70,7 @@ DEFAULT_ALLOWED_PATHS = [
     "templates/",
     "artifacts/runtime/",
     "artifacts/archive/",
+    "artifacts/audit/",
     "requirements.txt",
     "test_shioaji.py",
 ]
