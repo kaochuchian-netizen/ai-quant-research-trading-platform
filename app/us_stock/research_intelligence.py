@@ -17,6 +17,8 @@ import pandas as pd
 import requests
 import yfinance as yf
 
+from app.reports.presentation_normalization import normalize_financial_value
+
 TAIPEI = ZoneInfo("Asia/Taipei")
 SEC_BASE = "https://data.sec.gov"
 SEC_ARCHIVES_BASE = "https://www.sec.gov/Archives/edgar/data"
@@ -190,26 +192,33 @@ class USResearchIntelligenceBuilder:
         except Exception:
             info = {}
         metric_map = {
-            "revenue": (info.get("totalRevenue"), "yfinance_totalRevenue"),
-            "gross_margin": (info.get("grossMargins"), "yfinance_grossMargins"),
-            "operating_margin": (info.get("operatingMargins"), "yfinance_operatingMargins"),
-            "net_income": (info.get("netIncomeToCommon"), "yfinance_netIncomeToCommon"),
-            "eps_diluted": (info.get("trailingEps"), "yfinance_trailingEps"),
-            "operating_cash_flow": (info.get("operatingCashflow"), "yfinance_operatingCashflow"),
-            "free_cash_flow": (info.get("freeCashflow"), "yfinance_freeCashflow"),
-            "cash_and_equivalents": (info.get("totalCash"), "yfinance_totalCash"),
-            "total_debt": (info.get("totalDebt"), "yfinance_totalDebt"),
-            "debt_to_equity": (info.get("debtToEquity"), "yfinance_debtToEquity"),
-            "shares_outstanding": (info.get("sharesOutstanding"), "yfinance_sharesOutstanding"),
-            "revenue_growth_yoy": (info.get("revenueGrowth"), "yfinance_revenueGrowth"),
+            "revenue": (info.get("totalRevenue"), "yfinance_totalRevenue", "currency"),
+            "gross_margin": (info.get("grossMargins"), "yfinance_grossMargins", "percent"),
+            "operating_margin": (info.get("operatingMargins"), "yfinance_operatingMargins", "percent"),
+            "net_income": (info.get("netIncomeToCommon"), "yfinance_netIncomeToCommon", "currency"),
+            "eps_diluted": (info.get("trailingEps"), "yfinance_trailingEps", "per_share"),
+            "operating_cash_flow": (info.get("operatingCashflow"), "yfinance_operatingCashflow", "currency"),
+            "free_cash_flow": (info.get("freeCashflow"), "yfinance_freeCashflow", "currency"),
+            "cash_and_equivalents": (info.get("totalCash"), "yfinance_totalCash", "currency"),
+            "total_debt": (info.get("totalDebt"), "yfinance_totalDebt", "currency"),
+            "debt_to_equity": (info.get("debtToEquity"), "yfinance_debtToEquity", "ratio"),
+            "shares_outstanding": (info.get("sharesOutstanding"), "yfinance_sharesOutstanding", "shares"),
+            "revenue_growth_yoy": (info.get("revenueGrowth"), "yfinance_revenueGrowth", "percent"),
         }
-        for name, (value, ref) in metric_map.items():
+        for name, (value, ref, unit) in metric_map.items():
             number = safe_float(value)
             if number is None:
                 missing.append(name)
+            normalized = normalize_financial_value(
+                number, unit=unit,
+                currency=(info.get("financialCurrency") or "USD") if unit in {"currency", "per_share"} else None,
+                scale=1, source="yfinance_reference",
+            )
             metrics[name] = {
                 "value": number,
-                "currency": info.get("financialCurrency") or "USD",
+                "currency": (info.get("financialCurrency") or "USD") if unit in {"currency", "per_share"} else None,
+                "unit": unit,
+                "normalization": normalized,
                 "period": "latest_available",
                 "period_type": "ttm_or_latest_reference",
                 "source": "yfinance_reference",

@@ -11,6 +11,7 @@ from collections import Counter
 from typing import Any, Iterable
 
 from .window_report_contract import get_window_report_contract, normalize_window
+from .canonical_outcomes import CANONICAL_OUTCOMES
 
 SCHEMA_VERSION = "seven_window_decision_intelligence_v4"
 
@@ -137,8 +138,15 @@ def _classify(card: dict[str, Any]) -> dict[str, Any]:
     direction_hit = _explicit_bool(card, tactical, review, ("direction_hit", "direction_result"))
     volume_confirmed = _explicit_bool(card, tactical, review, ("volume_confirmed", "volume_confirmation", "flow_confirmation"))
     gap_follow = _explicit_bool(card, tactical, review, ("gap_follow_through", "gap_continuation", "gap_effective"))
+    explicit_outcome = card.get("canonical_outcome") or review.get("canonical_outcome")
     outcome_text = _text(review.get("status"), review.get("result"), review.get("hit_miss_status"), review.get("outcome"))
-    if no_trade:
+    if explicit_outcome in CANONICAL_OUTCOMES:
+        outcome = str(explicit_outcome)
+        # A canonical pending result is outcome evidence and must never be
+        # overwritten by a tactical action such as watch/no-trade.
+        if outcome == "pending":
+            no_trade = False
+    elif no_trade:
         outcome = "no_trade"
     elif any(token in outcome_text for token in ("not_triggered", "not triggered", "未觸發")):
         outcome = "not_triggered"
@@ -301,7 +309,7 @@ def compact_summary(projection: dict[str, Any], channel: str) -> str:
         body = f"可留意 {counts['still_actionable']}、不留倉/不交易 {counts['no_trade']}、尾盤風險 {counts['chase_risk']}"
     else:
         dist = projection["outcome_distribution"]
-        outcome_labels = {"win": "成功", "loss": "失敗", "not_triggered": "未觸發", "no_trade": "無交易", "pending": "待檢討"}
+        outcome_labels = {"hit": "成功", "win": "成功", "fail": "失敗", "loss": "失敗", "not_triggered": "未觸發", "no_trade": "無交易", "pending": "待檢討"}
         body = "、".join(f"{outcome_labels.get(key, '其他')} {value}" for key, value in dist.items()) or "尚無可檢討資料"
     prefix = "摘要" if channel == "line" else "Decision Intelligence V4"
     return f"{prefix}：{body}"

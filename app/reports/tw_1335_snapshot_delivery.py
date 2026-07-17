@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime
 import html
+import json
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -13,6 +14,7 @@ from app.dashboard.window_snapshot_archive import load_admitted_snapshots, resol
 from app.reports.decision_intelligence_v4 import project_decision_intelligence_v4
 
 TAIPEI = ZoneInfo("Asia/Taipei")
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _time(value: Any) -> str | None:
@@ -42,9 +44,31 @@ def _set(projection: dict[str, Any], name: str) -> set[str]:
     return {str(value) for value in values}
 
 
-def build_same_day_change(current: dict[str, Any], baseline: dict[str, Any] | None) -> dict[str, Any]:
+def _baseline_failure_state(trading_date: str) -> str:
+    path = REPO_ROOT / "artifacts/runtime/delivery_progress_intraday_1305_latest.json"
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return "same_day_baseline_missing"
+    started = str(payload.get("started_at") or "")[:10]
+    if started != trading_date:
+        return "same_day_baseline_missing"
+    status = str(payload.get("status") or "")
+    if status in {"failed", "timed_out"}:
+        return "same_day_baseline_failed"
+    if status in {"rejected", "admission_rejected"}:
+        return "same_day_baseline_rejected"
+    return "same_day_baseline_missing"
+
+
+def build_same_day_change(current: dict[str, Any], baseline: dict[str, Any] | None, baseline_state: str = "same_day_baseline_missing") -> dict[str, Any]:
     if not baseline:
-        return {"available": False, "message": "本次無同日 13:05 可比較基準", "baseline_snapshot_id": None}
+        messages = {
+            "same_day_baseline_failed": "同日 13:05 批次失敗，無可用比較基準",
+            "same_day_baseline_rejected": "同日 13:05 批次未通過 admission，無可用比較基準",
+            "same_day_baseline_missing": "本次無同日 13:05 可比較基準",
+        }
+        return {"available": False, "state": baseline_state, "message": messages.get(baseline_state, messages["same_day_baseline_missing"]), "baseline_snapshot_id": None}
     current_projection = current["projection"]
     baseline_projection = baseline["projection"]
     if not int((current_projection.get("counts") or {}).get("total") or 0) or not int((baseline_projection.get("counts") or {}).get("total") or 0):
@@ -72,7 +96,7 @@ def build_same_day_change(current: dict[str, Any], baseline: dict[str, Any] | No
     }
 
 
-def snapshot_context(snapshot: dict[str, Any], baseline_snapshot: dict[str, Any] | None = None) -> dict[str, Any]:
+def snapshot_context(snapshot: dict[str, Any], baseline_snapshot: dict[str, Any] | None = None, baseline_state: str | None = None) -> dict[str, Any]:
     payload = snapshot.get("payload") if isinstance(snapshot.get("payload"), dict) else {}
     projection = project_decision_intelligence_v4("TW", "pre_close_1335", payload)
     baseline = None
@@ -99,7 +123,8 @@ def snapshot_context(snapshot: dict[str, Any], baseline_snapshot: dict[str, Any]
         "prediction_total": payload.get("prediction_total"),
         "source_time_status": payload.get("source_data_time_status") or ("available" if payload.get("source_data_time") else "unavailable"),
     }
-    context["same_day_change"] = build_same_day_change(context, baseline)
+    resolved_state = "same_day_baseline_available" if baseline else baseline_state or _baseline_failure_state(str(snapshot.get("effective_trading_date") or ""))
+    context["same_day_change"] = build_same_day_change(context, baseline, resolved_state)
     return context
 
 

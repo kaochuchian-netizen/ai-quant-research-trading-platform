@@ -1,4 +1,5 @@
 import feedparser
+import requests
 from urllib.parse import quote
 
 
@@ -11,7 +12,9 @@ def fetch_stock_news(stock_id: str, stock_name: str, max_items: int = 5):
         f"q={encoded_query}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant"
     )
 
-    feed = feedparser.parse(url)
+    response = requests.get(url, timeout=8, headers={"User-Agent": "stock-ai-news/1.0"})
+    response.raise_for_status()
+    feed = feedparser.parse(response.content)
 
     news_items = []
 

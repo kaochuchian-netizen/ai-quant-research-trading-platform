@@ -30,6 +30,8 @@ from app.reports.decision_intelligence_v4 import delivery_summary_lines, project
 from app.dashboard.dashboard_url_registry import get_delivery_dashboard_url, get_tw_dashboard_url  # noqa: E402
 from app.dashboard.market_dashboard_alias import payload_hash  # noqa: E402
 from app.dashboard.window_snapshot_archive import resolve_snapshots, write_snapshot  # noqa: E402
+from app.dashboard.public_latest_sync import synchronize_admitted_latest, write_sync_artifact  # noqa: E402
+from app.reports.delivery_provenance import build_delivery_provenance, write_delivery_provenance  # noqa: E402
 from app.reports.report_content_contract import build_report_content_artifact  # noqa: E402
 from app.reports.window_context import get_window_context  # noqa: E402
 from app.reports.window_report_contract import get_window_report_contract  # noqa: E402
@@ -38,6 +40,8 @@ from app.reports.tw_post_close_review import build_structured_review_payload, re
 from app.runtime.production_run_guard import evaluate_pre_open_run_guard  # noqa: E402
 from app.runtime.runtime_diagnostics import build_guard_result, write_json  # noqa: E402
 from app.runtime.timeout_policy import TimeoutPolicy, timeout_policy_from_env  # noqa: E402
+from app.runtime.operations_provenance import build_operations_provenance, write_operations_provenance  # noqa: E402
+from app.runtime.stage_timing import record_stage_result  # noqa: E402
 from scripts.orchestrator.notify_stage_report import (  # noqa: E402
     build_message,
     load_env_file,
@@ -196,7 +200,13 @@ def write_progress_artifact(
     return {"path": str(path), "payload": payload}
 
 
-def timeout_delivery_artifact(window_id: str, timeout_seconds: int, created_at: str) -> dict[str, Any]:
+def timeout_delivery_artifact(window_id: str, timeout_seconds: int, created_at: str, pipeline_started_at: str | None = None) -> dict[str, Any]:
+    timing_path = REPO_ROOT / "artifacts/runtime/stage_timing" / f"tw_{window_id}_latest.json"
+    timing = _load_json(timing_path)
+    if pipeline_started_at and str(timing.get("started_at") or "") < pipeline_started_at:
+        timing = {}
+    stages = timing.get("stages") if isinstance(timing.get("stages"), list) else []
+    completed_stages = [item.get("stage") for item in stages if isinstance(item, dict) and item.get("status") == "completed"]
     return {
         "schema_version": "delivery_timeout_artifact_v1",
         "window": window_id,
@@ -208,6 +218,14 @@ def timeout_delivery_artifact(window_id: str, timeout_seconds: int, created_at: 
         "dashboard_publish_attempted": False,
         "timeout_seconds": timeout_seconds,
         "reason": "child_pipeline_timeout",
+        "failure_category": "stage_timeout",
+        "failure_stage": timing.get("current_stage") or "unobservable_before_stage_timing",
+        "last_successful_stage": completed_stages[-1] if completed_stages else None,
+        "last_heartbeat_at": timing.get("last_heartbeat_at"),
+        "stage_timing_path": str(timing_path),
+        "runtime_persisted": False,
+        "snapshot_admitted": False,
+        "public_publish_attempted": False,
         "safe_to_retry": True,
         "created_at": created_at,
     }
@@ -581,12 +599,16 @@ def run_pipeline(python_bin: str, window_id: str, policy: TimeoutPolicy) -> dict
     command = [python_bin, "scripts/run_pipeline.py", cfg["pipeline_type"], "--production-approved"]
     started = now_taipei()
     started_monotonic = time.monotonic()
+    child_env = dict(os.environ)
+    child_env["PYTHONUNBUFFERED"] = "1"
     proc = subprocess.Popen(
         command,
         cwd=REPO_ROOT,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
+        env=child_env,
+        bufsize=1,
     )
     try:
         output, _ = proc.communicate(timeout=policy.production_pipeline_timeout_seconds)
@@ -774,7 +796,7 @@ def main() -> int:
     pipeline_diagnostics.update({"pipeline_pid": pipeline_run["pipeline_pid"], "started_at": pipeline_run["started_at"], "ended_at": pipeline_run["ended_at"], "elapsed_seconds": pipeline_run["elapsed_seconds"], "termination": pipeline_run["termination"], "timeout_seconds": policy.production_pipeline_timeout_seconds})
     if pipeline_run["timed_out"]:
         progress = write_progress_artifact(args.window, generated_at, "pipeline_timed_out", "timed_out", policy.production_pipeline_timeout_seconds, pipeline_run["elapsed_seconds"])
-        timeout_artifact = timeout_delivery_artifact(args.window, policy.production_pipeline_timeout_seconds, now_taipei().isoformat())
+        timeout_artifact = timeout_delivery_artifact(args.window, policy.production_pipeline_timeout_seconds, now_taipei().isoformat(), pipeline_run["started_at"])
         result = build_guard_result(
             "timed_out",
             args.window,
@@ -898,6 +920,27 @@ def main() -> int:
         rebuild_routes=args.manual_rerun,
         effective_batch_time=effective_batch_time,
     )
+    stage_timing_path = REPO_ROOT / "artifacts/runtime/stage_timing" / f"tw_{args.window}_latest.json"
+    record_stage_result(
+        stage_timing_path, "snapshot_admission",
+        status="completed" if archive_write.get("written") is True else "failed",
+        error_category=None if archive_write.get("written") is True else "admission_rejected",
+        error_message_sanitized=None if archive_write.get("written") is True else str(archive_write.get("reason") or "not_written")[:120],
+    )
+    public_latest_sync = {"status": "not_attempted", "reason": "snapshot_not_admitted"}
+    if archive_write.get("written") is True and not args.manual_rerun:
+        public_latest_sync = synchronize_admitted_latest(
+            market="TW", window=args.window,
+            static_root=Path(args.dashboard_publish_dir),
+            output_dir=Path("/tmp/stock-ai-dashboard-scheduled-sync") / args.window,
+        )
+        write_sync_artifact(
+            REPO_ROOT / "artifacts/runtime/public_latest_sync" / f"tw_{args.window}_latest.json",
+            public_latest_sync,
+        )
+    sync_stage_ok = public_latest_sync.get("status") == "verified" or (args.manual_rerun and archive_write.get("written") is True)
+    record_stage_result(stage_timing_path, "archive_build", status="completed" if sync_stage_ok else "failed", error_category=None if sync_stage_ok else "route_build_failure")
+    record_stage_result(stage_timing_path, "publish", status="completed" if sync_stage_ok else "failed", error_category=None if sync_stage_ok else "public_verification_failure")
     try:
         post_run_artifacts = post_delivery_artifact_wiring(
             window_id=args.window,
@@ -960,6 +1003,36 @@ def main() -> int:
             "secret_values_printed": False,
         }
         line_ok = False
+    latest_snapshot = resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, "TW", args.window).latest or {}
+    email_content = build_email_body(args.window, run_id, generated_at, pipeline_status, args.dashboard_url, output_tail)
+    line_content = build_line_message(args.window, generated_at, pipeline_status, args.dashboard_url, output_tail)
+    record_stage_result(stage_timing_path, "notification_format", status="completed")
+    provenance_results = {}
+    for channel, delivery, content in (("email", email, email_content), ("line", line, line_content)):
+        raw_status = str(delivery.get("send_status") or "not_attempted")
+        delivery_result = "sent" if raw_status in {"sent", "handled_by_pipeline"} else "failed" if raw_status == "failed" else "suppressed" if "suppress" in raw_status or "manual" in raw_status else "not_attempted"
+        provenance = build_delivery_provenance(
+            market="TW", window=args.window, trading_date=effective_trading_date,
+            snapshot=latest_snapshot, canonical_url=args.dashboard_url, channel=channel,
+            content=content, delivery_result=delivery_result,
+            delivery_attempted=bool(delivery.get("send_attempted")), recipient_count=int(delivery.get("recipient_count") or 0),
+        )
+        write_delivery_provenance(
+            REPO_ROOT / "artifacts/runtime/delivery_provenance" / f"tw_{args.window}_{channel}_latest.json",
+            provenance,
+        )
+        provenance_results[channel] = delivery_result
+    write_operations_provenance(
+        REPO_ROOT / "artifacts/runtime/operations_provenance" / f"tw_{args.window}_latest.json",
+        build_operations_provenance(
+            market="TW", window=args.window, runtime_status=pipeline_status,
+            runtime_trading_date=effective_trading_date, snapshot=latest_snapshot,
+            public_sync=public_latest_sync,
+            email_result=provenance_results.get("email", "not_attempted"),
+            line_result=provenance_results.get("line", "not_attempted"),
+        ),
+    )
+    record_stage_result(stage_timing_path, "delivery", status="completed" if email_ok and line_ok else "failed", error_category=None if email_ok and line_ok else "delivery_failure")
     result = {
         "schema_version": SCHEMA_VERSION,
         "task_id": TASK_ID,
@@ -980,6 +1053,7 @@ def main() -> int:
         "fallback_state": cfg["fallback_state"],
         "post_run_artifact_wiring": post_run_artifacts,
         "archive_write": archive_write,
+        "public_latest_sync": public_latest_sync,
         "line_delivery": line,
         "line_delivery_status": line.get("send_status"),
         "line_delivery_reason": line.get("reason"),
@@ -1000,14 +1074,15 @@ def main() -> int:
         },
         "secret_values_printed": False,
         "trading_order_portfolio_action": False,
-        "ok": completed.returncode == 0 and email_ok and line_ok,
+        "ok": completed.returncode == 0 and email_ok and line_ok and (args.manual_rerun or public_latest_sync.get("status") == "verified"),
         "decision": "approved_scheduler_delivery_completed"
         if completed.returncode == 0 and email_ok and line_ok
         else "approved_scheduler_delivery_completed_with_delivery_failure",
     }
     Path(args.output).write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(stable_json({key: result[key] for key in ["schema_version", "task_id", "run_id", "scheduler_window", "pipeline_status", "dashboard_url", "secret_values_printed", "trading_order_portfolio_action", "ok", "decision"]}))
-    return completed.returncode if completed.returncode != 0 else 0 if email_ok and line_ok else 1
+    sync_ok = args.manual_rerun or public_latest_sync.get("status") == "verified"
+    return completed.returncode if completed.returncode != 0 else 0 if email_ok and line_ok and sync_ok else 1
 
 
 if __name__ == "__main__":

@@ -11,6 +11,7 @@ from app.us_stock.constants import DEFAULT_CURRENCY, DEFAULT_MARKET, US_BATCH_WI
 from app.us_stock.live_data import YFinanceUSClient, analyze_history, clean_number, now_taipei
 from app.us_stock.research_intelligence import RESEARCH_FACTOR_VERSION, USResearchIntelligenceBuilder
 from app.strategy.dual_strategy import DAILY_TACTICAL, RESEARCH_POSITION, US_TACTICAL_FACTOR_VERSION, build_dual_strategies
+from app.reports.canonical_outcomes import aggregate_outcomes, build_structured_review_cards
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_DIR = REPO_ROOT / "artifacts/runtime/us_stock"
@@ -200,17 +201,17 @@ def latest_snapshot_for(symbol: str, session_date: str) -> dict[str, Any] | None
 def build_review(symbol: str, session_date: str, quote: dict[str, Any], history: Any) -> dict[str, Any]:
     snap = latest_snapshot_for(symbol, session_date)
     if not snap:
-        return {"symbol": symbol, "review_status": "pending", "pending_reason": "missing_prior_prediction_snapshot", "fabricated": False}
+        return {"symbol": symbol, "review_status": "pending", "canonical_outcome": "pending", "pending_reason": "missing_prior_prediction_snapshot", "fabricated": False}
     pred = snap.get("prediction", {})
     actual_high = quote.get("day_high")
     actual_low = quote.get("day_low")
     actual_close = quote.get("last_price")
     if None in (actual_high, actual_low, actual_close, pred.get("predicted_session_high"), pred.get("predicted_session_low")):
-        return {"symbol": symbol, "review_status": "pending", "pending_reason": "actual_or_prediction_incomplete", "snapshot_ref": snap.get("snapshot_path"), "fabricated": False}
+        return {"symbol": symbol, "review_status": "pending", "canonical_outcome": "pending", "pending_reason": "actual_or_prediction_incomplete", "snapshot_ref": snap.get("snapshot_path"), "fabricated": False}
     high_err = round(float(actual_high) - float(pred["predicted_session_high"]), 4)
     low_err = round(float(actual_low) - float(pred["predicted_session_low"]), 4)
     covered = actual_high <= pred["predicted_session_high"] and actual_low >= pred["predicted_session_low"]
-    return {"symbol": symbol, "review_status": "reviewed", "snapshot_ref": snap.get("snapshot_path"), "actual_high": actual_high, "actual_low": actual_low, "actual_close": actual_close, "range_covered": covered, "high_error": high_err, "low_error": low_err, "fabricated": False}
+    return {"symbol": symbol, "review_status": "reviewed", "canonical_outcome": "hit" if covered else "fail", "snapshot_ref": snap.get("snapshot_path"), "actual_high": actual_high, "actual_low": actual_low, "actual_close": actual_close, "range_covered": covered, "high_error": high_err, "low_error": low_err, "fabricated": False}
 
 def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *, production_runtime: bool, write_snapshots: bool = True, reference: datetime | None = None) -> dict[str, Any]:
     if window not in US_BATCH_WINDOWS:
@@ -253,8 +254,14 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
         if window == "us_post_close_review_0630":
             review = build_review(symbol, context["session_date"], result.quote, result.history)
             reviews.append(review)
-    reviewed = len([r for r in reviews if r.get("review_status") == "reviewed"])
-    pending = len([r for r in reviews if r.get("review_status") != "reviewed"])
+    structured_review_cards = build_structured_review_cards(cards, reviews) if window == "us_post_close_review_0630" else []
+    review_aggregate = aggregate_outcomes(structured_review_cards) if structured_review_cards else {
+        "hit_count": 0, "fail_count": 0, "not_triggered_count": 0, "no_trade_count": 0,
+        "pending_count": 0, "review_card_count": 0, "completed_review_count": 0,
+        "pending_review_count": 0, "review_universe_count": 0,
+    }
+    if structured_review_cards:
+        cards = structured_review_cards
     artifact = {
         "schema_version": "us_stock_live_runtime_v1",
         "artifact_kind": "us_stock_runtime",
@@ -277,7 +284,18 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
         "research_intelligence_contract": {"source_hierarchy": "tier1_official_sec_ir_company; tier2_market_reference_yfinance; tier3_secondary_news", "research_factor_version": RESEARCH_FACTOR_VERSION, "copyright_policy": "no full filings/articles/transcripts stored", "official_source_required_for_official_claims": True},
         "dual_strategy_contract": {"market": DEFAULT_MARKET, "strategy_types": [RESEARCH_POSITION, DAILY_TACTICAL], "research_position_version": "us_research_position_v1", "daily_tactical_version": "us_daily_tactical_v1", "daily_tactical_factor_version": US_TACTICAL_FACTOR_VERSION, "research_overwritten_by_tactical": False, "tactical_overwrites_research": False, "line_email_sent_by_builder": False},
         "items": items,
-        "prediction_review_contract": {"market": DEFAULT_MARKET, "review_window": "us_post_close_review_0630", "reviewed_stock_count": reviewed, "pending_stock_count": pending, "skipped_stock_count": 0, "items": reviews, "fabricated": False},
+        "structured_review_cards": structured_review_cards,
+        "outcome_aggregate": review_aggregate,
+        "prediction_review_contract": {
+            "market": DEFAULT_MARKET, "review_window": "us_post_close_review_0630",
+            "review_card_count": review_aggregate["review_card_count"],
+            "completed_review_count": review_aggregate["completed_review_count"],
+            "pending_review_count": review_aggregate["pending_review_count"],
+            "review_universe_count": review_aggregate["review_universe_count"],
+            "reviewed_stock_count": review_aggregate["completed_review_count"],
+            "pending_stock_count": review_aggregate["pending_review_count"],
+            "outcome_counts": review_aggregate, "skipped_stock_count": 0, "items": reviews, "fabricated": False,
+        },
         "dashboard_ready_contract": {"market_label": "美股", "sections": ["美股盤前 20:00", "美股盤中 23:00", "美股檢討 06:30"], "cards": cards},
         "delivery_policy": {"email_full_report": True, "line_reminder_only": True, "unscheduled_validation_send": False},
         "safety_policy": {"python3_main_executed": False, "trading_or_order_executed": False, "line_email_sent_by_builder": False, "tw_formula_modified": False, "secrets_printed": False},

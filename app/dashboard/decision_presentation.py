@@ -5,7 +5,10 @@ calculate strategy scores, price levels, predictions, or review outcomes.
 """
 from __future__ import annotations
 
+from datetime import date, datetime
 from typing import Any
+
+from app.reports.presentation_normalization import normalize_date_presentation
 
 MISSING_TEXT = "暫無"
 
@@ -15,6 +18,9 @@ def clean_text(value: Any, *, missing: str = MISSING_TEXT) -> str:
         return missing
     if isinstance(value, bool):
         return "是" if value else "否"
+    if isinstance(value, (date, datetime)):
+        timezone_name = "Asia/Taipei" if isinstance(value, datetime) and value.tzinfo is None else None
+        return normalize_date_presentation(value, timezone_name=timezone_name)
     text = str(value).strip()
     if not text or text in {"None", "null", "N/A", "nan", "資料待接"}:
         return missing
@@ -282,7 +288,11 @@ def _earnings_summary(card: dict[str, Any]) -> str:
     if isinstance(earnings, dict):
         latest = earnings.get("latest_earnings") if isinstance(earnings.get("latest_earnings"), dict) else {}
         eps = format_optional_price(latest.get("actual_eps")) if latest else MISSING_TEXT
-        revenue = format_large_number(latest.get("actual_revenue")) if latest else MISSING_TEXT
+        revenue_meta = latest.get("actual_revenue_normalized") if latest and isinstance(latest.get("actual_revenue_normalized"), dict) else None
+        revenue = (
+            clean_text(revenue_meta.get("presentation")) if revenue_meta else
+            "正式資料尚無法安全標準化" if latest and latest.get("actual_revenue") is not None else MISSING_TEXT
+        )
         next_earnings = _nested(earnings, "next_earnings", "expected_date")
         status = format_availability(earnings.get("earnings_status") or card.get("latest_earnings_status"))
         parts = [f"財報：{status}"]

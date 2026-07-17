@@ -23,6 +23,8 @@ from typing import Any
 DEFAULT_ALLOWED_PATHS = [
     "docs/",
     "analysis/forecast/",
+    "analysis/gemini_client.py",
+    "analysis/news_fetcher.py",
     "tests/",
     "scripts/orchestrator/",
     ".github/workflows/ai_dev_validation.yml",
