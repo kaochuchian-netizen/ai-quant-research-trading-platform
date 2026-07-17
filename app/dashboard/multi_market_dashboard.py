@@ -829,6 +829,26 @@ def _tw_post_close_card(card: dict[str, Any]) -> str:
     """
 
 
+def _tw_pre_open_structured_card(card: dict[str, Any]) -> str:
+    symbol = card.get("symbol") or card.get("stock_id")
+    name = card.get("name") or card.get("stock_name")
+    availability = clean_text(card.get("availability_status"), missing="unavailable")
+    action = clean_text(card.get("action"), missing="等待確認")
+    freshness = card.get("data_freshness") if isinstance(card.get("data_freshness"), dict) else {}
+    missing_fields = card.get("missing_fields") if isinstance(card.get("missing_fields"), list) else []
+    return f"""
+    <article class="stock-card decision-card window-stock-card tw-pre-open-structured-card"
+      data-market="TW" data-window="pre_open_0700" data-symbol="{_escape(symbol)}"
+      data-card-type="pre-open-decision-v4" data-availability="{_escape(availability)}">
+      <div class="decision-card__head"><div><div class="decision-card__market">TW｜07:00 盤前決策</div><h3>{_escape(symbol)} {_escape(name)}</h3></div><span class="decision-badge decision-badge--ok">{_escape(action)}</span></div>
+      <section class="decision-section" data-section="pre-open-action"><h4>今日行動</h4>{_window_metric_grid([('Entry readiness', card.get('entry_readiness')), ('進場條件', card.get('entry_condition')), ('進場區', card.get('entry_zone')), ('停損', card.get('stop_level')), ('目標', card.get('target_level')), ('風險報酬', card.get('risk_reward'))])}</section>
+      <section class="decision-section" data-section="pre-open-context"><h4>市場與隔夜脈絡</h4>{_window_metric_grid([('市場環境', card.get('market_context')), ('隔夜影響', card.get('overnight_context')), ('ADR', card.get('adr_context')), ('技術', card.get('technical_summary')), ('籌碼', card.get('chip_summary')), ('新聞事件', card.get('news_summary'))])}</section>
+      <section class="decision-section" data-section="pre-open-risk"><h4>主要風險</h4>{_window_metric_grid([('追價風險', card.get('chase_risk')), ('Gap 風險', card.get('gap_risk')), ('事件風險', card.get('event_risk')), ('風險摘要', card.get('risk_summary')), ('不交易原因', card.get('do_not_trade_reason'))])}</section>
+      <details class="decision-details"><summary>資料新鮮度與不可用欄位</summary><div class="decision-details__body">{_window_metric_grid([('行情資料', freshness.get('market_data_as_of')), ('技術資料', freshness.get('technical_as_of')), ('新聞資料', freshness.get('news_as_of')), ('籌碼資料', freshness.get('chip_as_of')), ('ADR 資料', freshness.get('adr_as_of')), ('基本面期間', freshness.get('fundamental_period')), ('報告產生', freshness.get('report_generated_at')), ('缺少欄位', '、'.join(str(value) for value in missing_fields) or '無')])}</div></details>
+    </article>
+    """
+
+
 def render_tw_window_report(window: str, artifact: dict[str, Any] | None = None) -> str:
     contract = get_window_report_contract("TW", window)
     artifact = artifact if artifact is not None else _load_tw_tactical_artifact()
@@ -838,12 +858,19 @@ def render_tw_window_report(window: str, artifact: dict[str, Any] | None = None)
     if window == "post_close_1500":
         presentation_artifact["cards"] = cards
     if window == "pre_open_0700":
+        summary = artifact.get("pre_open_summary", {}) if isinstance(artifact, dict) else {}
+        groups = summary.get("groups", {}) if isinstance(summary.get("groups"), dict) else {}
+        body = "".join(_tw_pre_open_structured_card(card) for card in cards if isinstance(card, dict))
+        if not body:
+            body = '<article class="status-card warn official-pre-open-empty-state"><h3>正式盤前決策尚未建立</h3><p>本批次沒有通過 admission 的 structured payload；不沿用舊資料，不使用範例資料。</p></article>'
         return f"""
         <section class="section window-report-section" data-market="TW" data-window="{_escape(window)}" data-report-type="pre-open-decision">
           <h2>{_escape(contract.title)}</h2>
           <p>今日盤前重點、市場環境、可觀察標的與短線操作計畫。</p>
-          {_decision_intelligence_v4_html("TW", window, presentation_artifact)}
-          {render_tw_tactical_cards(artifact)}
+          <div class="decision-plan pre-open-summary">{_metric('Top opportunities', summary.get('top_opportunity_count'))}{_metric('No-trade', summary.get('no_trade_count'))}{_metric('追價風險', summary.get('chase_risk_count'))}{_metric('Entry ready', summary.get('entry_ready_count'))}{_metric('資料部分可用', summary.get('partial_data_count'))}{_metric('資料不可用', summary.get('unavailable_count'))}</div>
+          <p class="decision-note">優先觀察：{_escape(groups.get('top_opportunities') or groups.get('watch_wait'))}｜避免追價：{_escape(groups.get('high_chase_risk'))}</p>
+          <p class="decision-note pre-open-card-count" data-tracking-stock-count="{_escape(artifact.get('tracking_stock_count', len(cards)))}" data-rendered-card-count="{len(cards)}">Tracking {_escape(artifact.get('tracking_stock_count', len(cards)))}｜Rendered {len(cards)}</p>
+          <div class="grid decision-grid">{body}</div>
         </section>
         """
     card_renderers = {
@@ -887,7 +914,7 @@ def _snapshot_decision_content(snapshot: dict[str, Any]) -> str:
     payload = snapshot.get("payload") if isinstance(snapshot.get("payload"), dict) else {}
     if market == "US":
         return render_us_window_report(window, [payload])
-    if window == "post_close_1500":
+    if window in {"pre_open_0700", "post_close_1500"}:
         return render_tw_window_report(window, payload)
     report = payload.get("user_facing_report") if isinstance(payload.get("user_facing_report"), dict) else {}
     cards = report.get("stock_cards") if isinstance(report.get("stock_cards"), list) else []

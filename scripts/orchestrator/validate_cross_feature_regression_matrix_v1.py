@@ -20,6 +20,7 @@ from app.dashboard.dashboard_url_registry import get_window_archive_url
 from app.dashboard.window_snapshot_archive import MARKET_WINDOWS, resolve_snapshots, write_snapshot
 from app.reports.decision_intelligence_v4 import WINDOW_PRESENTATION, compact_summary, delivery_summary_lines, project_decision_intelligence_v4
 from app.reports.multi_window_formatter import format_window_report
+from app.reports.tw_pre_open_structured import aggregate as aggregate_pre_open_cards, build_card as build_pre_open_card
 from app.reports.window_report_contract import all_window_report_contracts, get_window_report_contract
 from scripts.orchestrator.approved_us_stock_delivery import build_email_body, line_text
 
@@ -88,7 +89,28 @@ def fixture_payload(market: str, window: str, day: str, marker: str) -> dict[str
         "verification_scope": "temporary_non_production_archive", "marker": marker,
         "notification_sent": False, "production_pipeline_executed": False,
     }
-    if market == "TW":
+    if market == "TW" and window == "pre_open_0700":
+        symbols = [str(card["stock_id"]) for card in cards]
+        cards = [
+            build_pre_open_card(
+                symbol=symbols[index], name=str(card["stock_name"]), trading_date=day,
+                indicator={"date": day, "close": 100 + index, "trend": "uptrend"},
+                adr={"status": "available", "date": day}, news=[{"date": day, "summary": "controlled"}],
+                chip={"status": "available", "date": day},
+                score={"total_score": 75 - index * 10, "rating": "B", "action": "觀察切入" if index < 2 else "避免追價"},
+                analysis={"entry_condition": "開盤量價確認", "entry_zone": "100-101", "stop": "95", "target": "108"},
+                generated_at=f"{day}T07:06:00+08:00",
+            )
+            for index, card in enumerate(cards)
+        ]
+        summary = aggregate_pre_open_cards(cards, symbols)
+        payload.update({
+            "cards": cards, "structured_pre_open_cards": cards,
+            "tracking_stock_count": len(symbols), "tracking_symbols": symbols,
+            "structured_card_count": len(cards), "rendered_card_count": len(cards),
+            "pre_open_summary": summary,
+        })
+    elif market == "TW":
         payload["cards"] = cards
     else:
         payload["dashboard_ready_contract"] = {"cards": cards}
@@ -150,12 +172,18 @@ def main() -> int:
                 previous_html = (output / f"dashboard/archive/{market.lower()}/{window}/previous/index.html").read_text(encoding="utf-8")
                 key = f"{market}:{window}"
                 checks[key + ":contract"] = (market, window) in WINDOW_PRESENTATION
-                checks[key + ":dashboard_v4"] = "Decision Intelligence V4" in dashboard_html and latest_projection["expected_card_type"] in dashboard_html
+                if (market, window) == ("TW", "pre_open_0700"):
+                    checks[key + ":dashboard_v4"] = dashboard_html.count("tw-pre-open-structured-card") == 3 and latest_projection["expected_card_type"] in dashboard_html
+                else:
+                    checks[key + ":dashboard_v4"] = "Decision Intelligence V4" in dashboard_html and latest_projection["expected_card_type"] in dashboard_html
                 checks[key + ":email_v4"] = "Decision Intelligence V4" in email_text
                 checks[key + ":line_semantic_parity"] = all(
                     line in line_summary for line in delivery_summary_lines(latest_projection)
                 )
-                checks[key + ":archive_latest_previous"] = "Decision Intelligence V4" in latest_html and "Decision Intelligence V4" in previous_html
+                if (market, window) == ("TW", "pre_open_0700"):
+                    checks[key + ":archive_latest_previous"] = latest_html.count("tw-pre-open-structured-card") == 3 and previous_html.count("tw-pre-open-structured-card") == 3
+                else:
+                    checks[key + ":archive_latest_previous"] = "Decision Intelligence V4" in latest_html and "Decision Intelligence V4" in previous_html
                 checks[key + ":immutable_archive"] = "只使用 resolver 選出的 immutable snapshot payload" in latest_html and "<pre>" not in latest_html
                 checks[key + ":source_identity"] = selected.latest["market"] == market and selected.latest["window"] == window and selected.previous["effective_trading_date"] == "2026-07-14"
                 checks[key + ":public_safety"] = not any(token in dashboard_html + latest_html + previous_html for token in FORBIDDEN_PUBLIC)

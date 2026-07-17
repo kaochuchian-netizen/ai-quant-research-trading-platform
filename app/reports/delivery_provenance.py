@@ -13,6 +13,18 @@ def content_hash(content: str) -> str:
     return hashlib.sha256(content.encode("utf-8")).hexdigest()
 
 
+def source_payload_hash(snapshot: dict[str, Any]) -> str | None:
+    metadata = snapshot.get("metadata") if isinstance(snapshot.get("metadata"), dict) else snapshot
+    retained = metadata.get("payload_hash") or metadata.get("source_payload_hash")
+    if retained:
+        return str(retained)
+    payload = snapshot.get("payload")
+    if not isinstance(payload, dict):
+        return None
+    canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
 def build_delivery_provenance(*, market: str, window: str, trading_date: str, snapshot: dict[str, Any], canonical_url: str, channel: str, content: str, delivery_result: str, delivery_attempted: bool, recipient_count: int = 0, delivery_time: str | None = None) -> dict[str, Any]:
     if channel not in {"email", "line"}:
         raise ValueError("unsupported_delivery_channel")
@@ -23,7 +35,7 @@ def build_delivery_provenance(*, market: str, window: str, trading_date: str, sn
         "schema_version": "notification_delivery_provenance_v1",
         "market": market.upper(), "window": window, "trading_date": trading_date,
         "snapshot_id": metadata.get("snapshot_id"), "revision": metadata.get("revision"),
-        "source_payload_hash": metadata.get("payload_hash") or metadata.get("source_payload_hash"),
+        "source_payload_hash": source_payload_hash(snapshot),
         "presentation_content_hash": content_hash(content), "canonical_url": canonical_url,
         "formatted_at": datetime.now(ZoneInfo("Asia/Taipei")).replace(microsecond=0).isoformat(),
         "delivery_channel": channel, "delivery_attempted": bool(delivery_attempted),

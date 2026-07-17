@@ -183,6 +183,19 @@ def write_snapshot(
         return {"written": False, "reason": "invalid_effective_trading_date"}
     if run_kind not in {"scheduled", "manual_rerun", "backfill"}:
         return {"written": False, "reason": "rejected_run_kind"}
+    if market == "TW" and canonical_window == "pre_open_0700" and (
+        int(source_payload.get("tracking_stock_count") or 0) > 0
+        or "structured_pre_open_cards" in source_payload
+    ):
+        from app.reports.tw_pre_open_structured import validate_payload
+
+        structured_errors = validate_payload(source_payload)
+        if structured_errors:
+            return {
+                "written": False,
+                "reason": "structured_pre_open_payload_invalid",
+                "validation_errors": structured_errors,
+            }
     if not _source_is_admissible(source_payload, status, run_kind):
         return {"written": False, "reason": "source_not_admissible"}
     existing = [

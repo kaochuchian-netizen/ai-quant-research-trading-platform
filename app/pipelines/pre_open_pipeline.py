@@ -28,6 +28,11 @@ from reports.report_formatter_v2 import (
 )
 from reports.line_report_sender import send_line_report
 from reports.line_short_formatter import format_line_short
+from app.dashboard.dashboard_url_registry import get_delivery_dashboard_url
+from app.reports.tw_pre_open_structured import aggregate as aggregate_pre_open_cards
+from app.reports.tw_pre_open_structured import build_card as build_pre_open_card
+from app.reports.tw_pre_open_structured import render_line as render_pre_open_line
+from app.reports.tw_pre_open_structured import unavailable_card as build_unavailable_pre_open_card
 
 from scripts.update_historical_csv import main as update_historical_csv
 
@@ -35,6 +40,7 @@ from scripts.update_historical_csv import main as update_historical_csv
 LINE_BATCH_SIZE = 3
 
 STAGE_TIMING_PATH = Path("artifacts/runtime/pre_open_stage_timing_latest.json")
+PRE_OPEN_RUNTIME_PATH = Path("artifacts/runtime/tw_window_decision/pre_open_0700_latest.json")
 
 
 def _now_taipei():
@@ -77,14 +83,69 @@ class StageTiming:
         STAGE_TIMING_PATH.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def _write_pre_open_runtime(context, cards, tracking_symbols):
+    summary = aggregate_pre_open_cards(cards, tracking_symbols)
+    generated_at = _now_taipei()
+    source_dates = sorted(
+        {
+            str((card.get("data_freshness") or {}).get("market_data_as_of"))[:10]
+            for card in cards
+            if (card.get("data_freshness") or {}).get("market_data_as_of")
+        }
+    )
+    payload = {
+        "schema_version": "tw_pre_open_decision_runtime_v1",
+        "artifact_type": "tw_window_decision_runtime",
+        "artifact_mode": "scheduled_production",
+        "runtime_provenance": "scheduled_production",
+        "run_kind": "scheduled",
+        "fixture": False,
+        "validation_only": False,
+        "dry_run": False,
+        "status": "completed",
+        "market": "TW",
+        "window": "pre_open_0700",
+        "pipeline_run_id": context["pipeline_run_id"],
+        "effective_trading_date": context["run_date"],
+        "generated_at": generated_at,
+        "source_data_dates": source_dates,
+        "source_data_time": None,
+        "source_data_time_status": "date_only" if source_dates else "unavailable",
+        "tracking_stock_count": summary["tracking_stock_count"],
+        "tracking_symbols": summary["tracking_symbols"],
+        "structured_card_count": summary["structured_card_count"],
+        "rendered_card_count": summary["rendered_card_count"],
+        "structured_pre_open_cards": cards,
+        "cards": cards,
+        "pre_open_summary": summary,
+        "email_attempted": False,
+        "line_attempted": False,
+        "trading_or_order_executed": False,
+    }
+    PRE_OPEN_RUNTIME_PATH.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path = PRE_OPEN_RUNTIME_PATH.with_suffix(".json.tmp")
+    temporary_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    os.replace(temporary_path, PRE_OPEN_RUNTIME_PATH)
+    return payload
 
-def send_reports_in_batches(reports, batch_size=LINE_BATCH_SIZE, dry_run=False):
+
+
+def send_reports_in_batches(reports, batch_size=LINE_BATCH_SIZE, dry_run=False, structured_payload=None):
     if not reports:
         print("沒有可推播的報告")
         return
 
     for index in range(0, len(reports), batch_size):
-        message = format_line_short({"scheduler_window": "pre_open_0700"})
+        if structured_payload:
+            message = render_pre_open_line(
+                structured_payload,
+                get_delivery_dashboard_url("TW", "pre_open_0700", ""),
+            )
+        else:
+            message = format_line_short({"scheduler_window": "pre_open_0700"})
 
         print("LINE link-only reminder prepared; per-stock details are available on Dashboard only")
 
@@ -157,6 +218,7 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
     daily_reports = []
     failed_reports = []
     stock_name_warnings = []
+    structured_cards = []
 
     for stock_id in stock_ids:
         stock_id = str(stock_id).zfill(4)
@@ -188,6 +250,14 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
                     "stock_name": stock_name,
                     "reason": f"找不到歷史資料 {csv_path}",
                 }
+            )
+            structured_cards.append(
+                build_unavailable_pre_open_card(
+                    stock_id,
+                    stock_name,
+                    context["run_date"],
+                    "missing_historical_csv",
+                )
             )
             stage_timing.finish(stage_name, status="failed", reason="missing_historical_csv")
             continue
@@ -261,16 +331,70 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
                 print(f"SQLite 已寫入：{stock_name}({stock_id})")
             print(report, flush=True)
             daily_reports.append(report)
+            structured_cards.append(
+                build_pre_open_card(
+                    symbol=stock_id,
+                    name=stock_name,
+                    trading_date=context["run_date"],
+                    indicator=indicator_result,
+                    adr=adr_result,
+                    news=news_result,
+                    chip=chip_result,
+                    score=total_score_result,
+                    analysis=ai_analysis,
+                    missing_fields=[
+                        source_name
+                        for source_name, source_value in (
+                            ("adr", adr_result),
+                            ("news", news_result),
+                            ("chip", chip_result),
+                        )
+                        if source_value in (None, [], {})
+                    ],
+                )
+            )
             stage_timing.finish(stage_name, report_ready=True)
 
         except Exception as e:
             reason = e.__class__.__name__
             print(f"分析失敗：{stock_name}({stock_id})，原因類型：{reason}", flush=True)
             failed_reports.append({"stock_id": stock_id, "stock_name": stock_name, "reason": reason})
+            structured_cards.append(
+                build_unavailable_pre_open_card(
+                    stock_id,
+                    stock_name,
+                    context["run_date"],
+                    f"analysis_failed:{reason}",
+                )
+            )
             stage_timing.finish(stage_name, status="failed", reason=reason)
 
+    pre_open_summary = aggregate_pre_open_cards(structured_cards, selected_stock_ids)
+    window_runtime = None
+    if dry_run:
+        print("dry-run 模式：略過正式 07:00 window runtime 寫入")
+    else:
+        stage_timing.start("window_runtime_write")
+        window_runtime = _write_pre_open_runtime(context, structured_cards, selected_stock_ids)
+        stage_timing.finish(
+            "window_runtime_write",
+            structured_card_count=window_runtime["structured_card_count"],
+            tracking_stock_count=window_runtime["tracking_stock_count"],
+        )
+
     stage_timing.start("line_link_only_reminder")
-    send_reports_in_batches(daily_reports, dry_run=dry_run)
+    line_payload = window_runtime or {
+        "effective_trading_date": context["run_date"],
+        "generated_at": _now_taipei(),
+        "tracking_symbols": selected_stock_ids,
+        "structured_pre_open_cards": structured_cards,
+        "pre_open_summary": pre_open_summary,
+    }
+    send_reports_in_batches(
+        daily_reports,
+        dry_run=dry_run,
+        structured_payload=line_payload,
+    )
     stage_timing.finish("line_link_only_reminder", report_count=len(daily_reports))
 
     result = {
@@ -282,6 +406,10 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
         "content_state": "stock_analysis_reports_available" if daily_reports else "stock_analysis_reports_unavailable",
         "report_count": len(daily_reports),
         "failed_count": len(failed_reports),
+        "tracking_stock_count": pre_open_summary["tracking_stock_count"],
+        "structured_card_count": pre_open_summary["structured_card_count"],
+        "pre_open_summary": pre_open_summary,
+        "window_runtime_path": str(PRE_OPEN_RUNTIME_PATH) if window_runtime else None,
         "stock_name_fallback_count": len(stock_name_warnings),
         "stock_name_warnings": stock_name_warnings,
         "full_line_report_disabled": bool(dry_run),

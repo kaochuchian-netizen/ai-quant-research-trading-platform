@@ -37,6 +37,7 @@ from app.reports.window_context import get_window_context  # noqa: E402
 from app.reports.window_report_contract import get_window_report_contract  # noqa: E402
 from app.reports.tw_1335_snapshot_delivery import render_email as render_tw_1335_email, render_line as render_tw_1335_line, resolve_context as resolve_tw_1335_context  # noqa: E402
 from app.reports.tw_post_close_review import build_structured_review_payload, render_email as render_tw_1500_email, render_line as render_tw_1500_line  # noqa: E402
+from app.reports.tw_pre_open_structured import render_email as render_tw_0700_email, render_line as render_tw_0700_line, validate_payload as validate_tw_0700_payload  # noqa: E402
 from app.runtime.production_run_guard import evaluate_pre_open_run_guard  # noqa: E402
 from app.runtime.runtime_diagnostics import build_guard_result, write_json  # noqa: E402
 from app.runtime.timeout_policy import TimeoutPolicy, timeout_policy_from_env  # noqa: E402
@@ -414,6 +415,18 @@ def _latest_post_close_context() -> tuple[dict[str, Any], dict[str, Any]]:
     return payload, snapshot
 
 
+def _latest_pre_open_context() -> tuple[dict[str, Any], dict[str, Any]]:
+    snapshot = resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, "TW", "pre_open_0700").latest or {}
+    payload = snapshot.get("payload") if isinstance(snapshot.get("payload"), dict) else {}
+    if (
+        not isinstance(payload.get("structured_pre_open_cards"), list)
+        or int(payload.get("tracking_stock_count") or 0) <= 0
+        or validate_tw_0700_payload(payload)
+    ):
+        return {}, {}
+    return payload, snapshot
+
+
 def _delivery_dashboard_url(window_id: str, requested_url: str) -> str:
     normalized_window = "post_close_1500" if window_id == "prediction_review_1500" else window_id
     return get_delivery_dashboard_url("TW", normalized_window, requested_url)
@@ -460,6 +473,17 @@ def _production_email_summary() -> dict[str, Any]:
 
 def build_email_body(window_id: str, run_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str) -> str:
     dashboard_url = _delivery_dashboard_url(window_id, dashboard_url)
+    if window_id == "pre_open_0700":
+        payload, _snapshot = _latest_pre_open_context()
+        if payload:
+            return render_tw_0700_email(payload, dashboard_url)
+        return "\n".join([
+            "【Stock AI】07:00 台股盤前決策尚未建立",
+            "本批次未通過正式 structured payload admission，不沿用舊批次內容。",
+            "完整報告：",
+            dashboard_url,
+            "僅供研究參考，非交易指令。",
+        ])
     if window_id == "pre_close_1335":
         context = resolve_tw_1335_context(WINDOW_SNAPSHOT_ARCHIVE)
         if context:
@@ -540,6 +564,16 @@ def build_line_message(window_id: str, generated_at: str, pipeline_status: str, 
     of LINE. The full decision content belongs on the Dashboard.
     """
     dashboard_url = _delivery_dashboard_url(window_id, dashboard_url)
+    if window_id == "pre_open_0700":
+        payload, _snapshot = _latest_pre_open_context()
+        if payload:
+            return tail_text(render_tw_0700_line(payload, dashboard_url), LINE_BODY_LIMIT)
+        return "\n".join([
+            "【Stock AI】07:00 台股盤前決策尚未建立",
+            "本批次未通過正式資料驗證，不沿用舊內容。",
+            "完整報告：",
+            dashboard_url,
+        ])
     if window_id == "pre_close_1335":
         context = resolve_tw_1335_context(WINDOW_SNAPSHOT_ARCHIVE)
         if context:
@@ -856,8 +890,19 @@ def main() -> int:
     report_generated_at = now_taipei().isoformat()
     effective_batch_time = scheduled_datetime_taipei(args.window, generated).isoformat()
     structured_review: dict[str, Any] = {}
+    structured_pre_open: dict[str, Any] = {}
     review_build: dict[str, Any] | None = None
     snapshot_cards = window_runtime.get("cards") if isinstance(window_runtime.get("cards"), list) else []
+    if args.window == "pre_open_0700" and pipeline_status == "completed":
+        structured_pre_open = {
+            "structured_pre_open_cards": window_runtime.get("structured_pre_open_cards", []),
+            "tracking_stock_count": window_runtime.get("tracking_stock_count", 0),
+            "tracking_symbols": window_runtime.get("tracking_symbols", []),
+            "structured_card_count": window_runtime.get("structured_card_count", 0),
+            "rendered_card_count": window_runtime.get("rendered_card_count", 0),
+            "pre_open_summary": window_runtime.get("pre_open_summary", {}),
+        }
+        snapshot_cards = structured_pre_open["structured_pre_open_cards"]
     if args.window in {"post_close_1500", "prediction_review_1500"} and pipeline_status == "completed":
         review_build = _run_internal_artifact_command([
             "scripts/orchestrator/build_formal_prediction_review_runtime_artifact.py",
@@ -895,9 +940,19 @@ def main() -> int:
             "user_facing_report": report_contract.user_facing_report,
             "delivery_policy": report_contract.delivery_policy,
             "cards": snapshot_cards,
+            **({
+                "structured_pre_open_cards": structured_pre_open["structured_pre_open_cards"],
+                "tracking_symbols": structured_pre_open["tracking_symbols"],
+                "structured_card_count": structured_pre_open["structured_card_count"],
+                "rendered_card_count": structured_pre_open["rendered_card_count"],
+                "pre_open_summary": structured_pre_open["pre_open_summary"],
+            } if args.window == "pre_open_0700" else {}),
             "structured_review_cards": structured_review.get("structured_review_cards", []),
             "structured_review": structured_review,
-            "tracking_stock_count": structured_review.get("tracking_stock_count", len(snapshot_cards)),
+            "tracking_stock_count": structured_pre_open.get(
+                "tracking_stock_count",
+                structured_review.get("tracking_stock_count", len(snapshot_cards)),
+            ),
             "rendered_review_card_count": structured_review.get("rendered_review_card_count", len(snapshot_cards)),
             "outcome_counts": structured_review.get("outcome_counts", {}),
             "review_content_hash": structured_review.get("review_content_hash"),

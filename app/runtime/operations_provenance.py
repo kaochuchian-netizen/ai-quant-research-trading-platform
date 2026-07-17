@@ -7,7 +7,7 @@ from typing import Any
 def build_operations_provenance(*, market: str, window: str, runtime_status: str, runtime_trading_date: str, snapshot: dict[str, Any], public_sync: dict[str, Any], email_result: str, line_result: str) -> dict[str, Any]:
     archive_observed = ((public_sync.get("public_archive_verification") or {}).get("observed_identity"))
     dashboard_observed = ((public_sync.get("market_dashboard_verification") or {}).get("observed_identity"))
-    return {
+    result = {
         "schema_version": "operations_window_provenance_v1", "market": market, "window": window,
         "latest_runtime_status": runtime_status, "latest_runtime_trading_date": runtime_trading_date,
         "latest_admitted_snapshot_id": snapshot.get("snapshot_id"),
@@ -19,6 +19,22 @@ def build_operations_provenance(*, market: str, window: str, runtime_status: str
         "public_parity_status": public_sync.get("status") or "not_attempted",
         "email_delivery_result": email_result, "line_delivery_result": line_result,
     }
+    if market.upper() == "TW" and window == "pre_open_0700":
+        payload = snapshot.get("payload") if isinstance(snapshot.get("payload"), dict) else {}
+        result.update({
+            "tracking_stock_count": int(payload.get("tracking_stock_count") or 0),
+            "structured_card_count": int(payload.get("structured_card_count") or 0),
+            "rendered_card_count": int(payload.get("rendered_card_count") or 0),
+            "structured_payload_status": (
+                "valid"
+                if int(payload.get("tracking_stock_count") or 0) > 0
+                and int(payload.get("tracking_stock_count") or 0)
+                == int(payload.get("structured_card_count") or 0)
+                == int(payload.get("rendered_card_count") or 0)
+                else "structured_payload_invalid"
+            ),
+        })
+    return result
 
 def write_operations_provenance(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
