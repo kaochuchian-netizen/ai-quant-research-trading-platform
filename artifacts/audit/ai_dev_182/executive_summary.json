@@ -1,8 +1,17 @@
 {
   "audit_completed": true,
   "coverage": {
+    "admitted_snapshots_inspected": 16,
     "archive_routes": "14/14",
+    "classification_counts": {
+      "failed_batch": 1,
+      "missing_batch": 1,
+      "no_archive_admission": 3,
+      "successful_batch": 16
+    },
+    "expected_batch_slots": 21,
     "public_pages": 17,
+    "raw_snapshots_inspected": 19,
     "trading_date_scope": {
       "TW": [
         "2026-07-15",

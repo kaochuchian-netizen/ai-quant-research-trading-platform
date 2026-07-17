@@ -13,6 +13,10 @@ Overall: **54/100 — BLOCKED_BY_P0**
 - ux_and_readability: 8/15 — US pre-market repetition/engineering wording; screenshot backend evidence gap
 - operational_reliability: 5/10 — TW 13:05 timed out; remaining current natural batches observed
 
+## Longitudinal classification
+
+Across 21 expected market/window/date slots: admitted success 16, failed batch 1, missing batch 1, and snapshot present without explicit admission evidence 3.
+
 ## TW 13:05 root cause
 
 Scheduler triggered and the approved entrypoint started, but the pipeline reached `pipeline_timed_out` after 600 seconds. No runtime, snapshot, publish, Email, or LINE followed. Root cause: `pipeline_failure`.
