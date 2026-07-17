@@ -19,6 +19,7 @@ from analysis.news_scoring_engine import calculate_news_score
 from analysis.total_scoring_engine import calculate_total_score
 from indicators.indicator_engine_v2 import build_indicator_result
 from reports.report_formatter_v2 import format_stock_report_v2
+from app.runtime.stage_timing import StageTimingRecorder, TW_INTRADAY_1305_BUDGET, record_stage_result
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 WINDOW_BY_PIPELINE = {"intraday": "intraday_1305", "pre_close": "pre_close_1335", "post_close": "post_close_1500"}
@@ -78,6 +79,17 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
     wrapper sends only concise reminders with the dashboard URL.
     """
     context = create_pipeline_context(pipeline_type)
+    window = WINDOW_BY_PIPELINE[pipeline_type]
+    timing_root = (
+        Path(os.environ.get("STOCK_AI_STAGE_TIMING_DIR", "/tmp/stock-ai-stage-timing"))
+        if dry_run else REPO_ROOT / "artifacts/runtime/stage_timing"
+    )
+    timing_path = timing_root / f"tw_{window}_latest.json"
+    timing = StageTimingRecorder(
+        timing_path, market="TW", window=window,
+        run_id=context["pipeline_run_id"], budget=TW_INTRADAY_1305_BUDGET,
+    )
+    timing.heartbeat("entrypoint", "pipeline_context_created")
     print(f"pipeline_type: {context['pipeline_type']}")
     print(f"pipeline_run_id: {context['pipeline_run_id']}")
     print(f"run_date: {context['run_date']}")
@@ -86,11 +98,14 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
     if dry_run:
         print("dry-run 模式：略過 SQLite 初始化")
     else:
-        init_database()
+        with timing.stage("entrypoint"):
+            init_database()
 
     print(f"{pipeline_type} historical CSV update skipped; using existing report-ready data")
 
-    stock_ids = load_stock_ids()
+    with timing.stage("market_data"):
+        stock_ids = load_stock_ids()
+    record_stage_result(timing_path, "fundamentals", status="not_applicable", elapsed_seconds=0)
     selected_stock_ids = [str(stock_id).zfill(4) for stock_id in stock_ids]
     print(f"{pipeline_type} stock universe count: {len(stock_ids)}")
     print(f"{pipeline_type} selected stock ids: {selected_stock_ids}")
@@ -127,42 +142,59 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
             continue
 
         try:
-            indicator_result = build_indicator_result(stock_id, csv_path)
+            timing.heartbeat("technical", stock_id)
+            with timing.stage("technical"):
+                indicator_result = build_indicator_result(stock_id, csv_path)
             technical_score = indicator_result.get("score", {}).get("bullish_score", 50)
 
-            adr_result = get_adr_result(stock_id)
-            adr_score = calculate_adr_score(adr_result)
+            try:
+                with timing.stage("adr", optional=True):
+                    adr_result = get_adr_result(stock_id)
+                    adr_score = calculate_adr_score(adr_result)
+            except Exception as exc:
+                adr_result, adr_score = {"status": "unavailable", "reason": exc.__class__.__name__}, 50
 
-            news_result = analyze_news(stock_id, stock_name)
-            news_score_result = calculate_news_score(news_result)
-            news_score = news_score_result.get("score", 50)
+            try:
+                with timing.stage("news", optional=True):
+                    news_result = analyze_news(stock_id, stock_name)
+                    news_score_result = calculate_news_score(news_result)
+                    news_score = news_score_result.get("score", 50)
+            except Exception as exc:
+                news_result, news_score = {"status": "unavailable", "reason": exc.__class__.__name__}, 50
 
-            chip_result = analyze_chip(stock_id)
-            chip_score = chip_result.get("chip_score", 50)
+            try:
+                with timing.stage("chip", optional=True):
+                    chip_result = analyze_chip(stock_id)
+                    chip_score = chip_result.get("chip_score", 50)
+            except Exception as exc:
+                chip_result, chip_score = {"status": "unavailable", "reason": exc.__class__.__name__}, 50
 
-            total_score_result = calculate_total_score(
-                technical_score=technical_score,
-                news_score=news_score,
-                adr_score=adr_score,
-                chip_score=chip_score,
-            )
+            with timing.stage("strategy"):
+                total_score_result = calculate_total_score(
+                    technical_score=technical_score,
+                    news_score=news_score,
+                    adr_score=adr_score,
+                    chip_score=chip_score,
+                )
 
-            ai_analysis = analyze_stock(
-                indicator_result=indicator_result,
-                adr_result=adr_result,
-                news_result=news_result,
-            )
+            with timing.stage("prediction", optional=True):
+                ai_analysis = analyze_stock(
+                    indicator_result=indicator_result,
+                    adr_result=adr_result,
+                    news_result=news_result,
+                )
 
-            report = format_stock_report_v2(
-                stock_id=stock_id,
-                stock_name=stock_name,
-                indicator_result=indicator_result,
-                ai_analysis=ai_analysis,
-                adr_result=adr_result,
-                news_result=news_result,
-                total_score_result=total_score_result,
-                chip_result=chip_result,
-            )
+            with timing.stage("formatter"):
+                report = format_stock_report_v2(
+                    stock_id=stock_id,
+                    stock_name=stock_name,
+                    indicator_result=indicator_result,
+                    ai_analysis=ai_analysis,
+                    adr_result=adr_result,
+                    news_result=news_result,
+                    total_score_result=total_score_result,
+                    chip_result=chip_result,
+                )
 
             if dry_run:
                 print(f"dry-run 模式：略過 SQLite 寫入：{stock_name}({stock_id})")
@@ -218,7 +250,16 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
             print(f"分析失敗：{stock_name}({stock_id})，原因類型：{reason}")
             failed_reports.append({"stock_id": stock_id, "stock_name": stock_name, "reason": reason})
 
-    runtime_path = None if dry_run else _write_window_runtime(pipeline_type, context, decision_cards)
+    if not decision_cards and not dry_run:
+        timing.fail(stage="runtime_write", category="runtime_write_failure", reason="no_valid_decision_cards")
+        raise RuntimeError("no_valid_decision_cards")
+    with timing.stage("runtime_write"):
+        runtime_path = None if dry_run else _write_window_runtime(pipeline_type, context, decision_cards)
+    # These stages belong to the approved wrapper; record explicit handoff so
+    # the pipeline artifact never implies they happened here.
+    for handoff in ("snapshot_admission", "archive_build", "publish", "notification_format", "delivery"):
+        timing.heartbeat(handoff, "pending_approved_wrapper")
+    timing.complete()
     result = {
         "pipeline_type": context["pipeline_type"],
         "pipeline_run_id": context["pipeline_run_id"],
@@ -234,6 +275,7 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
         "trading_order_portfolio_action": False,
         "window_runtime_path": str(runtime_path) if runtime_path else None,
         "window_runtime_card_count": len(decision_cards),
+        "stage_timing_path": str(timing_path),
     }
     print("pipeline_report_summary:")
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))

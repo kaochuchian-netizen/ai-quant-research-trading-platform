@@ -31,10 +31,13 @@ from app.us_stock.live_pipeline import build_live_runtime_artifact
 from app.dashboard.dashboard_url_registry import get_us_dashboard_url, normalize_delivery_dashboard_url
 from app.dashboard.decision_presentation import decision_email_block_v2, decision_line_summary_v2, decision_presentation_v2
 from app.reports.decision_intelligence_v4 import compact_summary, project_decision_intelligence_v4
-from app.dashboard.window_snapshot_archive import write_snapshot
+from app.dashboard.window_snapshot_archive import resolve_snapshots, write_snapshot
+from app.dashboard.public_latest_sync import synchronize_admitted_latest, write_sync_artifact
+from app.reports.delivery_provenance import build_delivery_provenance, write_delivery_provenance
 from app.reports.window_report_contract import get_window_report_contract
 from app.us_stock.watchlist import normalize_us_watchlist_rows
 from app.us_stock.runtime_provenance import ADMITTED_PROVENANCE, RuntimeProvenance, provenance_admission
+from app.runtime.operations_provenance import build_operations_provenance, write_operations_provenance
 from scripts.orchestrator.notify_stage_report import build_message, load_env_file, load_mail_config, send_message
 
 WINDOWS = tuple(US_BATCH_WINDOWS.keys())
@@ -388,7 +391,25 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 source_artifact_path=str(out_path),
                 rebuild_routes=args.manual_rerun,
             )
-        dashboard_result = publish_dashboard(artifact) if persist_formal_runtime and (production_approved or args.publish_dashboard) else {"attempted": False, "succeeded": False, "reason": "provenance_not_publishable"}
+        public_latest_sync = {"status": "not_attempted", "reason": "not_scheduled_production"}
+        if production_approved and persist_formal_runtime and archive_result.get("written") is True and not args.manual_rerun:
+            public_latest_sync = synchronize_admitted_latest(
+                market="US", window=args.window,
+                static_root=Path("/var/www/stock-ai-dashboard"),
+                output_dir=Path("/tmp/stock-ai-dashboard-scheduled-sync") / args.window,
+            )
+            write_sync_artifact(
+                US_RUNTIME_DIR / "public_latest_sync" / f"{args.window}_latest.json",
+                public_latest_sync,
+            )
+        if production_approved and not args.manual_rerun:
+            dashboard_result = {
+                "attempted": public_latest_sync.get("status") != "not_attempted",
+                "succeeded": public_latest_sync.get("status") == "verified",
+                "source": "admitted_snapshot_active_alias",
+            }
+        else:
+            dashboard_result = publish_dashboard(artifact) if persist_formal_runtime and args.publish_dashboard else {"attempted": False, "succeeded": False, "reason": "provenance_not_publishable"}
         idem = idempotency_path(args.window, started)
         delivery_skipped_duplicate = production_approved and idem.exists()
         if delivery_skipped_duplicate:
@@ -397,6 +418,35 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         else:
             email_result = send_email_if_allowed(artifact, args.window, production_approved)
             line_result = send_line_if_allowed(artifact, args.window, production_approved)
+        latest_snapshot = resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, "US", args.window).latest or {}
+        email_preview = build_email_body(artifact, args.window)
+        line_preview = line_text(artifact, args.window)
+        provenance_results = {}
+        for channel, delivery, content in (("email", email_result, email_preview), ("line", line_result, line_preview)):
+            attempted = bool(delivery.get("attempted"))
+            result_name = "sent" if delivery.get("succeeded") else "failed" if attempted else "suppressed" if "suppress" in str(delivery.get("reason") or "") else "not_attempted"
+            provenance = build_delivery_provenance(
+                market="US", window=args.window,
+                trading_date=batch_reference.astimezone(NEW_YORK).date().isoformat(),
+                snapshot=latest_snapshot, canonical_url=get_window_report_contract("US", args.window).dashboard_url,
+                channel=channel, content=content, delivery_result=result_name,
+                delivery_attempted=attempted, recipient_count=int(delivery.get("recipient_count") or 0),
+            )
+            write_delivery_provenance(
+                US_RUNTIME_DIR / "delivery_provenance" / f"{args.window}_{channel}_latest.json",
+                provenance,
+            )
+            provenance_results[channel] = result_name
+        write_operations_provenance(
+            US_RUNTIME_DIR / "operations_provenance" / f"{args.window}_latest.json",
+            build_operations_provenance(
+                market="US", window=args.window, runtime_status="completed",
+                runtime_trading_date=batch_reference.astimezone(NEW_YORK).date().isoformat(),
+                snapshot=latest_snapshot, public_sync=public_latest_sync,
+                email_result=provenance_results.get("email", "not_attempted"),
+                line_result=provenance_results.get("line", "not_attempted"),
+            ),
+        )
         if production_approved and not delivery_skipped_duplicate:
             write_json(idem, {"window": args.window, "date": started.date().isoformat(), "email_attempted": email_result["attempted"], "line_attempted": line_result["attempted"], "created_at": started.isoformat()})
         finished = now_taipei()
@@ -419,8 +469,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "email_succeeded": email_result.get("succeeded", False),
             "line_attempted": line_result.get("attempted", False),
             "line_succeeded": line_result.get("succeeded", False),
-            "line_payload_preview": line_text(artifact, args.window),
-            "email_payload_preview": build_email_body(artifact, args.window),
+            "line_payload_preview": line_preview,
+            "email_payload_preview": email_preview,
             "dashboard_url": get_window_report_contract("US", args.window).dashboard_url,
             "production_pipeline_executed": False,
             "trading_or_order_executed": False,
@@ -430,13 +480,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "duplicate_delivery_suppressed": delivery_skipped_duplicate,
             "dry_run": not production_approved,
             "archive_write": archive_result,
+            "public_latest_sync": public_latest_sync,
             "python3_main_executed": False,
             "secret_values_printed": False,
         }
         if persist_formal_runtime:
             write_json(STATUS_PATH, status)
             write_json(US_STATUS_PATH, status)
-        return {"ok": True, "status": status, "archive_write": archive_result, "dashboard": dashboard_result, "email": email_result, "line": line_result, "line_payload_preview": status["line_payload_preview"], "email_payload_preview": status["email_payload_preview"], "dashboard_url": get_window_report_contract("US", args.window).dashboard_url}
+        return {"ok": (not production_approved or args.manual_rerun or public_latest_sync.get("status") == "verified"), "status": status, "archive_write": archive_result, "dashboard": dashboard_result, "email": email_result, "line": line_result, "line_payload_preview": status["line_payload_preview"], "email_payload_preview": status["email_payload_preview"], "dashboard_url": get_window_report_contract("US", args.window).dashboard_url}
     except Exception as exc:
         error = {"ok": False, "status": "failed", "window": args.window, "error_type": type(exc).__name__, "error_message": str(exc)[:240], "line_attempted": False, "email_attempted": False, "trading_or_order_executed": False, "production_pipeline_executed": False}
         if production_approved or production_artifact:
