@@ -1,0 +1,35 @@
+{
+  "TW": {
+    "baseline_missing": [
+      "2026-07-17 intraday_1305"
+    ],
+    "normal_transitions": [],
+    "review_gap": [
+      "15:00 pending 8/9"
+    ],
+    "sequence": [
+      "pre_open_0700",
+      "intraday_1305",
+      "pre_close_1335",
+      "post_close_1500"
+    ],
+    "unexplained_transitions": [
+      "13:35 cannot explain change from timed-out 13:05"
+    ]
+  },
+  "US": {
+    "baseline_missing": [],
+    "normal_transitions": [],
+    "outcome_mismatch": [
+      "06:30 pending cards classified no_trade/reviewed"
+    ],
+    "sequence": [
+      "us_pre_market_2000",
+      "us_intraday_2300",
+      "us_post_close_review_0630"
+    ],
+    "unexplained_transitions": [
+      "intraday gap/volume statements are generic"
+    ]
+  }
+}

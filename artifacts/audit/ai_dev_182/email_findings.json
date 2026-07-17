@@ -1,0 +1,65 @@
+[
+  {
+    "actual_delivery_evidence": "sent_inferred_from_approved_wrapper_ok;receipt_unavailable",
+    "content_evidence": "not_persisted",
+    "finding": "actual content unavailable",
+    "market": "TW",
+    "recipient_data_stored": false,
+    "source_snapshot_id": "6e69ef59b3eced59e6ee6006166cdfda6fa488fbce4db660f033b458a1cc4278",
+    "window": "pre_open_0700"
+  },
+  {
+    "actual_delivery_evidence": "not_attempted",
+    "content_evidence": "not_persisted",
+    "finding": "actual content unavailable",
+    "market": "TW",
+    "recipient_data_stored": false,
+    "source_snapshot_id": "eb29574bed8590f755db7c2358a93e628ec8eea677d9c033d47fcec2dd021cc1",
+    "window": "intraday_1305"
+  },
+  {
+    "actual_delivery_evidence": "sent_inferred_from_approved_wrapper_ok;receipt_unavailable",
+    "content_evidence": "not_persisted",
+    "finding": "actual content unavailable",
+    "market": "TW",
+    "recipient_data_stored": false,
+    "source_snapshot_id": "96b140b63ca147f55522abb142919dd0a2b67d0a741f21cead43833f79e28d22",
+    "window": "pre_close_1335"
+  },
+  {
+    "actual_delivery_evidence": "sent_inferred_from_approved_wrapper_ok;receipt_unavailable",
+    "content_evidence": "not_persisted",
+    "finding": "actual content unavailable",
+    "market": "TW",
+    "recipient_data_stored": false,
+    "source_snapshot_id": "cd4e6f9f312c3fc4ebc0ed1531abf12fb17b45cabf8c6c2ef58f97ba9262e3ad",
+    "window": "post_close_1500"
+  },
+  {
+    "actual_delivery_evidence": "not_observable",
+    "content_evidence": "persisted_in_delivery_status_or_log",
+    "finding": "actual delivery artifact inspected; recipient receipt unavailable",
+    "market": "US",
+    "recipient_data_stored": false,
+    "source_snapshot_id": "bf86d757cce854ad40ac37f6281b5821dc39ca6f721a6b7e4131a2b5f40d2093",
+    "window": "us_pre_market_2000"
+  },
+  {
+    "actual_delivery_evidence": "not_observable",
+    "content_evidence": "persisted_in_delivery_status_or_log",
+    "finding": "actual delivery artifact inspected; recipient receipt unavailable",
+    "market": "US",
+    "recipient_data_stored": false,
+    "source_snapshot_id": "8c74c44ef4d51ce2042fe84eac6b5972d95e92f77461844ae5905869d5d75bd7",
+    "window": "us_intraday_2300"
+  },
+  {
+    "actual_delivery_evidence": "not_observable",
+    "content_evidence": "persisted_in_delivery_status_or_log",
+    "finding": "actual delivery artifact inspected; recipient receipt unavailable",
+    "market": "US",
+    "recipient_data_stored": false,
+    "source_snapshot_id": "6582b90fa5dd9cb0a5c7720651ce12e08f4facb79d8a3b28998773417bec0659",
+    "window": "us_post_close_review_0630"
+  }
+]

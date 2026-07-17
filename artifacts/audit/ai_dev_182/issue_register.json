@@ -1,0 +1,346 @@
+[
+  {
+    "affected_channels": [
+      "Runtime",
+      "Archive",
+      "Dashboard",
+      "Email",
+      "LINE"
+    ],
+    "affected_markets": [
+      "TW"
+    ],
+    "affected_windows": [
+      "TW intraday_1305"
+    ],
+    "estimated_fix_complexity": "medium",
+    "evidence": [
+      "artifacts/runtime/delivery_progress_intraday_1305_latest.json: stage=pipeline_timed_out, timeout=600",
+      "logs/daily.log: approved_scheduler_delivery_timed_out_no_delivery",
+      "no 2026-07-17 intraday_1305 snapshot"
+    ],
+    "frequency": "observed_current",
+    "issue_id": "AI182-P0-001",
+    "operational_risk": "Silent decision gap if only public HTTP is monitored.",
+    "recommended_integrated_task": "AI-DEV-183",
+    "recommended_owner": "Production Data & Delivery",
+    "root_cause_category": "pipeline_failure",
+    "severity": "P0",
+    "title": "TW 13:05 scheduled batch timed out before runtime persistence",
+    "trading_dates": [
+      "2026-07-17"
+    ],
+    "user_impact": "No intraday decision or notification; 13:35 loses same-day baseline."
+  },
+  {
+    "affected_channels": [
+      "Snapshot",
+      "Dashboard",
+      "Email",
+      "LINE"
+    ],
+    "affected_markets": [
+      "US"
+    ],
+    "affected_windows": [
+      "US us_post_close_review_0630"
+    ],
+    "estimated_fix_complexity": "medium",
+    "evidence": [
+      "delivery_status_latest: V4 No Trade=6",
+      "per-stock formatter evidence: outcome pending actual result",
+      "Reviewed=6"
+    ],
+    "frequency": "observed_current",
+    "issue_id": "AI182-P0-002",
+    "operational_risk": "Incorrect review/calibration metrics.",
+    "recommended_integrated_task": "AI-DEV-183",
+    "recommended_owner": "Production Data & Delivery",
+    "root_cause_category": "outcome_classification",
+    "severity": "P0",
+    "title": "US 06:30 pending cards are simultaneously presented as No Trade and Reviewed",
+    "trading_dates": [
+      "2026-07-16"
+    ],
+    "user_impact": "Users receive a concluded No Trade result while actual outcomes remain pending."
+  },
+  {
+    "affected_channels": [
+      "Archive",
+      "Dashboard",
+      "Landing"
+    ],
+    "affected_markets": [
+      "TW"
+    ],
+    "affected_windows": [
+      "TW pre_open_0700",
+      "TW pre_close_1335",
+      "TW post_close_1500"
+    ],
+    "estimated_fix_complexity": "medium",
+    "evidence": [
+      "immutable snapshots admitted for 2026-07-17",
+      "public Landing and archive marker inventory still show 2026-07-16"
+    ],
+    "frequency": "recurring_or_cross_channel",
+    "issue_id": "AI182-P0-003",
+    "operational_risk": "Archive latest identity invariant broken.",
+    "recommended_integrated_task": "AI-DEV-183",
+    "recommended_owner": "Production Data & Delivery",
+    "root_cause_category": "publish_missing",
+    "severity": "P0",
+    "title": "Public TW latest routes lag admitted 2026-07-17 snapshots",
+    "trading_dates": [
+      "2026-07-17"
+    ],
+    "user_impact": "Public users see the previous trading day after successful production runs."
+  },
+  {
+    "affected_channels": [
+      "Snapshot",
+      "Dashboard",
+      "Email",
+      "LINE"
+    ],
+    "affected_markets": [
+      "TW"
+    ],
+    "affected_windows": [
+      "TW pre_open_0700"
+    ],
+    "estimated_fix_complexity": "large",
+    "evidence": [
+      "2026-07-17 snapshot tracking=0 rendered=0 content_state=partial",
+      "source_data_time unavailable"
+    ],
+    "frequency": "observed_current",
+    "issue_id": "AI182-P1-001",
+    "operational_risk": "Pre-open output cannot support the stated decision contract.",
+    "recommended_integrated_task": "AI-DEV-184",
+    "recommended_owner": "Production Data & Delivery",
+    "root_cause_category": "data_completeness",
+    "severity": "P1",
+    "title": "TW 07:00 snapshot has no stock cards and is dominated by health/contract summary",
+    "trading_dates": [
+      "2026-07-17"
+    ],
+    "user_impact": "No prioritized opportunities, no-trade list, or chase-risk list."
+  },
+  {
+    "affected_channels": [
+      "Snapshot",
+      "Dashboard",
+      "Email",
+      "LINE"
+    ],
+    "affected_markets": [
+      "TW"
+    ],
+    "affected_windows": [
+      "TW pre_close_1335"
+    ],
+    "estimated_fix_complexity": "medium",
+    "evidence": [
+      "source_data_time=None; status=unavailable_no_intraday_timestamp",
+      "2026-07-17 intraday snapshot absent"
+    ],
+    "frequency": "observed_current",
+    "issue_id": "AI182-P1-002",
+    "operational_risk": "Stale or unexplainable closing decision.",
+    "recommended_integrated_task": "AI-DEV-183",
+    "recommended_owner": "Production Data & Delivery",
+    "root_cause_category": "upstream_dependency_and_freshness",
+    "severity": "P1",
+    "title": "TW 13:35 lacks market-data time and same-day 13:05 baseline",
+    "trading_dates": [
+      "2026-07-17"
+    ],
+    "user_impact": "Hold/avoid decisions cannot be traced to fresh market evidence or intraday change."
+  },
+  {
+    "affected_channels": [
+      "Snapshot",
+      "Dashboard",
+      "Email",
+      "LINE"
+    ],
+    "affected_markets": [
+      "TW"
+    ],
+    "affected_windows": [
+      "TW post_close_1500"
+    ],
+    "estimated_fix_complexity": "medium",
+    "evidence": [
+      "2026-07-17 outcome_counts: pending=8, no_trade=1, hit=0, fail=0"
+    ],
+    "frequency": "observed_current",
+    "issue_id": "AI182-P1-003",
+    "operational_risk": "Calibration and next-day correction remain weak.",
+    "recommended_integrated_task": "AI-DEV-184",
+    "recommended_owner": "Production Data & Delivery",
+    "root_cause_category": "outcome_readiness",
+    "severity": "P1",
+    "title": "TW 15:00 review remains mostly pending",
+    "trading_dates": [
+      "2026-07-17"
+    ],
+    "user_impact": "The review explains little of the actual session result."
+  },
+  {
+    "affected_channels": [
+      "Snapshot",
+      "Dashboard",
+      "Email",
+      "LINE"
+    ],
+    "affected_markets": [
+      "US"
+    ],
+    "affected_windows": [
+      "US us_intraday_2300"
+    ],
+    "estimated_fix_complexity": "medium",
+    "evidence": [
+      "identical deterministic research-factor sentence repeated across stock cards"
+    ],
+    "frequency": "observed_current",
+    "issue_id": "AI182-P1-004",
+    "operational_risk": "Intraday decisions may be interpreted as observed facts.",
+    "recommended_integrated_task": "AI-DEV-184",
+    "recommended_owner": "Production Data & Delivery",
+    "root_cause_category": "window_specific_template",
+    "severity": "P1",
+    "title": "US 23:00 volume/gap evidence uses repeated generic research wording",
+    "trading_dates": [
+      "2026-07-16"
+    ],
+    "user_impact": "Users cannot tell which gaps or volume moves were actually confirmed."
+  },
+  {
+    "affected_channels": [
+      "Email",
+      "Snapshot",
+      "Dashboard"
+    ],
+    "affected_markets": [
+      "US"
+    ],
+    "affected_windows": [
+      "US us_pre_market_2000"
+    ],
+    "estimated_fix_complexity": "medium",
+    "evidence": [
+      "TSM revenue displayed as USD 4103.9B",
+      "datetime.date(...) appears in production evidence"
+    ],
+    "frequency": "observed_current",
+    "issue_id": "AI182-P1-005",
+    "operational_risk": "Wrong scale/currency can distort pre-market judgment.",
+    "recommended_integrated_task": "AI-DEV-183",
+    "recommended_owner": "Production Data & Delivery",
+    "root_cause_category": "normalization_and_presentation",
+    "severity": "P1",
+    "title": "US 20:00 contains questionable financial units and Python date representation",
+    "trading_dates": [
+      "2026-07-16"
+    ],
+    "user_impact": "Financial context can be materially misleading."
+  },
+  {
+    "affected_channels": [
+      "Email",
+      "LINE"
+    ],
+    "affected_markets": [
+      "TW"
+    ],
+    "affected_windows": [
+      "TW pre_open_0700",
+      "TW pre_close_1335",
+      "TW post_close_1500"
+    ],
+    "estimated_fix_complexity": "medium",
+    "evidence": [
+      "approved wrapper completion proves send path, but actual content/snapshot hash is not retained",
+      "recipient receipt unavailable"
+    ],
+    "frequency": "recurring_or_cross_channel",
+    "issue_id": "AI182-P1-006",
+    "operational_risk": "Content regressions may escape audits despite successful send.",
+    "recommended_integrated_task": "AI-DEV-183",
+    "recommended_owner": "Production Data & Delivery",
+    "root_cause_category": "observability_gap",
+    "severity": "P1",
+    "title": "TW notification payload identity is not persisted for post-delivery audit",
+    "trading_dates": [
+      "2026-07-17"
+    ],
+    "user_impact": "Cross-channel source parity cannot be proven after delivery."
+  },
+  {
+    "affected_channels": [
+      "Email"
+    ],
+    "affected_markets": [
+      "US"
+    ],
+    "affected_windows": [
+      "US us_pre_market_2000"
+    ],
+    "estimated_fix_complexity": "small",
+    "evidence": [
+      "repeated research/risk blocks",
+      "deterministic wording",
+      "large persisted payload preview"
+    ],
+    "frequency": "observed_current",
+    "issue_id": "AI182-P2-001",
+    "operational_risk": "Lower recipient comprehension.",
+    "recommended_integrated_task": "AI-DEV-185",
+    "recommended_owner": "Production Data & Delivery",
+    "root_cause_category": "information_architecture",
+    "severity": "P2",
+    "title": "US 20:00 Email is long, repetitive, and exposes engineering wording",
+    "trading_dates": [
+      "2026-07-16"
+    ],
+    "user_impact": "Core pre-market decisions are hard to locate on mobile."
+  },
+  {
+    "affected_channels": [
+      "Dashboard UX"
+    ],
+    "affected_markets": [
+      "TW",
+      "US"
+    ],
+    "affected_windows": [
+      "TW 07:00",
+      "TW 13:05",
+      "TW 13:35",
+      "TW 15:00",
+      "US 20:00",
+      "US 23:00",
+      "US 06:30"
+    ],
+    "estimated_fix_complexity": "small",
+    "evidence": [
+      "Page.captureScreenshot repeatedly timed out",
+      "DOM, CSS, duplicate-ID and overflow evidence retained instead"
+    ],
+    "frequency": "recurring_or_cross_channel",
+    "issue_id": "AI182-P2-002",
+    "operational_risk": "Visual regressions require a browser runner with stable screenshot capture.",
+    "recommended_integrated_task": "AI-DEV-185",
+    "recommended_owner": "Production Data & Delivery",
+    "root_cause_category": "audit_environment_limitation",
+    "severity": "P2",
+    "title": "Required visual screenshots were not obtainable from the audit browser backend",
+    "trading_dates": [
+      "2026-07-17"
+    ],
+    "user_impact": "Pixel-level typography and spacing could not be certified."
+  }
+]

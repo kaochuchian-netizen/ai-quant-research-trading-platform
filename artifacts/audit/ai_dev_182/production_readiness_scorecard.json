@@ -1,0 +1,54 @@
+{
+  "components": {
+    "consistency": {
+      "evidence": [
+        "P0 public latest lag",
+        "P0 US outcome contradiction",
+        "TW delivery hash evidence gap"
+      ],
+      "maximum": 20,
+      "score": 8
+    },
+    "data_completeness": {
+      "evidence": [
+        "88/116 applicable source fields detected in immutable snapshots"
+      ],
+      "maximum": 20,
+      "score": 15
+    },
+    "decision_quality": {
+      "evidence": [
+        "seven-window rubric backed by expected/observed decision terms"
+      ],
+      "maximum": 20,
+      "score": 12
+    },
+    "freshness": {
+      "evidence": [
+        "TW source_data_time absent",
+        "TW public routes one effective day behind"
+      ],
+      "maximum": 15,
+      "score": 6
+    },
+    "operational_reliability": {
+      "evidence": [
+        "TW 13:05 timed out",
+        "remaining current natural batches observed"
+      ],
+      "maximum": 10,
+      "score": 5
+    },
+    "ux_and_readability": {
+      "evidence": [
+        "US pre-market repetition/engineering wording",
+        "screenshot backend evidence gap"
+      ],
+      "maximum": 15,
+      "score": 8
+    }
+  },
+  "maximum": 100,
+  "overall": 54,
+  "production_readiness_level": "BLOCKED_BY_P0"
+}

@@ -1,0 +1,165 @@
+[
+  {
+    "archive_presentation_hash": "51eb7f767935e97b68efc027ccdc57088defe6567182cf672a84ddfe42532304",
+    "archive_source_payload_hash": "04a6987f56d0bf6ace9781055d8c185bd8f57a7b22abeeea41fe5615e9e7c3d0",
+    "delivery_status": {
+      "email": "sent_inferred_from_approved_wrapper_ok;receipt_unavailable",
+      "line": "sent_inferred_from_approved_wrapper_ok;receipt_unavailable"
+    },
+    "email_content_hash": null,
+    "line_content_hash": null,
+    "market": "TW",
+    "matching_fields": [
+      "market",
+      "window"
+    ],
+    "mismatched_fields": [
+      "trading_date",
+      "snapshot_id"
+    ],
+    "missing_evidence": [
+      "TW actual notification body and source hash"
+    ],
+    "runtime_source_payload_hash": "308c5e6a68991cdd8ea0cc342d41f11074d86df028ae650143e6eeb62c19755b",
+    "trading_date": "2026-07-17",
+    "window": "pre_open_0700"
+  },
+  {
+    "archive_presentation_hash": "f1ee6ddca0a5538881081a6621d793fa2e807cec81c910feda0498761e0a1449",
+    "archive_source_payload_hash": "24f1e596adbb0f8de6e66c1a4e7a419fbcce86a99491f3c295a6d07c3d804256",
+    "delivery_status": {
+      "email": "not_attempted",
+      "line": "not_attempted"
+    },
+    "email_content_hash": null,
+    "line_content_hash": null,
+    "market": "TW",
+    "matching_fields": [
+      "market",
+      "window"
+    ],
+    "mismatched_fields": [],
+    "missing_evidence": [
+      "TW actual notification body and source hash"
+    ],
+    "runtime_source_payload_hash": "24f1e596adbb0f8de6e66c1a4e7a419fbcce86a99491f3c295a6d07c3d804256",
+    "trading_date": "2026-07-16",
+    "window": "intraday_1305"
+  },
+  {
+    "archive_presentation_hash": "8ddd22f6c13d6e320d3341a678bf895efbd37889700830fe95e75fa132ae3d73",
+    "archive_source_payload_hash": "61a85e379b918fbbddf895072ff694ec27ee30b819f541c21a6a632f41d365a4",
+    "delivery_status": {
+      "email": "sent_inferred_from_approved_wrapper_ok;receipt_unavailable",
+      "line": "sent_inferred_from_approved_wrapper_ok;receipt_unavailable"
+    },
+    "email_content_hash": null,
+    "line_content_hash": null,
+    "market": "TW",
+    "matching_fields": [
+      "market",
+      "window"
+    ],
+    "mismatched_fields": [
+      "trading_date",
+      "snapshot_id"
+    ],
+    "missing_evidence": [
+      "TW actual notification body and source hash"
+    ],
+    "runtime_source_payload_hash": "6ea92f650b7ba94e75fbe3fb15df048b16ac60fa4fe7a6cf72aafe27b7e659d2",
+    "trading_date": "2026-07-17",
+    "window": "pre_close_1335"
+  },
+  {
+    "archive_presentation_hash": "a283a4f7aed1b6667930b708f57ac1485e30eb8564eede9f78491f063f9f425b",
+    "archive_source_payload_hash": "1081c9ac82bc1cb57b2becfb33778a60da68615fef178a1dcda00abf5c4352f5",
+    "delivery_status": {
+      "email": "sent_inferred_from_approved_wrapper_ok;receipt_unavailable",
+      "line": "sent_inferred_from_approved_wrapper_ok;receipt_unavailable"
+    },
+    "email_content_hash": null,
+    "line_content_hash": null,
+    "market": "TW",
+    "matching_fields": [
+      "market",
+      "window"
+    ],
+    "mismatched_fields": [
+      "trading_date",
+      "snapshot_id"
+    ],
+    "missing_evidence": [
+      "TW actual notification body and source hash"
+    ],
+    "runtime_source_payload_hash": "4540b95367a0eb05ad3a5f9f1872d9b13a7c145811524dbf5fd17bfd8d2060e7",
+    "trading_date": "2026-07-17",
+    "window": "post_close_1500"
+  },
+  {
+    "archive_presentation_hash": "34012942d38779033112aa8b9c7fdf45bde4cd844a616fbb4618e435f05b1cab",
+    "archive_source_payload_hash": "6481998d05fb8c93d8d813f14656ff6057255d7fa9050eaf018c9fe7c7a04f68",
+    "delivery_status": {
+      "email": "not_observable",
+      "line": "not_observable"
+    },
+    "email_content_hash": null,
+    "line_content_hash": null,
+    "market": "US",
+    "matching_fields": [
+      "market",
+      "window"
+    ],
+    "mismatched_fields": [],
+    "missing_evidence": [
+      "recipient receipt"
+    ],
+    "runtime_source_payload_hash": "6481998d05fb8c93d8d813f14656ff6057255d7fa9050eaf018c9fe7c7a04f68",
+    "trading_date": "2026-07-16",
+    "window": "us_pre_market_2000"
+  },
+  {
+    "archive_presentation_hash": "23d68f58281cbccba90dac55cd7bf0e1f6f8517aeb76836ffa709f56bf059a7f",
+    "archive_source_payload_hash": "927b849c16ead5c334ac95c77aae1bf245d99bce130e799e7c85d5656579676e",
+    "delivery_status": {
+      "email": "not_observable",
+      "line": "not_observable"
+    },
+    "email_content_hash": null,
+    "line_content_hash": null,
+    "market": "US",
+    "matching_fields": [
+      "market",
+      "window"
+    ],
+    "mismatched_fields": [],
+    "missing_evidence": [
+      "recipient receipt"
+    ],
+    "runtime_source_payload_hash": "927b849c16ead5c334ac95c77aae1bf245d99bce130e799e7c85d5656579676e",
+    "trading_date": "2026-07-16",
+    "window": "us_intraday_2300"
+  },
+  {
+    "archive_presentation_hash": "27799b4f4a2dc31d511ef026f90a623e7285002aeb77c2fe2d8ff2c4c664a3ec",
+    "archive_source_payload_hash": "82e592197f8595b9e593ecfbe1b14e5af9662e5dfdea0e0daf4ec3571e2ed1da",
+    "delivery_status": {
+      "email": "not_observable",
+      "line": "not_observable"
+    },
+    "email_content_hash": null,
+    "line_content_hash": null,
+    "market": "US",
+    "matching_fields": [
+      "market",
+      "window"
+    ],
+    "mismatched_fields": [],
+    "missing_evidence": [
+      "recipient receipt"
+    ],
+    "runtime_source_payload_hash": "82e592197f8595b9e593ecfbe1b14e5af9662e5dfdea0e0daf4ec3571e2ed1da",
+    "trading_date": "2026-07-16",
+    "window": "us_post_close_review_0630"
+  }
+]

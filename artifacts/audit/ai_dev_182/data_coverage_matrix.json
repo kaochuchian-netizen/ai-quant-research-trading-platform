@@ -1,0 +1,1472 @@
+[
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "price",
+    "freshness": "unavailable",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "pre_open_0700"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "market_data_timestamp",
+    "freshness": "unavailable",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "pre_open_0700"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "technical",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "pre_open_0700"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "volume",
+    "freshness": "unavailable",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "pre_open_0700"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "gap",
+    "freshness": "unavailable",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "pre_open_0700"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "news",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "pre_open_0700"
+  },
+  {
+    "as_of_time": null,
+    "availability": "unavailable",
+    "field": "fundamentals",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": "field absent from immutable snapshot",
+    "source": "snapshot payload",
+    "window": "pre_open_0700"
+  },
+  {
+    "as_of_time": null,
+    "availability": "not_applicable",
+    "field": "earnings",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "pre_open_0700"
+  },
+  {
+    "as_of_time": null,
+    "availability": "not_applicable",
+    "field": "guidance",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "pre_open_0700"
+  },
+  {
+    "as_of_time": null,
+    "availability": "not_applicable",
+    "field": "sec",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "pre_open_0700"
+  },
+  {
+    "as_of_time": null,
+    "availability": "not_applicable",
+    "field": "official_ir",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "pre_open_0700"
+  },
+  {
+    "as_of_time": null,
+    "availability": "unavailable",
+    "field": "twse",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": "field absent from immutable snapshot",
+    "source": "snapshot payload",
+    "window": "pre_open_0700"
+  },
+  {
+    "as_of_time": null,
+    "availability": "unavailable",
+    "field": "mops",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": "field absent from immutable snapshot",
+    "source": "snapshot payload",
+    "window": "pre_open_0700"
+  },
+  {
+    "as_of_time": null,
+    "availability": "unavailable",
+    "field": "institutional_flow",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": "field absent from immutable snapshot",
+    "source": "snapshot payload",
+    "window": "pre_open_0700"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "margin",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "pre_open_0700"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "adr",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "pre_open_0700"
+  },
+  {
+    "as_of_time": null,
+    "availability": "unavailable",
+    "field": "macro_proxy",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": "field absent from immutable snapshot",
+    "source": "snapshot payload",
+    "window": "pre_open_0700"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "prediction",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "pre_open_0700"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "actual_outcome",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "pre_open_0700"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "review",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "pre_open_0700"
+  },
+  {
+    "as_of_time": null,
+    "availability": "unavailable",
+    "field": "calibration",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": "field absent from immutable snapshot",
+    "source": "snapshot payload",
+    "window": "pre_open_0700"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "price",
+    "freshness": "unavailable",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "intraday_1305"
+  },
+  {
+    "as_of_time": null,
+    "availability": "unavailable",
+    "field": "market_data_timestamp",
+    "freshness": "unavailable",
+    "market": "TW",
+    "missing_reason": "field absent from immutable snapshot",
+    "source": "snapshot payload",
+    "window": "intraday_1305"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "technical",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "intraday_1305"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "volume",
+    "freshness": "unavailable",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "intraday_1305"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "gap",
+    "freshness": "unavailable",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "intraday_1305"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "news",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "intraday_1305"
+  },
+  {
+    "as_of_time": null,
+    "availability": "unavailable",
+    "field": "fundamentals",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": "field absent from immutable snapshot",
+    "source": "snapshot payload",
+    "window": "intraday_1305"
+  },
+  {
+    "as_of_time": null,
+    "availability": "not_applicable",
+    "field": "earnings",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "intraday_1305"
+  },
+  {
+    "as_of_time": null,
+    "availability": "not_applicable",
+    "field": "guidance",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "intraday_1305"
+  },
+  {
+    "as_of_time": null,
+    "availability": "not_applicable",
+    "field": "sec",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "intraday_1305"
+  },
+  {
+    "as_of_time": null,
+    "availability": "not_applicable",
+    "field": "official_ir",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "intraday_1305"
+  },
+  {
+    "as_of_time": null,
+    "availability": "unavailable",
+    "field": "twse",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": "field absent from immutable snapshot",
+    "source": "snapshot payload",
+    "window": "intraday_1305"
+  },
+  {
+    "as_of_time": null,
+    "availability": "unavailable",
+    "field": "mops",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": "field absent from immutable snapshot",
+    "source": "snapshot payload",
+    "window": "intraday_1305"
+  },
+  {
+    "as_of_time": null,
+    "availability": "unavailable",
+    "field": "institutional_flow",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": "field absent from immutable snapshot",
+    "source": "snapshot payload",
+    "window": "intraday_1305"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "margin",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "intraday_1305"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "adr",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "intraday_1305"
+  },
+  {
+    "as_of_time": null,
+    "availability": "unavailable",
+    "field": "macro_proxy",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": "field absent from immutable snapshot",
+    "source": "snapshot payload",
+    "window": "intraday_1305"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "prediction",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "intraday_1305"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "actual_outcome",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "intraday_1305"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "review",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "intraday_1305"
+  },
+  {
+    "as_of_time": null,
+    "availability": "unavailable",
+    "field": "calibration",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": "field absent from immutable snapshot",
+    "source": "snapshot payload",
+    "window": "intraday_1305"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "price",
+    "freshness": "unavailable",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "pre_close_1335"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "market_data_timestamp",
+    "freshness": "unavailable",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "pre_close_1335"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "technical",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "pre_close_1335"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "volume",
+    "freshness": "unavailable",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "pre_close_1335"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "gap",
+    "freshness": "unavailable",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "pre_close_1335"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "news",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "pre_close_1335"
+  },
+  {
+    "as_of_time": null,
+    "availability": "unavailable",
+    "field": "fundamentals",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": "field absent from immutable snapshot",
+    "source": "snapshot payload",
+    "window": "pre_close_1335"
+  },
+  {
+    "as_of_time": null,
+    "availability": "not_applicable",
+    "field": "earnings",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "pre_close_1335"
+  },
+  {
+    "as_of_time": null,
+    "availability": "not_applicable",
+    "field": "guidance",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "pre_close_1335"
+  },
+  {
+    "as_of_time": null,
+    "availability": "not_applicable",
+    "field": "sec",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "pre_close_1335"
+  },
+  {
+    "as_of_time": null,
+    "availability": "not_applicable",
+    "field": "official_ir",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "pre_close_1335"
+  },
+  {
+    "as_of_time": null,
+    "availability": "unavailable",
+    "field": "twse",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": "field absent from immutable snapshot",
+    "source": "snapshot payload",
+    "window": "pre_close_1335"
+  },
+  {
+    "as_of_time": null,
+    "availability": "unavailable",
+    "field": "mops",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": "field absent from immutable snapshot",
+    "source": "snapshot payload",
+    "window": "pre_close_1335"
+  },
+  {
+    "as_of_time": null,
+    "availability": "unavailable",
+    "field": "institutional_flow",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": "field absent from immutable snapshot",
+    "source": "snapshot payload",
+    "window": "pre_close_1335"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "margin",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "pre_close_1335"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "adr",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "pre_close_1335"
+  },
+  {
+    "as_of_time": null,
+    "availability": "unavailable",
+    "field": "macro_proxy",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": "field absent from immutable snapshot",
+    "source": "snapshot payload",
+    "window": "pre_close_1335"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "prediction",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "pre_close_1335"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "actual_outcome",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "pre_close_1335"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "review",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "pre_close_1335"
+  },
+  {
+    "as_of_time": null,
+    "availability": "unavailable",
+    "field": "calibration",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": "field absent from immutable snapshot",
+    "source": "snapshot payload",
+    "window": "pre_close_1335"
+  },
+  {
+    "as_of_time": null,
+    "availability": "unavailable",
+    "field": "price",
+    "freshness": "unavailable",
+    "market": "TW",
+    "missing_reason": "field absent from immutable snapshot",
+    "source": "snapshot payload",
+    "window": "post_close_1500"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "market_data_timestamp",
+    "freshness": "unavailable",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "post_close_1500"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "technical",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "post_close_1500"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "volume",
+    "freshness": "unavailable",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "post_close_1500"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "gap",
+    "freshness": "unavailable",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "post_close_1500"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "news",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "post_close_1500"
+  },
+  {
+    "as_of_time": null,
+    "availability": "unavailable",
+    "field": "fundamentals",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": "field absent from immutable snapshot",
+    "source": "snapshot payload",
+    "window": "post_close_1500"
+  },
+  {
+    "as_of_time": null,
+    "availability": "not_applicable",
+    "field": "earnings",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "post_close_1500"
+  },
+  {
+    "as_of_time": null,
+    "availability": "not_applicable",
+    "field": "guidance",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "post_close_1500"
+  },
+  {
+    "as_of_time": null,
+    "availability": "not_applicable",
+    "field": "sec",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "post_close_1500"
+  },
+  {
+    "as_of_time": null,
+    "availability": "not_applicable",
+    "field": "official_ir",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "post_close_1500"
+  },
+  {
+    "as_of_time": null,
+    "availability": "unavailable",
+    "field": "twse",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": "field absent from immutable snapshot",
+    "source": "snapshot payload",
+    "window": "post_close_1500"
+  },
+  {
+    "as_of_time": null,
+    "availability": "unavailable",
+    "field": "mops",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": "field absent from immutable snapshot",
+    "source": "snapshot payload",
+    "window": "post_close_1500"
+  },
+  {
+    "as_of_time": null,
+    "availability": "unavailable",
+    "field": "institutional_flow",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": "field absent from immutable snapshot",
+    "source": "snapshot payload",
+    "window": "post_close_1500"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "margin",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "post_close_1500"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "adr",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "post_close_1500"
+  },
+  {
+    "as_of_time": null,
+    "availability": "unavailable",
+    "field": "macro_proxy",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": "field absent from immutable snapshot",
+    "source": "snapshot payload",
+    "window": "post_close_1500"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "prediction",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "post_close_1500"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "actual_outcome",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "post_close_1500"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "review",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "post_close_1500"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "calibration",
+    "freshness": "not_evaluated",
+    "market": "TW",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "post_close_1500"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "price",
+    "freshness": "unavailable",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_pre_market_2000"
+  },
+  {
+    "as_of_time": null,
+    "availability": "unavailable",
+    "field": "market_data_timestamp",
+    "freshness": "unavailable",
+    "market": "US",
+    "missing_reason": "field absent from immutable snapshot",
+    "source": "snapshot payload",
+    "window": "us_pre_market_2000"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "technical",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_pre_market_2000"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "volume",
+    "freshness": "unavailable",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_pre_market_2000"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "gap",
+    "freshness": "unavailable",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_pre_market_2000"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "news",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_pre_market_2000"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "fundamentals",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_pre_market_2000"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "earnings",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_pre_market_2000"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "guidance",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_pre_market_2000"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "sec",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_pre_market_2000"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "official_ir",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_pre_market_2000"
+  },
+  {
+    "as_of_time": null,
+    "availability": "not_applicable",
+    "field": "twse",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_pre_market_2000"
+  },
+  {
+    "as_of_time": null,
+    "availability": "not_applicable",
+    "field": "mops",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_pre_market_2000"
+  },
+  {
+    "as_of_time": null,
+    "availability": "not_applicable",
+    "field": "institutional_flow",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_pre_market_2000"
+  },
+  {
+    "as_of_time": null,
+    "availability": "not_applicable",
+    "field": "margin",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_pre_market_2000"
+  },
+  {
+    "as_of_time": null,
+    "availability": "not_applicable",
+    "field": "adr",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_pre_market_2000"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "macro_proxy",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_pre_market_2000"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "prediction",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_pre_market_2000"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "actual_outcome",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_pre_market_2000"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "review",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_pre_market_2000"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "calibration",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_pre_market_2000"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "price",
+    "freshness": "unavailable",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_intraday_2300"
+  },
+  {
+    "as_of_time": null,
+    "availability": "unavailable",
+    "field": "market_data_timestamp",
+    "freshness": "unavailable",
+    "market": "US",
+    "missing_reason": "field absent from immutable snapshot",
+    "source": "snapshot payload",
+    "window": "us_intraday_2300"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "technical",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_intraday_2300"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "volume",
+    "freshness": "unavailable",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_intraday_2300"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "gap",
+    "freshness": "unavailable",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_intraday_2300"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "news",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_intraday_2300"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "fundamentals",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_intraday_2300"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "earnings",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_intraday_2300"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "guidance",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_intraday_2300"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "sec",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_intraday_2300"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "official_ir",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_intraday_2300"
+  },
+  {
+    "as_of_time": null,
+    "availability": "not_applicable",
+    "field": "twse",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_intraday_2300"
+  },
+  {
+    "as_of_time": null,
+    "availability": "not_applicable",
+    "field": "mops",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_intraday_2300"
+  },
+  {
+    "as_of_time": null,
+    "availability": "not_applicable",
+    "field": "institutional_flow",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_intraday_2300"
+  },
+  {
+    "as_of_time": null,
+    "availability": "not_applicable",
+    "field": "margin",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_intraday_2300"
+  },
+  {
+    "as_of_time": null,
+    "availability": "not_applicable",
+    "field": "adr",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_intraday_2300"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "macro_proxy",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_intraday_2300"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "prediction",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_intraday_2300"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "actual_outcome",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_intraday_2300"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "review",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_intraday_2300"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "calibration",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_intraday_2300"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "price",
+    "freshness": "unavailable",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_post_close_review_0630"
+  },
+  {
+    "as_of_time": null,
+    "availability": "unavailable",
+    "field": "market_data_timestamp",
+    "freshness": "unavailable",
+    "market": "US",
+    "missing_reason": "field absent from immutable snapshot",
+    "source": "snapshot payload",
+    "window": "us_post_close_review_0630"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "technical",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_post_close_review_0630"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "volume",
+    "freshness": "unavailable",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_post_close_review_0630"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "gap",
+    "freshness": "unavailable",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_post_close_review_0630"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "news",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_post_close_review_0630"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "fundamentals",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_post_close_review_0630"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "earnings",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_post_close_review_0630"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "guidance",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_post_close_review_0630"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "sec",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_post_close_review_0630"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "official_ir",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_post_close_review_0630"
+  },
+  {
+    "as_of_time": null,
+    "availability": "not_applicable",
+    "field": "twse",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_post_close_review_0630"
+  },
+  {
+    "as_of_time": null,
+    "availability": "not_applicable",
+    "field": "mops",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_post_close_review_0630"
+  },
+  {
+    "as_of_time": null,
+    "availability": "not_applicable",
+    "field": "institutional_flow",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_post_close_review_0630"
+  },
+  {
+    "as_of_time": null,
+    "availability": "not_applicable",
+    "field": "margin",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_post_close_review_0630"
+  },
+  {
+    "as_of_time": null,
+    "availability": "not_applicable",
+    "field": "adr",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_post_close_review_0630"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "macro_proxy",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_post_close_review_0630"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "prediction",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_post_close_review_0630"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "actual_outcome",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_post_close_review_0630"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "review",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_post_close_review_0630"
+  },
+  {
+    "as_of_time": null,
+    "availability": "available",
+    "field": "calibration",
+    "freshness": "not_evaluated",
+    "market": "US",
+    "missing_reason": null,
+    "source": "snapshot payload",
+    "window": "us_post_close_review_0630"
+  }
+]
