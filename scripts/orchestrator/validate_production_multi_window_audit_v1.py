@@ -25,6 +25,11 @@ def main():
         issues = load("issue_register.json"); root = load("tw_1305_root_cause.json")
         if len(matrix) != 7: errors.append(f"seven_window_matrix has {len(matrix)} rows")
         if len(longitudinal) != 7: errors.append(f"longitudinal matrix has {len(longitudinal)} rows")
+        classified = [item for row in longitudinal for item in row.get("date_classifications", [])]
+        if len(classified) != 21: errors.append(f"longitudinal batch slots classified: {len(classified)} != 21")
+        valid_states = {"successful_batch", "failed_batch", "missing_batch", "no_archive_admission"}
+        if any(item.get("classification") not in valid_states for item in classified): errors.append("invalid longitudinal classification")
+        if not any(item.get("classification") == "no_archive_admission" for item in classified): errors.append("legacy non-admitted snapshots were not distinguished from missing batches")
         if len(public.get("pages", [])) != 17: errors.append("public inventory must contain Landing, TW/US, and 14 archive routes")
         if root.get("root_cause_category") != "pipeline_failure": errors.append("TW 13:05 root cause is not classified")
         if not all(any(i.get("severity") == level for i in issues) for level in ("P0", "P1", "P2")): errors.append("P0/P1/P2 issue register incomplete")

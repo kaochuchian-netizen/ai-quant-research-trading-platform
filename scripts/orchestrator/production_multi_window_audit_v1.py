@@ -141,14 +141,20 @@ def flatten(value: Any) -> str:
     return "" if value is None else str(value)
 
 
-def snapshots(window: Window) -> list[tuple[Path, dict[str, Any]]]:
+def raw_snapshots(window: Window) -> list[tuple[Path, dict[str, Any]]]:
     folder = ARCHIVE / window.market_path / window.key
     values: list[tuple[Path, dict[str, Any]]] = []
     for path in sorted(folder.glob("*/revision-*.json")):
         data = load_json(path)
-        if data.get("admitted") is True and data.get("status") == "complete":
+        if data:
             values.append((path, data))
     return values
+
+
+def snapshots(window: Window) -> list[tuple[Path, dict[str, Any]]]:
+    """Return only snapshots with explicit successful admission evidence."""
+    return [(path, data) for path, data in raw_snapshots(window)
+            if data.get("admitted") is True and data.get("status") == "complete"]
 
 
 def card_list(payload: dict[str, Any]) -> list[dict[str, Any]]:
@@ -472,10 +478,12 @@ def write_json(name: str, value: Any) -> None:
     (OUT / name).write_text(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-def report_markdown(score: dict[str, Any], issues: list[dict[str, Any]], matrix: list[dict[str, Any]], root_cause: dict[str, Any]) -> str:
+def report_markdown(score: dict[str, Any], issues: list[dict[str, Any]], matrix: list[dict[str, Any]], root_cause: dict[str, Any], longitudinal: list[dict[str, Any]]) -> str:
     lines = ["# AI-DEV-182 Production Multi-Window Audit", "", f"Observed at: {OBSERVED_AT}", "", "## Executive scorecard", "", f"Overall: **{score['overall']}/100 — {score['production_readiness_level']}**", ""]
     for name, item in score["components"].items():
         lines.append(f"- {name}: {item['score']}/{item['maximum']} — {'; '.join(item['evidence'])}")
+    class_counts = {key: sum(row[f"{key}_count"] for row in longitudinal) for key in ("successful_batch", "failed_batch", "missing_batch", "no_archive_admission")}
+    lines += ["", "## Longitudinal classification", "", f"Across 21 expected market/window/date slots: admitted success {class_counts['successful_batch']}, failed batch {class_counts['failed_batch']}, missing batch {class_counts['missing_batch']}, and snapshot present without explicit admission evidence {class_counts['no_archive_admission']}."]
     lines += ["", "## TW 13:05 root cause", "", f"Scheduler triggered and the approved entrypoint started, but the pipeline reached `{root_cause['pipeline']}` after 600 seconds. No runtime, snapshot, publish, Email, or LINE followed. Root cause: `{root_cause['root_cause_category']}`.", "", "## Seven-window result", ""]
     for row in matrix:
         lines.append(f"- {row['market']} {row['window']}: **{row['result']}** — snapshot {row.get('snapshot_id') or 'missing'}, public {row.get('public_result')}")
@@ -541,9 +549,24 @@ def run_audit() -> dict[str, Any]:
         rows = summaries[f"{w.market}:{w.key}"]
         dates = [r["trading_date"] for r in rows]
         expected = ["2026-07-15", "2026-07-16", "2026-07-17"] if w.market == "TW" else ["2026-07-14", "2026-07-15", "2026-07-16"]
+        raw_by_date = {str(data.get("effective_trading_date")): data for _, data in raw_snapshots(w)}
+        classifications = []
+        for date in expected:
+            if date in dates:
+                state = "successful_batch"
+            elif date in raw_by_date:
+                state = "no_archive_admission"
+            elif w.key == "intraday_1305" and date == "2026-07-17":
+                state = "failed_batch"
+            else:
+                state = "missing_batch"
+            classifications.append({"trading_date": date, "classification": state})
         longitudinal.append({"market": w.market, "window": w.key, "effective_dates_expected": expected, "snapshot_dates_observed": dates,
-                             "successful_batch_count": len(rows), "missing_batch_count": len([d for d in expected if d not in dates]),
-                             "failed_batch_count": 1 if w.key == "intraday_1305" and "2026-07-17" not in dates else 0,
+                             "raw_snapshot_dates_observed": sorted(raw_by_date), "date_classifications": classifications,
+                             "successful_batch_count": sum(r["classification"] == "successful_batch" for r in classifications),
+                             "missing_batch_count": sum(r["classification"] == "missing_batch" for r in classifications),
+                             "no_archive_admission_count": sum(r["classification"] == "no_archive_admission" for r in classifications),
+                             "failed_batch_count": sum(r["classification"] == "failed_batch" for r in classifications),
                              "archive_admission_count": len(rows), "public_publish_count": int(bool(public_by_route.get(w.latest_route, {}).get("http_status") == 200)),
                              "pending_ratio": _pending_ratio(rows), "coverage_trend": "insufficient_evidence", "freshness_trend": "insufficient_evidence",
                              "consistency_trend": "degrading" if w.key == "intraday_1305" else "insufficient_evidence", "template_trend": "insufficient_evidence"})
@@ -600,7 +623,12 @@ def run_audit() -> dict[str, Any]:
               "trading_attempted": False, "scheduler_changed": False, "archive_modified": False, "runtime_artifacts_modified": False,
               "immutable_snapshots_modified": False, "secrets_accessed_or_printed": False, "main_py_executed": False, "existing_dirty_files_changed": False}
     executive = {"schema_version": "ai_dev_182_production_audit_v1", "observed_at": OBSERVED_AT, "audit_completed": True,
-                 "coverage": {"windows": "7/7", "archive_routes": "14/14", "public_pages": len(public), "trading_date_scope": {"TW": ["2026-07-15", "2026-07-16", "2026-07-17"], "US": ["2026-07-14", "2026-07-15", "2026-07-16"]}},
+                 "coverage": {"windows": "7/7", "archive_routes": "14/14", "public_pages": len(public),
+                              "expected_batch_slots": sum(len(r["date_classifications"]) for r in longitudinal),
+                              "raw_snapshots_inspected": sum(len(r["raw_snapshot_dates_observed"]) for r in longitudinal),
+                              "admitted_snapshots_inspected": sum(r["archive_admission_count"] for r in longitudinal),
+                              "classification_counts": {key: sum(r[f"{key}_count"] for r in longitudinal) for key in ("successful_batch", "failed_batch", "missing_batch", "no_archive_admission")},
+                              "trading_date_scope": {"TW": ["2026-07-15", "2026-07-16", "2026-07-17"], "US": ["2026-07-14", "2026-07-15", "2026-07-16"]}},
                  "production_readiness": score["production_readiness_level"], "score": score["overall"], "p0_count": sum(i["severity"] == "P0" for i in issues),
                  "p1_count": sum(i["severity"] == "P1" for i in issues), "p2_count": sum(i["severity"] == "P2" for i in issues), "safety": safety}
     artifacts = {
@@ -614,7 +642,7 @@ def run_audit() -> dict[str, Any]:
     }
     for name, value in artifacts.items():
         write_json(name, value)
-    (OUT / "production_audit_report.md").write_text(report_markdown(score, issues, matrix, root_cause), encoding="utf-8")
+    (OUT / "production_audit_report.md").write_text(report_markdown(score, issues, matrix, root_cause, longitudinal), encoding="utf-8")
     return {"ok": True, "output_dir": str(OUT.relative_to(ROOT)), "windows_audited": len(matrix), "public_pages_inspected": len(public),
             "archive_routes_inspected": 14, "score": score["overall"], "readiness": score["production_readiness_level"],
             "issues": {level: sum(i["severity"] == level for i in issues) for level in ("P0", "P1", "P2")}, "safety": safety}
