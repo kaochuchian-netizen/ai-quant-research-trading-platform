@@ -1,0 +1,221 @@
+[
+  {
+    "evidence_path": "artifacts/archive/window_snapshots/tw/pre_open_0700/2026-07-17/revision-0001.json",
+    "expected_terms": [
+      "市場",
+      "風險",
+      "觀察",
+      "追價",
+      "entry",
+      "進場"
+    ],
+    "market": "TW",
+    "observed_terms": [
+      "市場",
+      "風險",
+      "觀察",
+      "追價",
+      "entry",
+      "進場"
+    ],
+    "result": "PASS",
+    "scores": {
+      "actionability": 5,
+      "confidence_clarity": 2,
+      "explainability": 4,
+      "information_density": 3,
+      "noise_ratio": 1.04,
+      "risk_clarity": 4,
+      "signal_prioritization": 3,
+      "window_specificity": 5
+    },
+    "window": "pre_open_0700"
+  },
+  {
+    "evidence_path": "artifacts/archive/window_snapshots/tw/intraday_1305/2026-07-16/revision-0001.json",
+    "expected_terms": [
+      "觸發",
+      "成交量",
+      "量價",
+      "偏離",
+      "午後",
+      "追價"
+    ],
+    "market": "TW",
+    "observed_terms": [
+      "觸發",
+      "量價",
+      "追價"
+    ],
+    "result": "PARTIAL",
+    "scores": {
+      "actionability": 3,
+      "confidence_clarity": 1,
+      "explainability": 2,
+      "information_density": 3,
+      "noise_ratio": 1.12,
+      "risk_clarity": 3,
+      "signal_prioritization": 3,
+      "window_specificity": 2
+    },
+    "window": "intraday_1305"
+  },
+  {
+    "evidence_path": "artifacts/archive/window_snapshots/tw/pre_close_1335/2026-07-17/revision-0001.json",
+    "expected_terms": [
+      "留倉",
+      "不留倉",
+      "接近目標",
+      "接近停損",
+      "尾盤",
+      "13:05"
+    ],
+    "market": "TW",
+    "observed_terms": [
+      "留倉",
+      "不留倉",
+      "接近目標",
+      "接近停損",
+      "尾盤"
+    ],
+    "result": "PARTIAL",
+    "scores": {
+      "actionability": 5,
+      "confidence_clarity": 1,
+      "explainability": 2,
+      "information_density": 4,
+      "noise_ratio": 0.79,
+      "risk_clarity": 4,
+      "signal_prioritization": 3,
+      "window_specificity": 4
+    },
+    "window": "pre_close_1335"
+  },
+  {
+    "evidence_path": "artifacts/archive/window_snapshots/tw/post_close_1500/2026-07-17/revision-0001.json",
+    "expected_terms": [
+      "outcome",
+      "命中",
+      "失敗",
+      "未觸發",
+      "pending",
+      "review"
+    ],
+    "market": "TW",
+    "observed_terms": [
+      "outcome",
+      "命中",
+      "失敗",
+      "未觸發",
+      "pending",
+      "review"
+    ],
+    "result": "PARTIAL",
+    "scores": {
+      "actionability": 5,
+      "confidence_clarity": 2,
+      "explainability": 2,
+      "information_density": 5,
+      "noise_ratio": 0.48,
+      "risk_clarity": 3,
+      "signal_prioritization": 3,
+      "window_specificity": 5
+    },
+    "window": "post_close_1500"
+  },
+  {
+    "evidence_path": "artifacts/archive/window_snapshots/us/us_pre_market_2000/2026-07-16/revision-0001.json",
+    "expected_terms": [
+      "premarket",
+      "gap",
+      "earnings",
+      "sec",
+      "guidance",
+      "risk"
+    ],
+    "market": "US",
+    "observed_terms": [
+      "premarket",
+      "gap",
+      "earnings",
+      "sec",
+      "guidance",
+      "risk"
+    ],
+    "result": "PASS",
+    "scores": {
+      "actionability": 5,
+      "confidence_clarity": 2,
+      "explainability": 3,
+      "information_density": 5,
+      "noise_ratio": 0.06,
+      "risk_clarity": 3,
+      "signal_prioritization": 3,
+      "window_specificity": 5
+    },
+    "window": "us_pre_market_2000"
+  },
+  {
+    "evidence_path": "artifacts/archive/window_snapshots/us/us_intraday_2300/2026-07-16/revision-0001.json",
+    "expected_terms": [
+      "gap",
+      "volume",
+      "trigger",
+      "target",
+      "stop",
+      "盤中"
+    ],
+    "market": "US",
+    "observed_terms": [
+      "gap",
+      "volume",
+      "trigger",
+      "target",
+      "stop",
+      "盤中"
+    ],
+    "result": "PASS",
+    "scores": {
+      "actionability": 5,
+      "confidence_clarity": 2,
+      "explainability": 3,
+      "information_density": 5,
+      "noise_ratio": 0.06,
+      "risk_clarity": 3,
+      "signal_prioritization": 3,
+      "window_specificity": 5
+    },
+    "window": "us_intraday_2300"
+  },
+  {
+    "evidence_path": "artifacts/archive/window_snapshots/us/us_post_close_review_0630/2026-07-16/revision-0001.json",
+    "expected_terms": [
+      "outcome",
+      "prediction",
+      "trigger",
+      "no trade",
+      "pending",
+      "review"
+    ],
+    "market": "US",
+    "observed_terms": [
+      "outcome",
+      "prediction",
+      "trigger",
+      "pending",
+      "review"
+    ],
+    "result": "PASS",
+    "scores": {
+      "actionability": 5,
+      "confidence_clarity": 2,
+      "explainability": 3,
+      "information_density": 5,
+      "noise_ratio": 0.06,
+      "risk_clarity": 3,
+      "signal_prioritization": 3,
+      "window_specificity": 4
+    },
+    "window": "us_post_close_review_0630"
+  }
+]

@@ -1,0 +1,29 @@
+{
+  "baseline_resolution_1335": "failed because same-day admitted intraday snapshot does not exist",
+  "derived_classifications": [
+    "runtime_artifact_missing",
+    "no_archive_admission",
+    "publish_missing",
+    "delivery_not_attempted",
+    "baseline_resolution_failure"
+  ],
+  "email": "not_attempted",
+  "entrypoint": "approved wrapper started",
+  "evidence": [
+    "artifacts/runtime/delivery_progress_intraday_1305_latest.json",
+    "logs/daily.log",
+    "artifacts/archive/window_snapshots/tw/intraday_1305/"
+  ],
+  "line": "not_attempted",
+  "market": "TW",
+  "pipeline": "pipeline_timed_out",
+  "publish": "not attempted",
+  "recommended_correction": "AI-DEV-183 should diagnose the timed pipeline stage and add observable timeout/retry handling; do not fabricate or backfill the missing snapshot.",
+  "root_cause_category": "pipeline_failure",
+  "runtime": "not created for 2026-07-17",
+  "scheduler": "triggered at 13:05:01+08:00",
+  "snapshot_admission": "not attempted; no runtime artifact",
+  "timeout_seconds": 600,
+  "trading_date": "2026-07-17",
+  "window": "intraday_1305"
+}

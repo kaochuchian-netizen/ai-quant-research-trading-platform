@@ -1,0 +1,33 @@
+{
+  "recommended_integrated_tasks": [
+    {
+      "issues": [
+        "AI182-P0-001",
+        "AI182-P0-002",
+        "AI182-P0-003",
+        "AI182-P1-002",
+        "AI182-P1-005",
+        "AI182-P1-006"
+      ],
+      "scope": "P0 integrated production correctness",
+      "task": "AI-DEV-183"
+    },
+    {
+      "issues": [
+        "AI182-P1-001",
+        "AI182-P1-003",
+        "AI182-P1-004"
+      ],
+      "scope": "Decision content and outcome quality",
+      "task": "AI-DEV-184"
+    },
+    {
+      "issues": [
+        "AI182-P2-001",
+        "AI182-P2-002"
+      ],
+      "scope": "Information architecture and delivery UX",
+      "task": "AI-DEV-185"
+    }
+  ]
+}

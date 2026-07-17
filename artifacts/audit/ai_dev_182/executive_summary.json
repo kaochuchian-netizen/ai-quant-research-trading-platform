@@ -1,0 +1,41 @@
+{
+  "audit_completed": true,
+  "coverage": {
+    "archive_routes": "14/14",
+    "public_pages": 17,
+    "trading_date_scope": {
+      "TW": [
+        "2026-07-15",
+        "2026-07-16",
+        "2026-07-17"
+      ],
+      "US": [
+        "2026-07-14",
+        "2026-07-15",
+        "2026-07-16"
+      ]
+    },
+    "windows": "7/7"
+  },
+  "observed_at": "2026-07-17T16:00:00+08:00",
+  "p0_count": 3,
+  "p1_count": 6,
+  "p2_count": 2,
+  "production_readiness": "BLOCKED_BY_P0",
+  "safety": {
+    "archive_modified": false,
+    "dashboard_published": false,
+    "email_attempted": false,
+    "existing_dirty_files_changed": false,
+    "immutable_snapshots_modified": false,
+    "line_attempted": false,
+    "main_py_executed": false,
+    "production_pipeline_executed": false,
+    "runtime_artifacts_modified": false,
+    "scheduler_changed": false,
+    "secrets_accessed_or_printed": false,
+    "trading_attempted": false
+  },
+  "schema_version": "ai_dev_182_production_audit_v1",
+  "score": 54
+}

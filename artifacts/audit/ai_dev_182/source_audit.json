@@ -1,0 +1,58 @@
+{
+  "TW": {
+    "expected_priority": [
+      "TWSE",
+      "TPEx",
+      "MOPS",
+      "institutional flow",
+      "margin",
+      "Taiwan news",
+      "ADR",
+      "internal prediction/review"
+    ],
+    "finding": "Several expected sources are schema/text-unobservable in immutable snapshots.",
+    "observed": [
+      "actual_outcome",
+      "adr",
+      "calibration",
+      "gap",
+      "margin",
+      "market_data_timestamp",
+      "news",
+      "prediction",
+      "price",
+      "review",
+      "technical",
+      "volume"
+    ]
+  },
+  "US": {
+    "expected_priority": [
+      "SEC EDGAR",
+      "official IR/newsroom",
+      "earnings",
+      "guidance",
+      "US market data",
+      "index/sector/macro",
+      "internal prediction/review"
+    ],
+    "finding": "SEC/research schema exists, but pre-market units and date normalization need correction.",
+    "observed": [
+      "actual_outcome",
+      "calibration",
+      "earnings",
+      "fundamentals",
+      "gap",
+      "guidance",
+      "macro_proxy",
+      "news",
+      "official_ir",
+      "prediction",
+      "price",
+      "review",
+      "sec",
+      "technical",
+      "volume"
+    ]
+  }
+}

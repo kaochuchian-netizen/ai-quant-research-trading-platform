@@ -1,0 +1,165 @@
+[
+  {
+    "archive_admission_count": 2,
+    "consistency_trend": "insufficient_evidence",
+    "coverage_trend": "insufficient_evidence",
+    "effective_dates_expected": [
+      "2026-07-15",
+      "2026-07-16",
+      "2026-07-17"
+    ],
+    "failed_batch_count": 0,
+    "freshness_trend": "insufficient_evidence",
+    "market": "TW",
+    "missing_batch_count": 1,
+    "pending_ratio": null,
+    "public_publish_count": 1,
+    "snapshot_dates_observed": [
+      "2026-07-16",
+      "2026-07-17"
+    ],
+    "successful_batch_count": 2,
+    "template_trend": "insufficient_evidence",
+    "window": "pre_open_0700"
+  },
+  {
+    "archive_admission_count": 2,
+    "consistency_trend": "degrading",
+    "coverage_trend": "insufficient_evidence",
+    "effective_dates_expected": [
+      "2026-07-15",
+      "2026-07-16",
+      "2026-07-17"
+    ],
+    "failed_batch_count": 1,
+    "freshness_trend": "insufficient_evidence",
+    "market": "TW",
+    "missing_batch_count": 1,
+    "pending_ratio": null,
+    "public_publish_count": 1,
+    "snapshot_dates_observed": [
+      "2026-07-15",
+      "2026-07-16"
+    ],
+    "successful_batch_count": 2,
+    "template_trend": "insufficient_evidence",
+    "window": "intraday_1305"
+  },
+  {
+    "archive_admission_count": 3,
+    "consistency_trend": "insufficient_evidence",
+    "coverage_trend": "insufficient_evidence",
+    "effective_dates_expected": [
+      "2026-07-15",
+      "2026-07-16",
+      "2026-07-17"
+    ],
+    "failed_batch_count": 0,
+    "freshness_trend": "insufficient_evidence",
+    "market": "TW",
+    "missing_batch_count": 0,
+    "pending_ratio": null,
+    "public_publish_count": 1,
+    "snapshot_dates_observed": [
+      "2026-07-15",
+      "2026-07-16",
+      "2026-07-17"
+    ],
+    "successful_batch_count": 3,
+    "template_trend": "insufficient_evidence",
+    "window": "pre_close_1335"
+  },
+  {
+    "archive_admission_count": 3,
+    "consistency_trend": "insufficient_evidence",
+    "coverage_trend": "insufficient_evidence",
+    "effective_dates_expected": [
+      "2026-07-15",
+      "2026-07-16",
+      "2026-07-17"
+    ],
+    "failed_batch_count": 0,
+    "freshness_trend": "insufficient_evidence",
+    "market": "TW",
+    "missing_batch_count": 0,
+    "pending_ratio": 0.8889,
+    "public_publish_count": 1,
+    "snapshot_dates_observed": [
+      "2026-07-15",
+      "2026-07-16",
+      "2026-07-17"
+    ],
+    "successful_batch_count": 3,
+    "template_trend": "insufficient_evidence",
+    "window": "post_close_1500"
+  },
+  {
+    "archive_admission_count": 2,
+    "consistency_trend": "insufficient_evidence",
+    "coverage_trend": "insufficient_evidence",
+    "effective_dates_expected": [
+      "2026-07-14",
+      "2026-07-15",
+      "2026-07-16"
+    ],
+    "failed_batch_count": 0,
+    "freshness_trend": "insufficient_evidence",
+    "market": "US",
+    "missing_batch_count": 1,
+    "pending_ratio": null,
+    "public_publish_count": 1,
+    "snapshot_dates_observed": [
+      "2026-07-15",
+      "2026-07-16"
+    ],
+    "successful_batch_count": 2,
+    "template_trend": "insufficient_evidence",
+    "window": "us_pre_market_2000"
+  },
+  {
+    "archive_admission_count": 2,
+    "consistency_trend": "insufficient_evidence",
+    "coverage_trend": "insufficient_evidence",
+    "effective_dates_expected": [
+      "2026-07-14",
+      "2026-07-15",
+      "2026-07-16"
+    ],
+    "failed_batch_count": 0,
+    "freshness_trend": "insufficient_evidence",
+    "market": "US",
+    "missing_batch_count": 1,
+    "pending_ratio": null,
+    "public_publish_count": 1,
+    "snapshot_dates_observed": [
+      "2026-07-15",
+      "2026-07-16"
+    ],
+    "successful_batch_count": 2,
+    "template_trend": "insufficient_evidence",
+    "window": "us_intraday_2300"
+  },
+  {
+    "archive_admission_count": 2,
+    "consistency_trend": "insufficient_evidence",
+    "coverage_trend": "insufficient_evidence",
+    "effective_dates_expected": [
+      "2026-07-14",
+      "2026-07-15",
+      "2026-07-16"
+    ],
+    "failed_batch_count": 0,
+    "freshness_trend": "insufficient_evidence",
+    "market": "US",
+    "missing_batch_count": 1,
+    "pending_ratio": null,
+    "public_publish_count": 1,
+    "snapshot_dates_observed": [
+      "2026-07-15",
+      "2026-07-16"
+    ],
+    "successful_batch_count": 2,
+    "template_trend": "insufficient_evidence",
+    "window": "us_post_close_review_0630"
+  }
+]
