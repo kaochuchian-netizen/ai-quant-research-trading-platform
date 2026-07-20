@@ -113,6 +113,37 @@ def fixture_payload(market: str, window: str, day: str, marker: str) -> dict[str
     elif market == "TW":
         payload["cards"] = cards
     else:
+        if window == "us_intraday_2300":
+            for index, card in enumerate(cards):
+                card.update({
+                    "schema_version": "us_intraday_observed_market_v1", "market": "US", "window": window,
+                    "trading_date": day, "session_date": day, "market_timezone": "America/New_York",
+                    "session_phase": "regular_session", "previous_close": 100 + index,
+                    "regular_session_open": 101 + index, "current_price": 102 + index,
+                    "market_data_as_of": f"{day}T11:00:00-04:00", "gap_open_pct": 1.0,
+                    "gap_current_pct": 2.0, "gap_fill_pct": 0.0, "gap_state": "gap_up_follow_through",
+                    "gap_follow_through_state": "gap_up_follow_through", "session_volume": 1_000_000,
+                    "volume_baseline": 800_000, "volume_ratio": 1.25,
+                    "volume_confirmation_state": "confirmed", "entry_low": 100 + index,
+                    "entry_high": 101 + index, "entry_trigger_state": "triggered" if index == 0 else "not_reached",
+                    "stop_level": 95 + index, "target_level": 108 + index,
+                    "distance_to_stop_pct": -5.0, "distance_to_target_pct": 6.0,
+                    "pre_open_action": "等待確認", "intraday_action": "entry_triggered_hold" if index == 0 else "maintain_watch",
+                    "tactical_adjustment": "entry_triggered_hold" if index == 0 else "maintain_watch",
+                    "adjustment_reason": "deterministic observed cross-feature evidence", "chase_risk": "low",
+                    "gap_risk": "low", "event_risk": "low", "liquidity_status": "available",
+                    "data_status": "complete", "missing_fields": [], "source": "deterministic validator",
+                    "source_payload_hash": f"cross-feature-{index}",
+                })
+            payload.update({
+                "tracking_stock_count": len(cards), "structured_intraday_cards": cards,
+                "intraday_summary": {"tracking_count": len(cards), "structured_card_count": len(cards),
+                    "triggered_count": 1, "inside_zone_count": 0, "not_reached_count": len(cards)-1,
+                    "cancel_chase_count": 0, "volume_confirmed_count": len(cards),
+                    "gap_follow_through_count": len(cards), "data_unavailable_count": 0,
+                    "near_stop_count": 0, "near_target_count": 0},
+                "session_context": {"session_phase": "regular_session"},
+            })
         payload["dashboard_ready_contract"] = {"cards": cards}
         payload["runtime_watchlist_validation"] = {"enabled_stock_count": len(cards)}
         payload["prediction_review_contract"] = {"reviewable_stock_count": 3, "reviewed_stock_count": 3, "skipped_stock_count": 0}
@@ -177,9 +208,14 @@ def main() -> int:
                 else:
                     checks[key + ":dashboard_v4"] = "Decision Intelligence V4" in dashboard_html and latest_projection["expected_card_type"] in dashboard_html
                 checks[key + ":email_v4"] = "Decision Intelligence V4" in email_text
-                checks[key + ":line_semantic_parity"] = all(
-                    line in line_summary for line in delivery_summary_lines(latest_projection)
-                )
+                if (market, window) == ("US", "us_intraday_2300"):
+                    checks[key + ":line_semantic_parity"] = all(
+                        marker in line_summary for marker in ("已觸發", "取消追價", "量能確認", get_window_report_contract(market, window).dashboard_url)
+                    )
+                else:
+                    checks[key + ":line_semantic_parity"] = all(
+                        line in line_summary for line in delivery_summary_lines(latest_projection)
+                    )
                 if (market, window) == ("TW", "pre_open_0700"):
                     checks[key + ":archive_latest_previous"] = latest_html.count("tw-pre-open-structured-card") == 3 and previous_html.count("tw-pre-open-structured-card") == 3
                 else:

@@ -454,6 +454,29 @@ def _us_cards_for_window(artifacts: list[dict[str, Any]], window: str) -> list[d
             return [card for card in artifact.get("dashboard_ready_contract", {}).get("cards", []) if isinstance(card, dict)]
     return []
 
+def _intraday_number(value: Any, suffix: str = "") -> str:
+    try:
+        return f"{float(value):.2f}{suffix}"
+    except (TypeError, ValueError):
+        return "尚未取得"
+
+def _intraday_state(value: Any) -> str:
+    labels = {
+        "gap_up_follow_through": "向上跳空延續", "gap_up_partial_fill": "向上跳空部分回補",
+        "gap_up_full_fill": "向上跳空完全回補", "gap_down_follow_through": "向下跳空延續",
+        "gap_down_partial_fill": "向下跳空部分回補", "gap_down_full_fill": "向下跳空完全回補",
+        "flat_open": "平盤開出", "strong": "量能強", "confirmed": "量能確認",
+        "neutral": "量能中性", "weak": "量能偏弱", "insufficient_history": "同期量歷史不足",
+        "source_unavailable": "成交量來源未取得", "inside_zone": "位於進場區",
+        "triggered": "已觸發", "not_reached": "尚未到達", "passed_without_safe_entry": "已越過安全進場區",
+        "invalidated": "已失效", "maintain_watch": "維持觀察", "entry_triggered_hold": "觸發後續抱觀察",
+        "wait_for_volume": "等待量能確認", "cancel_chase": "取消追價", "reduce_risk": "降低風險",
+        "stop_invalidated": "停損失效", "target_near": "接近目標", "data_unavailable": "資料不足，暫不判定",
+        "market_closed": "市場休市", "stale": "行情過舊", "partial": "部分資料可用", "complete": "盤中資料完整",
+        "unavailable": "盤中行情取得失敗",
+    }
+    return labels.get(str(value), str(value or "尚未取得"))
+
 
 def _us_window_card(card: dict[str, Any], window: str) -> str:
     symbol = _escape(card.get("symbol"))
@@ -480,11 +503,16 @@ def _us_window_card(card: dict[str, Any], window: str) -> str:
         </article>
         """
     if window == "us_intraday_2300":
+        data_status = str(card.get("data_status") or "unavailable")
+        failure_note = ""
+        if data_status in {"unavailable", "stale", "invalid", "market_closed"}:
+            failure_note = f"<section class='status-card warn' data-section='intraday-data-status'><h4>{_escape(_intraday_state(data_status))}</h4><p>資料來源：{_escape(card.get('source'))}；行情時間：{_escape(card.get('market_data_as_of') or '尚未取得')}；缺少欄位：{_escape(', '.join(card.get('missing_fields') or []) or '無')}。本次不跨 window 補值。</p></section>"
         return f"""
         <article class="stock-card decision-card window-stock-card" data-market="US" data-card-type="window-intraday" data-report-type="{report_type}">
-          <div class="decision-card__head"><div><div class="decision-card__market">US｜23:00 美股盤中｜決策呈現 V3</div><h3>{symbol} {name}</h3></div><span class="decision-badge">{_escape(tactical.get('action'))}</span></div>
-          <section class="decision-section" data-section="us-intraday-change"><h4>開盤後變化</h4>{_window_metric_grid([('Gap follow-through', '待盤中量價確認'), ('Volume confirmation', '待盤中量價確認'), ('Entry trigger', tactical.get('entry_zone')), ('Tactical adjustment', tactical.get('action')), ('Reward/Risk', tactical.get('reward_risk'))])}</section>
-          <section class="decision-section" data-section="us-proximity"><h4>Target / Stop proximity</h4>{_window_metric_grid([('Target proximity', tactical.get('target_1')), ('Stop proximity', tactical.get('stop')), ('主要依據', reason_text), ('主要風險', risk_text), ('News', news_text), ('SEC', sec_text), ('Review', review_text), ('現在是否仍可操作', tactical.get('action'))])}</section>
+          <div class="decision-card__head"><div><div class="decision-card__market">US｜23:00 美股盤中｜決策呈現 V3</div><h3>{symbol} {name}</h3></div><span class="decision-badge">{_escape(_intraday_state(card.get('tactical_adjustment')))}</span></div>
+          {failure_note}
+          <section class="decision-section" data-section="us-intraday-change"><h4>開盤後量價</h4>{_window_metric_grid([('Current price', _intraday_number(card.get('current_price'))), ('行情時間', card.get('market_data_as_of') or '尚未取得'), ('Gap', _intraday_state(card.get('gap_state'))), ('開盤 Gap', _intraday_number(card.get('gap_open_pct'), '%')), ('目前 Gap', _intraday_number(card.get('gap_current_pct'), '%')), ('Gap 回補', _intraday_number(card.get('gap_fill_pct'), '%')), ('Volume confirmation', _intraday_state(card.get('volume_confirmation_state'))), ('Volume ratio', _intraday_number(card.get('volume_ratio'), 'x'))])}</section>
+          <section class="decision-section" data-section="us-proximity"><h4>Trigger / Target / Stop</h4>{_window_metric_grid([('Entry zone', f"{_intraday_number(card.get('entry_low'))}–{_intraday_number(card.get('entry_high'))}"), ('Trigger status', _intraday_state(card.get('entry_trigger_state'))), ('距停損', _intraday_number(card.get('distance_to_stop_pct'), '%')), ('距目標', _intraday_number(card.get('distance_to_target_pct'), '%')), ('Tactical adjustment', _intraday_state(card.get('tactical_adjustment'))), ('調整原因', card.get('adjustment_reason')), ('主要風險', risk_text), ('資料來源', card.get('source')), ('資料狀態', _intraday_state(data_status))])}</section>
         </article>
         """
     return f"""

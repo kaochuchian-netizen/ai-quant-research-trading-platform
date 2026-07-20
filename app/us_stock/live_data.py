@@ -16,9 +16,17 @@ import pandas as pd
 import yfinance as yf
 
 TAIPEI = ZoneInfo("Asia/Taipei")
+NEW_YORK = ZoneInfo("America/New_York")
 
 def now_taipei() -> str:
     return datetime.now(TAIPEI).replace(microsecond=0).isoformat()
+
+def market_time_iso(value: Any) -> str | None:
+    """Normalize Yahoo's epoch market time without substituting fetch time."""
+    try:
+        return datetime.fromtimestamp(float(value), tz=ZoneInfo("UTC")).astimezone(NEW_YORK).replace(microsecond=0).isoformat()
+    except (TypeError, ValueError, OSError):
+        return None
 
 def clean_number(value: Any) -> float | int | None:
     if value is None:
@@ -195,8 +203,14 @@ class YFinanceUSClient:
             except Exception:
                 info = {}
             history = ticker.history(period=period, interval="1d", auto_adjust=False, timeout=12)
+            fast_price = clean_number(fast.get("last_price"))
+            info_price = clean_number(info.get("regularMarketPrice"))
+            daily_price = clean_number(history["Close"].iloc[-1]) if history is not None and not history.empty else None
+            last_price = fast_price if fast_price is not None else info_price if info_price is not None else daily_price
+            price_source = "yfinance_fast_info.last_price" if fast_price is not None else "yfinance_info.regularMarketPrice" if info_price is not None else "yfinance_daily_history.Close"
             quote = {
-                "last_price": clean_number(fast.get("last_price") or info.get("regularMarketPrice") or (history["Close"].iloc[-1] if history is not None and not history.empty else None)),
+                "last_price": last_price,
+                "last_price_source": price_source,
                 "previous_close": clean_number(fast.get("previous_close") or info.get("previousClose")),
                 "regular_market_open": clean_number(info.get("regularMarketOpen")),
                 "day_high": clean_number(fast.get("day_high") or info.get("dayHigh")),
@@ -212,6 +226,8 @@ class YFinanceUSClient:
                 "trailing_pe": clean_number(info.get("trailingPE")),
                 "eps": clean_number(info.get("trailingEps")),
                 "source_timestamp": now_taipei(),
+                "market_data_as_of": market_time_iso(info.get("regularMarketTime")),
+                "market_data_source": "Yahoo Finance / yfinance",
             }
             news_items = []
             try:

@@ -125,7 +125,13 @@ def _classify(card: dict[str, Any]) -> dict[str, Any]:
     action_text = _text(tactical.get("action"), tactical.get("direction"), tactical.get("setup_type"), review.get("status"), review.get("result"), card.get("action"), card.get("latest_status"))
     no_trade = any(token in action_text for token in ("no_trade", "no trade", "暫不操作", "避免", "觀望"))
     invalidated = any(token in action_text for token in ("invalid", "failed", "失效", "failure", "loss", "停損"))
-    triggered = _explicit_bool(card, tactical, review, ("triggered", "entry_triggered", "entry_result", "setup_triggered"))
+    observed_intraday = card.get("schema_version") == "us_intraday_observed_market_v1"
+    observed_usable = card.get("data_status") in {"complete", "partial"}
+    trigger_state = str(card.get("entry_trigger_state") or "")
+    if observed_intraday:
+        invalidated = trigger_state == "invalidated"
+        no_trade = card.get("tactical_adjustment") in {"cancel_chase", "no_trade", "data_unavailable"}
+    triggered = observed_usable and trigger_state == "triggered" if observed_intraday else _explicit_bool(card, tactical, review, ("triggered", "entry_triggered", "entry_result", "setup_triggered"))
     if triggered is None:
         triggered = True if any(token in action_text for token in ("triggered", "已觸發", "confirmed", "確認突破")) else False
     confidence = tactical.get("confidence", card.get("confidence"))
@@ -136,8 +142,8 @@ def _classify(card: dict[str, Any]) -> dict[str, Any]:
     chase = str(tactical.get("chase_risk") or card.get("chase_risk") or "unknown").lower()
     event = str(tactical.get("event_risk") or card.get("official_event_warning") or "unknown")
     direction_hit = _explicit_bool(card, tactical, review, ("direction_hit", "direction_result"))
-    volume_confirmed = _explicit_bool(card, tactical, review, ("volume_confirmed", "volume_confirmation", "flow_confirmation"))
-    gap_follow = _explicit_bool(card, tactical, review, ("gap_follow_through", "gap_continuation", "gap_effective"))
+    volume_confirmed = observed_usable and card.get("volume_confirmation_state") in {"strong", "confirmed"} if observed_intraday else _explicit_bool(card, tactical, review, ("volume_confirmed", "volume_confirmation", "flow_confirmation"))
+    gap_follow = observed_usable and str(card.get("gap_state") or "").endswith("follow_through") if observed_intraday else _explicit_bool(card, tactical, review, ("gap_follow_through", "gap_continuation", "gap_effective"))
     explicit_outcome = card.get("canonical_outcome") or review.get("canonical_outcome")
     outcome_text = _text(review.get("status"), review.get("result"), review.get("hit_miss_status"), review.get("outcome"))
     if explicit_outcome in CANONICAL_OUTCOMES:
@@ -156,7 +162,7 @@ def _classify(card: dict[str, Any]) -> dict[str, Any]:
         outcome = "loss"
     else:
         outcome = "pending"
-    has_entry = tactical.get("entry_zone") is not None or tactical.get("entry_zone_low") is not None
+    has_entry = (observed_usable and card.get("entry_low") is not None and card.get("entry_high") is not None) if observed_intraday else tactical.get("entry_zone") is not None or tactical.get("entry_zone_low") is not None
     def decision_bool(key: str) -> bool | None:
         value = decision.get(key)
         return value if isinstance(value, bool) else None

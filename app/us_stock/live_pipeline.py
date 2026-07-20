@@ -12,6 +12,11 @@ from app.us_stock.live_data import YFinanceUSClient, analyze_history, clean_numb
 from app.us_stock.research_intelligence import RESEARCH_FACTOR_VERSION, USResearchIntelligenceBuilder
 from app.strategy.dual_strategy import DAILY_TACTICAL, RESEARCH_POSITION, US_TACTICAL_FACTOR_VERSION, build_dual_strategies
 from app.reports.canonical_outcomes import aggregate_outcomes, build_structured_review_cards
+from app.us_stock.intraday_observed import (
+    build_intraday_card,
+    resolve_market_session,
+    summarize_intraday,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_DIR = REPO_ROOT / "artifacts/runtime/us_stock"
@@ -35,7 +40,7 @@ def session_context(window: str, reference: datetime | None = None) -> dict[str,
     is_dst = bool(ny.dst() and ny.dst().total_seconds())
     weekday = ny.weekday()
     closed_reason = "weekend" if weekday >= 5 else None
-    return {
+    context = {
         "timezone_policy": "fixed_asia_taipei",
         "window": window,
         "taipei_time": US_BATCH_WINDOWS[window]["scheduled_time_tw"],
@@ -47,6 +52,8 @@ def session_context(window: str, reference: datetime | None = None) -> dict[str,
         "market_closed_reason": closed_reason,
         "phase_note": "PM-approved Asia/Taipei fixed schedule retained; phase metadata is advisory.",
     }
+    context.update(resolve_market_session(reference))
+    return context
 
 def rating_action(score: float | None, confidence_status: str, event_risk_level: str = "low") -> tuple[str, str, float | None, str]:
     if score is None:
@@ -198,6 +205,15 @@ def latest_snapshot_for(symbol: str, session_date: str) -> dict[str, Any] | None
                 return None
     return None
 
+def pre_open_snapshot_for(symbol: str, session_date: str) -> dict[str, Any] | None:
+    path = snapshot_path(session_date, "us_pre_market_2000", symbol)
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+
 def build_review(symbol: str, session_date: str, quote: dict[str, Any], history: Any) -> dict[str, Any]:
     snap = latest_snapshot_for(symbol, session_date)
     if not snap:
@@ -224,6 +240,7 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
     cards = []
     items = []
     reviews = []
+    structured_intraday_cards = []
     success = 0
     insufficient = 0
     for entry in watchlist:
@@ -239,16 +256,31 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
         prediction["three_month_trend"] = technical.get("trend_3m")
         strategies = build_dual_strategies(DEFAULT_MARKET, score, prediction, result.quote, technical, market_context=market_context, research=research, generated_at=generated_at)
         card = dashboard_card(entry, result.quote, technical, score, prediction, result.news, window, research, strategies)
+        if window == "us_intraday_2300":
+            tactical = strategies.get(DAILY_TACTICAL, {}) if isinstance(strategies, dict) else {}
+            observed = build_intraday_card(
+                entry=entry,
+                quote=result.quote,
+                history=result.history,
+                tactical=tactical,
+                session=context,
+                fetch_error=result.error,
+                pre_open_snapshot=pre_open_snapshot_for(symbol, context["session_date"]),
+            )
+            # Compatibility presentation fields and observed evidence are one
+            # object, preventing Dashboard/Email/LINE from diverging.
+            card = {**card, **observed}
+            structured_intraday_cards.append(card)
         if result.ok and prediction.get("prediction_status") == "available":
             success += 1
         else:
             insufficient += 1
-        item = {"symbol": symbol, "name": entry.get("name"), "market": DEFAULT_MARKET, "quote": result.quote, "fetch_ok": result.ok, "fetch_error": result.error, "technical": technical, "market_context_ref": "market_context", "news": result.news, "research_intelligence": research, "strategies": strategies, "score": score, "prediction": prediction, "data_quality": {"quote_available": result.quote.get("last_price") is not None, "history_days": technical.get("data_quality", {}).get("history_days"), "news_count": len(result.news), "sec_ok": research.get("sec", {}).get("ok"), "research_factor_version": research.get("research_factors", {}).get("research_factor_version")}, "source_timestamp": result.quote.get("source_timestamp")}
+        item = {"symbol": symbol, "name": entry.get("name"), "market": DEFAULT_MARKET, "quote": result.quote, "fetch_ok": result.ok, "fetch_error": result.error, "technical": technical, "market_context_ref": "market_context", "news": result.news, "research_intelligence": research, "strategies": strategies, "score": score, "prediction": prediction, "structured_intraday_card": card if window == "us_intraday_2300" else None, "data_quality": {"quote_available": result.quote.get("last_price") is not None, "history_days": technical.get("data_quality", {}).get("history_days"), "news_count": len(result.news), "sec_ok": research.get("sec", {}).get("ok"), "research_factor_version": research.get("research_factors", {}).get("research_factor_version")}, "source_timestamp": result.quote.get("source_timestamp")}
         items.append(item)
         cards.append(card)
         if window in {"us_pre_market_2000", "us_intraday_2300"} and write_snapshots and prediction.get("prediction_status") == "available":
             spath = snapshot_path(context["session_date"], window, symbol)
-            snap = {"schema_version": "us_stock_prediction_snapshot_v1", "market": DEFAULT_MARKET, "session_date": context["session_date"], "window": window, "symbol": symbol, "generated_at": generated_at, "prediction": prediction, "rating": score.get("rating"), "action": score.get("action"), "confidence_score": score.get("confidence_score"), "model_version": MODEL_VERSION, "data_source_timestamps": {"quote": result.quote.get("source_timestamp")}, "fixture": False, "validation_only": False}
+            snap = {"schema_version": "us_stock_prediction_snapshot_v1", "market": DEFAULT_MARKET, "session_date": context["session_date"], "window": window, "symbol": symbol, "generated_at": generated_at, "prediction": prediction, "rating": score.get("rating"), "action": score.get("action"), "confidence_score": score.get("confidence_score"), "model_version": MODEL_VERSION, "data_source_timestamps": {"quote": result.quote.get("market_data_as_of")}, "pre_open_setup": card.get("daily_tactical_summary") if window == "us_pre_market_2000" else None, "structured_intraday_card": card if window == "us_intraday_2300" else None, "fixture": False, "validation_only": False}
             snap["snapshot_path"] = str(spath.relative_to(REPO_ROOT))
             write_json(spath, snap)
         if window == "us_post_close_review_0630":
@@ -262,6 +294,7 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
     }
     if structured_review_cards:
         cards = structured_review_cards
+    intraday_summary = summarize_intraday(structured_intraday_cards) if window == "us_intraday_2300" else None
     artifact = {
         "schema_version": "us_stock_live_runtime_v1",
         "artifact_kind": "us_stock_runtime",
@@ -284,6 +317,9 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
         "research_intelligence_contract": {"source_hierarchy": "tier1_official_sec_ir_company; tier2_market_reference_yfinance; tier3_secondary_news", "research_factor_version": RESEARCH_FACTOR_VERSION, "copyright_policy": "no full filings/articles/transcripts stored", "official_source_required_for_official_claims": True},
         "dual_strategy_contract": {"market": DEFAULT_MARKET, "strategy_types": [RESEARCH_POSITION, DAILY_TACTICAL], "research_position_version": "us_research_position_v1", "daily_tactical_version": "us_daily_tactical_v1", "daily_tactical_factor_version": US_TACTICAL_FACTOR_VERSION, "research_overwritten_by_tactical": False, "tactical_overwrites_research": False, "line_email_sent_by_builder": False},
         "items": items,
+        "tracking_stock_count": len(watchlist),
+        "structured_intraday_cards": structured_intraday_cards,
+        "intraday_summary": intraday_summary,
         "structured_review_cards": structured_review_cards,
         "outcome_aggregate": review_aggregate,
         "prediction_review_contract": {

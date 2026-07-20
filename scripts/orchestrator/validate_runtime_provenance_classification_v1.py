@@ -23,6 +23,25 @@ from scripts.orchestrator import approved_us_stock_delivery as runner
 
 def artifact(provenance: str, window: str = "us_intraday_2300") -> dict[str, Any]:
     production = provenance in {RuntimeProvenance.SCHEDULED_PRODUCTION.value, RuntimeProvenance.MANUAL_RERUN.value}
+    intraday_card = {
+        "schema_version": "us_intraday_observed_market_v1", "symbol": "PROV", "name": "Provenance",
+        "market": "US", "window": "us_intraday_2300", "trading_date": "2026-07-15",
+        "session_date": "2026-07-15", "market_timezone": "America/New_York",
+        "session_phase": "regular_session", "previous_close": 1.0, "regular_session_open": 1.1,
+        "current_price": 1.2, "market_data_as_of": "2026-07-15T11:00:00-04:00",
+        "gap_open_pct": 10.0, "gap_current_pct": 20.0, "gap_fill_pct": 0.0,
+        "gap_state": "gap_up_follow_through", "gap_follow_through_state": "gap_up_follow_through",
+        "session_volume": 1000, "volume_baseline": 800, "volume_ratio": 1.25,
+        "volume_confirmation_state": "confirmed", "entry_low": 1.0, "entry_high": 2.0,
+        "entry_trigger_state": "inside_zone", "stop_level": 0.8, "target_level": 2.2,
+        "distance_to_stop_pct": -33.33, "distance_to_target_pct": 83.33,
+        "pre_open_action": "等待確認", "intraday_action": "entry_triggered_hold",
+        "tactical_adjustment": "entry_triggered_hold", "adjustment_reason": "observed provenance fixture",
+        "chase_risk": "low", "gap_risk": "low", "event_risk": "low", "liquidity_status": "available",
+        "data_status": "complete", "missing_fields": [], "source": "deterministic validator",
+        "source_payload_hash": "provenance-fixture-hash",
+        "daily_tactical_summary": {"action": "等待確認", "entry_zone": {"low": 1, "high": 2}, "confidence": 60},
+    }
     return {
         "schema_version": "runtime_provenance_fixture_v1",
         "artifact_kind": "us_stock_runtime",
@@ -36,7 +55,10 @@ def artifact(provenance: str, window: str = "us_intraday_2300") -> dict[str, Any
         "preview": provenance == RuntimeProvenance.PREVIEW.value,
         "dry_run": provenance == RuntimeProvenance.DRY_RUN.value,
         "market": "US", "window": window, "generated_at": "2026-07-15T23:00:00+08:00",
-        "dashboard_ready_contract": {"cards": [{"symbol": "PROV", "name": "Provenance", "daily_tactical_summary": {"action": "等待確認", "entry_zone": {"low": 1, "high": 2}, "confidence": 60}}]},
+        "structured_intraday_cards": [intraday_card] if window == "us_intraday_2300" else [],
+        "intraday_summary": {"tracking_count": 1, "structured_card_count": 1, "data_unavailable_count": 0},
+        "session_context": {"session_phase": "regular_session"},
+        "dashboard_ready_contract": {"cards": [intraday_card] if window == "us_intraday_2300" else [{"symbol": "PROV", "name": "Provenance", "daily_tactical_summary": {"action": "等待確認", "entry_zone": {"low": 1, "high": 2}, "confidence": 60}}]},
         "runtime_watchlist_validation": {"enabled_stock_count": 1},
     }
 
