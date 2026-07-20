@@ -240,6 +240,27 @@ def _count_high_risk(cards: list[dict[str, Any]]) -> int:
             total += 1
     return total
 
+def _intraday_text(value: Any) -> str:
+    labels = {
+        "gap_up_follow_through": "向上跳空延續", "gap_up_partial_fill": "向上跳空部分回補",
+        "gap_up_full_fill": "向上跳空完全回補", "gap_down_follow_through": "向下跳空延續",
+        "gap_down_partial_fill": "向下跳空部分回補", "gap_down_full_fill": "向下跳空完全回補",
+        "flat_open": "平盤開出", "strong": "量能強", "confirmed": "量能確認", "neutral": "量能中性",
+        "weak": "量能偏弱", "insufficient_history": "同期量歷史不足", "source_unavailable": "成交量未取得",
+        "inside_zone": "位於進場區", "triggered": "已觸發", "not_reached": "尚未到達",
+        "passed_without_safe_entry": "已越過安全進場區", "invalidated": "已失效",
+        "maintain_watch": "維持觀察", "entry_triggered_hold": "觸發後續抱觀察", "wait_for_volume": "等待量能確認",
+        "cancel_chase": "取消追價", "reduce_risk": "降低風險", "stop_invalidated": "停損失效",
+        "target_near": "接近目標", "data_unavailable": "資料不足，暫不判定",
+    }
+    return labels.get(str(value), str(value or "尚未取得"))
+
+def _num(value: Any, suffix: str = "") -> str:
+    try:
+        return f"{float(value):.2f}{suffix}"
+    except (TypeError, ValueError):
+        return "尚未取得"
+
 
 def _compact_us_email_block(card: dict[str, Any], window: str) -> str:
     presentation = decision_presentation_v2("US", card)
@@ -254,12 +275,13 @@ def _compact_us_email_block(card: dict[str, Any], window: str) -> str:
     if window == "us_intraday_2300":
         return "\n".join([
             f"{symbol} {name}",
-            f"開盤後變化：{tactical.get('direction')} / {tactical.get('setup')}",
-            f"Entry trigger：{tactical.get('entry_zone')}",
-            f"Target / Stop proximity：{tactical.get('target_1')} / {tactical.get('stop')}",
-            f"Tactical adjustment：{tactical.get('action')}",
-            f"Volume / gap 確認：{reason}",
-            f"盤中風險：{risk}",
+            f"目前 {_num(card.get('current_price'))}｜行情 {card.get('market_data_as_of') or '尚未取得'}",
+            f"Gap {_num(card.get('gap_current_pct'), '%')}｜{_intraday_text(card.get('gap_state'))}｜回補 {_num(card.get('gap_fill_pct'), '%')}",
+            f"量能 {_num(card.get('volume_ratio'), 'x')}｜{_intraday_text(card.get('volume_confirmation_state'))}",
+            f"Entry {_num(card.get('entry_low'))}–{_num(card.get('entry_high'))}｜{_intraday_text(card.get('entry_trigger_state'))}",
+            f"距停損 {_num(card.get('distance_to_stop_pct'), '%')}｜距目標 {_num(card.get('distance_to_target_pct'), '%')}",
+            f"策略：{_intraday_text(card.get('tactical_adjustment'))}",
+            f"原因：{card.get('adjustment_reason') or '盤中行情不足，無法安全判定'}",
         ])
     if window == "us_post_close_review_0630":
         return "\n".join([
@@ -279,6 +301,16 @@ def build_email_body(artifact: dict[str, Any], window: str) -> str:
     cards = [card for card in artifact.get("dashboard_ready_contract", {}).get("cards", []) if isinstance(card, dict)]
     projection = project_decision_intelligence_v4("US", window, artifact)
     lines = [f"{contract.title} {date}", "", f"Dashboard: {contract.dashboard_url}", "", contract.primary_question, "", "Decision Intelligence V4", compact_summary(projection, "email"), "內容範圍：" + "、".join(projection["section_inventory"]), "", "本批次內容："]
+    if window == "us_intraday_2300":
+        summary = artifact.get("intraday_summary") or {}
+        lines.extend([
+            "", "盤中市場概況：",
+            f"- 已觸發：{summary.get('triggered_count', 0)}",
+            f"- 取消追價：{summary.get('cancel_chase_count', 0)}",
+            f"- 量能確認：{summary.get('volume_confirmed_count', 0)}",
+            f"- 接近停損／目標：{summary.get('near_stop_count', 0)} / {summary.get('near_target_count', 0)}",
+            f"- 行情無法判定：{summary.get('data_unavailable_count', 0)}",
+        ])
     for section in contract.email_sections:
         lines.append(f"- {section}")
     lines.extend(["", "批次摘要：", f"- Window: {window}", f"- Enabled stocks: {artifact.get('runtime_watchlist_validation', {}).get('enabled_stock_count')}", f"- 高風險數量: {_count_high_risk(cards)}", "- LINE 僅短提醒；Email 僅呈現本批次需要的內容；完整狀態請看 Dashboard。", ""])
@@ -298,6 +330,19 @@ def build_email_body(artifact: dict[str, Any], window: str) -> str:
 def line_text(artifact: dict[str, Any], window: str) -> str:
     contract = get_window_report_contract("US", window)
     cards = [card for card in artifact.get("dashboard_ready_contract", {}).get("cards", []) if isinstance(card, dict)]
+    if window == "us_intraday_2300":
+        summary = artifact.get("intraday_summary") or {}
+        ranked = sorted(
+            artifact.get("structured_intraday_cards") or [],
+            key=lambda card: ({"stop_invalidated": 0, "reduce_risk": 1, "cancel_chase": 2, "target_near": 3}.get(str(card.get("tactical_adjustment")), 9), str(card.get("symbol") or "")),
+        )[:3]
+        changes = "、".join(f"{card.get('symbol')} {_intraday_text(card.get('tactical_adjustment'))}" for card in ranked) or "無可安全判定標的"
+        return "\n".join([
+            "【Stock AI】23:00 美股盤中",
+            f"已觸發 {summary.get('triggered_count', 0)}｜取消追價 {summary.get('cancel_chase_count', 0)}｜量能確認 {summary.get('volume_confirmed_count', 0)}",
+            f"接近停損 {summary.get('near_stop_count', 0)}｜接近目標 {summary.get('near_target_count', 0)}｜行情不足 {summary.get('data_unavailable_count', 0)}",
+            f"重點調整：{changes}", "完整報告：", contract.dashboard_url, "僅供研究參考，非交易指令。",
+        ])
     parts = [f"【Stock AI】{contract.title}已更新", "美股決策摘要已更新"]
     parts.append(compact_summary(project_decision_intelligence_v4("US", window, artifact), "line"))
     parts.append(f"短線可觀察：{len(cards)}")
@@ -432,21 +477,24 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 channel=channel, content=content, delivery_result=result_name,
                 delivery_attempted=attempted, recipient_count=int(delivery.get("recipient_count") or 0),
             )
-            write_delivery_provenance(
-                US_RUNTIME_DIR / "delivery_provenance" / f"{args.window}_{channel}_latest.json",
-                provenance,
-            )
+            if persist_formal_runtime:
+                write_delivery_provenance(
+                    US_RUNTIME_DIR / "delivery_provenance" / f"{args.window}_{channel}_latest.json",
+                    provenance,
+                )
             provenance_results[channel] = result_name
-        write_operations_provenance(
-            US_RUNTIME_DIR / "operations_provenance" / f"{args.window}_latest.json",
-            build_operations_provenance(
-                market="US", window=args.window, runtime_status="completed",
-                runtime_trading_date=batch_reference.astimezone(NEW_YORK).date().isoformat(),
-                snapshot=latest_snapshot, public_sync=public_latest_sync,
-                email_result=provenance_results.get("email", "not_attempted"),
-                line_result=provenance_results.get("line", "not_attempted"),
-            ),
+        operations_provenance = build_operations_provenance(
+            market="US", window=args.window, runtime_status="completed",
+            runtime_trading_date=batch_reference.astimezone(NEW_YORK).date().isoformat(),
+            snapshot=latest_snapshot, public_sync=public_latest_sync,
+            email_result=provenance_results.get("email", "not_attempted"),
+            line_result=provenance_results.get("line", "not_attempted"),
         )
+        if persist_formal_runtime:
+            write_operations_provenance(
+                US_RUNTIME_DIR / "operations_provenance" / f"{args.window}_latest.json",
+                operations_provenance,
+            )
         if production_approved and not delivery_skipped_duplicate:
             write_json(idem, {"window": args.window, "date": started.date().isoformat(), "email_attempted": email_result["attempted"], "line_attempted": line_result["attempted"], "created_at": started.isoformat()})
         finished = now_taipei()
@@ -481,6 +529,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "dry_run": not production_approved,
             "archive_write": archive_result,
             "public_latest_sync": public_latest_sync,
+            "operations_provenance_preview": operations_provenance,
+            "delivery_provenance_persisted": persist_formal_runtime,
             "python3_main_executed": False,
             "secret_values_printed": False,
         }

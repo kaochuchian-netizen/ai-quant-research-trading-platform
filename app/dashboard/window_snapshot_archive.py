@@ -196,6 +196,21 @@ def write_snapshot(
                 "reason": "structured_pre_open_payload_invalid",
                 "validation_errors": structured_errors,
             }
+    if market == "US" and canonical_window == "us_intraday_2300" and (
+        int(source_payload.get("tracking_stock_count") or 0) > 0
+        or int(source_payload.get("runtime_watchlist_validation", {}).get("enabled_stock_count") or 0) > 0
+        or "structured_intraday_cards" in source_payload
+    ):
+        from app.us_stock.intraday_observed import validate_intraday_payload
+
+        structured_errors = validate_intraday_payload(source_payload)
+        if structured_errors:
+            reason = (
+                "intraday_market_data_all_unavailable"
+                if "all_intraday_market_data_unavailable" in structured_errors
+                else "structured_intraday_payload_invalid"
+            )
+            return {"written": False, "reason": reason, "validation_errors": structured_errors}
     if not _source_is_admissible(source_payload, status, run_kind):
         return {"written": False, "reason": "source_not_admissible"}
     existing = [

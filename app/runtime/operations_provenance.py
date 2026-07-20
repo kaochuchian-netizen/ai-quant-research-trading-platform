@@ -34,6 +34,26 @@ def build_operations_provenance(*, market: str, window: str, runtime_status: str
                 else "structured_payload_invalid"
             ),
         })
+    if market.upper() == "US" and window == "us_intraday_2300":
+        payload = snapshot.get("payload") if isinstance(snapshot.get("payload"), dict) else {}
+        summary = payload.get("intraday_summary") if isinstance(payload.get("intraday_summary"), dict) else {}
+        result.update({
+            "tracking_count": int(summary.get("tracking_count") or payload.get("tracking_stock_count") or 0),
+            "structured_card_count": int(summary.get("structured_card_count") or 0),
+            "market_data_complete_count": sum(
+                card.get("data_status") == "complete"
+                for card in payload.get("structured_intraday_cards", []) if isinstance(card, dict)
+            ),
+            "market_data_unavailable_count": int(summary.get("data_unavailable_count") or 0),
+            "triggered_count": int(summary.get("triggered_count") or 0),
+            "volume_confirmed_count": int(summary.get("volume_confirmed_count") or 0),
+            "intraday_payload_status": (
+                "valid" if int(summary.get("tracking_count") or 0) > 0
+                and int(summary.get("tracking_count") or 0) == int(summary.get("structured_card_count") or 0)
+                and int(summary.get("data_unavailable_count") or 0) < int(summary.get("tracking_count") or 0)
+                else "intraday_payload_incomplete"
+            ),
+        })
     return result
 
 def write_operations_provenance(path: Path, payload: dict[str, Any]) -> None:
