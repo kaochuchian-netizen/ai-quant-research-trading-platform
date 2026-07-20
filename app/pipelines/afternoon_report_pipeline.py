@@ -10,7 +10,11 @@ from app.loaders.google_sheet_loader import load_stock_ids
 from app.market.adr_score_engine import calculate_adr_score
 from app.market.adr_service import get_adr_result
 from app.market.stock_name_loader import resolve_stock_name
+from app.market.shioaji_client import get_snapshots
+from app.market.snapshot_normalizer import normalize_snapshots
 from app.pipelines.context import create_pipeline_context
+from app.dashboard.window_snapshot_archive import load_admitted_snapshots
+from app.reports.tw_four_window_decision import aggregate_cards, build_observed_card, stable_hash
 
 from analysis.analysis_engine import analyze_stock
 from analysis.chip.chip_analysis_engine import analyze_chip
@@ -42,9 +46,17 @@ def _decision_state(action):
 
 def _write_window_runtime(pipeline_type, context, cards, runtime_dir=None):
     window = WINDOW_BY_PIPELINE[pipeline_type]
+    effective_trading_date = str(context.get("run_date") or datetime.now(ZoneInfo("Asia/Taipei")).date().isoformat())
     source_dates = sorted({str(card.get("source_data_date")) for card in cards if card.get("source_data_date")})
+    summary = aggregate_cards(window, cards)
+    structured_key = {
+        "intraday_1305": "structured_intraday_cards",
+        "pre_close_1335": "structured_pre_close_cards",
+        "post_close_1500": "structured_review_cards",
+    }[window]
+    observed_times = sorted({str(card.get("market_data_as_of")) for card in cards if card.get("market_data_as_of")})
     payload = {
-        "schema_version": "tw_window_decision_runtime_v1",
+        "schema_version": "tw_window_decision_runtime_v2",
         "artifact_type": "tw_window_decision_runtime",
         "artifact_mode": "production_runtime",
         "runtime_provenance": "scheduled_production",
@@ -56,10 +68,16 @@ def _write_window_runtime(pipeline_type, context, cards, runtime_dir=None):
         "pipeline_type": pipeline_type,
         "pipeline_run_id": context["pipeline_run_id"],
         "generated_at": datetime.now(ZoneInfo("Asia/Taipei")).replace(microsecond=0).isoformat(),
-        "source_data_time": None,
+        "effective_trading_date": effective_trading_date,
+        "source_data_time": observed_times[-1] if observed_times else None,
         "source_data_dates": source_dates,
-        "source_data_time_status": "unavailable_no_intraday_timestamp",
+        "source_data_time_status": "observed" if observed_times else "unavailable",
         "cards": cards,
+        structured_key: cards,
+        "tw_window_summary": summary,
+        "tracking_stock_count": summary["tracking_count"],
+        "structured_card_count": summary["structured_card_count"],
+        "tracking_symbols": summary["symbols"],
         "stock_count": len(cards),
         "trading_or_order_executed": False,
     }
@@ -107,6 +125,25 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
         stock_ids = load_stock_ids()
     record_stage_result(timing_path, "fundamentals", status="not_applicable", elapsed_seconds=0)
     selected_stock_ids = [str(stock_id).zfill(4) for stock_id in stock_ids]
+    quote_failure = None
+    try:
+        with timing.stage("observed_market_data"):
+            quotes = normalize_snapshots(get_snapshots(selected_stock_ids))
+    except Exception as exc:
+        quote_failure = exc.__class__.__name__
+        quotes = []
+        record_stage_result(timing_path, "observed_market_data", status="failed_optional", elapsed_seconds=0, reason=quote_failure)
+    quotes_by_symbol = {str(item.get("stock_id") or "").zfill(4): item for item in quotes}
+    admitted = [
+        item for item in load_admitted_snapshots(REPO_ROOT / "artifacts/archive/window_snapshots")
+        if item.get("market") == "TW"
+        and item.get("window") == "pre_open_0700"
+        and item.get("effective_trading_date") == context["run_date"]
+    ]
+    setup_snapshot = max(admitted, key=lambda item: int(item.get("revision") or 0), default=None)
+    setup_payload = setup_snapshot.get("payload", {}) if setup_snapshot else {}
+    setup_cards = setup_payload.get("structured_pre_open_cards", []) if isinstance(setup_payload, dict) else []
+    setups_by_symbol = {str(item.get("symbol") or item.get("stock_id") or "").zfill(4): item for item in setup_cards if isinstance(item, dict)}
     print(f"{pipeline_type} stock universe count: {len(stock_ids)}")
     print(f"{pipeline_type} selected stock ids: {selected_stock_ids}")
     print(f"{pipeline_type} full LINE report disabled; concise scheduler reminder is handled by approved wrapper")
@@ -220,30 +257,23 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
 
             print(report)
             daily_reports.append(report)
-            action = total_score_result.get("action")
-            decision_cards.append({
-                "stock_id": stock_id,
-                "stock_name": stock_name,
-                "source_data_date": indicator_result.get("date"),
-                "source_data_time": None,
-                "current_price": indicator_result.get("close"),
-                "rating": total_score_result.get("rating"),
-                "total_score": total_score_result.get("total_score"),
-                "action": action,
-                "decision_state": _decision_state(action),
-                "strategies": {"daily_tactical": {
-                    "action": action,
-                    "rating": total_score_result.get("rating"),
-                    "score": total_score_result.get("total_score"),
-                    "confidence": total_score_result.get("total_score"),
-                    "entry_zone": None,
-                    "target_1": None,
-                    "target_2": None,
-                    "stop_invalidation": None,
-                    "source_data_date": indicator_result.get("date"),
-                    "source_data_time": None,
-                }},
-            })
+            setup = setups_by_symbol.get(stock_id) or {
+                "symbol": stock_id, "stock_id": stock_id, "name": stock_name,
+                "stock_name": stock_name, "trading_date": context["run_date"],
+                "setup_id": None, "entry_readiness": "unavailable", "strategy_type": "unavailable",
+                "missing_fields": ["same_day_admitted_pre_open_setup"], "strategies": {"daily_tactical": {}},
+            }
+            quote = dict(quotes_by_symbol.get(stock_id) or {})
+            if not quote and quote_failure:
+                quote["source_error_category"] = quote_failure
+            decision_cards.append(build_observed_card(
+                window=window, setup_card=setup, quote=quote,
+                trading_date=context["run_date"],
+                generated_at=datetime.now(ZoneInfo("Asia/Taipei")).replace(microsecond=0).isoformat(),
+                source_snapshot_id=setup_snapshot.get("snapshot_id") if setup_snapshot else None,
+                source_revision=int(setup_snapshot.get("revision") or 0) if setup_snapshot else 0,
+                source_payload_hash=stable_hash(setup_payload) if setup_snapshot else None,
+            ))
 
         except Exception as exc:
             reason = exc.__class__.__name__

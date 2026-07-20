@@ -33,6 +33,7 @@ from app.reports.tw_pre_open_structured import aggregate as aggregate_pre_open_c
 from app.reports.tw_pre_open_structured import build_card as build_pre_open_card
 from app.reports.tw_pre_open_structured import render_line as render_pre_open_line
 from app.reports.tw_pre_open_structured import unavailable_card as build_unavailable_pre_open_card
+from app.strategy.tw_daily_tactical import build_runtime as build_tw_daily_tactical_runtime
 
 from scripts.update_historical_csv import main as update_historical_csv
 
@@ -212,6 +213,13 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
         stock_ids = stock_ids[:limit]
 
     selected_stock_ids = [str(stock_id).zfill(4) for stock_id in stock_ids]
+    stage_timing.start("strategy_setup")
+    tactical_runtime = build_tw_daily_tactical_runtime()
+    tactical_by_symbol = {
+        str(card.get("stock_id") or "").zfill(4): ((card.get("strategies") or {}).get("daily_tactical") or {})
+        for card in tactical_runtime.get("cards", [])
+    }
+    stage_timing.finish("strategy_setup", tactical_card_count=len(tactical_by_symbol))
     print(f"pre_open selected stock count: {len(stock_ids)}")
     print(f"pre_open selected stock ids: {selected_stock_ids}")
 
@@ -342,6 +350,7 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
                     chip=chip_result,
                     score=total_score_result,
                     analysis=ai_analysis,
+                    tactical=tactical_by_symbol.get(stock_id),
                     missing_fields=[
                         source_name
                         for source_name, source_value in (
