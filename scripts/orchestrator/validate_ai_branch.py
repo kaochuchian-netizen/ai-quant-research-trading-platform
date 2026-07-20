@@ -21,6 +21,7 @@ from typing import Any
 
 
 DEFAULT_ALLOWED_PATHS = [
+    "AGENTS.md",
     "docs/",
     "analysis/forecast/",
     "analysis/gemini_client.py",
