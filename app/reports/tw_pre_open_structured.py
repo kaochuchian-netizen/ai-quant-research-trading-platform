@@ -8,6 +8,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from app.reports.presentation_normalization import normalize_date_presentation
+from app.reports.tw_four_window_decision import localize, sanitize_text, upgrade_pre_open_card
 
 WINDOW = "pre_open_0700"
 MARKET = "TW"
@@ -31,16 +32,7 @@ def _first(mapping: Any, *keys: str) -> Any:
 
 
 def _text(value: Any, fallback: str = "資料尚未取得") -> str:
-    if value in (None, "", [], {}):
-        return fallback
-    if isinstance(value, (dict, list)):
-        return json.dumps(
-            value,
-            ensure_ascii=False,
-            sort_keys=True,
-            default=lambda item: normalize_date_presentation(item, timezone_name="Asia/Taipei"),
-        )[:240]
-    return str(value)[:480]
+    return sanitize_text(value, fallback)[:480]
 
 
 def _action_group(action: str, available: bool) -> str:
@@ -63,7 +55,7 @@ def _source_time(value: Any) -> Any:
     return None
 
 
-def build_card(*, symbol: str, name: str, trading_date: str, indicator: dict[str, Any] | None = None, adr: dict[str, Any] | None = None, news: Any = None, chip: dict[str, Any] | None = None, score: dict[str, Any] | None = None, analysis: Any = None, missing_fields: list[str] | None = None, generated_at: str | None = None) -> dict[str, Any]:
+def build_card(*, symbol: str, name: str, trading_date: str, indicator: dict[str, Any] | None = None, adr: dict[str, Any] | None = None, news: Any = None, chip: dict[str, Any] | None = None, score: dict[str, Any] | None = None, analysis: Any = None, tactical: dict[str, Any] | None = None, source_revision: int = 1, missing_fields: list[str] | None = None, generated_at: str | None = None) -> dict[str, Any]:
     indicator, adr, chip, score = indicator or {}, adr or {}, chip or {}, score or {}
     missing = sorted(set(missing_fields or []))
     basic_available = bool(indicator) and _first(indicator, "close", "date") is not None
@@ -111,8 +103,11 @@ def build_card(*, symbol: str, name: str, trading_date: str, indicator: dict[str
         "risk_adjusted_score": numeric_score - (20 if chase_risk == "high" else 0) - (10 if status != "complete" else 0),
         "strategies": {"daily_tactical": {"action": action, "rating": rating, "score": decision_score, "confidence": decision_score, "entry_zone": _first(analysis, "entry_zone"), "target_1": _first(analysis, "target", "target_price"), "stop_invalidation": _first(analysis, "stop", "stop_loss"), "chase_risk": chase_risk}},
     }
-    raw = json.dumps(card, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-    card["source_payload_hash"] = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+    if tactical:
+        card = upgrade_pre_open_card(card, tactical, source_revision=source_revision)
+    else:
+        raw = json.dumps(card, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        card["source_payload_hash"] = hashlib.sha256(raw.encode("utf-8")).hexdigest()
     return card
 
 
@@ -126,7 +121,7 @@ def aggregate(cards: list[dict[str, Any]], tracking_symbols: list[str]) -> dict[
         raise ValueError("duplicate_structured_pre_open_symbol")
     if symbols != [str(value) for value in tracking_symbols]:
         raise ValueError("structured_pre_open_symbol_order_mismatch")
-    readiness_rank = {"ready_for_open_confirmation": 0, "wait": 1, "no_trade": 2, "unavailable": 3}
+    readiness_rank = {"entry_ready": 0, "ready_for_open_confirmation": 0, "watch": 1, "wait": 1, "no_trade": 2, "unavailable": 3}
     ranking = sorted(
         cards,
         key=lambda card: (
@@ -141,16 +136,16 @@ def aggregate(cards: list[dict[str, Any]], tracking_symbols: list[str]) -> dict[
         "tracking_stock_count": len(tracking_symbols), "structured_card_count": len(cards),
         "rendered_card_count": len(cards), "tracking_symbols": list(tracking_symbols),
         "structured_card_symbols": symbols,
-        "top_opportunity_count": sum(card.get("opportunity_group") == "opportunity" and card.get("entry_readiness") == "ready_for_open_confirmation" for card in cards),
+        "top_opportunity_count": sum(card.get("opportunity_group") == "opportunity" and card.get("entry_readiness") in {"entry_ready", "ready_for_open_confirmation"} for card in cards),
         "no_trade_count": sum(card.get("opportunity_group") == "no_trade" for card in cards),
         "chase_risk_count": sum(card.get("chase_risk") == "high" for card in cards),
-        "entry_ready_count": sum(card.get("entry_readiness") == "ready_for_open_confirmation" for card in cards),
+        "entry_ready_count": sum(card.get("entry_readiness") in {"entry_ready", "ready_for_open_confirmation"} for card in cards),
         "partial_data_count": sum(card.get("availability_status") == "partial" for card in cards),
         "unavailable_count": sum(card.get("availability_status") == "unavailable" for card in cards),
         "ranking": [card["symbol"] for card in ranking],
         "groups": {
-            "top_opportunities": [card["symbol"] for card in ranking if card.get("opportunity_group") == "opportunity" and card.get("entry_readiness") == "ready_for_open_confirmation"],
-            "watch_wait": [card["symbol"] for card in ranking if card.get("opportunity_group") in {"watch", "opportunity"} and card.get("entry_readiness") != "ready_for_open_confirmation"],
+            "top_opportunities": [card["symbol"] for card in ranking if card.get("opportunity_group") == "opportunity" and card.get("entry_readiness") in {"entry_ready", "ready_for_open_confirmation"}],
+            "watch_wait": [card["symbol"] for card in ranking if card.get("opportunity_group") in {"watch", "opportunity"} and card.get("entry_readiness") not in {"entry_ready", "ready_for_open_confirmation"}],
             "no_trade": [card["symbol"] for card in ranking if card.get("opportunity_group") == "no_trade"],
             "high_chase_risk": [card["symbol"] for card in ranking if card.get("chase_risk") == "high"],
             "unavailable": [card["symbol"] for card in ranking if card.get("availability_status") == "unavailable"],
@@ -215,15 +210,17 @@ def _report_generated_at(payload: dict[str, Any]) -> Any:
 def render_email(payload: dict[str, Any], url: str) -> str:
     summary=payload.get("pre_open_summary") or aggregate(payload.get("structured_pre_open_cards",[]),payload.get("tracking_symbols",[]))
     cards={card["symbol"]:card for card in payload.get("structured_pre_open_cards",[])}
-    top=summary["groups"]["top_opportunities"][:3] or summary["ranking"][:3]
+    top=summary["groups"]["top_opportunities"][:3]
     lines=["【Stock AI】07:00 台股盤前決策",f"交易日：{payload.get('effective_trading_date')}","市場基調：盤前依前一交易日收盤、ADR、新聞與籌碼資料判斷","Top opportunities："]
     for symbol in top:
-        card=cards[symbol]; lines.append(f"- {symbol} {card.get('name')}｜{card.get('action')}｜{card.get('entry_readiness')}｜依據：{card.get('reasoning')}｜風險：{card.get('risk_summary')}")
+        card=cards[symbol]; lines.append(f"- {symbol} {card.get('name')}｜{card.get('action')}｜{localize(card.get('entry_readiness'))}｜依據：{card.get('reasoning')}｜風險：{card.get('risk_summary')}")
+    if not top:
+        lines.append("- 本批次沒有符合 entry、stop、target、風險報酬與資料完整度門檻的標的")
     lines += [f"No-trade / avoid：{'、'.join(summary['groups']['no_trade']) or '無'}",f"追價風險：{'、'.join(summary['groups']['high_chase_risk']) or '無'}",f"報告產生：{_report_generated_at(payload)}","完整報告：",url,"僅供研究參考，非交易指令。"]
     return "\n".join(lines)
 
 
 def render_line(payload: dict[str, Any], url: str) -> str:
     summary=payload.get("pre_open_summary") or aggregate(payload.get("structured_pre_open_cards",[]),payload.get("tracking_symbols",[]))
-    top=summary["groups"]["top_opportunities"][:3] or summary["ranking"][:3]
-    return "\n".join(["【Stock AI】07:00 台股盤前決策","市場基調：等待開盤量價確認",f"Top 3：{'、'.join(top) or '尚無'}",f"Avoid：{'、'.join(summary['groups']['no_trade']) or '無'}",f"主要風險：追價風險 {summary['chase_risk_count']} 檔",f"報告產生：{_report_generated_at(payload)}","完整報告：",url])
+    top=summary["groups"]["top_opportunities"][:3]
+    return "\n".join(["【Stock AI】07:00 台股盤前決策","市場基調：依前一交易日收盤、ADR、新聞與籌碼資料判斷",f"Top 3 opportunities：{'、'.join(top) or '本批次無符合完整門檻標的'}",f"Avoid：{'、'.join(summary['groups']['no_trade']) or '無'}",f"主要風險：追價風險 {summary['chase_risk_count']} 檔",f"報告產生：{_report_generated_at(payload)}","完整報告：",url])

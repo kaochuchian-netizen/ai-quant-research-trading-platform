@@ -196,10 +196,29 @@ def write_snapshot(
                 "reason": "structured_pre_open_payload_invalid",
                 "validation_errors": structured_errors,
             }
+    if market == "TW" and canonical_window in {"intraday_1305", "pre_close_1335", "post_close_1500"} and (
+        isinstance(source_payload.get("tw_window_summary"), dict)
+        or any(
+            card.get("schema_version") == "tw_four_window_decision_closure_v1"
+            for key in ("structured_intraday_cards", "structured_pre_close_cards", "structured_review_cards")
+            for card in (source_payload.get(key) if isinstance(source_payload.get(key), list) else [])
+            if isinstance(card, dict)
+        )
+    ):
+        from app.reports.tw_four_window_decision import validate_payload as validate_tw_four_window_payload
+
+        structured_errors = validate_tw_four_window_payload(canonical_window, source_payload)
+        if structured_errors:
+            reason_by_error = {
+                "all_observed_market_data_unavailable": "tw_observed_market_data_all_unavailable",
+                "all_pre_close_proximity_unavailable": "tw_pre_close_proximity_all_unavailable",
+                "all_post_close_actual_ohlc_unavailable": "tw_post_close_actual_ohlc_all_unavailable",
+            }
+            reason = next((reason_by_error[item] for item in structured_errors if item in reason_by_error), "tw_four_window_structured_payload_invalid")
+            return {"written": False, "reason": reason, "validation_errors": structured_errors}
     if market == "US" and canonical_window == "us_intraday_2300" and (
-        int(source_payload.get("tracking_stock_count") or 0) > 0
-        or int(source_payload.get("runtime_watchlist_validation", {}).get("enabled_stock_count") or 0) > 0
-        or "structured_intraday_cards" in source_payload
+        "structured_intraday_cards" in source_payload
+        or source_payload.get("schema_version") == "us_intraday_observed_market_v1"
     ):
         from app.us_stock.intraday_observed import validate_intraday_payload
 

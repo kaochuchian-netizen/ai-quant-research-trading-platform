@@ -34,6 +34,29 @@ def build_operations_provenance(*, market: str, window: str, runtime_status: str
                 else "structured_payload_invalid"
             ),
         })
+    if market.upper() == "TW" and window in {"intraday_1305", "pre_close_1335", "post_close_1500"}:
+        payload = snapshot.get("payload") if isinstance(snapshot.get("payload"), dict) else {}
+        summary = payload.get("tw_window_summary") if isinstance(payload.get("tw_window_summary"), dict) else {}
+        result.update({
+            "tracking_count": int(summary.get("tracking_count") or payload.get("tracking_stock_count") or 0),
+            "structured_card_count": int(summary.get("structured_card_count") or 0),
+            "data_complete_count": int(summary.get("data_complete_count") or 0),
+            "data_partial_count": int(summary.get("data_partial_count") or 0),
+            "data_unavailable_count": int(summary.get("data_unavailable_count") or 0),
+            "triggered_count": int(summary.get("triggered_count") or 0),
+            "invalidated_count": int(summary.get("invalidated_count") or 0),
+            "still_actionable_count": int(summary.get("still_actionable_count") or 0),
+            "volume_confirmed_count": int(summary.get("volume_confirmed_count") or 0),
+            "near_stop_count": int(summary.get("near_stop_count") or 0),
+            "near_target_count": int(summary.get("near_target_count") or 0),
+            "outcome_counts": summary.get("outcome_counts") or {},
+            "tw_structured_payload_status": (
+                "valid" if int(summary.get("tracking_count") or 0) > 0
+                and int(summary.get("tracking_count") or 0) == int(summary.get("structured_card_count") or 0)
+                and int(summary.get("data_unavailable_count") or 0) < int(summary.get("tracking_count") or 0)
+                else "partial_or_unavailable"
+            ),
+        })
     if market.upper() == "US" and window == "us_intraday_2300":
         payload = snapshot.get("payload") if isinstance(snapshot.get("payload"), dict) else {}
         summary = payload.get("intraday_summary") if isinstance(payload.get("intraday_summary"), dict) else {}
