@@ -1110,6 +1110,7 @@ def main() -> int:
             snapshot=latest_snapshot, canonical_url=args.dashboard_url, channel=channel,
             content=content, delivery_result=delivery_result,
             delivery_attempted=bool(delivery.get("send_attempted")), recipient_count=int(delivery.get("recipient_count") or 0),
+            public_sync=public_latest_sync,
         )
         write_delivery_provenance(
             REPO_ROOT / "artifacts/runtime/delivery_provenance" / f"tw_{args.window}_{channel}_latest.json",

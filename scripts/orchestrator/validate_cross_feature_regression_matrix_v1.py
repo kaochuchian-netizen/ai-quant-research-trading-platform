@@ -205,6 +205,8 @@ def main() -> int:
                 checks[key + ":contract"] = (market, window) in WINDOW_PRESENTATION
                 if (market, window) == ("TW", "pre_open_0700"):
                     checks[key + ":dashboard_v4"] = dashboard_html.count("tw-pre-open-structured-card") == 3 and latest_projection["expected_card_type"] in dashboard_html
+                elif (market, window) == ("US", "us_post_close_review_0630"):
+                    checks[key + ":dashboard_v4"] = "canonical-review-summary" in dashboard_html and latest_projection["expected_card_type"] in dashboard_html
                 else:
                     checks[key + ":dashboard_v4"] = "Decision Intelligence V4" in dashboard_html and latest_projection["expected_card_type"] in dashboard_html
                 checks[key + ":email_v4"] = "Decision Intelligence V4" in email_text
@@ -212,12 +214,18 @@ def main() -> int:
                     checks[key + ":line_semantic_parity"] = all(
                         marker in line_summary for marker in ("已觸發", "取消追價", "量能確認", get_window_report_contract(market, window).dashboard_url)
                     )
+                elif (market, window) == ("US", "us_post_close_review_0630"):
+                    checks[key + ":line_semantic_parity"] = all(
+                        marker in line_summary for marker in ("預測區間命中", "交易結果已判定", "待確認", get_window_report_contract(market, window).dashboard_url)
+                    )
                 else:
                     checks[key + ":line_semantic_parity"] = all(
                         line in line_summary for line in delivery_summary_lines(latest_projection)
                     )
                 if (market, window) == ("TW", "pre_open_0700"):
                     checks[key + ":archive_latest_previous"] = latest_html.count("tw-pre-open-structured-card") == 3 and previous_html.count("tw-pre-open-structured-card") == 3
+                elif (market, window) == ("US", "us_post_close_review_0630"):
+                    checks[key + ":archive_latest_previous"] = "canonical-review-summary" in latest_html and "canonical-review-summary" in previous_html
                 else:
                     checks[key + ":archive_latest_previous"] = "Decision Intelligence V4" in latest_html and "Decision Intelligence V4" in previous_html
                 checks[key + ":immutable_archive"] = "只使用 resolver 選出的 immutable snapshot payload" in latest_html and "<pre>" not in latest_html

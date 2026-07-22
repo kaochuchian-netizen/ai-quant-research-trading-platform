@@ -56,6 +56,7 @@ DEFAULT_ALLOWED_PATHS = [
     "app/history/",
     "app/rolling/",
     "app/market/historical_price_loader.py",
+    "app/market/snapshot_normalizer.py",
     "app/market/historical_storage.py",
     "app/market/shioaji_client.py",
     "app/market/stock_name_loader.py",

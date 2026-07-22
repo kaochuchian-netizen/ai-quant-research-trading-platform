@@ -25,12 +25,13 @@ def source_payload_hash(snapshot: dict[str, Any]) -> str | None:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
-def build_delivery_provenance(*, market: str, window: str, trading_date: str, snapshot: dict[str, Any], canonical_url: str, channel: str, content: str, delivery_result: str, delivery_attempted: bool, recipient_count: int = 0, delivery_time: str | None = None) -> dict[str, Any]:
+def build_delivery_provenance(*, market: str, window: str, trading_date: str, snapshot: dict[str, Any], canonical_url: str, channel: str, content: str, delivery_result: str, delivery_attempted: bool, recipient_count: int = 0, delivery_time: str | None = None, public_sync: dict[str, Any] | None = None) -> dict[str, Any]:
     if channel not in {"email", "line"}:
         raise ValueError("unsupported_delivery_channel")
     if delivery_result not in {"sent", "failed", "suppressed", "dry_run_not_sent", "not_attempted"}:
         raise ValueError("unsupported_delivery_result")
     metadata = snapshot.get("metadata") if isinstance(snapshot.get("metadata"), dict) else snapshot
+    sync = public_sync if isinstance(public_sync, dict) else {}
     return {
         "schema_version": "notification_delivery_provenance_v1",
         "market": market.upper(), "window": window, "trading_date": trading_date,
@@ -41,6 +42,9 @@ def build_delivery_provenance(*, market: str, window: str, trading_date: str, sn
         "delivery_channel": channel, "delivery_attempted": bool(delivery_attempted),
         "delivery_result": delivery_result, "delivery_time": delivery_time,
         "recipient_count": max(0, int(recipient_count)), "message_length": len(content),
+        "public_parity_status": sync.get("status") or "not_attempted",
+        "public_expected_identity": (sync.get("public_archive_verification") or {}).get("expected_identity"),
+        "public_observed_identity": (sync.get("public_archive_verification") or {}).get("observed_identity"),
     }
 
 

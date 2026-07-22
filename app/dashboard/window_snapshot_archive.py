@@ -5,9 +5,10 @@ import hashlib
 import json
 import os
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from app.us_stock.runtime_provenance import ADMITTED_PROVENANCE, provenance_admission
 
@@ -110,10 +111,11 @@ def resolve_snapshots(archive_root: Path, market: str, window: str) -> SnapshotS
     by_date: dict[str, dict[str, Any]] = {}
     for item in candidates:
         trading_date = str(item["effective_trading_date"])
-        rank = (int(item.get("revision") or 0), str(item.get("generated_at") or ""), str(item["snapshot_id"]))
+        admitted_at = str(item.get("admitted_at") or item.get("revision_created_at") or item.get("generated_at") or "")
+        rank = (int(item.get("revision") or 0), admitted_at, str(item["snapshot_id"]))
         current = by_date.get(trading_date)
         current_rank = (-1, "", "") if current is None else (
-            int(current.get("revision") or 0), str(current.get("generated_at") or ""), str(current["snapshot_id"])
+            int(current.get("revision") or 0), str(current.get("admitted_at") or current.get("revision_created_at") or current.get("generated_at") or ""), str(current["snapshot_id"])
         )
         if rank > current_rank:
             by_date[trading_date] = item
@@ -259,6 +261,7 @@ def write_snapshot(
         "manual_rerun": run_kind == "manual_rerun",
         "batch_window": canonical_window,
         "revision_created_at": generated_at,
+        "admitted_at": datetime.now(ZoneInfo("Asia/Taipei")).replace(microsecond=0).isoformat(),
         "original_batch_time": original_batch_time,
         "is_latest_revision": True,
         "status": "complete",

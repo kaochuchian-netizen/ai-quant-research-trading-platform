@@ -19,6 +19,16 @@ WINDOW_SNAPSHOT_ARCHIVE = Path(os.environ.get("STOCK_AI_WINDOW_SNAPSHOT_ARCHIVE"
 IDENTITY_FIELDS = ("market", "window", "effective-trading-date", "snapshot-id", "revision", "payload-hash")
 
 
+def identity_parity(*identities: dict[str, Any] | None) -> dict[str, Any]:
+    """Compare retained source identities without relying on file mtimes."""
+    present = [item for item in identities if isinstance(item, dict)]
+    fields = ("market", "window", "effective_trading_date", "snapshot_id", "revision", "payload_hash")
+    if len(present) != len(identities):
+        return {"status": "not_observable", "mismatch_fields": list(fields)}
+    mismatch = [field for field in fields if len({str(item.get(field)) for item in present}) != 1]
+    return {"status": "verified" if not mismatch else "failed_verification", "mismatch_fields": mismatch}
+
+
 def expected_latest_identity(market: str, window: str, archive_root: Path | None = None) -> dict[str, Any] | None:
     archive_root = archive_root or WINDOW_SNAPSHOT_ARCHIVE
     latest = resolve_snapshots(archive_root, market.upper(), window).latest

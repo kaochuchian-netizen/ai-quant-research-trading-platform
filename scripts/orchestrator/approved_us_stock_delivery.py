@@ -35,7 +35,7 @@ from app.dashboard.window_snapshot_archive import resolve_snapshots, write_snaps
 from app.dashboard.public_latest_sync import synchronize_admitted_latest, write_sync_artifact
 from app.reports.delivery_provenance import build_delivery_provenance, write_delivery_provenance
 from app.reports.window_report_contract import get_window_report_contract
-from app.reports.canonical_outcomes import actual_outcome_evidence, aggregate_outcomes
+from app.reports.canonical_outcomes import aggregate_us_post_close_review, normalize_review_card
 from app.reports.presentation_normalization import (
     format_distance, format_timestamp, localize_enum, next_action_for_outcome, safe_public_text,
 )
@@ -288,20 +288,20 @@ def _compact_us_email_block(card: dict[str, Any], window: str) -> str:
             f"原因：{card.get('adjustment_reason') or '盤中行情不足，無法安全判定'}",
         ])
     if window == "us_post_close_review_0630":
-        outcome = str(card.get("canonical_outcome") or "pending")
+        card = normalize_review_card(card)
+        outcome = str(card.get("trade_outcome") or "pending")
+        prediction_result = str(card.get("prediction_range_result") or "pending")
         review = card.get("review") if isinstance(card.get("review"), dict) else {}
-        evidence = card.get("outcome_evidence") if isinstance(card.get("outcome_evidence"), dict) else {}
-        actual_available = bool(evidence.get("actual_available")) or actual_outcome_evidence(review, outcome)
-        if outcome in {"hit", "fail", "not_triggered"} and not actual_available:
-            outcome = "pending"
+        actual_available = all(review.get(key) is not None for key in ("actual_high", "actual_low", "actual_close"))
         return "\n".join([
             f"{symbol} {name}",
-            f"結果：{localize_enum(outcome)}｜Actual evidence：{'已取得' if actual_available else '尚未取得'}",
+            f"預測區間結果：{localize_enum(prediction_result)}｜交易結果：{localize_enum(outcome)}",
+            f"Actual evidence：{'已取得' if actual_available else '尚未取得'}",
             f"Prediction review：{safe_public_text(prediction.get('today_range'))}",
             f"Actual high / low：{safe_public_text(review.get('actual_high'))} / {safe_public_text(review.get('actual_low'))}",
             f"MFE / MAE：{safe_public_text(review.get('mfe'), missing='待確認')} / {safe_public_text(review.get('mae'), missing='待確認')}",
             f"Overnight event update：{safe_public_text(risk)}",
-            f"Next-session action：{next_action_for_outcome(outcome)}",
+            f"Next-session action：{'先確認交易結果；目前不判定目標命中。' if outcome == 'pending' else next_action_for_outcome(outcome)}",
         ])
     return decision_email_block_v2(presentation)
 
@@ -310,20 +310,20 @@ def build_email_body(artifact: dict[str, Any], window: str) -> str:
     date = artifact.get("generated_at", "")[:10]
     cards = [card for card in artifact.get("dashboard_ready_contract", {}).get("cards", []) if isinstance(card, dict)]
     projection = project_decision_intelligence_v4("US", window, artifact)
-    lines = [f"{contract.title} {date}", "", f"Dashboard: {contract.dashboard_url}", "", contract.primary_question, "", "Decision Intelligence V4", compact_summary(projection, "email"), "內容範圍：" + "、".join(projection["section_inventory"]), "", "本批次內容："]
+    projection_summary = compact_summary(projection, "email") if window != "us_post_close_review_0630" else "預測評估與交易結果分開呈現；不以區間命中宣稱交易命中。"
+    lines = [f"{contract.title} {date}", "", f"Dashboard: {contract.dashboard_url}", "", contract.primary_question, "", "Decision Intelligence V4", projection_summary, "內容範圍：" + "、".join(projection["section_inventory"]), "", "本批次內容："]
     if window == "us_post_close_review_0630":
-        try:
-            aggregate = aggregate_outcomes(cards)
-        except ValueError:
-            aggregate = {"hit_count": 0, "fail_count": 0, "not_triggered_count": 0, "no_trade_count": 0, "pending_count": len(cards), "review_card_count": len(cards), "completed_review_count": 0, "pending_review_count": len(cards)}
+        cards = [normalize_review_card(card) for card in cards]
+        aggregate = aggregate_us_post_close_review(cards)
         session = artifact.get("session_context") if isinstance(artifact.get("session_context"), dict) else {}
         lines.extend([
             f"美股交易日：{session.get('session_date') or '尚未取得'}",
             f"美東行情時間：{format_timestamp(session.get('reference_new_york'), timezone_name='America/New_York')}",
             f"台北報告時間：{format_timestamp(artifact.get('generated_at'))}",
-            f"檢討卡 {aggregate['review_card_count']}｜已判定 {aggregate['completed_review_count']}｜待確認 {aggregate['pending_review_count']}",
-            f"命中 {aggregate['hit_count']}｜失敗 {aggregate['fail_count']}｜未觸發 {aggregate['not_triggered_count']}｜無交易 {aggregate['no_trade_count']}",
-            f"Win / Loss / Not Triggered：{aggregate['hit_count']} / {aggregate['fail_count']} / {aggregate['not_triggered_count']}",
+            f"預測區間命中 {aggregate['prediction_range_hit_count']}｜未命中 {aggregate['prediction_range_miss_count']}｜待確認 {aggregate['prediction_pending_count']}",
+            f"交易結果已判定 {aggregate['completed_trade_review_count']}｜待確認 {aggregate['pending_trade_review_count']}",
+            f"交易命中 {aggregate['trade_hit_count']}｜失敗 {aggregate['trade_fail_count']}｜未觸發 {aggregate['trade_not_triggered_count']}｜無交易 {aggregate['trade_no_trade_count']}",
+            "Next-session watchlist：依各卡交易結果與事件風險逐檔確認。",
         ])
     if window == "us_intraday_2300":
         summary = artifact.get("intraday_summary") or {}
@@ -367,16 +367,14 @@ def line_text(artifact: dict[str, Any], window: str) -> str:
             f"重點調整：{changes}", "完整報告：", contract.dashboard_url, "僅供研究參考，非交易指令。",
         ])
     if window == "us_post_close_review_0630":
-        try:
-            aggregate = aggregate_outcomes(cards)
-        except ValueError:
-            aggregate = {"hit_count": 0, "fail_count": 0, "not_triggered_count": 0, "no_trade_count": 0, "pending_count": len(cards), "review_card_count": len(cards), "completed_review_count": 0, "pending_review_count": len(cards)}
-        canonical_summary = compact_summary(project_decision_intelligence_v4("US", window, artifact), "line")
+        cards = [normalize_review_card(card) for card in cards]
+        aggregate = aggregate_us_post_close_review(cards)
+        prediction_hits = "、".join(str(card.get("symbol") or card.get("stock_id")) for card in cards if card.get("prediction_range_result") == "hit") or "無"
         return "\n".join([
             "【Stock AI】06:30 美股盤後檢討",
-            canonical_summary,
-            f"檢討卡 {aggregate['review_card_count']}｜已判定 {aggregate['completed_review_count']}｜待確認 {aggregate['pending_review_count']}",
-            f"命中 {aggregate['hit_count']}｜失敗 {aggregate['fail_count']}｜未觸發 {aggregate['not_triggered_count']}｜無交易 {aggregate['no_trade_count']}",
+            f"預測區間命中 {aggregate['prediction_range_hit_count']}｜未命中 {aggregate['prediction_range_miss_count']}",
+            f"交易結果已判定 {aggregate['completed_trade_review_count']}｜待確認 {aggregate['pending_trade_review_count']}",
+            f"預測區間命中：{prediction_hits}",
             "完整報告：", contract.dashboard_url, "僅供研究參考，非交易指令。",
         ])
     parts = [f"【Stock AI】{contract.title}已更新", "美股決策摘要已更新"]
@@ -512,6 +510,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 snapshot=latest_snapshot, canonical_url=get_window_report_contract("US", args.window).dashboard_url,
                 channel=channel, content=content, delivery_result=result_name,
                 delivery_attempted=attempted, recipient_count=int(delivery.get("recipient_count") or 0),
+                public_sync=public_latest_sync,
             )
             if persist_formal_runtime:
                 write_delivery_provenance(

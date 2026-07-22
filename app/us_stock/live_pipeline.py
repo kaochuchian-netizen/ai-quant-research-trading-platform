@@ -11,7 +11,7 @@ from app.us_stock.constants import DEFAULT_CURRENCY, DEFAULT_MARKET, US_BATCH_WI
 from app.us_stock.live_data import YFinanceUSClient, analyze_history, clean_number, now_taipei
 from app.us_stock.research_intelligence import RESEARCH_FACTOR_VERSION, USResearchIntelligenceBuilder
 from app.strategy.dual_strategy import DAILY_TACTICAL, RESEARCH_POSITION, US_TACTICAL_FACTOR_VERSION, build_dual_strategies
-from app.reports.canonical_outcomes import aggregate_outcomes, build_structured_review_cards
+from app.reports.canonical_outcomes import aggregate_us_post_close_review, build_structured_review_cards
 from app.us_stock.intraday_observed import (
     build_intraday_card,
     resolve_market_session,
@@ -227,7 +227,16 @@ def build_review(symbol: str, session_date: str, quote: dict[str, Any], history:
     high_err = round(float(actual_high) - float(pred["predicted_session_high"]), 4)
     low_err = round(float(actual_low) - float(pred["predicted_session_low"]), 4)
     covered = actual_high <= pred["predicted_session_high"] and actual_low >= pred["predicted_session_low"]
-    return {"symbol": symbol, "review_status": "reviewed", "canonical_outcome": "hit" if covered else "fail", "snapshot_ref": snap.get("snapshot_path"), "actual_high": actual_high, "actual_low": actual_low, "actual_close": actual_close, "range_covered": covered, "high_error": high_err, "low_error": low_err, "fabricated": False}
+    return {
+        "symbol": symbol, "review_status": "reviewed",
+        "prediction_range_result": "hit" if covered else "miss",
+        "canonical_outcome": "pending", "trade_outcome": "pending",
+        "pending_reason": "trade_entry_target_stop_evidence_incomplete",
+        "snapshot_ref": snap.get("snapshot_path"), "actual_high": actual_high,
+        "actual_low": actual_low, "actual_close": actual_close,
+        "range_covered": covered, "high_error": high_err, "low_error": low_err,
+        "fabricated": False,
+    }
 
 def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *, production_runtime: bool, write_snapshots: bool = True, reference: datetime | None = None) -> dict[str, Any]:
     if window not in US_BATCH_WINDOWS:
@@ -287,10 +296,11 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
             review = build_review(symbol, context["session_date"], result.quote, result.history)
             reviews.append(review)
     structured_review_cards = build_structured_review_cards(cards, reviews) if window == "us_post_close_review_0630" else []
-    review_aggregate = aggregate_outcomes(structured_review_cards) if structured_review_cards else {
-        "hit_count": 0, "fail_count": 0, "not_triggered_count": 0, "no_trade_count": 0,
-        "pending_count": 0, "review_card_count": 0, "completed_review_count": 0,
-        "pending_review_count": 0, "review_universe_count": 0,
+    review_aggregate = aggregate_us_post_close_review(structured_review_cards) if structured_review_cards else {
+        "prediction_range_hit_count": 0, "prediction_range_miss_count": 0, "prediction_pending_count": 0,
+        "trade_hit_count": 0, "trade_fail_count": 0, "trade_not_triggered_count": 0,
+        "trade_no_trade_count": 0, "trade_pending_count": 0, "review_card_count": 0,
+        "completed_trade_review_count": 0, "pending_trade_review_count": 0, "review_universe_count": 0,
     }
     if structured_review_cards:
         cards = structured_review_cards
@@ -325,11 +335,11 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
         "prediction_review_contract": {
             "market": DEFAULT_MARKET, "review_window": "us_post_close_review_0630",
             "review_card_count": review_aggregate["review_card_count"],
-            "completed_review_count": review_aggregate["completed_review_count"],
-            "pending_review_count": review_aggregate["pending_review_count"],
+            "completed_review_count": review_aggregate["completed_trade_review_count"],
+            "pending_review_count": review_aggregate["pending_trade_review_count"],
             "review_universe_count": review_aggregate["review_universe_count"],
-            "reviewed_stock_count": review_aggregate["completed_review_count"],
-            "pending_stock_count": review_aggregate["pending_review_count"],
+            "reviewed_stock_count": review_aggregate["completed_trade_review_count"],
+            "pending_stock_count": review_aggregate["pending_trade_review_count"],
             "outcome_counts": review_aggregate, "skipped_stock_count": 0, "items": reviews, "fabricated": False,
         },
         "dashboard_ready_contract": {"market_label": "美股", "sections": ["美股盤前 20:00", "美股盤中 23:00", "美股檢討 06:30"], "cards": cards},
