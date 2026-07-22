@@ -12,6 +12,7 @@ from app.dashboard.dashboard_url_registry import get_window_archive_url
 from app.dashboard.market_dashboard_alias import payload_hash
 from app.dashboard.window_snapshot_archive import load_admitted_snapshots, resolve_snapshots
 from app.reports.decision_intelligence_v4 import project_decision_intelligence_v4
+from app.reports.presentation_normalization import aggregate_card_timestamp
 
 TAIPEI = ZoneInfo("Asia/Taipei")
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -106,6 +107,9 @@ def snapshot_context(snapshot: dict[str, Any], baseline_snapshot: dict[str, Any]
             "snapshot_id": baseline_snapshot.get("snapshot_id"),
             "projection": project_decision_intelligence_v4("TW", "intraday_1305", baseline_payload),
         }
+    cards = payload.get("structured_pre_close_cards") if isinstance(payload.get("structured_pre_close_cards"), list) else []
+    payload_source_time = payload.get("source_data_time")
+    source_data_time = payload_source_time if _time(payload_source_time) else aggregate_card_timestamp(cards)
     context = {
         "market": "TW",
         "window": "pre_close_1335",
@@ -113,7 +117,7 @@ def snapshot_context(snapshot: dict[str, Any], baseline_snapshot: dict[str, Any]
         "effective_trading_date": snapshot.get("effective_trading_date"),
         "revision": int(snapshot.get("revision") or 1),
         "effective_batch_time": _time(payload.get("effective_batch_time") or snapshot.get("original_batch_time")),
-        "source_data_time": _time(payload.get("source_data_time")),
+        "source_data_time": _time(source_data_time),
         "source_data_date": payload.get("source_data_date") or ((payload.get("source_data_dates") or [None])[-1]),
         "generated_at": _time(payload.get("generated_at") or snapshot.get("generated_at")),
         "payload_hash": payload_hash(payload),
@@ -121,7 +125,7 @@ def snapshot_context(snapshot: dict[str, Any], baseline_snapshot: dict[str, Any]
         "projection": projection,
         "prediction_available": payload.get("prediction_available"),
         "prediction_total": payload.get("prediction_total"),
-        "source_time_status": payload.get("source_data_time_status") or ("available" if payload.get("source_data_time") else "unavailable"),
+        "source_time_status": payload.get("source_data_time_status") or ("available" if source_data_time else "unavailable"),
     }
     resolved_state = "same_day_baseline_available" if baseline else baseline_state or _baseline_failure_state(str(snapshot.get("effective_trading_date") or ""))
     context["same_day_change"] = build_same_day_change(context, baseline, resolved_state)

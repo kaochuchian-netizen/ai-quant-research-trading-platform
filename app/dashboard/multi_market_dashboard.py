@@ -41,6 +41,16 @@ from app.dashboard.market_dashboard_alias import identity_attributes, resolve_ac
 from app.us_stock.runtime_provenance import classify_runtime_provenance, is_dashboard_eligible
 from app.reports.tw_1335_snapshot_delivery import context_for_snapshot as tw_1335_context_for_snapshot, render_dashboard as render_tw_1335_dashboard
 from app.reports.tw_four_window_decision import localize as localize_tw_value, sanitize_text as sanitize_tw_text
+from app.reports.presentation_normalization import (
+    concise_news_summary,
+    format_distance,
+    format_timestamp,
+    localize_enum,
+    next_action_for_outcome,
+    next_session_action,
+    safe_public_text,
+)
+from app.reports.canonical_outcomes import actual_outcome_evidence, aggregate_outcomes
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PUBLIC_BASE_URL = "http://35.201.242.167/stock-ai-dashboard"
@@ -512,15 +522,21 @@ def _us_window_card(card: dict[str, Any], window: str) -> str:
         <article class="stock-card decision-card window-stock-card" data-market="US" data-card-type="window-intraday" data-report-type="{report_type}">
           <div class="decision-card__head"><div><div class="decision-card__market">US｜23:00 美股盤中｜決策呈現 V3</div><h3>{symbol} {name}</h3></div><span class="decision-badge">{_escape(_intraday_state(card.get('tactical_adjustment')))}</span></div>
           {failure_note}
-          <section class="decision-section" data-section="us-intraday-change"><h4>開盤後量價</h4>{_window_metric_grid([('Current price', _intraday_number(card.get('current_price'))), ('行情時間', card.get('market_data_as_of') or '尚未取得'), ('Gap', _intraday_state(card.get('gap_state'))), ('開盤 Gap', _intraday_number(card.get('gap_open_pct'), '%')), ('目前 Gap', _intraday_number(card.get('gap_current_pct'), '%')), ('Gap 回補', _intraday_number(card.get('gap_fill_pct'), '%')), ('Volume confirmation', _intraday_state(card.get('volume_confirmation_state'))), ('Volume ratio', _intraday_number(card.get('volume_ratio'), 'x'))])}</section>
-          <section class="decision-section" data-section="us-proximity"><h4>Trigger / Target / Stop</h4>{_window_metric_grid([('Entry zone', f"{_intraday_number(card.get('entry_low'))}–{_intraday_number(card.get('entry_high'))}"), ('Trigger status', _intraday_state(card.get('entry_trigger_state'))), ('距停損', _intraday_number(card.get('distance_to_stop_pct'), '%')), ('距目標', _intraday_number(card.get('distance_to_target_pct'), '%')), ('Tactical adjustment', _intraday_state(card.get('tactical_adjustment'))), ('調整原因', card.get('adjustment_reason')), ('主要風險', risk_text), ('資料來源', card.get('source')), ('資料狀態', _intraday_state(data_status))])}</section>
+          <section class="decision-section" data-section="us-intraday-change"><h4>開盤後量價</h4>{_window_metric_grid([('Current price', _intraday_number(card.get('current_price'))), ('美東行情時間', format_timestamp(card.get('market_data_as_of'), timezone_name='America/New_York')), ('Gap', _intraday_state(card.get('gap_state'))), ('開盤 Gap', _intraday_number(card.get('gap_open_pct'), '%')), ('目前 Gap', _intraday_number(card.get('gap_current_pct'), '%')), ('Gap 回補', _intraday_number(card.get('gap_fill_pct'), '%')), ('Volume confirmation', _intraday_state(card.get('volume_confirmation_state'))), ('Volume ratio', _intraday_number(card.get('volume_ratio'), 'x'))])}</section>
+          <section class="decision-section" data-section="us-proximity"><h4>Trigger / Target / Stop</h4>{_window_metric_grid([('Entry zone', f"{_intraday_number(card.get('entry_low'))}–{_intraday_number(card.get('entry_high'))}"), ('Trigger status', _intraday_state(card.get('entry_trigger_state'))), ('停損距離', format_distance(card.get('distance_to_stop_pct'), kind='stop')), ('目標距離', format_distance(card.get('distance_to_target_pct'), kind='target')), ('Tactical adjustment', _intraday_state(card.get('tactical_adjustment'))), ('調整原因', safe_public_text(card.get('adjustment_reason'))), ('主要風險', safe_public_text(risk_text)), ('資料來源', safe_public_text(card.get('source'))), ('資料狀態', _intraday_state(data_status))])}</section>
         </article>
         """
+    outcome = str(card.get("canonical_outcome") or "pending")
+    review = card.get("review") if isinstance(card.get("review"), dict) else {}
+    evidence = card.get("outcome_evidence") if isinstance(card.get("outcome_evidence"), dict) else {}
+    actual_available = bool(evidence.get("actual_available")) or actual_outcome_evidence(review, outcome)
+    if outcome in {"hit", "fail", "not_triggered"} and not actual_available:
+        outcome = "pending"
     return f"""
     <article class="stock-card decision-card window-stock-card" data-market="US" data-card-type="window-review" data-report-type="{report_type}">
-      <div class="decision-card__head"><div><div class="decision-card__market">US｜06:30 美股檢討｜決策呈現 V3</div><h3>{symbol} {name}</h3></div><span class="decision-badge decision-badge--warn">Review</span></div>
-      <section class="decision-section" data-section="us-prediction-review"><h4>Prediction review</h4>{_window_metric_grid([('Prediction range', prediction.get('today_range')), ('Win / Loss / Not Triggered', '本次檢討尚待實際結果'), ('Entry outcome', '本次檢討尚待實際結果'), ('Target outcome', tactical.get('target_1')), ('Stop outcome', tactical.get('stop')), ('Reward/Risk', tactical.get('reward_risk'))])}</section>
-      <section class="decision-section" data-section="us-review-next"><h4>MFE / MAE / Next session</h4>{_window_metric_grid([('MFE', '本次檢討尚待實際結果'), ('MAE', '本次檢討尚待實際結果'), ('Overnight event update', risk_text), ('Next-session watchlist', reason_text), ('News', news_text), ('SEC', sec_text), ('Review', review_text)])}</section>
+      <div class="decision-card__head"><div><div class="decision-card__market">US｜06:30 美股檢討｜決策呈現 V3</div><h3>{symbol} {name}</h3></div><span class="decision-badge decision-badge--warn">{_escape(localize_enum(outcome))}</span></div>
+      <section class="decision-section" data-section="us-prediction-review"><h4>Prediction / Actual outcome</h4>{_window_metric_grid([('Canonical outcome', localize_enum(outcome)), ('Prediction range', safe_public_text(prediction.get('today_range'))), ('Actual high / low', f"{safe_public_text(review.get('actual_high'))} / {safe_public_text(review.get('actual_low'))}"), ('Actual evidence', '已取得' if actual_available else '尚未取得'), ('Entry outcome', safe_public_text(review.get('entry_result'), missing='待確認')), ('Target outcome', safe_public_text(review.get('target_1_result'), missing='待確認')), ('Stop outcome', safe_public_text(review.get('stop_result'), missing='待確認'))])}</section>
+      <section class="decision-section" data-section="us-review-next"><h4>MFE / MAE / Next session</h4>{_window_metric_grid([('MFE', safe_public_text(review.get('mfe'), missing='待確認')), ('MAE', safe_public_text(review.get('mae'), missing='待確認')), ('Next-session action', next_action_for_outcome(outcome)), ('Overnight event update', safe_public_text(risk_text)), ('News', safe_public_text(news_text)), ('SEC', safe_public_text(sec_text))])}</section>
     </article>
     """
 
@@ -540,13 +556,33 @@ def render_us_window_report(window: str, artifacts: list[dict[str, Any]]) -> str
         "us_post_close_review_0630": "Prediction review、Entry / Stop / Target outcome、MFE / MAE 與 next-session watchlist。",
     }[window]
     if not cards:
-        body = '<article class="status-card warn"><h3>資料待接</h3><p>本批次資料尚未產生，不回退到完整 generic stock report。</p></article>'
+        body = '<article class="status-card warn"><h3>本批次資料尚未取得</h3><p>不回退到其他 market/window 的 generic stock report。</p></article>'
     else:
         body = ''.join(_us_window_card(card, window) for card in cards)
+    outcome_summary = ""
+    if window == "us_post_close_review_0630" and cards:
+        try:
+            summary = aggregate_outcomes(cards)
+        except ValueError:
+            summary = {"hit_count": 0, "fail_count": 0, "not_triggered_count": 0, "no_trade_count": 0, "pending_count": len(cards), "review_card_count": len(cards), "completed_review_count": 0, "pending_review_count": len(cards)}
+        session = artifact.get("session_context", {}) if isinstance(artifact, dict) and isinstance(artifact.get("session_context"), dict) else {}
+        outcome_summary = (
+            '<section class="decision-section outcome-first-summary" data-section="canonical-review-summary"><h3>全日檢討結果</h3>'
+            '<p>結果分類（Win / Loss / Not Triggered）以實際行情證據為準。</p>'
+            + _window_metric_grid([
+                ("檢討卡", summary["review_card_count"]), ("已判定", summary["completed_review_count"]),
+                ("待確認", summary["pending_review_count"]), ("命中", summary["hit_count"]),
+                ("失敗", summary["fail_count"]), ("未觸發", summary["not_triggered_count"]),
+                ("無交易", summary["no_trade_count"]), ("美股交易日", session.get("session_date") or "尚未取得"),
+                ("美東行情時間", format_timestamp(session.get("reference_new_york"), timezone_name="America/New_York")),
+                ("台北報告時間", format_timestamp(artifact.get("generated_at") if isinstance(artifact, dict) else None)),
+            ]) + '</section>'
+        )
     return f"""
     <section class="section window-report-section" data-market="US" data-window="{_escape(window)}" data-report-type="{report_type}">
       <h2>{_escape(contract.title)}</h2>
       <p>{_escape(intro)}</p>
+      {outcome_summary}
       {_decision_intelligence_v4_html("US", window, artifact)}
       <div class="grid decision-grid">{body}</div>
     </section>
@@ -745,6 +781,13 @@ def _decision_intelligence_v4_html(market: str, window: str, payload: dict[str, 
         "us_post_close_review_0630": ("total", "reviewed", "direction_hit"),
     }[window]
     metric_rows = [(labels[key], counts[key]) for key in count_fields]
+    if window in {"post_close_1500", "us_post_close_review_0630"}:
+        dist = projection["outcome_distribution"]
+        metric_rows = [
+            ("命中", int(dist.get("hit", 0))), ("失敗", int(dist.get("fail", 0))),
+            ("未觸發", int(dist.get("not_triggered", 0))), ("無交易", int(dist.get("no_trade", 0))),
+            ("待確認", int(dist.get("pending", 0))), ("已完成檢討", counts["reviewed"]),
+        ]
     lists = projection["lists"]
     list_rows = []
     for key, label in (("opportunities", "Top opportunities"), ("triggered", "已觸發"), ("invalidated", "已失效"), ("volume_confirmed", "量價確認"), ("failed_gaps", "Failed gaps"), ("event_risk", "事件風險"), ("still_actionable", "仍可行動"), ("no_trade", "No-trade"), ("chase_risk", "Chase-risk")):
@@ -755,8 +798,8 @@ def _decision_intelligence_v4_html(market: str, window: str, payload: dict[str, 
         list_rows.append(("資料狀態", "目前 payload 沒有可安全分類的明細；不跨 window 補值。"))
     distribution_rows = []
     if window in {"post_close_1500", "us_post_close_review_0630"}:
-        outcome_labels = {"win": "成功", "loss": "失敗", "not_triggered": "未觸發", "no_trade": "無交易", "pending": "待檢討"}
-        distribution_rows.extend((outcome_labels.get(key, "其他"), value) for key, value in projection["outcome_distribution"].items())
+        outcome_labels = {"hit": "命中", "fail": "失敗", "not_triggered": "未觸發", "no_trade": "無交易", "pending": "待確認"}
+        distribution_rows.extend((outcome_labels[key], value) for key, value in projection["outcome_distribution"].items() if key in outcome_labels)
     else:
         confidence_labels = {"high": "高信心", "medium": "中信心", "low": "低信心", "unknown": "信心資料待接"}
         distribution_rows.extend((confidence_labels.get(key, "其他"), value) for key, value in projection["confidence_distribution"].items())
@@ -799,7 +842,7 @@ def _joined_text(items: Any, fallback: str) -> str:
     return fallback
 
 
-def _research_v3_text(presentation: dict[str, Any], key: str, fallback: str = "資料待接") -> str:
+def _research_v3_text(presentation: dict[str, Any], key: str, fallback: str = "尚未取得") -> str:
     research_v3 = presentation.get("research_v3", {}) if isinstance(presentation.get("research_v3"), dict) else {}
     research = presentation.get("research", {}) if isinstance(presentation.get("research"), dict) else {}
     return clean_text(research_v3.get(key) or research.get(key), missing=fallback)
@@ -812,8 +855,8 @@ def _tw_intraday_card(card: dict[str, Any]) -> str:
     return f"""
     <article class="stock-card decision-card window-stock-card" data-market="TW" data-card-type="window-intraday" data-report-type="intraday-change">
       <div class="decision-card__head"><div><div class="decision-card__market">TW｜13:05 盤中變化</div><h3>{_escape(stock_id)} {_escape(stock_name)}</h3></div><span class="decision-badge decision-badge--ok">{_escape(action)}</span></div>
-      <section class="decision-section" data-section="intraday-status"><h4>盤中觀察</h4>{_window_metric_grid([('目前價格', card.get('current_price')), ('行情時間', card.get('market_data_as_of')), ('盤中高 / 低', f"{card.get('session_high')} / {card.get('session_low')}"), ('Trigger', localize_tw_value(card.get('entry_trigger_state')))])}</section>
-      <section class="decision-section" data-section="intraday-proximity"><h4>量價 / 目標 / 停損</h4>{_window_metric_grid([('成交量倍率', card.get('volume_ratio') if card.get('volume_ratio') is not None else '尚未取得'), ('量能狀態', localize_tw_value(card.get('volume_confirmation_state'))), ('距第一目標', card.get('distance_to_target_1_pct') if card.get('distance_to_target_1_pct') is not None else '不適用'), ('距停損', card.get('distance_to_stop_pct') if card.get('distance_to_stop_pct') is not None else '不適用'), ('調整原因', sanitize_tw_text(card.get('action_change_reason')))])}</section>
+      <section class="decision-section" data-section="intraday-status"><h4>盤中觀察</h4>{_window_metric_grid([('目前價格', safe_public_text(card.get('current_price'))), ('行情時間', format_timestamp(card.get('market_data_as_of'), reference_value=card.get('fetched_at'))), ('盤中高 / 低', f"{safe_public_text(card.get('session_high'), missing='不適用')} / {safe_public_text(card.get('session_low'), missing='不適用')}"), ('觸發狀態', localize_enum(card.get('entry_trigger_state')))])}</section>
+      <section class="decision-section" data-section="intraday-proximity"><h4>量價 / 目標 / 停損</h4>{_window_metric_grid([('成交量倍率', f"{float(card.get('volume_ratio')):.2f} 倍" if card.get('volume_ratio') is not None else '尚未取得'), ('量能狀態', localize_enum(card.get('volume_confirmation_state'))), ('目標距離', format_distance(card.get('distance_to_target_1_pct'), kind='target')), ('停損距離', format_distance(card.get('distance_to_stop_pct'), kind='stop')), ('盤中調整', localize_enum(card.get('intraday_action'))), ('調整原因', safe_public_text(card.get('action_change_reason')))])}</section>
     </article>
     """
 
@@ -825,9 +868,9 @@ def _tw_pre_close_card(card: dict[str, Any]) -> str:
     return f"""
     <article class="stock-card decision-card window-stock-card" data-market="TW" data-card-type="window-snapshot" data-report-type="pre-close-snapshot">
       <div class="decision-card__head"><div><div class="decision-card__market">TW｜13:35 收盤快照</div><h3>{stock_id} {stock_name}</h3></div><span class="decision-badge decision-badge--warn">{_escape(action)}</span></div>
-      <section class="decision-section" data-section="pre-close-summary"><h4>收盤前摘要</h4>{_window_metric_grid([('目前價格', card.get('current_price')), ('行情時間', card.get('market_data_as_of')), ('Trigger', localize_tw_value(card.get('entry_trigger_state'))), ('留倉決策', action)])}</section>
-      <section class="decision-section" data-section="pre-close-risk"><h4>尾盤風險</h4>{_window_metric_grid([('接近第一目標', '是' if card.get('near_target') else '否'), ('距第一目標', card.get('distance_to_target_1_pct') if card.get('distance_to_target_1_pct') is not None else '不適用'), ('接近停損', '是' if card.get('near_stop') else '否'), ('距停損', card.get('distance_to_stop_pct') if card.get('distance_to_stop_pct') is not None else '不適用')])}</section>
-      <section class="decision-section" data-section="next-watch"><h4>明日初步觀察</h4><p>{_escape(sanitize_tw_text(card.get('holding_reason')))}</p></section>
+      <section class="decision-section" data-section="pre-close-summary"><h4>收盤前摘要</h4>{_window_metric_grid([('目前價格', safe_public_text(card.get('current_price'))), ('行情時間', format_timestamp(card.get('market_data_as_of'), reference_value=card.get('fetched_at'))), ('觸發狀態', localize_enum(card.get('entry_trigger_state'))), ('留倉決策', action)])}</section>
+      <section class="decision-section" data-section="pre-close-risk"><h4>尾盤風險</h4>{_window_metric_grid([('接近第一目標', '是' if card.get('near_target') else '否'), ('目標距離', format_distance(card.get('distance_to_target_1_pct'), kind='target')), ('接近停損', '是' if card.get('near_stop') else '否'), ('停損距離', format_distance(card.get('distance_to_stop_pct'), kind='stop'))])}</section>
+      <section class="decision-section" data-section="next-watch"><h4>明日初步觀察</h4><p>{_escape(next_session_action(card))}</p></section>
     </article>
     """
 
@@ -850,9 +893,9 @@ def _tw_post_close_card(card: dict[str, Any]) -> str:
     return f"""
     <article class="stock-card decision-card window-stock-card" data-market="TW" data-card-type="window-review" data-report-type="post-close-review">
       <div class="decision-card__head"><div><div class="decision-card__market">TW｜15:00 盤後檢討</div><h3>{stock_id} {stock_name}</h3></div><span class="decision-badge decision-badge--warn">{_escape(result)}</span></div>
-      <section class="decision-section" data-section="prediction-review"><h4>今日預測 vs 實際</h4>{_window_metric_grid([('預測方向', localize_tw_value(card.get('predicted_direction'))), ('預測低 / 高', f"{card.get('predicted_low')} / {card.get('predicted_high')}"), ('實際低 / 高', f"{card.get('actual_low')} / {card.get('actual_high')}"), ('結果分類', result)])}</section>
+      <section class="decision-section" data-section="prediction-review"><h4>今日結果</h4>{_window_metric_grid([('結果分類', result), ('預測方向', localize_enum(card.get('predicted_direction'))), ('預測低 / 高', f"{safe_public_text(card.get('predicted_low'), missing='不適用')} / {safe_public_text(card.get('predicted_high'), missing='不適用')}"), ('實際低 / 高', f"{safe_public_text(card.get('actual_low'), missing='不適用')} / {safe_public_text(card.get('actual_high'), missing='不適用')}"), ('明日行動', next_action_for_outcome(card.get('canonical_outcome')))])}</section>
       <section class="decision-section" data-section="outcome-review"><h4>進場 / 目標 / 停損結果</h4>{_window_metric_grid([('是否進場', '已觸發' if card.get('entry_triggered') else '未觸發'), ('第一目標結果', '命中' if card.get('target_1_hit') else '未命中'), ('第二目標結果', '命中' if card.get('target_2_hit') else '未命中'), ('停損結果', '觸發' if card.get('stop_hit') else '未觸發')])}</section>
-      <section class="decision-section" data-section="mfe-mae"><h4>MFE / MAE</h4>{_window_metric_grid([('MFE', localize_tw_value(card.get('mfe_pct'))), ('MAE', localize_tw_value(card.get('mae_pct'))), ('False Breakout', '是' if card.get('false_breakout') else '否'), ('行情時間', card.get('market_data_as_of') or '本批次行情來源暫時無法取得')])}</section>
+      <section class="decision-section" data-section="mfe-mae"><h4>MFE / MAE</h4>{_window_metric_grid([('MFE', safe_public_text(card.get('mfe_pct'), missing='不適用')), ('MAE', safe_public_text(card.get('mae_pct'), missing='不適用')), ('False Breakout', '是' if card.get('false_breakout') else '否'), ('行情時間', format_timestamp(card.get('market_data_as_of')))])}</section>
     </article>
     """
 
@@ -864,14 +907,17 @@ def _tw_pre_open_structured_card(card: dict[str, Any]) -> str:
     action = clean_text(card.get("action"), missing="等待確認")
     freshness = card.get("data_freshness") if isinstance(card.get("data_freshness"), dict) else {}
     missing_fields = card.get("missing_fields") if isinstance(card.get("missing_fields"), list) else []
+    news = concise_news_summary(card)
     return f"""
     <article class="stock-card decision-card window-stock-card tw-pre-open-structured-card"
       data-market="TW" data-window="pre_open_0700" data-symbol="{_escape(symbol)}"
       data-card-type="pre-open-decision-v4" data-availability="{_escape(availability)}">
       <div class="decision-card__head"><div><div class="decision-card__market">TW｜07:00 盤前決策</div><h3>{_escape(symbol)} {_escape(name)}</h3></div><span class="decision-badge decision-badge--ok">{_escape(action)}</span></div>
-      <section class="decision-section" data-section="pre-open-action"><h4>今日行動</h4>{_window_metric_grid([('Entry readiness', localize_tw_value(card.get('entry_readiness'))), ('進場條件', card.get('entry_condition')), ('進場區', f"{card.get('entry_low')}–{card.get('entry_high')}" if card.get('entry_low') is not None else '不適用'), ('停損', card.get('stop_level') if card.get('stop_level') is not None else '不適用'), ('目標一 / 二', f"{card.get('target_1')} / {card.get('target_2')}" if card.get('target_1') is not None else '不適用'), ('風險報酬', card.get('risk_reward') if card.get('risk_reward') is not None else '不適用')])}</section>
-      <section class="decision-section" data-section="pre-open-context"><h4>市場與隔夜脈絡</h4>{_window_metric_grid([('市場環境', card.get('market_context')), ('隔夜影響', card.get('overnight_context')), ('ADR', card.get('adr_context')), ('技術', card.get('technical_summary')), ('籌碼', card.get('chip_summary')), ('新聞事件', card.get('news_summary'))])}</section>
-      <section class="decision-section" data-section="pre-open-risk"><h4>主要風險</h4>{_window_metric_grid([('追價風險', localize_tw_value(card.get('chase_risk'))), ('Gap 風險', localize_tw_value(card.get('gap_risk'))), ('事件風險', localize_tw_value(card.get('event_risk'))), ('風險摘要', card.get('risk_summary')), ('不交易原因', sanitize_tw_text(card.get('do_not_trade_reason'), '不適用'))])}</section>
+      <section class="decision-section" data-section="pre-open-action"><h4>今日行動</h4>{_window_metric_grid([('Entry readiness', localize_enum(card.get('entry_readiness'))), ('進場條件', safe_public_text(card.get('entry_condition'))), ('進場區', f"{card.get('entry_low')}–{card.get('entry_high')}" if card.get('entry_low') is not None else '不適用'), ('停損', card.get('stop_level') if card.get('stop_level') is not None else '不適用'), ('目標一 / 二', f"{card.get('target_1')} / {safe_public_text(card.get('target_2'), missing='不適用')}" if card.get('target_1') is not None else '不適用'), ('風險報酬', card.get('risk_reward') if card.get('risk_reward') is not None else '不適用')])}</section>
+      <section class="decision-section" data-section="pre-open-context"><h4>市場與隔夜脈絡</h4>{_window_metric_grid([('市場環境', safe_public_text(card.get('market_context'))), ('隔夜影響', safe_public_text(card.get('overnight_context'))), ('ADR', safe_public_text(card.get('adr_context'))), ('技術', safe_public_text(card.get('technical_summary'))), ('籌碼', safe_public_text(card.get('chip_summary')))])}</section>
+      <section class="decision-section news-decision-summary" data-section="news-summary"><h4>新聞決策摘要</h4>{_window_metric_grid([('新聞方向', news['direction']), ('主要原因', news['reason']), ('策略影響', news['strategy_impact']), ('來源品質', news['source_quality']), ('信心', news['confidence'])])}</section>
+      <details class="decision-details" data-section="news-detail"><summary>完整新聞分析</summary><div class="decision-details__body"><p>{_escape(safe_public_text(card.get('news_summary'), missing='本批次無重大新聞變化'))}</p></div></details>
+      <section class="decision-section" data-section="pre-open-risk"><h4>主要風險</h4>{_window_metric_grid([('追價風險', localize_enum(card.get('chase_risk'))), ('Gap 風險', localize_enum(card.get('gap_risk'))), ('事件風險', localize_enum(card.get('event_risk'))), ('風險摘要', safe_public_text(card.get('risk_summary'))), ('不交易原因', safe_public_text(card.get('do_not_trade_reason'), missing='不適用'))])}</section>
       <details class="decision-details"><summary>資料新鮮度與不可用欄位</summary><div class="decision-details__body">{_window_metric_grid([('行情資料', freshness.get('market_data_as_of') or '前一交易日收盤'), ('技術資料', freshness.get('technical_as_of') or '前一交易日收盤'), ('新聞資料', freshness.get('news_as_of') or '本批次尚未取得'), ('籌碼資料', freshness.get('chip_as_of') or '本批次尚未取得'), ('ADR 資料', freshness.get('adr_as_of') or '本批次尚未取得'), ('基本面期間', freshness.get('fundamental_period') or '不適用'), ('報告產生', freshness.get('report_generated_at') or '本批次尚未取得'), ('缺少欄位', '、'.join(str(value) for value in missing_fields) or '無')])}</div></details>
     </article>
     """
@@ -898,7 +944,7 @@ def render_tw_window_report(window: str, artifact: dict[str, Any] | None = None)
           <h2>{_escape(contract.title)}</h2>
           <p>今日盤前重點、市場環境、可觀察標的與短線操作計畫。</p>
           <div class="decision-plan pre-open-summary">{_metric('Top opportunities', summary.get('top_opportunity_count'))}{_metric('No-trade', summary.get('no_trade_count'))}{_metric('追價風險', summary.get('chase_risk_count'))}{_metric('Entry ready', summary.get('entry_ready_count'))}{_metric('資料部分可用', summary.get('partial_data_count'))}{_metric('資料不可用', summary.get('unavailable_count'))}</div>
-          <p class="decision-note">優先觀察：{_escape(groups.get('top_opportunities') or '本批次無符合完整門檻標的')}｜避免追價：{_escape(groups.get('high_chase_risk'))}</p>
+          <p class="decision-note">優先觀察：{_escape('、'.join(groups.get('top_opportunities') or []) or '本批次無符合完整門檻標的')}｜避免追價：{_escape('、'.join(groups.get('high_chase_risk') or []) or '無')}</p>
           <p class="decision-note pre-open-card-count" data-tracking-stock-count="{_escape(artifact.get('tracking_stock_count', len(cards)))}" data-rendered-card-count="{len(cards)}">Tracking {_escape(artifact.get('tracking_stock_count', len(cards)))}｜Rendered {len(cards)}</p>
           <div class="grid decision-grid">{body}</div>
         </section>
@@ -912,7 +958,7 @@ def render_tw_window_report(window: str, artifact: dict[str, Any] | None = None)
     if not cards:
         body = ('<article class="status-card warn official-review-empty-state" data-review-state="official-empty">'
                 '<h3>正式 Review Payload 尚未建立</h3><p>本批次尚未建立正式 Review Payload。'
-                '不跨 window 補值，不使用範例或測試資料。</p></article>') if window == "post_close_1500" else '<article class="status-card warn"><h3>資料待接</h3><p>本批次資料尚未產生，不回退到完整 generic stock report。</p></article>'
+                '不跨 window 補值，不使用範例或測試資料。</p></article>') if window == "post_close_1500" else '<article class="status-card warn"><h3>本批次資料尚未取得</h3><p>不回退到其他 window 的 generic stock report。</p></article>'
     else:
         body = ''.join(renderer(card) for card in cards if isinstance(card, dict))
     section_intro = {

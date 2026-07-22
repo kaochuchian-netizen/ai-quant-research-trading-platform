@@ -8,6 +8,8 @@ from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from app.reports.presentation_normalization import format_timestamp, next_action_for_outcome, safe_public_text
+
 TAIPEI = ZoneInfo("Asia/Taipei")
 SCHEMA_VERSION = "tw_post_close_structured_review_v1"
 
@@ -140,12 +142,7 @@ def build_structured_review_payload(
 
 
 def _taipei_display(value: Any, fallback: str = "尚未取得") -> str:
-    if not value:
-        return fallback
-    try:
-        return datetime.fromisoformat(str(value).replace("Z", "+00:00")).astimezone(TAIPEI).strftime("%Y-%m-%d %H:%M")
-    except ValueError:
-        return str(value)
+    return format_timestamp(value, timezone_name="Asia/Taipei", missing=fallback)
 
 
 def render_email(payload: dict[str, Any], dashboard_url: str, *, snapshot_id: str = "", revision: int | None = None, payload_hash: str = "") -> str:
@@ -168,7 +165,12 @@ def render_email(payload: dict[str, Any], dashboard_url: str, *, snapshot_id: st
     if ranked:
         lines += ["", "代表性檢討："]
         for card in ranked[:5]:
-            lines.append(f"- {card.get('stock_id')} {card.get('stock_name')}：{card.get('outcome')}｜{card.get('review')}｜下一步 {card.get('next_action')}")
+            outcome = str(card.get("canonical_outcome") or card.get("outcome") or "pending")
+            lines.append(
+                f"- {card.get('stock_id')} {card.get('stock_name')}：{safe_public_text(outcome)}｜"
+                f"{safe_public_text(card.get('review'), missing='依正式 outcome evidence 檢討')}｜"
+                f"下一步 {safe_public_text(card.get('next_action'), missing=next_action_for_outcome(outcome))}"
+            )
     else:
         lines += ["", "本批次尚未建立正式 Review Payload。不跨 window 補值，不使用 Sample 或 Fixture。"]
     lines += ["", "完整報告：", dashboard_url, "僅供研究參考，非交易指令。"]

@@ -7,7 +7,12 @@ from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from app.reports.presentation_normalization import normalize_date_presentation
+from app.reports.presentation_normalization import (
+    concise_news_summary,
+    format_timestamp,
+    normalize_date_presentation,
+    safe_public_text,
+)
 from app.reports.tw_four_window_decision import localize, sanitize_text, upgrade_pre_open_card
 
 WINDOW = "pre_open_0700"
@@ -213,14 +218,29 @@ def render_email(payload: dict[str, Any], url: str) -> str:
     top=summary["groups"]["top_opportunities"][:3]
     lines=["【Stock AI】07:00 台股盤前決策",f"交易日：{payload.get('effective_trading_date')}","市場基調：盤前依前一交易日收盤、ADR、新聞與籌碼資料判斷","Top opportunities："]
     for symbol in top:
-        card=cards[symbol]; lines.append(f"- {symbol} {card.get('name')}｜{card.get('action')}｜{localize(card.get('entry_readiness'))}｜依據：{card.get('reasoning')}｜風險：{card.get('risk_summary')}")
+        card=cards[symbol]; lines.append(f"- {symbol} {safe_public_text(card.get('name'))}｜{safe_public_text(card.get('action'))}｜{localize(card.get('entry_readiness'))}｜依據：{safe_public_text(card.get('reasoning'))}｜風險：{safe_public_text(card.get('risk_summary'))}")
     if not top:
         lines.append("- 本批次沒有符合 entry、stop、target、風險報酬與資料完整度門檻的標的")
-    lines += [f"No-trade / avoid：{'、'.join(summary['groups']['no_trade']) or '無'}",f"追價風險：{'、'.join(summary['groups']['high_chase_risk']) or '無'}",f"報告產生：{_report_generated_at(payload)}","完整報告：",url,"僅供研究參考，非交易指令。"]
+    news_cards = [card for card in payload.get("structured_pre_open_cards", []) if isinstance(card, dict)][:3]
+    if news_cards:
+        lines.append("新聞決策摘要：")
+        for card in news_cards:
+            news = concise_news_summary(card)
+            lines.extend([
+                f"- {card.get('symbol')} {safe_public_text(card.get('name'))}｜新聞方向：{news['direction']}",
+                f"  主要原因：{news['reason']}",
+                f"  策略影響：{news['strategy_impact']}｜來源品質：{news['source_quality']}｜信心：{news['confidence']}",
+            ])
+    lines += [f"No-trade / avoid：{'、'.join(summary['groups']['no_trade']) or '無'}",f"追價風險：{'、'.join(summary['groups']['high_chase_risk']) or '無'}",f"報告產生：{format_timestamp(_report_generated_at(payload))}","完整報告：",url,"僅供研究參考，非交易指令。"]
     return "\n".join(lines)
 
 
 def render_line(payload: dict[str, Any], url: str) -> str:
     summary=payload.get("pre_open_summary") or aggregate(payload.get("structured_pre_open_cards",[]),payload.get("tracking_symbols",[]))
     top=summary["groups"]["top_opportunities"][:3]
-    return "\n".join(["【Stock AI】07:00 台股盤前決策","市場基調：依前一交易日收盤、ADR、新聞與籌碼資料判斷",f"Top 3 opportunities：{'、'.join(top) or '本批次無符合完整門檻標的'}",f"Avoid：{'、'.join(summary['groups']['no_trade']) or '無'}",f"主要風險：追價風險 {summary['chase_risk_count']} 檔",f"報告產生：{_report_generated_at(payload)}","完整報告：",url])
+    news_card = next((card for card in payload.get("structured_pre_open_cards", []) if isinstance(card, dict)), None)
+    news_line = "新聞：本批次無重大新聞變化"
+    if news_card:
+        news = concise_news_summary(news_card)
+        news_line = f"新聞：{news_card.get('symbol')} {news['direction']}｜{news['strategy_impact']}"
+    return "\n".join(["【Stock AI】07:00 台股盤前決策","市場基調：依前一交易日收盤、ADR、新聞與籌碼資料判斷",f"Top 3 opportunities：{'、'.join(top) or '本批次無符合完整門檻標的'}",f"Avoid：{'、'.join(summary['groups']['no_trade']) or '無'}",f"主要風險：追價風險 {summary['chase_risk_count']} 檔",news_line,f"報告產生：{format_timestamp(_report_generated_at(payload))}","完整報告：",url])

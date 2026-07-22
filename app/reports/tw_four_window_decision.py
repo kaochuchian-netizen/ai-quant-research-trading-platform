@@ -14,6 +14,13 @@ from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from app.reports.presentation_normalization import (
+    aggregate_card_timestamp,
+    format_timestamp,
+    next_session_action,
+    safe_public_text,
+)
+
 TAIPEI = ZoneInfo("Asia/Taipei")
 SCHEMA_VERSION = "tw_four_window_decision_closure_v1"
 TW_WINDOWS = ("pre_open_0700", "intraday_1305", "pre_close_1335", "post_close_1500")
@@ -31,6 +38,9 @@ LOCALIZED = {
     "strong": "量能強勁", "confirmed": "量能確認", "weak": "量能偏弱",
     "entry_ready": "進場條件完整", "watch": "觀察", "hold": "可留倉", "reduce": "降低風險",
     "avoid_overnight": "避免留倉", "data_unavailable": "資料無法取得",
+    "cancel_chase": "取消追價", "target_near": "接近目標", "entry_triggered_hold": "已觸發，續抱觀察",
+    "wait_for_volume": "等待量能確認", "reduce_risk": "降低風險", "maintain_watch": "維持觀察",
+    "unknown": "尚未判定", "neutral": "中性", "downtrend": "偏空趨勢",
 }
 
 
@@ -89,6 +99,12 @@ def sanitize_text(value: Any, fallback: str = "本批次尚未取得") -> str:
         clean = [sanitize_text(item, "") for item in value]
         return "、".join(item for item in clean if item) or fallback
     text = str(value).strip()
+    instruction = {
+        "use deterministic entry_zone when present": "價格進入建議區間，且量價與風險條件符合",
+        "setup not confirmed": "進場條件尚未確認",
+    }
+    if text in instruction:
+        return instruction[text]
     lowered = text.lower()
     if "gemini error" in lowered or "deadline_exceeded" in lowered or "504" in lowered:
         return "新聞分析暫時無法取得"
@@ -376,7 +392,12 @@ def aggregate_cards(window: str, cards: list[dict[str, Any]]) -> dict[str, Any]:
         priority_order = {"reduce": 0, "avoid_overnight": 1, "hold": 2, "watch": 3, "no_trade": 4, "unavailable": 5}
         ranking = sorted(cards, key=lambda card: (priority_order.get(str(card.get("holding_decision")), 9), abs(number(card.get("distance_to_stop_pct")) or 999), str(card.get("symbol"))))
         groups = {name: [str(card.get("symbol")) for card in ranking if card.get("holding_decision") == name] for name in priority_order}
-        base.update({"priority_groups": groups, "priority_symbols": [str(card.get("symbol")) for card in ranking if card.get("holding_decision") in {"reduce", "avoid_overnight", "hold"}]})
+        base.update({
+            "priority_groups": groups,
+            "priority_symbols": [str(card.get("symbol")) for card in ranking if card.get("holding_decision") in {"reduce", "avoid_overnight", "hold"}],
+            "summary_market_data_time": aggregate_card_timestamp(cards),
+            "next_session_actions": {str(card.get("symbol")): next_session_action(card) for card in cards},
+        })
     if window == "post_close_1500":
         outcomes = Counter(str(card.get("canonical_outcome") or "pending") for card in cards)
         distribution = {key: int(outcomes.get(key, 0)) for key in OUTCOMES}
@@ -426,12 +447,12 @@ def render_intraday_email(payload: dict[str, Any], canonical_url: str) -> str:
     cards = payload.get("structured_intraday_cards") or []
     ranked = sorted(cards, key=lambda card: ({"stop_invalidated": 0, "cancel_chase": 1, "entry_triggered_hold": 2, "target_near": 3}.get(str(card.get("intraday_action")), 8), str(card.get("symbol"))))
     lines = [
-        "【Stock AI】13:05 台股盤中追蹤", f"行情時間：{payload.get('source_data_time') or '尚未取得'}",
+        "【Stock AI】13:05 台股盤中追蹤", f"行情時間：{format_timestamp(payload.get('source_data_time'))}",
         f"已觸發 {summary['triggered_count']}｜失效 {summary['invalidated_count']}｜仍可行動 {summary['still_actionable_count']}",
         f"量能確認 {summary['volume_confirmed_count']}｜行情不足 {summary['data_unavailable_count']}", "重點變化：",
     ]
     for card in ranked[:3]:
-        lines.append(f"- {card.get('symbol')}：目前 {card.get('current_price') if card.get('current_price') is not None else '尚未取得'}｜{localize(card.get('entry_trigger_state'))}｜{sanitize_text(card.get('action_change_reason'))}")
+        lines.append(f"- {card.get('symbol')}：目前 {card.get('current_price') if card.get('current_price') is not None else '尚未取得'}｜{localize(card.get('entry_trigger_state'))}｜{safe_public_text(card.get('action_change_reason'))}")
     lines += ["完整報告：", canonical_url, "僅供研究參考，非交易指令。"]
     return "\n".join(lines)
 
