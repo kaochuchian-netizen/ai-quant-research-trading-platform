@@ -77,6 +77,11 @@ def build_operations_provenance(*, market: str, window: str, runtime_status: str
                 else "intraday_payload_incomplete"
             ),
         })
+    if market.upper() == "US" and window == "us_post_close_review_0630":
+        from app.reports.canonical_outcomes import aggregate_us_post_close_review
+        payload = snapshot.get("payload") if isinstance(snapshot.get("payload"), dict) else {}
+        cards = payload.get("structured_review_cards") if isinstance(payload.get("structured_review_cards"), list) else []
+        result["review_summary"] = aggregate_us_post_close_review([card for card in cards if isinstance(card, dict)])
     return result
 
 def write_operations_provenance(path: Path, payload: dict[str, Any]) -> None:

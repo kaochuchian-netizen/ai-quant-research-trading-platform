@@ -2,6 +2,17 @@ from datetime import datetime
 
 
 def normalize_snapshot(snapshot):
+    raw_time = snapshot.ts
+    if isinstance(raw_time, datetime):
+        snapshot_time = raw_time.isoformat()
+        time_kind = "exchange_local_datetime" if raw_time.tzinfo is None else "UTC_datetime"
+    elif isinstance(raw_time, (int, float)) or str(raw_time).isdigit():
+        snapshot_time = str(raw_time)
+        length = len(str(abs(int(raw_time))))
+        time_kind = {10: "epoch_seconds", 13: "epoch_milliseconds", 16: "epoch_microseconds", 19: "epoch_nanoseconds"}.get(length, "unknown_numeric")
+    else:
+        snapshot_time = str(raw_time or "")
+        time_kind = "unknown"
     return {
         "stock_id": snapshot.code,
 
@@ -21,9 +32,10 @@ def normalize_snapshot(snapshot):
         "sell_price": snapshot.sell_price,
         "sell_volume": snapshot.sell_volume,
 
-        "snapshot_time": snapshot.ts.strftime("%Y-%m-%d %H:%M:%S")
-        if isinstance(snapshot.ts, datetime)
-        else str(snapshot.ts),
+        "snapshot_time": snapshot_time,
+        "source_timezone": "Asia/Taipei",
+        "source_record_time_kind": time_kind,
+        "normalized_timezone": "Asia/Taipei",
     }
 
 

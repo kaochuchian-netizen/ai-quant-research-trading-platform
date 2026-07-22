@@ -141,8 +141,8 @@ def build_structured_review_payload(
     }
 
 
-def _taipei_display(value: Any, fallback: str = "尚未取得") -> str:
-    return format_timestamp(value, timezone_name="Asia/Taipei", missing=fallback)
+def _taipei_display(value: Any, fallback: str = "尚未取得", *, reference_value: Any = None) -> str:
+    return format_timestamp(value, timezone_name="Asia/Taipei", missing=fallback, reference_value=reference_value)
 
 
 def render_email(payload: dict[str, Any], dashboard_url: str, *, snapshot_id: str = "", revision: int | None = None, payload_hash: str = "") -> str:
@@ -153,7 +153,7 @@ def render_email(payload: dict[str, Any], dashboard_url: str, *, snapshot_id: st
         "【Stock AI】15:00 台股盤後檢討",
         f"交易日：{payload.get('effective_trading_date') or '尚未取得'}",
         f"盤後批次：{_taipei_display(payload.get('effective_batch_time'))}",
-        f"行情時間：{_taipei_display(payload.get('source_data_time'))}",
+        f"行情時間：{_taipei_display(payload.get('source_data_time'), reference_value=payload.get('generated_at'))}",
         f"報告產生：{_taipei_display(payload.get('generated_at'))}",
         f"Tracking：{payload.get('tracking_stock_count', 0)}｜Rendered：{payload.get('rendered_review_card_count', 0)}",
         f"今日結果：命中 {counts.get('hit', 0)}｜未觸發 {counts.get('not_triggered', 0)}｜失敗 {counts.get('fail', 0)}｜無交易 {counts.get('no_trade', 0)}｜待確認 {counts.get('pending', 0)}",
@@ -179,12 +179,21 @@ def render_email(payload: dict[str, Any], dashboard_url: str, *, snapshot_id: st
 
 def render_line(payload: dict[str, Any], dashboard_url: str) -> str:
     counts = payload.get("outcome_counts", {})
+    cards = _dicts(payload.get("structured_review_cards"))
+    groups = {
+        outcome: [str(card.get("stock_id")) for card in cards if (card.get("canonical_outcome") or card.get("outcome")) == outcome]
+        for outcome in ("hit", "fail", "not_triggered", "no_trade", "pending")
+    }
+    key = next((f"命中：{'、'.join(groups['hit'])}" for _ in [0] if groups["hit"]), None)
+    key = key or next((f"失敗：{'、'.join(groups['fail'])}" for _ in [0] if groups["fail"]), None)
+    key = key or next((f"未觸發：{'、'.join(groups['not_triggered'])}" for _ in [0] if groups["not_triggered"]), "重點：本批次無已判定交易結果")
     review_line = (f"7 日檢討：有效樣本 {payload.get('seven_day_sample_count', 0)}｜平均命中率 {float(payload.get('seven_day_hit_rate')):.1%}"
                    if payload.get("seven_day_hit_rate") is not None else "7 日檢討：待累積")
     return "\n".join([
         "【Stock AI】15:00 台股盤後檢討",
         f"命中 {counts.get('hit', 0)}｜未觸發 {counts.get('not_triggered', 0)}｜失敗 {counts.get('fail', 0)}",
         f"無交易 {counts.get('no_trade', 0)}｜待確認 {counts.get('pending', 0)}",
+        key,
         f"Tracking {payload.get('tracking_stock_count', 0)}｜Rendered {payload.get('rendered_review_card_count', 0)}",
         review_line,
         "完整報告：",

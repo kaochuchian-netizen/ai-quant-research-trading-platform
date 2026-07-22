@@ -22,7 +22,11 @@ def _review_source(symbol: str) -> dict[str, Any]:
 def _evidence(symbol: str, outcome: str) -> dict[str, Any]:
     base = {"symbol": symbol, "canonical_outcome": outcome, "review_status": "reviewed"}
     if outcome in {"hit", "fail"}:
-        base.update({"actual_high": 110, "actual_low": 95, "actual_close": 105, "snapshot_ref": "safe/path.json", "range_covered": outcome == "hit"})
+        base.update({"actual_high": 110, "actual_low": 95, "actual_close": 105, "snapshot_ref": "safe/path.json", "range_covered": outcome == "hit", "entry_triggered": True})
+        if outcome == "hit":
+            base["target_1_hit"] = True
+        else:
+            base["stop_hit"] = True
     elif outcome == "not_triggered":
         base.update({"entry_triggered": False, "actual_status": "complete"})
     elif outcome == "no_trade":
@@ -83,7 +87,7 @@ def validate_all() -> dict[str, bool]:
     checks["news_strategy_impact"] = "不追價" in news["strategy_impact"]
     social = concise_news_summary({**news_card, "news_source_class": "social_or_unverified", "news_strategy_impact": "maintain_priority"})
     checks["social_not_raise_priority"] = "提高" not in social["strategy_impact"] and "未驗證" in social["source_quality"]
-    checks["no_news_safe"] = concise_news_summary({})["reason"] == "本批次無重大新聞變化"
+    checks["no_news_safe"] = concise_news_summary({})["reason"] == "本批次未取得可用新聞分析"
 
     cards = [
         {"symbol": "A", "holding_decision": "reduce", "near_stop": True, "near_target": False, "market_data_as_of": local_ns, "fetched_at": "2026-07-21T13:41:00+08:00", "decision_state": {"avoid_hold": True, "late_session_risk": True, "no_trade": False}},
@@ -128,7 +132,7 @@ def validate_all() -> dict[str, bool]:
         checks["unmapped_outcome_rejected"] = True
     us_email = render_us_email(all_pending, "us_post_close_review_0630")
     us_line = render_us_line(all_pending, "us_post_close_review_0630")
-    checks["us_notification_truthful"] = all(token in us_email and token in us_line for token in ("已判定 0", "待確認 6", "命中 0", "失敗 0", "無交易 0"))
+    checks["us_notification_truthful"] = all(token in us_email and token in us_line for token in ("交易結果已判定 0", "待確認 6", "預測區間命中 0"))
     checks["us_no_other_bucket"] = "其他" not in us_email + us_line
     checks["channel_count_parity"] = all(str(pending_aggregate[key]) in us_email and str(pending_aggregate[key]) in us_line for key in ("completed_review_count", "pending_review_count"))
     checks["source_hash_mismatch_detected"] = "hash-a" != "hash-b"

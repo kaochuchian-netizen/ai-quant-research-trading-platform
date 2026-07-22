@@ -30,6 +30,7 @@ ENUM_LABELS = {
 INSTRUCTION_LABELS = {
     "use deterministic entry_zone when present": "價格進入建議區間，且量價與風險條件符合",
     "setup not confirmed": "進場條件尚未確認",
+    "reward/risk below 0.8 threshold": "風險報酬比低於 0.8，不符合交易門檻",
 }
 
 
@@ -112,6 +113,17 @@ def format_timestamp(
     return missing if parsed is None else parsed.astimezone(ZoneInfo(timezone_name)).strftime("%Y-%m-%d %H:%M:%S")
 
 
+def format_market_time(
+    value: Any, *, source_timezone: str | None = None, time_kind: str | None = None,
+    reference_value: Any = None, trading_date: Any = None, market: str = "TW",
+) -> tuple[str, str]:
+    """Return an honest label/value pair using explicit source-time semantics."""
+    if time_kind in {"trading_date_only", "daily_bar_close_marker"}:
+        return ("行情日期", str(trading_date or value or MISSING_TEXT)[:10])
+    zone = source_timezone or ("Asia/Taipei" if market.upper() == "TW" else "America/New_York")
+    return ("行情時間", format_timestamp(value, timezone_name=zone, reference_value=reference_value))
+
+
 def aggregate_card_timestamp(cards: list[dict[str, Any]], *, timezone_name: str = "Asia/Taipei") -> str | None:
     parsed = []
     for card in cards:
@@ -175,6 +187,14 @@ def next_session_action(card: dict[str, Any]) -> str:
 
 def concise_news_summary(card: dict[str, Any]) -> dict[str, str]:
     detail = card.get("news_summary") or card.get("news_detail")
+    unavailable = not detail or any(token in str(detail).lower() for token in ("gemini error", "deadline_exceeded", "暫時無法取得", "尚未取得可用分析"))
+    if unavailable:
+        return {
+            "direction": "無法判定", "status": "本批次未取得可用分析",
+            "reason": "本批次未取得可用新聞分析",
+            "strategy_impact": "不調整原技術／策略排序",
+            "source_quality": "無法判定", "confidence": "無法判定",
+        }
     direction = localize_enum(card.get("news_direction") or card.get("predicted_direction") or "unknown")
     reason = safe_public_text(detail, missing="本批次無重大新聞變化")
     if len(reason) > 96:
@@ -190,7 +210,23 @@ def concise_news_summary(card: dict[str, Any]) -> dict[str, str]:
     }.get(impact, "維持目前優先級")
     source = localize_enum(card.get("news_source_class") or "unavailable")
     confidence = localize_enum(card.get("news_confidence") or "unknown")
-    return {"direction": direction, "reason": reason, "strategy_impact": impact_text, "source_quality": source, "confidence": confidence}
+    return {"direction": direction, "status": "分析可用", "reason": reason, "strategy_impact": impact_text, "source_quality": source, "confidence": confidence}
+
+
+def format_adr_context(value: Any, *, strategy_action: Any = None) -> str:
+    """Present ADR context without leaking provider field labels or raw objects."""
+    if value in (None, "", [], {}):
+        return MISSING_TEXT
+    text = safe_public_text(value)
+    import re
+    match = re.search(r"(?:change rate|change_rate|漲跌幅)\s*[：:]?\s*([+-]?\d+(?:\.\d+)?)", text, re.I)
+    if not match:
+        return text.replace("change rate", "漲跌幅")
+    change = float(match.group(1))
+    direction = "上漲" if change > 0 else "下跌" if change < 0 else "持平"
+    impact = "偏多" if change > 0 else "偏空" if change < 0 else "中性"
+    suffix = "，但不改變目前無交易判斷" if str(strategy_action) == "no_trade" else "，作為盤前輔助參考"
+    return f"TSM ADR：{direction} {abs(change):.2f}%｜資料時段：最近一個美股交易日｜策略影響：{impact}{suffix}"
 
 
 def normalize_date_presentation(value: Any, *, timezone_name: str | None = None) -> str:

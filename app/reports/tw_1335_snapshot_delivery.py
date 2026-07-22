@@ -205,12 +205,16 @@ def render_line(context: dict[str, Any]) -> str:
         f"新增可留意 {len(change.get('added_watch') or [])}｜轉弱 {len(change.get('changed_to_avoid') or [])}｜Setup 失效 {len(change.get('new_invalidated') or [])}"
         if change.get("available") else str(change.get("message"))
     )
+    hold_names = _names(decision.get("top_hold_candidates") or decision.get("hold_candidates"))
+    avoid_names = _names(decision.get("top_avoid_candidates") or decision.get("avoid_candidates"))
     return "\n".join([
         "【Stock AI】13:35 台股收盤前快照",
         f"可留倉 {_count(decision.get('hold_candidate_count'))}｜不留倉 {_count(decision.get('avoid_hold_count'))}｜無交易 {_count(decision.get('no_trade_count'))}",
         f"接近目標 {_count(decision.get('near_target_count'))}｜接近停損 {_count(decision.get('near_stop_count'))}｜尾盤高風險 {_count(decision.get('late_session_risk_count'))}",
         "與 13:05 相比：",
         comparison,
+        f"可留倉：{hold_names}",
+        f"避免留倉：{avoid_names}",
         "完整報告：",
         context["canonical_url"],
     ])

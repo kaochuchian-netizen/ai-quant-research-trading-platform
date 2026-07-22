@@ -243,4 +243,6 @@ def render_line(payload: dict[str, Any], url: str) -> str:
     if news_card:
         news = concise_news_summary(news_card)
         news_line = f"新聞：{news_card.get('symbol')} {news['direction']}｜{news['strategy_impact']}"
-    return "\n".join(["【Stock AI】07:00 台股盤前決策","市場基調：依前一交易日收盤、ADR、新聞與籌碼資料判斷",f"Top 3 opportunities：{'、'.join(top) or '本批次無符合完整門檻標的'}",f"Avoid：{'、'.join(summary['groups']['no_trade']) or '無'}",f"主要風險：追價風險 {summary['chase_risk_count']} 檔",news_line,f"報告產生：{format_timestamp(_report_generated_at(payload))}","完整報告：",url])
+    no_trade = summary["groups"]["no_trade"]
+    key_line = f"重點：{'、'.join(top)}" if top else f"重點：本批次無完整進場機會；暫不操作 {'、'.join(no_trade) or '無'}"
+    return "\n".join(["【Stock AI】07:00 台股盤前決策","市場基調：依前一交易日收盤、ADR、新聞與籌碼資料判斷",f"Top 3 opportunities：{'、'.join(top) or '本批次無符合完整門檻標的'}",key_line,f"Avoid：{'、'.join(no_trade) or '無'}",f"主要風險：追價風險 {summary['chase_risk_count']} 檔",news_line,f"報告產生：{format_timestamp(_report_generated_at(payload))}","完整報告：",url])

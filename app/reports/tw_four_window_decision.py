@@ -144,6 +144,8 @@ def upgrade_pre_open_card(card: dict[str, Any], tactical: dict[str, Any] | None,
     if missing and readiness == "entry_ready":
         readiness = "watch"
     normalized_data_status = "partial" if missing or data_quality in {"partial", "limited"} else "unavailable" if data_quality == "insufficient" else "complete"
+    news_text = sanitize_text(result.get("news_summary"), "新聞分析暫時無法取得")
+    news_unavailable = "news" in missing or "暫時無法取得" in news_text or "尚未取得" in news_text
     result.update({
         "schema_version": "tw_pre_open_structured_decision_v2",
         "setup_id": setup, "parent_setup_id": None, "strategy_type": strategy_type,
@@ -165,9 +167,12 @@ def upgrade_pre_open_card(card: dict[str, Any], tactical: dict[str, Any] | None,
         "chip_summary": sanitize_text(result.get("chip_summary")),
         "adr_context": sanitize_text(result.get("adr_context")),
         "overnight_context": sanitize_text(result.get("overnight_context")),
-        "news_summary": sanitize_text(result.get("news_summary"), "新聞分析暫時無法取得"),
-        "news_status": "unavailable" if "news" in missing else "available",
-        "news_source_class": "general_media" if "news" not in missing else "unavailable",
+        "news_summary": news_text,
+        "news_status": "unavailable" if news_unavailable else "available",
+        "news_source_class": "unavailable" if news_unavailable else str(result.get("news_source_class") or "general_media"),
+        "news_direction": None if news_unavailable else result.get("news_direction"),
+        "news_confidence": None if news_unavailable else result.get("news_confidence"),
+        "news_strategy_impact": "no_material_effect" if news_unavailable else result.get("news_strategy_impact"),
         "reasoning": sanitize_text("；".join(tactical.get("reasons") or []) or result.get("reasoning")),
         "risk_summary": sanitize_text("；".join(tactical.get("risk_reasons") or []) or result.get("risk_summary")),
         "strategies": {"daily_tactical": dict(tactical)},
@@ -282,6 +287,9 @@ def build_observed_card(
         "session_high": high, "session_low": low, "session_volume": volume,
         "source_name": quote.get("source") or "shioaji_snapshot", "source_type": "observed_market_snapshot",
         "source_record_time": observed_at, "fetched_at": generated_at, "normalized_at": generated_at,
+        "source_timezone": quote.get("source_timezone") or "Asia/Taipei",
+        "source_record_time_kind": quote.get("source_record_time_kind") or "exchange_local_datetime",
+        "normalized_timezone": quote.get("normalized_timezone") or "Asia/Taipei",
         "freshness_status": "fresh" if observed_at else "unavailable",
         "entry_low": entry_low, "entry_high": entry_high, "entry_trigger_state": trigger,
         "entry_trigger_price": trigger_price, "entry_trigger_time": observed_at if trigger in {"triggered", "invalidated", "inside_zone"} else None,
@@ -459,7 +467,13 @@ def render_intraday_email(payload: dict[str, Any], canonical_url: str) -> str:
 
 def render_intraday_line(payload: dict[str, Any], canonical_url: str) -> str:
     summary = payload.get("tw_window_summary") or aggregate_cards("intraday_1305", payload.get("structured_intraday_cards") or [])
+    cards = [card for card in payload.get("structured_intraday_cards") or [] if isinstance(card, dict)]
+    triggered = [str(card.get("symbol")) for card in cards if card.get("entry_trigger_state") in {"triggered", "inside_zone"}]
+    cancel = [str(card.get("symbol")) for card in cards if card.get("intraday_action") == "cancel_chase"]
+    key = (f"重點：{'、'.join(triggered)} 已觸發" if triggered else "重點：本批次無新觸發")
+    if cancel:
+        key += f"；{'、'.join(cancel)} 取消追價"
     return "\n".join([
         "【Stock AI】13:05 台股盤中", f"已觸發 {summary['triggered_count']}｜失效 {summary['invalidated_count']}｜仍可行動 {summary['still_actionable_count']}",
-        f"量能確認 {summary['volume_confirmed_count']}｜行情不足 {summary['data_unavailable_count']}", "完整報告：", canonical_url,
+        f"量能確認 {summary['volume_confirmed_count']}｜行情不足 {summary['data_unavailable_count']}", key, "完整報告：", canonical_url,
     ])
