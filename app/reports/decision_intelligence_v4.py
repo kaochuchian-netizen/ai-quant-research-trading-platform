@@ -157,9 +157,9 @@ def _classify(card: dict[str, Any]) -> dict[str, Any]:
     elif any(token in outcome_text for token in ("not_triggered", "not triggered", "未觸發")):
         outcome = "not_triggered"
     elif any(token in outcome_text for token in ("win", "hit", "success", "命中", "成功")):
-        outcome = "win"
+        outcome = "hit"
     elif any(token in outcome_text for token in ("loss", "miss", "failed", "失敗", "停損")):
-        outcome = "loss"
+        outcome = "fail"
     else:
         outcome = "pending"
     has_entry = (observed_usable and card.get("entry_low") is not None and card.get("entry_high") is not None) if observed_intraday else tactical.get("entry_zone") is not None or tactical.get("entry_zone_low") is not None
@@ -266,7 +266,7 @@ def project_decision_intelligence_v4(
                 0 if row.get("hold_candidate") else 1,
                 0 if row.get("avoid_hold") else 1,
                 row["id"],
-            ))],
+            )) if any((row.get("late_session_risk"), row.get("near_stop"), row.get("near_target"), row.get("hold_candidate"), row.get("avoid_hold"))) and not row.get("no_trade")],
             "unavailable_is_not_zero": True,
         }
     return {
@@ -315,8 +315,8 @@ def compact_summary(projection: dict[str, Any], channel: str) -> str:
         body = f"可留意 {counts['still_actionable']}、不留倉/不交易 {counts['no_trade']}、尾盤風險 {counts['chase_risk']}"
     else:
         dist = projection["outcome_distribution"]
-        outcome_labels = {"hit": "成功", "win": "成功", "fail": "失敗", "loss": "失敗", "not_triggered": "未觸發", "no_trade": "無交易", "pending": "待檢討"}
-        body = "、".join(f"{outcome_labels.get(key, '其他')} {value}" for key, value in dist.items()) or "尚無可檢討資料"
+        outcome_labels = {"hit": "命中", "fail": "失敗", "not_triggered": "未觸發", "no_trade": "無交易", "pending": "待確認"}
+        body = "、".join(f"{outcome_labels[key]} {value}" for key, value in dist.items() if key in outcome_labels) or "尚無可檢討資料"
     prefix = "摘要" if channel == "line" else "Decision Intelligence V4"
     return f"{prefix}：{body}"
 
@@ -350,9 +350,9 @@ def delivery_summary_lines(
         dist = projection.get("outcome_distribution", {})
         outcome_line = (
             "今日結果："
-            f"命中 {int(dist.get('win', 0))}、"
+            f"命中 {int(dist.get('hit', 0))}、"
             f"未觸發 {int(dist.get('not_triggered', 0))}、"
-            f"失敗 {int(dist.get('loss', 0))}、"
+            f"失敗 {int(dist.get('fail', 0))}、"
             f"無交易 {int(dist.get('no_trade', 0))}、"
             f"待確認 {int(dist.get('pending', 0))}"
         )

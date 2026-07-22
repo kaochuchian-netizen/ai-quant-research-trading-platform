@@ -132,12 +132,21 @@ def main() -> int:
 
     tw = matrix.get("TW:post_close_1500", {})
     tw_line, tw_email = tw.get("line", ""), tw.get("email", "")
-    current_review = json.loads((ROOT / "artifacts/runtime/formal_prediction_review_runtime_latest.json").read_text(encoding="utf-8"))
     current_window = json.loads((ROOT / "artifacts/runtime/tw_window_decision/post_close_1500_latest.json").read_text(encoding="utf-8"))
-    structured = build_structured_review_payload(current_review, current_window)
-    counts = structured["outcome_counts"]
+    canonical_cards = current_window.get("structured_review_cards") or current_window.get("cards") or []
+    counts = {
+        outcome: sum(
+            1
+            for card in canonical_cards
+            if isinstance(card, dict)
+            and str(card.get("canonical_outcome") or card.get("outcome") or "pending") == outcome
+        )
+        for outcome in ("hit", "not_triggered", "fail", "no_trade", "pending")
+    }
     expected_tokens = [f"命中 {counts['hit']}", f"未觸發 {counts['not_triggered']}", f"失敗 {counts['fail']}", f"無交易 {counts['no_trade']}", f"待確認 {counts['pending']}"]
     checks["tw_1500_actual_counts_line_email"] = all(token in tw_line and token in tw_email for token in expected_tokens)
+    current_review = json.loads((ROOT / "artifacts/runtime/formal_prediction_review_runtime_latest.json").read_text(encoding="utf-8"))
+    structured = build_structured_review_payload(current_review, current_window)
     if structured.get("seven_day_hit_rate") is None:
         expected_review = "7 日檢討：待累積"
     else:
