@@ -77,6 +77,19 @@ def build_operations_provenance(*, market: str, window: str, runtime_status: str
                 else "intraday_payload_incomplete"
             ),
         })
+    if market.upper() == "US" and window == "us_pre_market_2000":
+        payload = snapshot.get("payload") if isinstance(snapshot.get("payload"), dict) else {}
+        summary = payload.get("premarket_summary") if isinstance(payload.get("premarket_summary"), dict) else {}
+        result.update({
+            "premarket_summary": summary,
+            "tracking_count": int(summary.get("tracking_count") or payload.get("tracking_stock_count") or 0),
+            "top_opportunity_count": int(summary.get("top_opportunity_count") or 0),
+            "actionable_count": int(summary.get("actionable_count") or 0),
+            "watch_only_count": int(summary.get("watch_only_count") or 0),
+            "no_trade_count": int(summary.get("no_trade_count") or 0),
+            "premarket_available_count": int(summary.get("premarket_available_count") or 0),
+            "premarket_payload_status": "valid" if payload.get("premarket_contract", {}).get("valid") is True else "partial_or_invalid",
+        })
     if market.upper() == "US" and window == "us_post_close_review_0630":
         from app.reports.canonical_outcomes import aggregate_us_post_close_review
         payload = snapshot.get("payload") if isinstance(snapshot.get("payload"), dict) else {}

@@ -17,6 +17,12 @@ from app.us_stock.intraday_observed import (
     resolve_market_session,
     summarize_intraday,
 )
+from app.us_stock.premarket_decision import (
+    build_premarket_card,
+    normalize_market_context,
+    summarize_premarket,
+    validate_premarket_contract,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_DIR = REPO_ROOT / "artifacts/runtime/us_stock"
@@ -265,6 +271,8 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
         prediction["three_month_trend"] = technical.get("trend_3m")
         strategies = build_dual_strategies(DEFAULT_MARKET, score, prediction, result.quote, technical, market_context=market_context, research=research, generated_at=generated_at)
         card = dashboard_card(entry, result.quote, technical, score, prediction, result.news, window, research, strategies)
+        if window == "us_pre_market_2000":
+            card = build_premarket_card(card, result.quote, research, result.news, market_context, reference)
         if window == "us_intraday_2300":
             tactical = strategies.get(DAILY_TACTICAL, {}) if isinstance(strategies, dict) else {}
             observed = build_intraday_card(
@@ -296,6 +304,9 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
             review = build_review(symbol, context["session_date"], result.quote, result.history)
             reviews.append(review)
     structured_review_cards = build_structured_review_cards(cards, reviews) if window == "us_post_close_review_0630" else []
+    premarket_context = normalize_market_context(market_context, reference) if window == "us_pre_market_2000" else None
+    premarket_summary = summarize_premarket(cards, premarket_context) if window == "us_pre_market_2000" else None
+    premarket_validation_errors = validate_premarket_contract(cards, premarket_summary) if window == "us_pre_market_2000" else []
     review_aggregate = aggregate_us_post_close_review(structured_review_cards) if structured_review_cards else {
         "prediction_range_hit_count": 0, "prediction_range_miss_count": 0, "prediction_pending_count": 0,
         "trade_hit_count": 0, "trade_fail_count": 0, "trade_not_triggered_count": 0,
@@ -324,6 +335,15 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
         "session_context": context,
         "runtime_watchlist_validation": {"source_sheet": "工作表2", "enabled_stock_count": len(watchlist), "successfully_analyzed_count": success, "insufficient_data_count": insufficient, "invalid_row_count": 0, "private_values_printed": False},
         "market_context": market_context,
+        "premarket_market_context": premarket_context,
+        "premarket_summary": premarket_summary,
+        "premarket_contract": {
+            "schema_version": "us_premarket_decision_v1",
+            "canonical_summary_source": "dashboard_ready_contract.cards[].eligibility",
+            "daily_ohlcv_as_premarket_fallback": False,
+            "validation_errors": premarket_validation_errors,
+            "valid": not premarket_validation_errors,
+        } if window == "us_pre_market_2000" else None,
         "research_intelligence_contract": {"source_hierarchy": "tier1_official_sec_ir_company; tier2_market_reference_yfinance; tier3_secondary_news", "research_factor_version": RESEARCH_FACTOR_VERSION, "copyright_policy": "no full filings/articles/transcripts stored", "official_source_required_for_official_claims": True},
         "dual_strategy_contract": {"market": DEFAULT_MARKET, "strategy_types": [RESEARCH_POSITION, DAILY_TACTICAL], "research_position_version": "us_research_position_v1", "daily_tactical_version": "us_daily_tactical_v1", "daily_tactical_factor_version": US_TACTICAL_FACTOR_VERSION, "research_overwritten_by_tactical": False, "tactical_overwrites_research": False, "line_email_sent_by_builder": False},
         "items": items,

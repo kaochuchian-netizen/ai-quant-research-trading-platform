@@ -276,6 +276,31 @@ def _compact_us_email_block(card: dict[str, Any], window: str) -> str:
     risks = presentation.get("risks") if isinstance(presentation.get("risks"), list) else []
     reason = str(reasons[0]) if reasons else "等待量價與資料確認"
     risk = str(risks[0]) if risks else "未偵測到額外風險"
+    if window == "us_pre_market_2000":
+        pre = card.get("premarket") or {}
+        eligibility = card.get("eligibility") or {}
+        plan = card.get("trade_plan") or {}
+        event = card.get("event_risk") or {}
+        news = card.get("news_evidence") or {}
+        sec = card.get("sec_evidence") or {}
+        state = "主要交易機會" if eligibility.get("top_opportunity") else "僅觀察" if eligibility.get("watch_only") else "暫不交易"
+        gap = f"{float(pre['gap_pct']):+.2f}%" if isinstance(pre.get("gap_pct"), (int, float)) else "尚未取得"
+        lines = [
+            f"{symbol} {name}｜{state}",
+            f"盤前 {_num(pre.get('price'))}｜前收 {_num(pre.get('previous_close'))}｜Gap {gap}",
+            f"資料時間 {format_timestamp(pre.get('timestamp'), timezone_name='America/New_York')}｜來源 {pre.get('source') or '尚未取得'}",
+            f"報酬風險比 {_num(plan.get('reward_risk'))}｜信心 {_num((card.get('confidence_policy') or {}).get('score'), '%')}｜事件風險 {localize_enum(event.get('canonical_level'))}",
+        ]
+        if eligibility.get("actionable"):
+            lines.append(f"Entry {plan.get('entry')}｜Stop {plan.get('stop')}｜Target {plan.get('target')}")
+        else:
+            lines.append(f"觀察區間 {plan.get('observation_zone') or '尚未取得'}｜正式 Entry / Stop / Target：不建立")
+            lines.append(f"重新評估：{plan.get('reassessment_condition') or '等待條件完整'}")
+        lines.extend([
+            f"SEC：{sec.get('form') or '尚未取得'}｜{sec.get('filing_date') or '日期尚未取得'}",
+            f"即時新聞：{news.get('headline') or '無法取得'}｜來源 {news.get('publisher') or '無'}",
+        ])
+        return "\n".join(lines)
     if window == "us_intraday_2300":
         return "\n".join([
             f"{symbol} {name}",
@@ -335,15 +360,24 @@ def build_email_body(artifact: dict[str, Any], window: str) -> str:
             f"- 接近停損／目標：{summary.get('near_stop_count', 0)} / {summary.get('near_target_count', 0)}",
             f"- 行情無法判定：{summary.get('data_unavailable_count', 0)}",
         ])
+    if window == "us_pre_market_2000":
+        summary = artifact.get("premarket_summary") or {}
+        context = summary.get("market_context") or {}
+        groups = summary.get("groups") or {}
+        fmt = lambda value: f"{float(value):+.2f}%" if isinstance(value, (int, float)) else "尚未取得"
+        lines.extend([
+            "", "盤前市場環境：",
+            f"- SPY {fmt((context.get('spy') or {}).get('change_pct'))}｜QQQ {fmt((context.get('qqq') or {}).get('change_pct'))}｜SOXX {fmt((context.get('sector_proxy') or {}).get('change_pct'))}",
+            f"- 市場方向：{context.get('risk_direction') or '尚未取得'}｜資料時間：{format_timestamp(context.get('timestamp'), timezone_name='America/New_York')}",
+            f"- 主要交易機會 {summary.get('top_opportunity_count', 0)}：{'、'.join(groups.get('top_opportunity') or []) or '無'}",
+            f"- 觀察等待：{'、'.join(groups.get('watch_only') or []) or '無'}｜暫不交易：{'、'.join(groups.get('no_trade') or []) or '無'}",
+        ])
     for section in contract.email_sections:
         lines.append(f"- {section}")
     lines.extend(["", "批次摘要：", f"- Window: {window}", f"- Enabled stocks: {artifact.get('runtime_watchlist_validation', {}).get('enabled_stock_count')}", f"- 高風險數量: {_count_high_risk(cards)}", "- LINE 僅短提醒；Email 僅呈現本批次需要的內容；完整狀態請看 Dashboard。", ""])
     lines.append("個股摘要：")
     for card in cards:
         lines.append(_compact_us_email_block(card, window))
-        news = card.get('bilingual_news_snippet', {}) if isinstance(card.get('bilingual_news_snippet'), dict) else {}
-        if window == "us_pre_market_2000" and news.get('chinese_translation'):
-            lines.append(f"News：{news.get('chinese_translation')}")
         lines.append("")
     if window == "us_post_close_review_0630":
         lines.extend(["", "研究方法與資料範圍：", "- 結果只由 canonical structured review cards 與 actual evidence 彙整。", "- 待確認不計入成功、失敗或無交易。"])
@@ -376,6 +410,27 @@ def line_text(artifact: dict[str, Any], window: str) -> str:
             f"交易結果已判定 {aggregate['completed_trade_review_count']}｜待確認 {aggregate['pending_trade_review_count']}",
             f"預測區間命中：{prediction_hits}",
             "完整報告：", contract.dashboard_url, "僅供研究參考，非交易指令。",
+        ])
+    if window == "us_pre_market_2000":
+        summary = artifact.get("premarket_summary") or {}
+        context = summary.get("market_context") or {}
+        groups = summary.get("groups") or {}
+        fmt = lambda value: f"{float(value):+.1f}%" if isinstance(value, (int, float)) else "尚未取得"
+        top = groups.get("top_opportunity") or []
+        watch = groups.get("watch_only") or []
+        no_trade = groups.get("no_trade") or []
+        lead = next((card for card in cards if (card.get("eligibility") or {}).get("top_opportunity")), None)
+        lead_line = "重點：本批次無符合完整門檻的主要交易機會"
+        if lead:
+            plan = lead.get("trade_plan") or {}
+            lead_line = f"重點：{lead.get('symbol')} {lead.get('name') or ''} 符合行動門檻｜RR {_num(plan.get('reward_risk'))}"
+        return "\n".join([
+            "【Stock AI】20:00 美股盤前",
+            f"市場：SPY {fmt((context.get('spy') or {}).get('change_pct'))}｜QQQ {fmt((context.get('qqq') or {}).get('change_pct'))}｜{context.get('risk_direction') or '尚未取得'}",
+            f"主要交易機會 {len(top)}：{'、'.join(top) or '無'}",
+            f"觀察等待：{'、'.join(watch) or '無'}",
+            f"暫不交易：{'、'.join(no_trade) or '無'}",
+            lead_line, "完整報告：", contract.dashboard_url, "僅供研究參考，非交易指令。",
         ])
     parts = [f"【Stock AI】{contract.title}已更新", "美股決策摘要已更新"]
     parts.append(compact_summary(project_decision_intelligence_v4("US", window, artifact), "line"))
