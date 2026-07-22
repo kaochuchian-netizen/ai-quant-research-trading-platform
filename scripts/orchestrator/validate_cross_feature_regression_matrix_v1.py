@@ -8,8 +8,10 @@ import json
 import subprocess
 import sys
 import tempfile
+from datetime import datetime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
@@ -23,6 +25,7 @@ from app.reports.multi_window_formatter import format_window_report
 from app.reports.tw_pre_open_structured import aggregate as aggregate_pre_open_cards, build_card as build_pre_open_card
 from app.reports.window_report_contract import all_window_report_contracts, get_window_report_contract
 from scripts.orchestrator.approved_us_stock_delivery import build_email_body, line_text
+from app.us_stock.premarket_decision import build_premarket_card, normalize_market_context, summarize_premarket
 
 
 WINDOWS = [(market, window) for market, windows in MARKET_WINDOWS.items() for window in windows]
@@ -113,6 +116,21 @@ def fixture_payload(market: str, window: str, day: str, marker: str) -> dict[str
     elif market == "TW":
         payload["cards"] = cards
     else:
+        if window == "us_pre_market_2000":
+            premarket_reference = datetime.fromisoformat(f"{day}T08:00:00-04:00").astimezone(ZoneInfo("America/New_York"))
+            context_items = {}
+            for context_symbol, previous, price in (("SPY", 600, 602.4), ("QQQ", 500, 503.5), ("SOXX", 250, 251.5)):
+                context_items[context_symbol] = {"premarket": {"previous_close": previous, "price": price, "change_pct": round((price / previous - 1) * 100, 4), "timestamp": f"{day}T07:58:00-04:00", "source": "deterministic validator", "freshness": "fresh", "availability": "available"}}
+            raw_context = {"items": context_items}
+            for index, card in enumerate(cards):
+                card["daily_tactical_summary"].update({"action": "突破確認後偏多" if index == 0 else "等待止穩", "direction": "mildly_bullish" if index == 0 else "neutral", "confidence": 45 if index == 0 else 26, "reward_risk_ratio": 1.3 if index == 0 else 0.35})
+                quote = {"previous_close": 100 + index, "pre_market_price": 101 + index, "pre_market_time": f"{day}T07:58:00-04:00", "pre_market_volume": 100000, "market_data_source": "deterministic validator"}
+                research = {"earnings": {"event_risk_level": "low"}, "sec": {"ok": True, "recent_8k_items": []}, "material_news": {"items": []}}
+                cards[index] = build_premarket_card(card, quote, research, [], raw_context, premarket_reference)
+            normalized_context = normalize_market_context(raw_context, premarket_reference)
+            payload["premarket_market_context"] = normalized_context
+            payload["premarket_summary"] = summarize_premarket(cards, normalized_context)
+            payload["premarket_contract"] = {"valid": True, "daily_ohlcv_as_premarket_fallback": False}
         if window == "us_intraday_2300":
             for index, card in enumerate(cards):
                 card.update({
@@ -207,6 +225,8 @@ def main() -> int:
                     checks[key + ":dashboard_v4"] = dashboard_html.count("tw-pre-open-structured-card") == 3 and latest_projection["expected_card_type"] in dashboard_html
                 elif (market, window) == ("US", "us_post_close_review_0630"):
                     checks[key + ":dashboard_v4"] = "canonical-review-summary" in dashboard_html and latest_projection["expected_card_type"] in dashboard_html
+                elif (market, window) == ("US", "us_pre_market_2000"):
+                    checks[key + ":dashboard_v4"] = "canonical-premarket-summary" in dashboard_html and latest_projection["expected_card_type"] in dashboard_html
                 else:
                     checks[key + ":dashboard_v4"] = "Decision Intelligence V4" in dashboard_html and latest_projection["expected_card_type"] in dashboard_html
                 checks[key + ":email_v4"] = "Decision Intelligence V4" in email_text
@@ -218,6 +238,11 @@ def main() -> int:
                     checks[key + ":line_semantic_parity"] = all(
                         marker in line_summary for marker in ("預測區間命中", "交易結果已判定", "待確認", get_window_report_contract(market, window).dashboard_url)
                     )
+                elif (market, window) == ("US", "us_pre_market_2000"):
+                    summary = selected.latest["payload"].get("premarket_summary") or {}
+                    checks[key + ":line_semantic_parity"] = all(
+                        marker in line_summary for marker in ("主要交易機會", "觀察等待", "暫不交易", get_window_report_contract(market, window).dashboard_url)
+                    ) and str(summary.get("top_opportunity_count", 0)) in line_summary
                 else:
                     checks[key + ":line_semantic_parity"] = all(
                         line in line_summary for line in delivery_summary_lines(latest_projection)
@@ -226,6 +251,8 @@ def main() -> int:
                     checks[key + ":archive_latest_previous"] = latest_html.count("tw-pre-open-structured-card") == 3 and previous_html.count("tw-pre-open-structured-card") == 3
                 elif (market, window) == ("US", "us_post_close_review_0630"):
                     checks[key + ":archive_latest_previous"] = "canonical-review-summary" in latest_html and "canonical-review-summary" in previous_html
+                elif (market, window) == ("US", "us_pre_market_2000"):
+                    checks[key + ":archive_latest_previous"] = "canonical-premarket-summary" in latest_html and "canonical-premarket-summary" in previous_html
                 else:
                     checks[key + ":archive_latest_previous"] = "Decision Intelligence V4" in latest_html and "Decision Intelligence V4" in previous_html
                 checks[key + ":immutable_archive"] = "只使用 resolver 選出的 immutable snapshot payload" in latest_html and "<pre>" not in latest_html
