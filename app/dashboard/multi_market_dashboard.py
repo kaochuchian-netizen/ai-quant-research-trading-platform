@@ -508,11 +508,31 @@ def _us_window_card(card: dict[str, Any], window: str) -> str:
         "us_post_close_review_0630": "us-post-close-review",
     }[window]
     if window == "us_pre_market_2000":
+        pre = card.get("premarket") if isinstance(card.get("premarket"), dict) else {}
+        eligibility = card.get("eligibility") if isinstance(card.get("eligibility"), dict) else {}
+        plan = card.get("trade_plan") if isinstance(card.get("trade_plan"), dict) else {}
+        event = card.get("event_risk") if isinstance(card.get("event_risk"), dict) else {}
+        news = card.get("news_evidence") if isinstance(card.get("news_evidence"), dict) else {}
+        sec = card.get("sec_evidence") if isinstance(card.get("sec_evidence"), dict) else {}
+        relative = card.get("relative_strength") if isinstance(card.get("relative_strength"), dict) else {}
+        active = eligibility.get("actionable") is True
+        state = "主要交易機會" if eligibility.get("top_opportunity") else "僅觀察" if eligibility.get("watch_only") else "暫不交易"
+        reason_labels = {
+            "PREMARKET_DATA_UNAVAILABLE_OR_STALE": "盤前行情尚未取得或已過舊", "RR_BELOW_THRESHOLD": "報酬風險比未達門檻",
+            "LOW_CONFIDENCE": "信心偏低", "DIRECTION_NOT_BULLISH": "方向尚未轉為偏多", "SETUP_NOT_STABILIZED": "尚未止穩",
+            "CHASE_RISK_HIGH": "追價風險偏高", "EVENT_RISK_HIGH": "事件風險偏高",
+        }
+        reasons = "、".join(reason_labels.get(code, "條件尚未完整") for code in eligibility.get("reason_codes") or []) or "符合盤前資料、信心、報酬風險與事件門檻"
+        entry_label = "Entry 進場區" if active else "觀察區間"
+        gap = f"{float(pre['gap_pct']):+.2f}%" if isinstance(pre.get("gap_pct"), (int, float)) else "尚未取得"
+        change = f"{float(pre['change']):+.2f}（{float(pre['change_pct']):+.2f}%）" if isinstance(pre.get("change"), (int, float)) and isinstance(pre.get("change_pct"), (int, float)) else "尚未取得"
         return f"""
         <article class="stock-card decision-card window-stock-card" data-market="US" data-card-type="window-premarket" data-report-type="{report_type}">
-          <div class="decision-card__head"><div><div class="decision-card__market">US｜20:00 美股盤前｜決策呈現 V3</div><h3>{symbol} {name}</h3></div><span class="decision-badge">{_escape(tactical.get('action'))}</span></div>
-          <section class="decision-section" data-section="premarket-setup"><h4>Premarket / Gap / Setup</h4>{_window_metric_grid([('方向', tactical.get('direction')), ('Setup', tactical.get('setup')), ('Entry', tactical.get('entry_zone')), ('Stop', tactical.get('stop')), ('Target', tactical.get('target_1')), ('Reward/Risk', tactical.get('reward_risk'))])}</section>
-          <section class="decision-section" data-section="premarket-risk"><h4>財報 / SEC / 新聞風險</h4>{_window_metric_grid([('事件風險', tactical.get('risk')), ('預測區間', prediction.get('today_range')), ('信心', tactical.get('confidence')), ('主要依據', reason_text), ('主要風險', risk_text), ('News', news_text), ('SEC', sec_text), ('Review', review_text)])}</section>
+          <div class="decision-card__head"><div><div class="decision-card__market">US｜20:00 美股盤前｜Canonical Decision V1</div><h3>{symbol} {name}</h3></div><span class="decision-badge {'decision-badge--ok' if active else 'decision-badge--warn'}">{_escape(state)}</span></div>
+          <section class="decision-section" data-section="premarket-observed"><h4>盤前實際行情</h4>{_window_metric_grid([('盤前價格', pre.get('price')), ('前收', pre.get('previous_close')), ('盤前漲跌', change), ('Gap', gap), ('資料時間', format_timestamp(pre.get('timestamp'), timezone_name='America/New_York')), ('資料來源', pre.get('source')), ('資料狀態', localize_enum(pre.get('availability'))), ('相對 QQQ', format_percent(relative.get('vs_qqq_pct'))), ('相對類股', format_percent(relative.get('vs_sector_pct')))])}</section>
+          <section class="decision-section" data-section="premarket-eligibility"><h4>行動資格</h4>{_window_metric_grid([('目前狀態', state), ('進場條件就緒', '是' if eligibility.get('entry_ready') else '否'), ('主要交易機會', '是' if eligibility.get('top_opportunity') else '否'), ('信心', tactical.get('confidence')), ('報酬風險比', plan.get('reward_risk')), ('事件風險', localize_enum(event.get('canonical_level'))), ('原因', reasons)])}</section>
+          <section class="decision-section" data-section="premarket-plan"><h4>{'正式交易計畫' if active else '觀察與重新評估'}</h4>{_window_metric_grid([(entry_label, plan.get('entry') if active else plan.get('observation_zone')), ('Stop 停損', plan.get('stop') if active else '不建立'), ('Target 目標', plan.get('target') if active else '不建立'), ('重新評估條件', plan.get('reassessment_condition'))])}</section>
+          <section class="decision-section" data-section="premarket-research"><h4>SEC 與即時新聞</h4>{_window_metric_grid([('SEC', f"{sec.get('form') or '尚未取得'}｜{sec.get('filing_date') or '日期尚未取得'}｜{sec.get('materiality') or '尚未分類'}"), ('即時新聞', news.get('headline') or '無法取得'), ('新聞來源', news.get('publisher') or '無'), ('新聞方向', localize_enum(news.get('direction'))), ('新聞可信度', localize_enum(news.get('confidence'))), ('策略影響', news.get('strategy_impact') or '不納入本次盤前方向判斷')])}</section>
         </article>
         """
     if window == "us_intraday_2300":
@@ -561,6 +581,23 @@ def render_us_window_report(window: str, artifacts: list[dict[str, Any]]) -> str
     else:
         body = ''.join(_us_window_card(card, window) for card in cards)
     outcome_summary = ""
+    if window == "us_pre_market_2000" and isinstance(artifact, dict):
+        summary = artifact.get("premarket_summary") if isinstance(artifact.get("premarket_summary"), dict) else {}
+        context = summary.get("market_context") if isinstance(summary.get("market_context"), dict) else {}
+        spy, qqq, sector = context.get("spy") or {}, context.get("qqq") or {}, context.get("sector_proxy") or {}
+        fmt = lambda value: f"{float(value):+.2f}%" if isinstance(value, (int, float)) else "尚未取得"
+        groups = summary.get("groups") or {}
+        outcome_summary = (
+            '<section class="decision-section" data-section="canonical-premarket-summary"><h3>盤前市場環境與行動資格</h3>'
+            + _window_metric_grid([
+                ("SPY 盤前", fmt(spy.get("change_pct"))), ("QQQ 盤前", fmt(qqq.get("change_pct"))),
+                ("類股代理 SOXX", fmt(sector.get("change_pct"))), ("市場方向", context.get("risk_direction") or "尚未取得"),
+                ("主要交易機會", summary.get("top_opportunity_count", 0)), ("進場條件就緒", summary.get("entry_ready_count", 0)),
+                ("觀察等待", summary.get("watch_only_count", 0)), ("暫不交易", summary.get("no_trade_count", 0)),
+                ("主要機會名單", "、".join(groups.get("top_opportunity") or []) or "無"),
+                ("資料時間", format_timestamp(context.get("timestamp"), timezone_name="America/New_York")),
+            ]) + '</section>'
+        )
     if window == "us_post_close_review_0630" and cards:
         cards = [normalize_review_card(card) for card in cards]
         summary = aggregate_us_post_close_review(cards)
@@ -583,7 +620,7 @@ def render_us_window_report(window: str, artifacts: list[dict[str, Any]]) -> str
       <h2>{_escape(contract.title)}</h2>
       <p>{_escape(intro)}</p>
       {outcome_summary}
-      {'' if window == 'us_post_close_review_0630' else _decision_intelligence_v4_html("US", window, artifact)}
+      {'' if window in {'us_post_close_review_0630', 'us_pre_market_2000'} else _decision_intelligence_v4_html("US", window, artifact)}
       <div class="grid decision-grid">{body}</div>
     </section>
     """

@@ -220,6 +220,10 @@ class YFinanceUSClient:
                 "exchange": str(info.get("exchange") or fast.get("exchange") or ""),
                 "market_state": str(info.get("marketState") or "unknown"),
                 "pre_market_price": clean_number(info.get("preMarketPrice")),
+                "pre_market_change": clean_number(info.get("preMarketChange")),
+                "pre_market_change_pct": clean_number(info.get("preMarketChangePercent")),
+                "pre_market_time": market_time_iso(info.get("preMarketTime")),
+                "pre_market_volume": clean_number(info.get("preMarketVolume")),
                 "post_market_price": clean_number(info.get("postMarketPrice")),
                 "market_cap": clean_number(info.get("marketCap")),
                 "beta": clean_number(info.get("beta")),
@@ -266,7 +270,21 @@ class YFinanceUSClient:
             change_pct = None
             if last is not None and prev not in (None, 0):
                 change_pct = round((last / prev - 1) * 100, 4)
-            items[symbol] = {"label": label, "ok": result.ok, "last_price": last, "previous_close": prev, "change_pct": change_pct, "error": result.error, "source_timestamp": quote.get("source_timestamp")}
+            pre_price = quote.get("pre_market_price")
+            pre_change = round((pre_price / prev - 1) * 100, 4) if pre_price is not None and prev not in (None, 0) else None
+            pre_available = pre_price is not None and prev not in (None, 0) and quote.get("pre_market_time") is not None
+            items[symbol] = {
+                "label": label, "ok": result.ok, "last_price": last,
+                "previous_close": prev, "change_pct": change_pct, "error": result.error,
+                "source_timestamp": quote.get("source_timestamp"),
+                "premarket": {
+                    "previous_close": prev, "price": pre_price, "change_pct": pre_change,
+                    "timestamp": quote.get("pre_market_time"),
+                    "source": quote.get("market_data_source"),
+                    "freshness": "fresh" if pre_available else "unavailable",
+                    "availability": "available" if pre_available else "unavailable",
+                },
+            }
         spy = items.get("SPY", {}).get("change_pct")
         qqq = items.get("QQQ", {}).get("change_pct")
         vix = items.get("^VIX", {}).get("last_price")
