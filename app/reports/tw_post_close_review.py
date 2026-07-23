@@ -9,6 +9,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from app.reports.presentation_normalization import format_timestamp, next_action_for_outcome, safe_public_text
+from app.reports.tw_four_window_decision import aggregate_cards, localize, normalize_lifecycle_card
 
 TAIPEI = ZoneInfo("Asia/Taipei")
 SCHEMA_VERSION = "tw_post_close_structured_review_v1"
@@ -146,9 +147,11 @@ def _taipei_display(value: Any, fallback: str = "尚未取得", *, reference_val
 
 
 def render_email(payload: dict[str, Any], dashboard_url: str, *, snapshot_id: str = "", revision: int | None = None, payload_hash: str = "") -> str:
-    counts = payload.get("outcome_counts", {})
-    cards = _dicts(payload.get("structured_review_cards"))
-    ranked = sorted(cards, key=lambda card: ({"hit": 0, "pending": 1, "fail": 2, "not_triggered": 3, "no_trade": 4}.get(str(card.get("outcome")), 9), str(card.get("stock_id"))))
+    cards = [normalize_lifecycle_card(card, "post_close_1500") for card in _dicts(payload.get("structured_review_cards"))]
+    summary = aggregate_cards("post_close_1500", cards)
+    predictions = summary.get("prediction_evaluation_counts") or {}
+    counts = summary.get("trade_outcome_counts") or {}
+    ranked = sorted(cards, key=lambda card: ({"win": 0, "loss": 1, "open_at_close": 2, "pending_evidence": 3, "not_triggered": 4, "no_trade": 5}.get(str(card.get("trade_outcome")), 9), str(card.get("stock_id"))))
     lines = [
         "【Stock AI】15:00 台股盤後檢討",
         f"交易日：{payload.get('effective_trading_date') or '尚未取得'}",
@@ -156,7 +159,9 @@ def render_email(payload: dict[str, Any], dashboard_url: str, *, snapshot_id: st
         f"行情時間：{_taipei_display(payload.get('source_data_time'), reference_value=payload.get('generated_at'))}",
         f"報告產生：{_taipei_display(payload.get('generated_at'))}",
         f"Tracking：{payload.get('tracking_stock_count', 0)}｜Rendered：{payload.get('rendered_review_card_count', 0)}",
-        f"今日結果：命中 {counts.get('hit', 0)}｜未觸發 {counts.get('not_triggered', 0)}｜失敗 {counts.get('fail', 0)}｜無交易 {counts.get('no_trade', 0)}｜待確認 {counts.get('pending', 0)}",
+        "今日結果",
+        f"預測區間：命中 {predictions.get('hit', 0)}｜部分命中 {predictions.get('partial_hit', 0)}｜未命中 {predictions.get('miss', 0)}｜不適用 {predictions.get('not_applicable', 0)}",
+        f"交易結果：命中 {counts.get('win', 0)}｜失敗 {counts.get('loss', 0)}｜未觸發 {counts.get('not_triggered', 0)}｜無交易 {counts.get('no_trade', 0)}｜收盤未結束 {counts.get('open_at_close', 0)}｜證據不足 {counts.get('pending_evidence', 0)}",
         (f"7 日檢討：有效樣本 {payload.get('seven_day_sample_count', 0)}｜平均命中率 {float(payload.get('seven_day_hit_rate')):.1%}"
          if payload.get("seven_day_hit_rate") is not None else "7 日檢討：待累積"),
     ]
@@ -165,11 +170,12 @@ def render_email(payload: dict[str, Any], dashboard_url: str, *, snapshot_id: st
     if ranked:
         lines += ["", "代表性檢討："]
         for card in ranked[:5]:
-            outcome = str(card.get("canonical_outcome") or card.get("outcome") or "pending")
+            outcome = str(card.get("trade_outcome") or "pending_evidence")
             lines.append(
-                f"- {card.get('stock_id')} {card.get('stock_name')}：{safe_public_text(outcome)}｜"
+                f"- {card.get('stock_id') or card.get('symbol')} {card.get('stock_name') or card.get('name')}："
+                f"預測 {localize((card.get('prediction_evaluation') or {}).get('range_result'))}｜交易 {localize(outcome)}｜"
                 f"{safe_public_text(card.get('review'), missing='依正式 outcome evidence 檢討')}｜"
-                f"下一步 {safe_public_text(card.get('next_action'), missing=next_action_for_outcome(outcome))}"
+                f"下一步 {safe_public_text(card.get('next_action'), missing=_next_trade_action(outcome))}"
             )
     else:
         lines += ["", "本批次尚未建立正式 Review Payload。不跨 window 補值，不使用 Sample 或 Fixture。"]
@@ -178,24 +184,37 @@ def render_email(payload: dict[str, Any], dashboard_url: str, *, snapshot_id: st
 
 
 def render_line(payload: dict[str, Any], dashboard_url: str) -> str:
-    counts = payload.get("outcome_counts", {})
-    cards = _dicts(payload.get("structured_review_cards"))
+    cards = [normalize_lifecycle_card(card, "post_close_1500") for card in _dicts(payload.get("structured_review_cards"))]
+    summary = aggregate_cards("post_close_1500", cards)
+    predictions = summary.get("prediction_evaluation_counts") or {}
+    counts = summary.get("trade_outcome_counts") or {}
     groups = {
-        outcome: [str(card.get("stock_id")) for card in cards if (card.get("canonical_outcome") or card.get("outcome")) == outcome]
-        for outcome in ("hit", "fail", "not_triggered", "no_trade", "pending")
+        outcome: [str(card.get("stock_id") or card.get("symbol")) for card in cards if card.get("trade_outcome") == outcome]
+        for outcome in ("win", "loss", "not_triggered", "no_trade", "open_at_close", "pending_evidence")
     }
-    key = next((f"命中：{'、'.join(groups['hit'])}" for _ in [0] if groups["hit"]), None)
-    key = key or next((f"失敗：{'、'.join(groups['fail'])}" for _ in [0] if groups["fail"]), None)
+    key = next((f"命中：{'、'.join(groups['win'])}" for _ in [0] if groups["win"]), None)
+    key = key or next((f"失敗：{'、'.join(groups['loss'])}" for _ in [0] if groups["loss"]), None)
     key = key or next((f"未觸發：{'、'.join(groups['not_triggered'])}" for _ in [0] if groups["not_triggered"]), "重點：本批次無已判定交易結果")
     review_line = (f"7 日檢討：有效樣本 {payload.get('seven_day_sample_count', 0)}｜平均命中率 {float(payload.get('seven_day_hit_rate')):.1%}"
                    if payload.get("seven_day_hit_rate") is not None else "7 日檢討：待累積")
     return "\n".join([
         "【Stock AI】15:00 台股盤後檢討",
-        f"命中 {counts.get('hit', 0)}｜未觸發 {counts.get('not_triggered', 0)}｜失敗 {counts.get('fail', 0)}",
-        f"無交易 {counts.get('no_trade', 0)}｜待確認 {counts.get('pending', 0)}",
+        f"預測區間：命中 {predictions.get('hit', 0)}｜部分命中 {predictions.get('partial_hit', 0)}｜未命中 {predictions.get('miss', 0)}",
+        f"交易結果：命中 {counts.get('win', 0)}｜失敗 {counts.get('loss', 0)}｜收盤未結束 {counts.get('open_at_close', 0)}｜無交易 {counts.get('no_trade', 0)}｜證據不足 {counts.get('pending_evidence', 0)}",
         key,
         f"Tracking {payload.get('tracking_stock_count', 0)}｜Rendered {payload.get('rendered_review_card_count', 0)}",
         review_line,
         "完整報告：",
         dashboard_url,
     ])
+
+
+def _next_trade_action(outcome: str) -> str:
+    return {
+        "win": "保護既有成果，觀察量能是否延續",
+        "loss": "取消原策略，重新檢討失效原因",
+        "not_triggered": "等待重新進入安全區間",
+        "no_trade": "維持觀察，除非形成新策略",
+        "open_at_close": "收盤時交易仍在生命週期內，次日優先管理風險",
+        "pending_evidence": "先補足行情或時序證據再判定",
+    }.get(outcome, next_action_for_outcome("pending"))

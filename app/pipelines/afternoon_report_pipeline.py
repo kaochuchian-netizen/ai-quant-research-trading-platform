@@ -134,16 +134,23 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
         quotes = []
         record_stage_result(timing_path, "observed_market_data", status="failed_optional", elapsed_seconds=0, reason=quote_failure)
     quotes_by_symbol = {str(item.get("stock_id") or "").zfill(4): item for item in quotes}
-    admitted = [
+    same_day_admitted = [
         item for item in load_admitted_snapshots(REPO_ROOT / "artifacts/archive/window_snapshots")
         if item.get("market") == "TW"
-        and item.get("window") == "pre_open_0700"
         and item.get("effective_trading_date") == context["run_date"]
     ]
+    admitted = [item for item in same_day_admitted if item.get("window") == "pre_open_0700"]
     setup_snapshot = max(admitted, key=lambda item: int(item.get("revision") or 0), default=None)
     setup_payload = setup_snapshot.get("payload", {}) if setup_snapshot else {}
     setup_cards = setup_payload.get("structured_pre_open_cards", []) if isinstance(setup_payload, dict) else []
     setups_by_symbol = {str(item.get("symbol") or item.get("stock_id") or "").zfill(4): item for item in setup_cards if isinstance(item, dict)}
+    prior_window = {"pre_close_1335": "intraday_1305", "post_close_1500": "pre_close_1335"}.get(window)
+    prior_candidates = [item for item in same_day_admitted if item.get("window") == prior_window]
+    prior_snapshot = max(prior_candidates, key=lambda item: int(item.get("revision") or 0), default=None)
+    prior_payload = prior_snapshot.get("payload", {}) if prior_snapshot else {}
+    prior_key = {"intraday_1305": "structured_intraday_cards", "pre_close_1335": "structured_pre_close_cards"}.get(prior_window or "")
+    prior_cards = prior_payload.get(prior_key, []) if prior_key and isinstance(prior_payload, dict) else []
+    prior_by_symbol = {str(item.get("symbol") or item.get("stock_id") or "").zfill(4): item for item in prior_cards if isinstance(item, dict)}
     print(f"{pipeline_type} stock universe count: {len(stock_ids)}")
     print(f"{pipeline_type} selected stock ids: {selected_stock_ids}")
     print(f"{pipeline_type} full LINE report disabled; concise scheduler reminder is handled by approved wrapper")
@@ -266,6 +273,15 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
             quote = dict(quotes_by_symbol.get(stock_id) or {})
             if not quote and quote_failure:
                 quote["source_error_category"] = quote_failure
+            prior_card = dict(prior_by_symbol.get(stock_id) or {})
+            prior_timeline = prior_card.get("lifecycle_timeline") if isinstance(prior_card.get("lifecycle_timeline"), list) else None
+            if prior_card and prior_snapshot:
+                prior_card.update({
+                    "window": prior_window,
+                    "source_snapshot_id": prior_snapshot.get("snapshot_id"),
+                    "source_revision": int(prior_snapshot.get("revision") or 0),
+                    "parent_source_payload_hash": stable_hash(prior_payload),
+                })
             decision_cards.append(build_observed_card(
                 window=window, setup_card=setup, quote=quote,
                 trading_date=context["run_date"],
@@ -273,6 +289,8 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
                 source_snapshot_id=setup_snapshot.get("snapshot_id") if setup_snapshot else None,
                 source_revision=int(setup_snapshot.get("revision") or 0) if setup_snapshot else 0,
                 source_payload_hash=stable_hash(setup_payload) if setup_snapshot else None,
+                prior_card=prior_card or None,
+                lifecycle_timeline=prior_timeline,
             ))
 
         except Exception as exc:

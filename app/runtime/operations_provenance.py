@@ -42,8 +42,15 @@ def build_operations_provenance(*, market: str, window: str, runtime_status: str
             ),
         })
     if market.upper() == "TW" and window in {"intraday_1305", "pre_close_1335", "post_close_1500"}:
+        from app.reports.tw_four_window_decision import aggregate_cards
         payload = snapshot.get("payload") if isinstance(snapshot.get("payload"), dict) else {}
-        summary = payload.get("tw_window_summary") if isinstance(payload.get("tw_window_summary"), dict) else {}
+        cards_key = {
+            "intraday_1305": "structured_intraday_cards",
+            "pre_close_1335": "structured_pre_close_cards",
+            "post_close_1500": "structured_review_cards",
+        }[window]
+        cards = payload.get(cards_key) if isinstance(payload.get(cards_key), list) else []
+        summary = aggregate_cards(window, [card for card in cards if isinstance(card, dict)])
         result.update({
             "tracking_count": int(summary.get("tracking_count") or payload.get("tracking_stock_count") or 0),
             "structured_card_count": int(summary.get("structured_card_count") or 0),
@@ -57,6 +64,21 @@ def build_operations_provenance(*, market: str, window: str, runtime_status: str
             "near_stop_count": int(summary.get("near_stop_count") or 0),
             "near_target_count": int(summary.get("near_target_count") or 0),
             "outcome_counts": summary.get("outcome_counts") or {},
+            "canonical_lifecycle_summary": summary,
+            "plan_status_counts": summary.get("plan_status_counts") or {},
+            "trigger_status_counts": summary.get("trigger_status_counts") or {},
+            "intraday_action_counts": summary.get("intraday_action_counts") or {},
+            "overnight_action_counts": summary.get("overnight_action_counts") or {},
+            "prediction_evaluation_counts": summary.get("prediction_evaluation_counts") or {},
+            "trade_outcome_counts": summary.get("trade_outcome_counts") or {},
+            "evidence_status_counts": summary.get("evidence_status_counts") or {},
+            "source_window_bindings": [
+                {
+                    "symbol": card.get("symbol") or card.get("stock_id"),
+                    "timeline": card.get("lifecycle_timeline") or [],
+                }
+                for card in cards if isinstance(card, dict)
+            ],
             "tw_structured_payload_status": (
                 "valid" if int(summary.get("tracking_count") or 0) > 0
                 and int(summary.get("tracking_count") or 0) == int(summary.get("structured_card_count") or 0)
