@@ -27,6 +27,10 @@ ENUM_LABELS = {
     "general_media": "一般財經媒體", "social_or_unverified": "社群／未驗證來源",
     "uptrend": "偏多趨勢", "strong_uptrend": "強勢多頭", "mildly_bullish": "溫和偏多",
     "win": "交易命中", "loss": "交易失敗", "pending_evidence": "證據待補",
+    "open_at_close": "收盤時交易尚未結束", "partial_hit": "預測區間部分命中",
+    "hold_with_protection": "可留倉但需保護", "both_near": "雙向臨界",
+    "wait_volume": "等待量能確認", "exit": "退出／停止原策略",
+    "active": "正式交易計畫", "not_started": "尚未開始", "closed": "已結束",
     "not_hit": "未觸發",
 }
 

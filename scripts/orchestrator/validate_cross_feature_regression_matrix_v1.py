@@ -223,6 +223,13 @@ def main() -> int:
                 checks[key + ":contract"] = (market, window) in WINDOW_PRESENTATION
                 if (market, window) == ("TW", "pre_open_0700"):
                     checks[key + ":dashboard_v4"] = dashboard_html.count("tw-pre-open-structured-card") == 3 and latest_projection["expected_card_type"] in dashboard_html
+                elif market == "TW" and window in {"intraday_1305", "pre_close_1335", "post_close_1500"}:
+                    marker = {
+                        "intraday_1305": 'data-report-type="intraday-change"',
+                        "pre_close_1335": 'data-report-type="pre-close-snapshot"',
+                        "post_close_1500": 'data-report-type="post-close-review"',
+                    }[window]
+                    checks[key + ":dashboard_v4"] = marker in dashboard_html and "window-stock-card" in dashboard_html
                 elif (market, window) == ("US", "us_post_close_review_0630"):
                     checks[key + ":dashboard_v4"] = "canonical-review-summary" in dashboard_html and latest_projection["expected_card_type"] in dashboard_html
                 elif (market, window) == ("US", "us_pre_market_2000"):
@@ -249,6 +256,13 @@ def main() -> int:
                     )
                 if (market, window) == ("TW", "pre_open_0700"):
                     checks[key + ":archive_latest_previous"] = latest_html.count("tw-pre-open-structured-card") == 3 and previous_html.count("tw-pre-open-structured-card") == 3
+                elif market == "TW" and window in {"intraday_1305", "pre_close_1335", "post_close_1500"}:
+                    marker = {
+                        "intraday_1305": 'data-report-type="intraday-change"',
+                        "pre_close_1335": 'data-report-type="pre-close-snapshot"',
+                        "post_close_1500": 'data-report-type="post-close-review"',
+                    }[window]
+                    checks[key + ":archive_latest_previous"] = marker in latest_html and marker in previous_html
                 elif (market, window) == ("US", "us_post_close_review_0630"):
                     checks[key + ":archive_latest_previous"] = "canonical-review-summary" in latest_html and "canonical-review-summary" in previous_html
                 elif (market, window) == ("US", "us_pre_market_2000"):

@@ -13,6 +13,7 @@ from app.dashboard.market_dashboard_alias import payload_hash
 from app.dashboard.window_snapshot_archive import load_admitted_snapshots, resolve_snapshots
 from app.reports.decision_intelligence_v4 import project_decision_intelligence_v4
 from app.reports.presentation_normalization import aggregate_card_timestamp
+from app.reports.tw_four_window_decision import aggregate_cards, normalize_lifecycle_card
 
 TAIPEI = ZoneInfo("Asia/Taipei")
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -97,17 +98,48 @@ def build_same_day_change(current: dict[str, Any], baseline: dict[str, Any] | No
     }
 
 
+def _lifecycle_change(current_cards: list[dict[str, Any]], baseline_cards: list[dict[str, Any]], baseline_snapshot_id: str) -> dict[str, Any]:
+    current = {str(card.get("symbol") or card.get("stock_id")): normalize_lifecycle_card(card, "pre_close_1335") for card in current_cards}
+    baseline = {str(card.get("symbol") or card.get("stock_id")): normalize_lifecycle_card(card, "intraday_1305") for card in baseline_cards}
+    symbols = sorted(set(current) & set(baseline))
+    def changed(predicate: Any) -> list[str]:
+        return [symbol for symbol in symbols if predicate(current[symbol], baseline[symbol])]
+    current_watch = {symbol for symbol, card in current.items() if card.get("overnight_action") in {"hold", "hold_with_protection", "watch"}}
+    baseline_watch = {symbol for symbol, card in baseline.items() if card.get("canonical_intraday_action") in {"hold", "wait_volume"}}
+    return {
+        "available": True,
+        "policy": "canonical_lifecycle_same_day_intraday_1305_to_pre_close_1335",
+        "baseline_snapshot_id": baseline_snapshot_id,
+        "added_watch": sorted(current_watch - baseline_watch),
+        "changed_to_avoid": changed(lambda c, b: c.get("overnight_action") in {"reduce", "exit"} and b.get("canonical_intraday_action") not in {"reduce", "exit"}),
+        "new_triggered": changed(lambda c, b: c.get("trigger_status") == "triggered" and b.get("trigger_status") != "triggered"),
+        "new_invalidated": changed(lambda c, b: c.get("trigger_status") == "invalidated" and b.get("trigger_status") != "invalidated"),
+        "near_target_added": changed(lambda c, b: c.get("near_target") is True and b.get("near_target") is not True),
+        "near_stop_added": changed(lambda c, b: c.get("near_stop") is True and b.get("near_stop") is not True),
+        "late_risk_increased": changed(lambda c, b: c.get("risk_state") in {"stop_near", "both_near", "invalidated"} and b.get("risk_state") not in {"stop_near", "both_near", "invalidated"}),
+        "changed_to_reduce": changed(lambda c, b: c.get("overnight_action") == "reduce" and b.get("canonical_intraday_action") != "reduce"),
+        "changed_to_exit": changed(lambda c, b: c.get("overnight_action") == "exit" and b.get("canonical_intraday_action") != "exit"),
+        "changed_to_hold": changed(lambda c, b: c.get("overnight_action") in {"hold", "hold_with_protection"} and b.get("canonical_intraday_action") != "hold"),
+        "watchlist_added": sorted(current_watch - baseline_watch),
+        "watchlist_removed": sorted(baseline_watch - current_watch),
+    }
+
+
 def snapshot_context(snapshot: dict[str, Any], baseline_snapshot: dict[str, Any] | None = None, baseline_state: str | None = None) -> dict[str, Any]:
     payload = snapshot.get("payload") if isinstance(snapshot.get("payload"), dict) else {}
     projection = project_decision_intelligence_v4("TW", "pre_close_1335", payload)
     baseline = None
     if baseline_snapshot:
         baseline_payload = baseline_snapshot.get("payload") if isinstance(baseline_snapshot.get("payload"), dict) else {}
+        baseline_cards = baseline_payload.get("structured_intraday_cards") if isinstance(baseline_payload.get("structured_intraday_cards"), list) else []
         baseline = {
             "snapshot_id": baseline_snapshot.get("snapshot_id"),
             "projection": project_decision_intelligence_v4("TW", "intraday_1305", baseline_payload),
+            "cards": baseline_cards,
         }
     cards = payload.get("structured_pre_close_cards") if isinstance(payload.get("structured_pre_close_cards"), list) else []
+    lifecycle_cards = [normalize_lifecycle_card(card, "pre_close_1335") for card in cards if isinstance(card, dict)]
+    lifecycle_summary = aggregate_cards("pre_close_1335", lifecycle_cards)
     payload_source_time = payload.get("source_data_time")
     source_data_time = payload_source_time if _time(payload_source_time) else aggregate_card_timestamp(cards)
     context = {
@@ -126,9 +158,14 @@ def snapshot_context(snapshot: dict[str, Any], baseline_snapshot: dict[str, Any]
         "prediction_available": payload.get("prediction_available"),
         "prediction_total": payload.get("prediction_total"),
         "source_time_status": payload.get("source_data_time_status") or ("available" if source_data_time else "unavailable"),
+        "lifecycle_cards": lifecycle_cards,
+        "lifecycle_summary": lifecycle_summary,
     }
     resolved_state = "same_day_baseline_available" if baseline else baseline_state or _baseline_failure_state(str(snapshot.get("effective_trading_date") or ""))
-    context["same_day_change"] = build_same_day_change(context, baseline, resolved_state)
+    context["same_day_change"] = (
+        _lifecycle_change(lifecycle_cards, baseline.get("cards") or [], str(baseline.get("snapshot_id") or ""))
+        if baseline and baseline.get("cards") else build_same_day_change(context, baseline, resolved_state)
+    )
     return context
 
 
@@ -159,6 +196,8 @@ def _names(values: list[str] | None) -> str:
 
 def render_email(context: dict[str, Any]) -> str:
     decision = context["projection"].get("pre_close_decision") or {}
+    summary = context.get("lifecycle_summary") or {}
+    groups = summary.get("overnight_action_symbols") or {}
     change = context["same_day_change"]
     if change.get("available"):
         comparison = [
@@ -180,16 +219,20 @@ def render_email(context: dict[str, Any]) -> str:
         f"批次時間：{_display_time(context.get('effective_batch_time'))}",
         f"行情資料時間：{_display_time(context.get('source_data_time'))}",
         f"報告產生時間：{_display_time(context.get('generated_at'))}",
-        f"有效標的：{decision.get('stock_count', 0)}",
+        f"有效標的：{summary.get('tracking_count', decision.get('stock_count', 0))}",
         "",
         "收盤前決策",
-        f"可留倉 {_count(decision.get('hold_candidate_count'))}｜不建議留倉 {_count(decision.get('avoid_hold_count'))}｜無交易 {_count(decision.get('no_trade_count'))}",
-        f"接近目標 {_count(decision.get('near_target_count'))}｜接近停損 {_count(decision.get('near_stop_count'))}｜尾盤高風險 {_count(decision.get('late_session_risk_count'))}",
+        f"可留倉 {_names(groups.get('hold'))}｜可留倉但需保護 {_names(groups.get('hold_with_protection'))}",
+        f"觀察 {_names(groups.get('watch'))}｜降低部位 {_names(groups.get('reduce'))}",
+        f"不建議留倉 {_names(groups.get('exit'))}｜無交易 {_names(groups.get('no_trade'))}",
+        f"雙向臨界 {_names((summary.get('risk_state_symbols') or {}).get('both_near'))}",
         *comparison,
         "",
         "重點標的（13:35 行動排序）",
-        f"優先：{_names(decision.get('ranking'))}",
-        f"明日初步觀察：{_names(decision.get('tomorrow_watch'))}",
+        f"優先：{_names(summary.get('priority_symbols'))}",
+        f"明日優先觀察：{_names((summary.get('tomorrow_groups') or {}).get('priority_watch'))}",
+        f"一般追蹤：{_names((summary.get('tomorrow_groups') or {}).get('general_tracking'))}",
+        f"停止延續原策略：{_names((summary.get('tomorrow_groups') or {}).get('stop_original_strategy'))}",
         prediction,
         "",
         "完整報告：",
@@ -199,22 +242,25 @@ def render_email(context: dict[str, Any]) -> str:
 
 
 def render_line(context: dict[str, Any]) -> str:
-    decision = context["projection"].get("pre_close_decision") or {}
+    summary = context.get("lifecycle_summary") or {}
+    groups = summary.get("overnight_action_symbols") or {}
     change = context["same_day_change"]
     comparison = (
         f"新增可留意 {len(change.get('added_watch') or [])}｜轉弱 {len(change.get('changed_to_avoid') or [])}｜Setup 失效 {len(change.get('new_invalidated') or [])}"
         if change.get("available") else str(change.get("message"))
     )
-    hold_names = _names(decision.get("top_hold_candidates") or decision.get("hold_candidates"))
-    avoid_names = _names(decision.get("top_avoid_candidates") or decision.get("avoid_candidates"))
     return "\n".join([
         "【Stock AI】13:35 台股收盤前快照",
-        f"可留倉 {_count(decision.get('hold_candidate_count'))}｜不留倉 {_count(decision.get('avoid_hold_count'))}｜無交易 {_count(decision.get('no_trade_count'))}",
-        f"接近目標 {_count(decision.get('near_target_count'))}｜接近停損 {_count(decision.get('near_stop_count'))}｜尾盤高風險 {_count(decision.get('late_session_risk_count'))}",
+        f"可留倉：{_names(groups.get('hold'))}",
+        f"可留倉但需保護：{_names(groups.get('hold_with_protection'))}",
+        f"觀察：{_names(groups.get('watch'))}",
+        f"降低部位：{_names(groups.get('reduce'))}",
+        f"不建議留倉：{_names(groups.get('exit'))}",
+        f"無交易：{_names(groups.get('no_trade'))}",
+        f"雙向臨界：{_names((summary.get('risk_state_symbols') or {}).get('both_near'))}",
         "與 13:05 相比：",
         comparison,
-        f"可留倉：{hold_names}",
-        f"避免留倉：{avoid_names}",
+        f"明日優先觀察：{_names((summary.get('tomorrow_groups') or {}).get('priority_watch'))}",
         "完整報告：",
         context["canonical_url"],
     ])
@@ -222,6 +268,8 @@ def render_line(context: dict[str, Any]) -> str:
 
 def render_dashboard(context: dict[str, Any]) -> str:
     decision = context["projection"].get("pre_close_decision") or {}
+    summary = context.get("lifecycle_summary") or {}
+    counts = summary.get("overnight_action_counts") or {}
     change = context["same_day_change"]
     comparison = (
         f"新增可留意：{_names(change.get('added_watch'))}；轉為不留倉：{_names(change.get('changed_to_avoid'))}；"
@@ -241,20 +289,25 @@ def render_dashboard(context: dict[str, Any]) -> str:
         ("批次時間", _display_time(context.get("effective_batch_time"))),
         ("行情資料時間", _display_time(context.get("source_data_time"))),
         ("報告產生時間", _display_time(context.get("generated_at"))),
-        ("可留倉", _count(decision.get("hold_candidate_count"))),
-        ("不建議留倉", _count(decision.get("avoid_hold_count"))),
-        ("無交易", _count(decision.get("no_trade_count"))),
+        ("可留倉", _count(counts.get("hold"))),
+        ("可留倉但需保護", _count(counts.get("hold_with_protection"))),
+        ("觀察", _count(counts.get("watch"))),
+        ("降低部位", _count(counts.get("reduce"))),
+        ("不建議留倉", _count(counts.get("exit"))),
+        ("無交易", _count(counts.get("no_trade"))),
         ("接近目標", _count(decision.get("near_target_count"))),
         ("接近停損", _count(decision.get("near_stop_count"))),
         ("尾盤高風險", _count(decision.get("late_session_risk_count"))),
-        ("明日初步觀察", _names(decision.get("tomorrow_watch"))),
+        ("明日優先觀察", _names((summary.get("tomorrow_groups") or {}).get("priority_watch"))),
+        ("一般追蹤", _names((summary.get("tomorrow_groups") or {}).get("general_tracking"))),
+        ("停止延續原策略", _names((summary.get("tomorrow_groups") or {}).get("stop_original_strategy"))),
     ]
     table = "".join(f"<tr><th>{html.escape(label)}</th><td>{html.escape(value)}</td></tr>" for label, value in rows)
     return (
         '<section class="section tw-pre-close-delivery-v1" data-window-binding="pre_close_1335">'
         '<h2>13:35 收盤前決策</h2>'
         f'<table class="decision-table"><tbody>{table}</tbody></table>'
-        f'<h3>13:35 行動排序</h3><p>{html.escape(_names(decision.get("ranking")))}</p>'
+        f'<h3>13:35 行動排序</h3><p>{html.escape(_names(summary.get("priority_symbols")))}</p>'
         f'<h3>同日 13:05 → 13:35 變化</h3><p>{html.escape(comparison)}</p>'
         f'<p class="decision-note">{html.escape(prediction)}</p>'
         '<p class="decision-note">缺少的欄位顯示「尚未取得」，不以 0 或其他 window 時間代替。</p>'
