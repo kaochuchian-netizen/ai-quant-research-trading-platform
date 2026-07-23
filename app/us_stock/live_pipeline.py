@@ -23,11 +23,17 @@ from app.us_stock.premarket_decision import (
     summarize_premarket,
     validate_premarket_contract,
 )
+from app.us_stock.post_close_trade_review import (
+    evaluate_trade_outcome,
+    next_session_action as trade_next_session_action,
+    resolve_source_trade_plan,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_DIR = REPO_ROOT / "artifacts/runtime/us_stock"
 SNAPSHOT_DIR = RUNTIME_DIR / "prediction_snapshots"
 REVIEW_DIR = RUNTIME_DIR / "reviews"
+WINDOW_ARCHIVE_DIR = REPO_ROOT / "artifacts/archive/window_snapshots"
 MODEL_VERSION = "us_live_deterministic_baseline_v1"
 WEIGHT_VERSION = "us_scoring_live_v1"
 TAIPEI = ZoneInfo("Asia/Taipei")
@@ -220,29 +226,32 @@ def pre_open_snapshot_for(symbol: str, session_date: str) -> dict[str, Any] | No
     except (OSError, json.JSONDecodeError):
         return None
 
-def build_review(symbol: str, session_date: str, quote: dict[str, Any], history: Any) -> dict[str, Any]:
+def build_review(symbol: str, session_date: str, quote: dict[str, Any], history: Any, intraday_bars: Any = None, *, archive_root: Path = WINDOW_ARCHIVE_DIR) -> dict[str, Any]:
     snap = latest_snapshot_for(symbol, session_date)
+    source_plan = resolve_source_trade_plan(archive_root, session_date, symbol)
     if not snap:
-        return {"symbol": symbol, "review_status": "pending", "canonical_outcome": "pending", "pending_reason": "missing_prior_prediction_snapshot", "fabricated": False}
+        return {"symbol": symbol, "review_status": "pending", "canonical_outcome": "pending", "trade_outcome": "pending", "trade_review_outcome": "pending_evidence", "pending_reason": "missing_prior_prediction_snapshot", "source_trade_plan": source_plan, "fabricated": False}
     pred = snap.get("prediction", {})
     actual_high = quote.get("day_high")
     actual_low = quote.get("day_low")
     actual_close = quote.get("last_price")
     if None in (actual_high, actual_low, actual_close, pred.get("predicted_session_high"), pred.get("predicted_session_low")):
-        return {"symbol": symbol, "review_status": "pending", "canonical_outcome": "pending", "pending_reason": "actual_or_prediction_incomplete", "snapshot_ref": snap.get("snapshot_path"), "fabricated": False}
+        return {"symbol": symbol, "review_status": "pending", "canonical_outcome": "pending", "trade_outcome": "pending", "trade_review_outcome": "pending_evidence", "pending_reason": "actual_or_prediction_incomplete", "snapshot_ref": snap.get("snapshot_path"), "source_trade_plan": source_plan, "fabricated": False}
     high_err = round(float(actual_high) - float(pred["predicted_session_high"]), 4)
     low_err = round(float(actual_low) - float(pred["predicted_session_low"]), 4)
     covered = actual_high <= pred["predicted_session_high"] and actual_low >= pred["predicted_session_low"]
-    return {
+    evaluated = evaluate_trade_outcome(source_plan, quote, intraday_bars)
+    review = {
         "symbol": symbol, "review_status": "reviewed",
         "prediction_range_result": "hit" if covered else "miss",
-        "canonical_outcome": "pending", "trade_outcome": "pending",
-        "pending_reason": "trade_entry_target_stop_evidence_incomplete",
         "snapshot_ref": snap.get("snapshot_path"), "actual_high": actual_high,
         "actual_low": actual_low, "actual_close": actual_close,
         "range_covered": covered, "high_error": high_err, "low_error": low_err,
-        "fabricated": False,
+        "source_trade_plan": source_plan, "fabricated": False, **evaluated,
     }
+    review["next_session_action"] = trade_next_session_action(str(review.get("trade_review_outcome")))
+    review["pending_reason"] = evaluated.get("pending_reason") if evaluated.get("trade_review_outcome") == "pending_evidence" else None
+    return review
 
 def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *, production_runtime: bool, write_snapshots: bool = True, reference: datetime | None = None) -> dict[str, Any]:
     if window not in US_BATCH_WINDOWS:
@@ -297,11 +306,11 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
         cards.append(card)
         if window in {"us_pre_market_2000", "us_intraday_2300"} and write_snapshots and prediction.get("prediction_status") == "available":
             spath = snapshot_path(context["session_date"], window, symbol)
-            snap = {"schema_version": "us_stock_prediction_snapshot_v1", "market": DEFAULT_MARKET, "session_date": context["session_date"], "window": window, "symbol": symbol, "generated_at": generated_at, "prediction": prediction, "rating": score.get("rating"), "action": score.get("action"), "confidence_score": score.get("confidence_score"), "model_version": MODEL_VERSION, "data_source_timestamps": {"quote": result.quote.get("market_data_as_of")}, "pre_open_setup": card.get("daily_tactical_summary") if window == "us_pre_market_2000" else None, "structured_intraday_card": card if window == "us_intraday_2300" else None, "fixture": False, "validation_only": False}
+            snap = {"schema_version": "us_stock_prediction_snapshot_v1", "market": DEFAULT_MARKET, "session_date": context["session_date"], "window": window, "symbol": symbol, "generated_at": generated_at, "prediction": prediction, "rating": score.get("rating"), "action": score.get("action"), "confidence_score": score.get("confidence_score"), "model_version": MODEL_VERSION, "data_source_timestamps": {"quote": result.quote.get("market_data_as_of")}, "pre_open_setup": card.get("daily_tactical_summary") if window == "us_pre_market_2000" else None, "eligibility": card.get("eligibility") if window == "us_pre_market_2000" else None, "trade_plan": card.get("trade_plan") if window == "us_pre_market_2000" else None, "event_risk": card.get("event_risk") if window == "us_pre_market_2000" else None, "sec_evidence": card.get("sec_evidence") if window == "us_pre_market_2000" else None, "news_evidence": card.get("news_evidence") if window == "us_pre_market_2000" else None, "structured_intraday_card": card if window == "us_intraday_2300" else None, "fixture": False, "validation_only": False}
             snap["snapshot_path"] = str(spath.relative_to(REPO_ROOT))
             write_json(spath, snap)
         if window == "us_post_close_review_0630":
-            review = build_review(symbol, context["session_date"], result.quote, result.history)
+            review = build_review(symbol, context["session_date"], result.quote, result.history, client.fetch_intraday_bars(symbol))
             reviews.append(review)
     structured_review_cards = build_structured_review_cards(cards, reviews) if window == "us_post_close_review_0630" else []
     premarket_context = normalize_market_context(market_context, reference) if window == "us_pre_market_2000" else None

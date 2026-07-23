@@ -132,7 +132,7 @@ def validate_all() -> dict[str, bool]:
         checks["unmapped_outcome_rejected"] = True
     us_email = render_us_email(all_pending, "us_post_close_review_0630")
     us_line = render_us_line(all_pending, "us_post_close_review_0630")
-    checks["us_notification_truthful"] = all(token in us_email and token in us_line for token in ("交易結果已判定 0", "待確認 6", "預測區間命中 0"))
+    checks["us_notification_truthful"] = all(token in us_email and token in us_line for token in ("交易結果已判定 0", "待補證據 6", "預測區間命中 0"))
     checks["us_no_other_bucket"] = "其他" not in us_email + us_line
     checks["channel_count_parity"] = all(str(pending_aggregate[key]) in us_email and str(pending_aggregate[key]) in us_line for key in ("completed_review_count", "pending_review_count"))
     checks["source_hash_mismatch_detected"] = "hash-a" != "hash-b"

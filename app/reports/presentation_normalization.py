@@ -25,6 +25,9 @@ ENUM_LABELS = {
     "official_disclosure": "官方公告", "exchange_or_regulator": "交易所／主管機關",
     "company_ir": "公司 IR", "major_financial_media": "主要財經媒體",
     "general_media": "一般財經媒體", "social_or_unverified": "社群／未驗證來源",
+    "uptrend": "偏多趨勢", "strong_uptrend": "強勢多頭", "mildly_bullish": "溫和偏多",
+    "win": "交易命中", "loss": "交易失敗", "pending_evidence": "證據待補",
+    "not_hit": "未觸發",
 }
 
 INSTRUCTION_LABELS = {

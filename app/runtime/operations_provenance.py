@@ -21,10 +21,17 @@ def build_operations_provenance(*, market: str, window: str, runtime_status: str
     }
     if market.upper() == "TW" and window == "pre_open_0700":
         payload = snapshot.get("payload") if isinstance(snapshot.get("payload"), dict) else {}
+        summary = payload.get("pre_open_summary") if isinstance(payload.get("pre_open_summary"), dict) else {}
         result.update({
             "tracking_stock_count": int(payload.get("tracking_stock_count") or 0),
             "structured_card_count": int(payload.get("structured_card_count") or 0),
             "rendered_card_count": int(payload.get("rendered_card_count") or 0),
+            "canonical_decision_summary": summary,
+            "top_opportunity_count": int(summary.get("top_opportunity_count") or 0),
+            "watch_only_count": int(summary.get("watch_only_count") or 0),
+            "no_trade_count": int(summary.get("no_trade_count") or 0),
+            "avoid_chase_count": int(summary.get("avoid_chase_count") or 0),
+            "data_coverage": summary.get("coverage") or {},
             "structured_payload_status": (
                 "valid"
                 if int(payload.get("tracking_stock_count") or 0) > 0
@@ -94,7 +101,13 @@ def build_operations_provenance(*, market: str, window: str, runtime_status: str
         from app.reports.canonical_outcomes import aggregate_us_post_close_review
         payload = snapshot.get("payload") if isinstance(snapshot.get("payload"), dict) else {}
         cards = payload.get("structured_review_cards") if isinstance(payload.get("structured_review_cards"), list) else []
-        result["review_summary"] = aggregate_us_post_close_review([card for card in cards if isinstance(card, dict)])
+        valid_cards = [card for card in cards if isinstance(card, dict)]
+        result["review_summary"] = aggregate_us_post_close_review(valid_cards)
+        bindings = []
+        for card in valid_cards:
+            source = card.get("source_trade_plan") if isinstance(card.get("source_trade_plan"), dict) else {}
+            bindings.append({"symbol": card.get("symbol"), "source_window": source.get("source_window"), "source_snapshot_id": source.get("source_snapshot_id"), "source_revision": source.get("source_revision"), "source_hash": source.get("source_hash")})
+        result["source_trade_plan_bindings"] = bindings
     return result
 
 def write_operations_provenance(path: Path, payload: dict[str, Any]) -> None:

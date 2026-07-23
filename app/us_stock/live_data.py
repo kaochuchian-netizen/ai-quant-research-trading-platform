@@ -259,6 +259,14 @@ class YFinanceUSClient:
         except Exception as exc:
             return FetchResult(symbol=symbol, ok=False, quote={"source_timestamp": now_taipei()}, history=None, news=[], error=f"{type(exc).__name__}: {str(exc)[:180]}")
 
+    def fetch_intraday_bars(self, symbol: str) -> pd.DataFrame | None:
+        """Return bounded 5-minute evidence; callers must fail closed on None."""
+        try:
+            bars = self._ticker(symbol).history(period="2d", interval="5m", auto_adjust=False, timeout=12)
+            return bars if bars is not None and not bars.empty else None
+        except Exception:
+            return None
+
     def fetch_context(self) -> dict[str, Any]:
         symbols = {"SPY": "S&P 500 ETF", "QQQ": "Nasdaq 100 ETF", "DIA": "Dow ETF", "^VIX": "VIX", "SOXX": "Semiconductor ETF"}
         items = {}

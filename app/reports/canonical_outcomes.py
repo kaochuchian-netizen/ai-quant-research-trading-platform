@@ -83,6 +83,11 @@ def build_structured_review_cards(cards: list[dict[str, Any]], reviews: list[dic
         item["prediction_range_result"] = prediction_result
         item["trade_outcome"] = proposed if actual_outcome_evidence(review, proposed) else "pending"
         item["canonical_outcome"] = item["trade_outcome"]
+        item["trade_review_outcome"] = review.get("trade_review_outcome") or {"hit": "win", "fail": "loss", "pending": "pending_evidence"}.get(item["trade_outcome"], item["trade_outcome"])
+        item["source_trade_plan"] = review.get("source_trade_plan")
+        item["event_risk"] = (review.get("source_trade_plan") or {}).get("event_risk")
+        item["sec_evidence"] = (review.get("source_trade_plan") or {}).get("sec_evidence")
+        item["news_evidence"] = (review.get("source_trade_plan") or {}).get("news_evidence")
         item["outcome_evidence"] = {
             "actual_available": actual_outcome_evidence(review, proposed),
             "prediction_range_result": prediction_result,
@@ -103,6 +108,7 @@ def normalize_review_card(card: dict[str, Any]) -> dict[str, Any]:
     proposed = normalize_outcome(item.get("trade_outcome") or item.get("canonical_outcome"))
     item["trade_outcome"] = proposed if actual_outcome_evidence(review, proposed) else "pending"
     item["canonical_outcome"] = item["trade_outcome"]
+    item["trade_review_outcome"] = item.get("trade_review_outcome") or {"hit": "win", "fail": "loss", "pending": "pending_evidence"}.get(item["trade_outcome"], item["trade_outcome"])
     return item
 
 
@@ -123,6 +129,8 @@ def aggregate_us_post_close_review(cards: list[dict[str, Any]]) -> dict[str, int
         "completed_trade_review_count": trade["completed_review_count"],
         "pending_trade_review_count": trade["pending_review_count"],
         "review_universe_count": trade["review_universe_count"],
+        "trade_win_count": trade["hit_count"], "trade_loss_count": trade["fail_count"],
+        "trade_pending_evidence_count": trade["pending_count"],
     }
 
 

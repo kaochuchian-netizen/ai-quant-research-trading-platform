@@ -315,18 +315,19 @@ def _compact_us_email_block(card: dict[str, Any], window: str) -> str:
     if window == "us_post_close_review_0630":
         card = normalize_review_card(card)
         outcome = str(card.get("trade_outcome") or "pending")
+        review_outcome = str(card.get("trade_review_outcome") or "pending_evidence")
         prediction_result = str(card.get("prediction_range_result") or "pending")
         review = card.get("review") if isinstance(card.get("review"), dict) else {}
         actual_available = all(review.get(key) is not None for key in ("actual_high", "actual_low", "actual_close"))
         return "\n".join([
             f"{symbol} {name}",
-            f"預測區間結果：{localize_enum(prediction_result)}｜交易結果：{localize_enum(outcome)}",
+            f"預測區間結果：{localize_enum(prediction_result)}｜交易結果：{localize_enum(review_outcome)}",
             f"Actual evidence：{'已取得' if actual_available else '尚未取得'}",
             f"Prediction review：{safe_public_text(prediction.get('today_range'))}",
             f"Actual high / low：{safe_public_text(review.get('actual_high'))} / {safe_public_text(review.get('actual_low'))}",
-            f"MFE / MAE：{safe_public_text(review.get('mfe'), missing='待確認')} / {safe_public_text(review.get('mae'), missing='待確認')}",
+            f"最大有利／不利變動：{safe_public_text(review.get('mfe'), missing='待補證據')} / {safe_public_text(review.get('mae'), missing='待補證據')}",
             f"Overnight event update：{safe_public_text(risk)}",
-            f"Next-session action：{'先確認交易結果；目前不判定目標命中。' if outcome == 'pending' else next_action_for_outcome(outcome)}",
+            f"下一交易日：{safe_public_text(review.get('next_session_action'), missing='補足行情時序證據後再判定。')}",
         ])
     return decision_email_block_v2(presentation)
 
@@ -346,8 +347,9 @@ def build_email_body(artifact: dict[str, Any], window: str) -> str:
             f"美東行情時間：{format_timestamp(session.get('reference_new_york'), timezone_name='America/New_York')}",
             f"台北報告時間：{format_timestamp(artifact.get('generated_at'))}",
             f"預測區間命中 {aggregate['prediction_range_hit_count']}｜未命中 {aggregate['prediction_range_miss_count']}｜待確認 {aggregate['prediction_pending_count']}",
-            f"交易結果已判定 {aggregate['completed_trade_review_count']}｜待確認 {aggregate['pending_trade_review_count']}",
+            f"交易結果已判定 {aggregate['completed_trade_review_count']}｜待補證據 {aggregate['pending_trade_review_count']}",
             f"交易命中 {aggregate['trade_hit_count']}｜失敗 {aggregate['trade_fail_count']}｜未觸發 {aggregate['trade_not_triggered_count']}｜無交易 {aggregate['trade_no_trade_count']}",
+            f"待補證據 {aggregate['trade_pending_count']}",
             "Next-session watchlist：依各卡交易結果與事件風險逐檔確認。",
         ])
     if window == "us_intraday_2300":
@@ -404,11 +406,15 @@ def line_text(artifact: dict[str, Any], window: str) -> str:
         cards = [normalize_review_card(card) for card in cards]
         aggregate = aggregate_us_post_close_review(cards)
         prediction_hits = "、".join(str(card.get("symbol") or card.get("stock_id")) for card in cards if card.get("prediction_range_result") == "hit") or "無"
+        groups = {name: "、".join(str(card.get("symbol") or card.get("stock_id")) for card in cards if card.get("trade_review_outcome") == name) or "無" for name in ("win", "loss", "not_triggered", "no_trade", "pending_evidence")}
         return "\n".join([
             "【Stock AI】06:30 美股盤後檢討",
             f"預測區間命中 {aggregate['prediction_range_hit_count']}｜未命中 {aggregate['prediction_range_miss_count']}",
-            f"交易結果已判定 {aggregate['completed_trade_review_count']}｜待確認 {aggregate['pending_trade_review_count']}",
+            f"交易結果已判定 {aggregate['completed_trade_review_count']}｜待補證據 {aggregate['pending_trade_review_count']}",
+            f"交易結果：命中 {aggregate['trade_hit_count']}｜失敗 {aggregate['trade_fail_count']}｜未觸發 {aggregate['trade_not_triggered_count']}｜無交易 {aggregate['trade_no_trade_count']}｜待補證據 {aggregate['trade_pending_count']}",
             f"預測區間命中：{prediction_hits}",
+            f"交易命中：{groups['win']}｜交易失敗：{groups['loss']}",
+            f"未觸發：{groups['not_triggered']}｜無交易：{groups['no_trade']}｜待補證據：{groups['pending_evidence']}",
             "完整報告：", contract.dashboard_url, "僅供研究參考，非交易指令。",
         ])
     if window == "us_pre_market_2000":

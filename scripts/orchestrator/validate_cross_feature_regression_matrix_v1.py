@@ -236,7 +236,7 @@ def main() -> int:
                     )
                 elif (market, window) == ("US", "us_post_close_review_0630"):
                     checks[key + ":line_semantic_parity"] = all(
-                        marker in line_summary for marker in ("預測區間命中", "交易結果已判定", "待確認", get_window_report_contract(market, window).dashboard_url)
+                        marker in line_summary for marker in ("預測區間命中", "交易結果已判定", "待補證據", get_window_report_contract(market, window).dashboard_url)
                     )
                 elif (market, window) == ("US", "us_pre_market_2000"):
                     summary = selected.latest["payload"].get("premarket_summary") or {}

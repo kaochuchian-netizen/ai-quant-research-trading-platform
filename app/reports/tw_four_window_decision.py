@@ -41,7 +41,25 @@ LOCALIZED = {
     "cancel_chase": "取消追價", "target_near": "接近目標", "entry_triggered_hold": "已觸發，續抱觀察",
     "wait_for_volume": "等待量能確認", "reduce_risk": "降低風險", "maintain_watch": "維持觀察",
     "unknown": "尚未判定", "neutral": "中性", "downtrend": "偏空趨勢",
+    "uptrend": "偏多趨勢", "strong_uptrend": "強勢多頭",
 }
+
+PRE_OPEN_ACTION_GATE = {"minimum_reward_risk": 1.0}
+NEWS_DIRECTIONS = {"bullish", "neutral", "bearish", "unavailable"}
+
+
+def canonical_news_direction(value: Any, detail: Any = None) -> str:
+    raw = str(value or "").strip().lower().replace("偏多", "bullish").replace("偏空", "bearish").replace("中性", "neutral")
+    if raw in NEWS_DIRECTIONS:
+        return raw
+    text = str(detail or "")
+    if any(token in text for token in ("消息面方向：偏多", "新聞方向：偏多", "強烈偏多")):
+        return "bullish"
+    if any(token in text for token in ("消息面方向：偏空", "新聞方向：偏空", "強烈偏空")):
+        return "bearish"
+    if any(token in text for token in ("消息面方向：中性", "新聞方向：中性")):
+        return "neutral"
+    return "unavailable"
 
 
 def number(value: Any) -> float | None:
@@ -132,9 +150,10 @@ def upgrade_pre_open_card(card: dict[str, Any], tactical: dict[str, Any] | None,
     )
     no_trade = strategy_type == "no_trade"
     safe_levels = all(value is not None for value in (entry_low, entry_high, stop_level, target_1))
+    reward_risk = number(tactical.get("reward_risk"))
     readiness = (
         "no_trade" if no_trade else "entry_ready" if safe_levels and data_quality in {"complete", "partial"}
-        and number(tactical.get("reward_risk")) is not None and float(tactical["reward_risk"]) >= 0.8
+        and reward_risk is not None and reward_risk >= PRE_OPEN_ACTION_GATE["minimum_reward_risk"]
         and tactical.get("chase_risk") != "high" else "watch" if safe_levels else "unavailable"
     )
     missing = set(str(item) for item in result.get("missing_fields", []) if item)
@@ -153,7 +172,7 @@ def upgrade_pre_open_card(card: dict[str, Any], tactical: dict[str, Any] | None,
         "entry_readiness": readiness, "entry_low": entry_low, "entry_high": entry_high,
         "entry_zone": tactical.get("entry_zone"), "stop_level": stop_level,
         "target_1": target_1, "target_2": target_2,
-        "target_level": tactical.get("target_1"), "risk_reward": number(tactical.get("reward_risk")),
+        "target_level": tactical.get("target_1"), "risk_reward": reward_risk,
         "action": sanitize_text(tactical.get("action") or result.get("action")),
         "entry_condition": sanitize_text((tactical.get("playbook") or {}).get("entry_condition")),
         "chase_risk": str(tactical.get("chase_risk") or result.get("chase_risk") or "unavailable"),
@@ -163,14 +182,14 @@ def upgrade_pre_open_card(card: dict[str, Any], tactical: dict[str, Any] | None,
         "data_status": normalized_data_status,
         "availability_status": normalized_data_status,
         "missing_fields": sorted(missing),
-        "technical_summary": sanitize_text(result.get("technical_summary")),
+        "technical_summary": localize(result.get("technical_summary")),
         "chip_summary": sanitize_text(result.get("chip_summary")),
         "adr_context": sanitize_text(result.get("adr_context")),
         "overnight_context": sanitize_text(result.get("overnight_context")),
         "news_summary": news_text,
         "news_status": "unavailable" if news_unavailable else "available",
         "news_source_class": "unavailable" if news_unavailable else str(result.get("news_source_class") or "general_media"),
-        "news_direction": None if news_unavailable else result.get("news_direction"),
+        "news_direction": "unavailable" if news_unavailable else canonical_news_direction(result.get("news_direction"), news_text),
         "news_confidence": None if news_unavailable else result.get("news_confidence"),
         "news_strategy_impact": "no_material_effect" if news_unavailable else result.get("news_strategy_impact"),
         "reasoning": sanitize_text("；".join(tactical.get("reasons") or []) or result.get("reasoning")),
@@ -182,6 +201,8 @@ def upgrade_pre_open_card(card: dict[str, Any], tactical: dict[str, Any] | None,
         "predicted_high": target_1,
         "prediction_method": "tw_daily_tactical_entry_to_target_corridor_v1",
         "opportunity_group": "no_trade" if no_trade else "opportunity" if readiness == "entry_ready" else "watch" if readiness == "watch" else "unavailable",
+        "decision_category": "no_trade" if no_trade else "top_opportunity" if readiness == "entry_ready" else "watch_only" if readiness == "watch" else "unavailable",
+        "actionable": readiness == "entry_ready", "watch_only": readiness == "watch", "no_trade": no_trade,
         "risk_adjusted_score": round(float(result.get("risk_adjusted_score") or result.get("decision_score") or 0) + (10 if readiness == "entry_ready" else 0), 4),
     })
     without_hash = dict(result)
