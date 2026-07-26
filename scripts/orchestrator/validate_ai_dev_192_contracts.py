@@ -91,7 +91,7 @@ def validate(section: str = "all") -> dict:
         "canonical_counts": summary["active_plan_count"] == 2 and summary["watch_only_count"] == 1 and summary["no_trade_count"] == 1,
         "payload_valid": validate_intraday_payload(payload) == [],
         "relative_strength_pp": rel_pp == 0.62,
-        "raw_representation_absent": not any(token in public for token in ("{'high':", "available", "unclassified", "Canonical Decision V1")),
+        "raw_representation_absent": not any(token in public for token in ("{'high':", "available", "unclassified", "Canonical Decision V1", "Confirmed setups", "setup 是否")),
         "unclassified_localized": localize_enum("unclassified") == "尚未分類",
         "watch_plan_hidden": "TSM TSM\n20:00 計畫：觀察" in public and "正式進場／停損／目標：未建立" in public,
         "sec_news_separate": "filing metadata" not in "即時新聞：無法取得；不以 SEC filing 代替即時新聞",

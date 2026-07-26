@@ -52,9 +52,9 @@ WINDOW_PRESENTATION: dict[tuple[str, str], dict[str, Any]] = {
         "suppressed": ("盤後 outcome", "06:30 review"),
     },
     ("US", "us_intraday_2300"): {
-        "question": "開盤後量價與 Gap 是否確認，setup 是否仍可做？",
+        "question": "開盤後量價與 Gap 是否確認，盤前策略是否仍可執行？",
         "card_type": "us-intraday-change-v4",
-        "sections": ("開盤後變化", "Confirmed setups", "Failed gaps", "Volume-confirmed moves", "Still actionable", "Chase risk", "Entry trigger", "Target / Stop proximity", "Tactical adjustment", "盤中事件更新", "與 20:00 預期偏差"),
+        "sections": ("開盤後變化", "已確認策略", "Gap 失效", "量能確認", "仍可行動", "追價風險", "進場觸發", "目標／停損接近度", "盤中策略調整", "盤中事件更新", "與 20:00 預期偏差"),
         "new_fields": ("confirmed_setups", "failed_gaps", "volume_confirmed", "still_actionable", "chase_risk", "premarket_deviation"),
         "suppressed": ("完整 20:00 Research / Financial / SEC", "06:30 outcome review"),
     },
