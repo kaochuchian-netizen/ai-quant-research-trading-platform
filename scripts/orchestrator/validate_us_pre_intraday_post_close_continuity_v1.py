@@ -14,16 +14,17 @@ def validate()->dict:
     post=[]
     for index,symbol in enumerate(symbols):
         card=fixture_card(symbol,current=103+index,opened=101,previous=100,day_low=101)
-        card.update({"setup_id":pre[symbol]["setup_id"],"pre_open_action":pre[symbol]["action"],"pre_open_setup_source":f"prediction_snapshots/2026-07-17/us_pre_market_2000_{symbol}.json"})
+        card.update({"setup_id":pre[symbol]["setup_id"],"pre_open_action":pre[symbol]["action"],"pre_open_setup_source":f"artifacts/archive/window_snapshots/us/us_pre_market_2000/2026-07-17/revision-1.json"})
         intraday.append(card)
         post.append({"symbol":symbol,"setup_id":card["setup_id"],"canonical_outcome":"pending" if index==2 else "hit"})
     checks={
         "symbol_identity":set(pre)=={c["symbol"] for c in intraday}=={c["symbol"] for c in post},
         "setup_identity":all(pre[c["symbol"]]["setup_id"]==c["setup_id"]==next(p["setup_id"] for p in post if p["symbol"]==c["symbol"]) for c in intraday),
         "pre_open_action_retained":all(c["pre_open_action"]=="盤前觀察" for c in intraday),
-        "trigger_explicit":all(c["entry_trigger_state"] in {"not_reached","inside_zone","triggered","passed_without_safe_entry","invalidated","unavailable"} for c in intraday),
+        "trigger_explicit":all(c["entry_trigger_state"] in {"not_reached","inside_zone","triggered","passed_without_safe_entry","invalidated","target_hit","stop_hit","unavailable"} for c in intraday),
         "post_outcome_not_reclassified":next(p for p in post if p["symbol"]=="TSLA")["canonical_outcome"]=="pending",
         "no_cross_window_fill":all("us_pre_market_2000" in c["pre_open_setup_source"] for c in intraday),
+        "source_plan_identity":all((c.get("source_plan") or {}).get("source_window")=="us_pre_market_2000" for c in intraday),
     }
     return{"ok":all(checks.values()),"checks":checks,"symbols":list(symbols),"production_modified":False}
 def main()->int:

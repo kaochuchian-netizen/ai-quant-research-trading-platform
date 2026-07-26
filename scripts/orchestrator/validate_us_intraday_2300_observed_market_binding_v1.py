@@ -46,7 +46,14 @@ def fixture_card(symbol: str = "AAPL", *, current: float = 334.2, opened: float 
             "gap_risk": "medium", "event_risk": "low", "action": "盤前觀察",
         },
         session=session,
-        pre_open_snapshot={"snapshot_path": "temporary/pre-open.json", "pre_open_setup": {"action": "盤前觀察"}},
+        source_plan={
+            "schema_version": "us_source_trade_plan_v1", "source_window": "us_pre_market_2000",
+            "source_effective_date": "2026-07-17", "source_snapshot_id": f"source-{symbol}",
+            "source_revision": 1, "source_hash": f"hash-{symbol}", "plan_status": "active",
+            "direction": "long", "entry": {"low": 332.0, "high": 335.0}, "stop": 327.8,
+            "target": {"low": 342.5, "high": 344.0},
+            "eligibility": {"candidate": True, "entry_ready": True, "top_opportunity": True, "actionable": True, "watch_only": False, "no_trade": False},
+        },
     )
 
 
@@ -95,13 +102,13 @@ def validate() -> dict:
         "volume_ratio_deterministic": card["volume_ratio"] is not None and card["volume_confirmation_state"] in {"strong", "confirmed", "neutral", "weak"},
         "future_quote_rejected": future_quote["data_status"] == "invalid" and "market_data_time_after_batch_reference" in future_quote["missing_fields"],
         "daily_bar_not_intraday": daily_fallback["data_status"] == "stale" and "current_price_from_daily_bar" in daily_fallback["missing_fields"],
-        "trigger_explicit": card["entry_trigger_state"] in {"inside_zone", "triggered"},
+        "trigger_explicit": card["entry_trigger_state"] in {"inside_zone", "triggered", "target_hit", "stop_hit"},
         "distances_present": card["distance_to_stop_pct"] is not None and card["distance_to_target_pct"] is not None,
         "adjustment_observed": card["tactical_adjustment"] != "data_unavailable" and any(token in card["adjustment_reason"] for token in ("目前價", "價格")),
-        "dashboard_observed": all(marker in dashboard for marker in ("334.20", "Volume ratio", "Trigger status", "距停損", "距目標")),
+        "dashboard_observed": all(marker in dashboard for marker in ("334.20", "成交量倍率", "觸發狀態", "停損距離", "目標距離", "20:00 計畫監控")),
         "archive_observed": "334.20" in archive_html and "行情時間" in archive_html,
         "email_observed": all(marker in email for marker in ("目前 334.20", "Gap", "量能", "距停損", canonical)),
-        "line_summary": all(marker in line for marker in ("已觸發", "取消追價", "量能確認", canonical)),
+        "line_summary": all(marker in line for marker in ("正式計畫", "已觸發", "已失效", "仍可行動", "主要交易機會", canonical)),
         "generic_placeholder_absent": not any(marker in dashboard + archive_html + email + line for marker in forbidden),
         "source_hash_parity": email_prov["source_payload_hash"] == line_prov["source_payload_hash"] == source_hash,
         "operations_counts": operations.get("tracking_count") == operations.get("structured_card_count") == 2 and operations.get("intraday_payload_status") == "valid",

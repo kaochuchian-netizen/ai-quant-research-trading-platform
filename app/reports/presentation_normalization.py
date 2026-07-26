@@ -32,6 +32,9 @@ ENUM_LABELS = {
     "wait_volume": "等待量能確認", "exit": "退出／停止原策略",
     "active": "正式交易計畫", "not_started": "尚未開始", "closed": "已結束",
     "not_hit": "未觸發",
+    "available": "可用", "unclassified": "尚未分類", "miss": "預測區間未命中",
+    "long": "偏多交易", "short": "偏空交易", "not_applicable": "不適用",
+    "target_hit": "目標已觸及", "stop_hit": "停損已觸及",
 }
 
 INSTRUCTION_LABELS = {
@@ -69,6 +72,18 @@ def safe_public_text(value: Any, *, missing: str = MISSING_TEXT) -> str:
     if text in {"None", "None / None", "[None, None]", "[]", "{}"}:
         return "不適用"
     return localize_enum(text, missing=missing)
+
+
+def format_price_range(value: Any, *, missing: str = MISSING_TEXT) -> str:
+    """Render a low/high mapping without exposing a Python/JSON representation."""
+    if not isinstance(value, dict):
+        return missing if value in (None, "", "not_applicable") else safe_public_text(value, missing=missing)
+    try:
+        low, high = float(value.get("low")), float(value.get("high"))
+    except (TypeError, ValueError):
+        return missing
+    low, high = min(low, high), max(low, high)
+    return f"{low:.2f}–{high:.2f}"
 
 
 def _timestamp_datetime(value: Any, default_timezone: str) -> datetime | None:
