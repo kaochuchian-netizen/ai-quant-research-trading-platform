@@ -831,10 +831,10 @@ def _decision_intelligence_v4_html(market: str, window: str, payload: dict[str, 
     projection = project_decision_intelligence_v4(market, window, payload)
     counts = projection["counts"]
     labels = {
-        "total": "標的數", "top_opportunities": "Top opportunities", "no_trade": "No-trade",
-        "chase_risk": "Chase risk", "entry_ready": "Entry readiness", "triggered": "Triggered",
-        "invalidated": "Invalidated", "still_actionable": "Still actionable", "volume_confirmed": "Volume confirmed",
-        "failed_gaps": "Failed gaps", "direction_hit": "Direction hit", "reviewed": "Reviewed",
+        "total": "標的數", "top_opportunities": "主要交易機會", "no_trade": "暫不交易",
+        "chase_risk": "追價風險", "entry_ready": "進場條件就緒", "triggered": "已觸發",
+        "invalidated": "已失效", "still_actionable": "仍可行動", "volume_confirmed": "量能確認",
+        "failed_gaps": "Gap 失效", "direction_hit": "方向命中", "reviewed": "檢討卡",
     }
     count_fields = {
         "pre_open_0700": ("total", "top_opportunities", "no_trade", "chase_risk", "entry_ready"),
@@ -854,8 +854,29 @@ def _decision_intelligence_v4_html(market: str, window: str, payload: dict[str, 
             ("待確認", int(dist.get("pending", 0))), ("已完成檢討", counts["reviewed"]),
         ]
     lists = projection["lists"]
+    canonical_intraday_groups: dict[str, Any] = {}
+    if window == "us_intraday_2300":
+        canonical_summary = payload.get("intraday_summary") if isinstance(payload, dict) and isinstance(payload.get("intraday_summary"), dict) else {}
+        canonical_intraday_groups = canonical_summary.get("groups") if isinstance(canonical_summary.get("groups"), dict) else {}
+        if canonical_intraday_groups:
+            metric_rows = [
+                ("標的數", int(canonical_summary.get("tracking_count") or 0)),
+                ("20:00 正式計畫", int(canonical_summary.get("active_plan_count") or 0)),
+                ("觀察", int(canonical_summary.get("watch_only_count") or 0)),
+                ("暫不交易", int(canonical_summary.get("no_trade_count") or 0)),
+                ("已失效", int(canonical_summary.get("invalidated_count") or 0)),
+                ("仍可行動", int(canonical_summary.get("still_actionable_count") or 0)),
+            ]
+            lists = {
+                "opportunities": canonical_intraday_groups.get("top_opportunity") or [],
+                "invalidated": canonical_intraday_groups.get("invalidated") or [],
+                "still_actionable": canonical_intraday_groups.get("still_actionable") or [],
+            }
+        else:
+            metric_rows = [("標的數", int(canonical_summary.get("tracking_count") or counts.get("total") or 0)), ("20:00 計畫綁定", "本批次資料未提供")]
+            lists = {}
     list_rows = []
-    for key, label in (("opportunities", "Top opportunities"), ("triggered", "已觸發"), ("invalidated", "已失效"), ("volume_confirmed", "量價確認"), ("failed_gaps", "Failed gaps"), ("event_risk", "事件風險"), ("still_actionable", "仍可行動"), ("no_trade", "No-trade"), ("chase_risk", "Chase-risk")):
+    for key, label in (("opportunities", "主要交易機會"), ("triggered", "已觸發"), ("invalidated", "已失效"), ("volume_confirmed", "量價確認"), ("failed_gaps", "Gap 失效"), ("event_risk", "事件風險"), ("still_actionable", "仍可行動"), ("no_trade", "暫不交易"), ("chase_risk", "追價風險")):
         values = lists.get(key, [])
         if values:
             list_rows.append((label, "、".join(str(item) for item in values[:5])))
