@@ -340,7 +340,7 @@ def _compact_us_email_block(card: dict[str, Any], window: str) -> str:
             f"SEC：{sec.get('form') or '尚未取得'}｜{sec.get('filing_date') or '日期尚未取得'}",
             f"即時新聞：{news_text}",
             f"隔夜事件更新：{safe_public_text(risk)}",
-            f"下一交易日：{safe_public_text(review.get('next_session_action'), missing='補足行情時序證據後再判定。')}",
+            f"下一交易日：{safe_public_text(review.get('next_session_action'), missing='補足行情時序證據後再判定。').replace('setup', '策略')}",
         ])
     return decision_email_block_v2(presentation)
 

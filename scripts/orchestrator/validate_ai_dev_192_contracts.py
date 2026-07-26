@@ -18,6 +18,7 @@ if str(ROOT) not in sys.path:
 from app.us_stock.intraday_observed import build_intraday_card, resolve_market_session, summarize_intraday, validate_intraday_payload
 from app.us_stock.three_window_lifecycle import directional_proximity, validate_trade_geometry
 from scripts.orchestrator.approved_us_stock_delivery import build_email_body, line_text
+from app.reports.presentation_normalization import localize_enum
 
 TAIPEI = ZoneInfo("Asia/Taipei")
 
@@ -91,6 +92,7 @@ def validate(section: str = "all") -> dict:
         "payload_valid": validate_intraday_payload(payload) == [],
         "relative_strength_pp": rel_pp == 0.62,
         "raw_representation_absent": not any(token in public for token in ("{'high':", "available", "unclassified", "Canonical Decision V1")),
+        "unclassified_localized": localize_enum("unclassified") == "尚未分類",
         "watch_plan_hidden": "TSM TSM\n20:00 計畫：觀察" in public and "正式進場／停損／目標：未建立" in public,
         "sec_news_separate": "filing metadata" not in "即時新聞：無法取得；不以 SEC filing 代替即時新聞",
         "channel_summary_parity": f"已失效 {summary['invalidated_count']}｜仍可行動 {summary['still_actionable_count']}" in line_text(payload, "us_intraday_2300"),
