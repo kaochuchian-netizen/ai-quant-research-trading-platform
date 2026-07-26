@@ -99,6 +99,22 @@ def build_operations_provenance(*, market: str, window: str, runtime_status: str
             "market_data_unavailable_count": int(summary.get("data_unavailable_count") or 0),
             "triggered_count": int(summary.get("triggered_count") or 0),
             "volume_confirmed_count": int(summary.get("volume_confirmed_count") or 0),
+            "active_plan_count": int(summary.get("active_plan_count") or 0),
+            "watch_only_count": int(summary.get("watch_only_count") or 0),
+            "no_trade_count": int(summary.get("no_trade_count") or 0),
+            "invalidated_count": int(summary.get("invalidated_count") or 0),
+            "still_actionable_count": int(summary.get("still_actionable_count") or 0),
+            "canonical_intraday_summary": summary,
+            "source_plan_bindings": [
+                {
+                    "symbol": card.get("symbol"),
+                    "source_window": (card.get("source_plan") or {}).get("source_window"),
+                    "source_snapshot_id": (card.get("source_plan") or {}).get("source_snapshot_id"),
+                    "source_revision": (card.get("source_plan") or {}).get("source_revision"),
+                    "source_hash": (card.get("source_plan") or {}).get("source_hash"),
+                }
+                for card in payload.get("structured_intraday_cards", []) if isinstance(card, dict)
+            ],
             "intraday_payload_status": (
                 "valid" if int(summary.get("tracking_count") or 0) > 0
                 and int(summary.get("tracking_count") or 0) == int(summary.get("structured_card_count") or 0)
@@ -128,7 +144,8 @@ def build_operations_provenance(*, market: str, window: str, runtime_status: str
         bindings = []
         for card in valid_cards:
             source = card.get("source_trade_plan") if isinstance(card.get("source_trade_plan"), dict) else {}
-            bindings.append({"symbol": card.get("symbol"), "source_window": source.get("source_window"), "source_snapshot_id": source.get("source_snapshot_id"), "source_revision": source.get("source_revision"), "source_hash": source.get("source_hash")})
+            evidence = card.get("intraday_evidence") if isinstance(card.get("intraday_evidence"), dict) else {}
+            bindings.append({"symbol": card.get("symbol"), "source_window": source.get("source_window"), "source_snapshot_id": source.get("source_snapshot_id"), "source_revision": source.get("source_revision"), "source_hash": source.get("source_hash"), "intraday_evidence_snapshot_id": evidence.get("source_snapshot_id"), "intraday_evidence_hash": evidence.get("source_hash")})
         result["source_trade_plan_bindings"] = bindings
     return result
 

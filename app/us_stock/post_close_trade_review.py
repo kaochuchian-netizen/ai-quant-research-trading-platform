@@ -6,9 +6,9 @@ archive, runtime, notification, or public artifact.
 """
 from __future__ import annotations
 
-import json
-from pathlib import Path
 from typing import Any, Iterable
+
+from app.us_stock.three_window_lifecycle import resolve_source_trade_plan
 
 TRADE_REVIEW_OUTCOMES = ("win", "loss", "not_triggered", "no_trade", "pending_evidence")
 
@@ -25,54 +25,6 @@ def _range(value: Any) -> tuple[float | None, float | None]:
         return None, None
     low, high = _number(value.get("low")), _number(value.get("high"))
     return (min(low, high), max(low, high)) if low is not None and high is not None else (None, None)
-
-
-def _source_card(wrapper: dict[str, Any], symbol: str) -> dict[str, Any] | None:
-    payload = wrapper.get("payload") if isinstance(wrapper.get("payload"), dict) else {}
-    cards = ((payload.get("dashboard_ready_contract") or {}).get("cards") or [])
-    return next((card for card in cards if isinstance(card, dict) and str(card.get("symbol") or "").upper() == symbol.upper()), None)
-
-
-def resolve_source_trade_plan(archive_root: Path, session_date: str, symbol: str) -> dict[str, Any] | None:
-    """Bind to the highest admitted revision for the exact effective date."""
-    folder = archive_root / "us" / "us_pre_market_2000" / session_date
-    candidates: list[dict[str, Any]] = []
-    for path in sorted(folder.glob("revision-*.json")):
-        try:
-            wrapper = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            continue
-        if wrapper.get("admitted") is not True or str(wrapper.get("effective_trading_date")) != session_date:
-            continue
-        card = _source_card(wrapper, symbol)
-        if card:
-            candidates.append({"wrapper": wrapper, "card": card, "path": path})
-    if not candidates:
-        return None
-    selected = max(candidates, key=lambda item: (int(item["wrapper"].get("revision") or 0), str(item["wrapper"].get("admitted_at") or item["wrapper"].get("revision_created_at") or "")))
-    wrapper, card = selected["wrapper"], selected["card"]
-    eligibility = card.get("eligibility") if isinstance(card.get("eligibility"), dict) else {}
-    plan = card.get("trade_plan") if isinstance(card.get("trade_plan"), dict) else {}
-    tactical = card.get("daily_tactical_summary") if isinstance(card.get("daily_tactical_summary"), dict) else {}
-    entry = plan.get("entry") if isinstance(plan.get("entry"), dict) else tactical.get("entry_zone")
-    target = plan.get("target") if isinstance(plan.get("target"), dict) else tactical.get("target_zone_1")
-    stop = plan.get("stop") if plan.get("stop") is not None else tactical.get("stop_reference")
-    legacy_active = all(value is not None for value in (*_range(entry), _number(stop), *_range(target))) and tactical.get("setup_type") != "no_trade"
-    if not eligibility:
-        eligibility = {"actionable": legacy_active, "watch_only": False, "no_trade": not legacy_active}
-    direction = str(tactical.get("direction") or card.get("direction") or "unavailable")
-    return {
-        "source_market": "us", "source_window": "us_pre_market_2000",
-        "source_effective_date": session_date, "source_snapshot_id": wrapper.get("snapshot_id"),
-        "source_revision": int(wrapper.get("revision") or 0),
-        "source_hash": wrapper.get("source_payload_hash") or (wrapper.get("payload") or {}).get("source_payload_hash") or wrapper.get("snapshot_id"),
-        "source_path": str(selected["path"]), "symbol": symbol.upper(),
-        "eligibility": eligibility, "direction": direction,
-        "entry": {"low": _range(entry)[0], "high": _range(entry)[1]},
-        "stop": _number(stop), "target": {"low": _range(target)[0], "high": _range(target)[1]},
-        "event_risk": card.get("event_risk"), "sec_evidence": card.get("sec_evidence"),
-        "news_evidence": card.get("news_evidence"), "trade_plan_status": plan.get("status") or ("active" if legacy_active else "no_trade"),
-    }
 
 
 def _rows(bars: Any) -> list[dict[str, Any]]:

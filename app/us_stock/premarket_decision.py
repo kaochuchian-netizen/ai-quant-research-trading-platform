@@ -10,6 +10,8 @@ from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from app.us_stock.three_window_lifecycle import canonical_direction
+
 NEW_YORK = ZoneInfo("America/New_York")
 MIN_CONFIDENCE = 35.0
 MIN_REWARD_RISK = 1.0
@@ -157,16 +159,32 @@ def build_premarket_card(card: dict[str, Any], quote: dict[str, Any], research: 
     market = normalize_market_context(market_context, reference)
     qqq_change = (market.get("qqq") or {}).get("change_pct")
     sector_change = (market.get("sector_proxy") or {}).get("change_pct")
+    relative_qqq = round(premarket["change_pct"] - qqq_change, 4) if premarket["change_pct"] is not None and isinstance(qqq_change, (int, float)) else None
+    relative_sector = round(premarket["change_pct"] - sector_change, 4) if premarket["change_pct"] is not None and isinstance(sector_change, (int, float)) else None
+    plan_status = "active" if actionable else "no_trade" if no_trade else "watch"
+    canonical_trade_direction = canonical_direction(direction, plan_status=plan_status)
+    market_conflict = canonical_trade_direction == "long" and market.get("regime") == "risk_off" or canonical_trade_direction == "short" and market.get("regime") == "risk_on"
+    direction_label = "偏多" if canonical_trade_direction == "long" else "偏空" if canonical_trade_direction == "short" else "中性"
+    relative_text = f"較 QQQ 強 {relative_qqq:+.2f} 個百分點" if relative_qqq is not None else "相對 QQQ 強弱尚未取得"
+    action_rationale = (
+        f"{direction_label} {tactical.get('setup_type') or '策略'}；{relative_text}。"
+        + ("目前與整體市場方向衝突，需採較嚴格失效條件。" if market_conflict else "與市場方向未形成重大衝突。")
+    )
     return {
         **card,
         "premarket": premarket,
         "market_context": market,
         "relative_strength": {
-            "vs_qqq_pct": round(premarket["change_pct"] - qqq_change, 4) if premarket["change_pct"] is not None and isinstance(qqq_change, (int, float)) else None,
-            "vs_sector_pct": round(premarket["change_pct"] - sector_change, 4) if premarket["change_pct"] is not None and isinstance(sector_change, (int, float)) else None,
+            "vs_qqq_pp": relative_qqq, "vs_sector_pp": relative_sector,
+            "unit": "percentage_point", "method": "symbol_premarket_change_pct_minus_benchmark_change_pct",
         },
+        "direction": canonical_trade_direction,
+        "strategy_direction_raw": direction,
+        "setup_type": tactical.get("setup_type"),
+        "market_conflict": market_conflict,
+        "action_rationale": action_rationale,
         "eligibility": {"candidate": True, "entry_ready": entry_ready, "top_opportunity": top, "actionable": actionable, "watch_only": not actionable and not no_trade, "no_trade": no_trade, "reason_codes": reasons},
-        "trade_plan": {"status": "active" if actionable else "watch_only", "entry": tactical.get("entry_zone") if actionable else None, "observation_zone": tactical.get("entry_zone") if not actionable else None, "stop": tactical.get("stop_reference") if actionable else None, "target": tactical.get("target_zone_1") if actionable else None, "reward_risk": rr, "reassessment_condition": "盤前資料完整、信心與報酬風險比達門檻，且價格完成止穩／觸發確認" if not actionable else "依正式觸發條件執行"},
+        "trade_plan": {"status": plan_status, "entry": tactical.get("entry_zone") if actionable else None, "observation_zone": tactical.get("entry_zone") if not actionable else None, "stop": tactical.get("stop_reference") if actionable else None, "target": tactical.get("target_zone_1") if actionable else None, "reward_risk": rr, "reassessment_condition": "盤前資料完整、信心與報酬風險比達門檻，且價格完成止穩／觸發確認" if not actionable else "依正式觸發條件執行", "invalidation_condition": f"跌破 {float(tactical.get('stop_reference')):.2f}" if actionable and canonical_trade_direction == "long" and tactical.get("stop_reference") is not None else f"突破 {float(tactical.get('stop_reference')):.2f}" if actionable and canonical_trade_direction == "short" and tactical.get("stop_reference") is not None else None},
         "event_risk": event,
         "sec_evidence": sec_evidence,
         "news_evidence": news_evidence,
@@ -199,6 +217,9 @@ def validate_premarket_contract(cards: list[dict[str, Any]], summary: dict[str, 
         if e.get("top_opportunity") and not e.get("actionable"): errors.append(f"{symbol}: top opportunity is not actionable")
         if e.get("actionable") and e.get("no_trade"): errors.append(f"{symbol}: actionable conflicts with no_trade")
         if e.get("watch_only") and e.get("top_opportunity"): errors.append(f"{symbol}: watch_only conflicts with top opportunity")
+        if e.get("watch_only") and e.get("actionable"): errors.append(f"{symbol}: watch_only conflicts with actionable")
+        if e.get("no_trade") and (card.get("trade_plan") or {}).get("status") != "no_trade": errors.append(f"{symbol}: no_trade plan status mismatch")
+        if e.get("watch_only") and (card.get("trade_plan") or {}).get("status") != "watch": errors.append(f"{symbol}: watch plan status mismatch")
         if e.get("top_opportunity") and (card.get("trade_plan") or {}).get("reward_risk", 0) < MIN_REWARD_RISK: errors.append(f"{symbol}: RR below threshold")
     expected = sorted(str(c.get("symbol")) for c in cards if (c.get("eligibility") or {}).get("top_opportunity"))
     if expected != (summary.get("groups") or {}).get("top_opportunity", []): errors.append("top opportunity list mismatch")

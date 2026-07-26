@@ -28,6 +28,7 @@ from app.us_stock.post_close_trade_review import (
     next_session_action as trade_next_session_action,
     resolve_source_trade_plan,
 )
+from app.us_stock.three_window_lifecycle import resolve_intraday_evidence
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_DIR = REPO_ROOT / "artifacts/runtime/us_stock"
@@ -229,14 +230,15 @@ def pre_open_snapshot_for(symbol: str, session_date: str) -> dict[str, Any] | No
 def build_review(symbol: str, session_date: str, quote: dict[str, Any], history: Any, intraday_bars: Any = None, *, archive_root: Path = WINDOW_ARCHIVE_DIR) -> dict[str, Any]:
     snap = latest_snapshot_for(symbol, session_date)
     source_plan = resolve_source_trade_plan(archive_root, session_date, symbol)
+    intraday_evidence = resolve_intraday_evidence(archive_root, session_date, symbol)
     if not snap:
-        return {"symbol": symbol, "review_status": "pending", "canonical_outcome": "pending", "trade_outcome": "pending", "trade_review_outcome": "pending_evidence", "pending_reason": "missing_prior_prediction_snapshot", "source_trade_plan": source_plan, "fabricated": False}
+        return {"symbol": symbol, "review_status": "pending", "canonical_outcome": "pending", "trade_outcome": "pending", "trade_review_outcome": "pending_evidence", "pending_reason": "missing_prior_prediction_snapshot", "source_trade_plan": source_plan, "intraday_evidence": intraday_evidence, "fabricated": False}
     pred = snap.get("prediction", {})
     actual_high = quote.get("day_high")
     actual_low = quote.get("day_low")
     actual_close = quote.get("last_price")
     if None in (actual_high, actual_low, actual_close, pred.get("predicted_session_high"), pred.get("predicted_session_low")):
-        return {"symbol": symbol, "review_status": "pending", "canonical_outcome": "pending", "trade_outcome": "pending", "trade_review_outcome": "pending_evidence", "pending_reason": "actual_or_prediction_incomplete", "snapshot_ref": snap.get("snapshot_path"), "source_trade_plan": source_plan, "fabricated": False}
+        return {"symbol": symbol, "review_status": "pending", "canonical_outcome": "pending", "trade_outcome": "pending", "trade_review_outcome": "pending_evidence", "pending_reason": "actual_or_prediction_incomplete", "snapshot_ref": snap.get("snapshot_path"), "source_trade_plan": source_plan, "intraday_evidence": intraday_evidence, "fabricated": False}
     high_err = round(float(actual_high) - float(pred["predicted_session_high"]), 4)
     low_err = round(float(actual_low) - float(pred["predicted_session_low"]), 4)
     covered = actual_high <= pred["predicted_session_high"] and actual_low >= pred["predicted_session_low"]
@@ -247,7 +249,7 @@ def build_review(symbol: str, session_date: str, quote: dict[str, Any], history:
         "snapshot_ref": snap.get("snapshot_path"), "actual_high": actual_high,
         "actual_low": actual_low, "actual_close": actual_close,
         "range_covered": covered, "high_error": high_err, "low_error": low_err,
-        "source_trade_plan": source_plan, "fabricated": False, **evaluated,
+        "source_trade_plan": source_plan, "intraday_evidence": intraday_evidence, "fabricated": False, **evaluated,
     }
     review["next_session_action"] = trade_next_session_action(str(review.get("trade_review_outcome")))
     review["pending_reason"] = evaluated.get("pending_reason") if evaluated.get("trade_review_outcome") == "pending_evidence" else None
@@ -284,6 +286,7 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
             card = build_premarket_card(card, result.quote, research, result.news, market_context, reference)
         if window == "us_intraday_2300":
             tactical = strategies.get(DAILY_TACTICAL, {}) if isinstance(strategies, dict) else {}
+            source_plan = resolve_source_trade_plan(WINDOW_ARCHIVE_DIR, context["session_date"], symbol)
             observed = build_intraday_card(
                 entry=entry,
                 quote=result.quote,
@@ -292,6 +295,7 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
                 session=context,
                 fetch_error=result.error,
                 pre_open_snapshot=pre_open_snapshot_for(symbol, context["session_date"]),
+                source_plan=source_plan,
             )
             # Compatibility presentation fields and observed evidence are one
             # object, preventing Dashboard/Email/LINE from diverging.

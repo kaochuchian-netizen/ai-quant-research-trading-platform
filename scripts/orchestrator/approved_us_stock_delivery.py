@@ -37,7 +37,7 @@ from app.reports.delivery_provenance import build_delivery_provenance, write_del
 from app.reports.window_report_contract import get_window_report_contract
 from app.reports.canonical_outcomes import aggregate_us_post_close_review, normalize_review_card
 from app.reports.presentation_normalization import (
-    format_distance, format_timestamp, localize_enum, next_action_for_outcome, safe_public_text,
+    format_distance, format_price_range, format_timestamp, localize_enum, next_action_for_outcome, safe_public_text,
 )
 from app.us_stock.watchlist import normalize_us_watchlist_rows
 from app.us_stock.runtime_provenance import ADMITTED_PROVENANCE, RuntimeProvenance, provenance_admission
@@ -292,7 +292,7 @@ def _compact_us_email_block(card: dict[str, Any], window: str) -> str:
             f"報酬風險比 {_num(plan.get('reward_risk'))}｜信心 {_num((card.get('confidence_policy') or {}).get('score'), '%')}｜事件風險 {localize_enum(event.get('canonical_level'))}",
         ]
         if eligibility.get("actionable"):
-            lines.append(f"Entry {plan.get('entry')}｜Stop {plan.get('stop')}｜Target {plan.get('target')}")
+            lines.append(f"進場區 {format_price_range(plan.get('entry'))}｜停損 {_num(plan.get('stop'))}｜目標 {format_price_range(plan.get('target'))}")
         else:
             lines.append(f"觀察區間 {plan.get('observation_zone') or '尚未取得'}｜正式 Entry / Stop / Target：不建立")
             lines.append(f"重新評估：{plan.get('reassessment_condition') or '等待條件完整'}")
@@ -302,31 +302,44 @@ def _compact_us_email_block(card: dict[str, Any], window: str) -> str:
         ])
         return "\n".join(lines)
     if window == "us_intraday_2300":
-        return "\n".join([
+        plan_status = str(card.get("plan_status") or "watch")
+        source = card.get("source_plan") if isinstance(card.get("source_plan"), dict) else {}
+        lines = [
             f"{symbol} {name}",
+            f"20:00 計畫：{localize_enum(plan_status)}｜方向：{localize_enum(card.get('direction'))}",
+            f"來源 snapshot：{str(source.get('source_snapshot_id') or '尚未取得')[:12]}",
             f"目前 {_num(card.get('current_price'))}｜行情 {card.get('market_data_as_of') or '尚未取得'}",
             f"Gap {_num(card.get('gap_current_pct'), '%')}｜{_intraday_text(card.get('gap_state'))}｜回補 {_num(card.get('gap_fill_pct'), '%')}",
             f"量能 {_num(card.get('volume_ratio'), 'x')}｜{_intraday_text(card.get('volume_confirmation_state'))}",
-            f"Entry {_num(card.get('entry_low'))}–{_num(card.get('entry_high'))}｜{_intraday_text(card.get('entry_trigger_state'))}",
-            f"{format_distance(card.get('distance_to_stop_pct'), kind='stop')}｜{format_distance(card.get('distance_to_target_pct'), kind='target')}",
             f"策略：{_intraday_text(card.get('tactical_adjustment'))}",
             f"原因：{card.get('adjustment_reason') or '盤中行情不足，無法安全判定'}",
-        ])
+        ]
+        if plan_status == "active":
+            lines.insert(6, f"進場區 {_num(card.get('entry_low'))}–{_num(card.get('entry_high'))}｜{_intraday_text(card.get('entry_trigger_state'))}")
+            lines.insert(7, f"{format_distance(card.get('distance_to_stop_pct'), kind='stop')}｜{format_distance(card.get('distance_to_target_pct'), kind='target')}")
+        else:
+            lines.insert(6, "正式進場／停損／目標：未建立；盤中僅監控價格與量能")
+        return "\n".join(lines)
     if window == "us_post_close_review_0630":
         card = normalize_review_card(card)
-        outcome = str(card.get("trade_outcome") or "pending")
         review_outcome = str(card.get("trade_review_outcome") or "pending_evidence")
         prediction_result = str(card.get("prediction_range_result") or "pending")
         review = card.get("review") if isinstance(card.get("review"), dict) else {}
+        source_plan = card.get("source_trade_plan") if isinstance(card.get("source_trade_plan"), dict) else {}
+        sec = source_plan.get("sec_evidence") if isinstance(source_plan.get("sec_evidence"), dict) else {}
+        news = source_plan.get("news_evidence") if isinstance(source_plan.get("news_evidence"), dict) else {}
+        news_text = news.get("headline") if news.get("availability") == "available" and news.get("headline") else "無法取得；不以 SEC filing 代替即時新聞"
         actual_available = all(review.get(key) is not None for key in ("actual_high", "actual_low", "actual_close"))
         return "\n".join([
             f"{symbol} {name}",
             f"預測區間結果：{localize_enum(prediction_result)}｜交易結果：{localize_enum(review_outcome)}",
-            f"Actual evidence：{'已取得' if actual_available else '尚未取得'}",
-            f"Prediction review：{safe_public_text(prediction.get('today_range'))}",
-            f"Actual high / low：{safe_public_text(review.get('actual_high'))} / {safe_public_text(review.get('actual_low'))}",
+            f"實際結果證據：{'已取得' if actual_available else '尚未取得'}",
+            f"預測區間：{safe_public_text(prediction.get('today_range'))}",
+            f"實際最高／最低：{safe_public_text(review.get('actual_high'))} / {safe_public_text(review.get('actual_low'))}",
             f"最大有利／不利變動：{safe_public_text(review.get('mfe'), missing='待補證據')} / {safe_public_text(review.get('mae'), missing='待補證據')}",
-            f"Overnight event update：{safe_public_text(risk)}",
+            f"SEC：{sec.get('form') or '尚未取得'}｜{sec.get('filing_date') or '日期尚未取得'}",
+            f"即時新聞：{news_text}",
+            f"隔夜事件更新：{safe_public_text(risk)}",
             f"下一交易日：{safe_public_text(review.get('next_session_action'), missing='補足行情時序證據後再判定。')}",
         ])
     return decision_email_block_v2(presentation)
@@ -356,7 +369,10 @@ def build_email_body(artifact: dict[str, Any], window: str) -> str:
         summary = artifact.get("intraday_summary") or {}
         lines.extend([
             "", "盤中市場概況：",
+            f"- 20:00 正式計畫：{summary.get('active_plan_count', 0)}｜觀察：{summary.get('watch_only_count', 0)}｜無交易：{summary.get('no_trade_count', 0)}",
+            f"- 主要交易機會：{'、'.join((summary.get('groups') or {}).get('top_opportunity') or []) or '無'}",
             f"- 已觸發：{summary.get('triggered_count', 0)}",
+            f"- 已失效：{summary.get('invalidated_count', 0)}｜仍可行動：{summary.get('still_actionable_count', 0)}",
             f"- 取消追價：{summary.get('cancel_chase_count', 0)}",
             f"- 量能確認：{summary.get('volume_confirmed_count', 0)}",
             f"- 接近停損／目標：{summary.get('near_stop_count', 0)} / {summary.get('near_target_count', 0)}",
@@ -391,6 +407,7 @@ def line_text(artifact: dict[str, Any], window: str) -> str:
     cards = [card for card in artifact.get("dashboard_ready_contract", {}).get("cards", []) if isinstance(card, dict)]
     if window == "us_intraday_2300":
         summary = artifact.get("intraday_summary") or {}
+        groups = summary.get("groups") if isinstance(summary.get("groups"), dict) else {}
         ranked = sorted(
             artifact.get("structured_intraday_cards") or [],
             key=lambda card: ({"stop_invalidated": 0, "reduce_risk": 1, "cancel_chase": 2, "target_near": 3}.get(str(card.get("tactical_adjustment")), 9), str(card.get("symbol") or "")),
@@ -398,8 +415,10 @@ def line_text(artifact: dict[str, Any], window: str) -> str:
         changes = "、".join(f"{card.get('symbol')} {_intraday_text(card.get('tactical_adjustment'))}" for card in ranked) or "無可安全判定標的"
         return "\n".join([
             "【Stock AI】23:00 美股盤中",
-            f"已觸發 {summary.get('triggered_count', 0)}｜取消追價 {summary.get('cancel_chase_count', 0)}｜量能確認 {summary.get('volume_confirmed_count', 0)}",
+            f"正式計畫 {summary.get('active_plan_count', 0)}｜觀察 {summary.get('watch_only_count', 0)}｜無交易 {summary.get('no_trade_count', 0)}",
+            f"已觸發 {summary.get('triggered_count', 0)}｜已失效 {summary.get('invalidated_count', 0)}｜仍可行動 {summary.get('still_actionable_count', 0)}",
             f"接近停損 {summary.get('near_stop_count', 0)}｜接近目標 {summary.get('near_target_count', 0)}｜行情不足 {summary.get('data_unavailable_count', 0)}",
+            f"主要交易機會：{'、'.join(groups.get('top_opportunity') or []) or '無'}",
             f"重點調整：{changes}", "完整報告：", contract.dashboard_url, "僅供研究參考，非交易指令。",
         ])
     if window == "us_post_close_review_0630":

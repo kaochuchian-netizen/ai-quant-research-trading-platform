@@ -85,6 +85,7 @@ def build_structured_review_cards(cards: list[dict[str, Any]], reviews: list[dic
         item["canonical_outcome"] = item["trade_outcome"]
         item["trade_review_outcome"] = review.get("trade_review_outcome") or {"hit": "win", "fail": "loss", "pending": "pending_evidence"}.get(item["trade_outcome"], item["trade_outcome"])
         item["source_trade_plan"] = review.get("source_trade_plan")
+        item["intraday_evidence"] = review.get("intraday_evidence")
         item["event_risk"] = (review.get("source_trade_plan") or {}).get("event_risk")
         item["sec_evidence"] = (review.get("source_trade_plan") or {}).get("sec_evidence")
         item["news_evidence"] = (review.get("source_trade_plan") or {}).get("news_evidence")
