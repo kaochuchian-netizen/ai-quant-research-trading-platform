@@ -189,7 +189,11 @@ def next_action_for_outcome(outcome: Any) -> str:
         "not_triggered": "今日未觸發；明日等待重新進入安全區間。",
         "no_trade": "今日無交易；明日維持觀察，除非形成新 setup。",
         "pending": "實際結果尚未完整；明日先確認資料完整性。",
-    }.get(str(outcome), "結果尚未判定；明日先確認資料完整性。")
+        "win": "已命中目標；明日觀察量能是否延續，並保護既有成果。",
+        "loss": "已觸發失敗條件；明日不延續原交易條件，等待重新評估。",
+        "open_at_close": "交易於收盤仍持續；尚未觸及目標或停損，明日延續追蹤。",
+        "pending_evidence": "行情或時序證據不足；補足證據後再判定。",
+    }.get(str(outcome), "結果尚未判定；明日先確認資料完整性。").replace("setup", "交易條件")
 
 
 def next_session_action(card: dict[str, Any]) -> str:
@@ -201,7 +205,7 @@ def next_session_action(card: dict[str, Any]) -> str:
     if holding == "avoid_overnight" or card.get("entry_trigger_state") == "passed_without_safe_entry":
         return "明日等待價格回到安全區間；未回落前不追價。"
     if holding == "no_trade":
-        return "明日維持觀察，除非重新形成完整 setup。"
+        return "明日維持觀察，除非重新形成完整交易條件。"
     if holding == "hold":
         return "明日續看量價與風險條件，保留既有成果。"
     return "明日等待重新形成完整量價條件。"
