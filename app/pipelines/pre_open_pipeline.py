@@ -281,7 +281,8 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
             adr_result = get_adr_result(stock_id)
             adr_score = calculate_adr_score(adr_result)
 
-            news_result = analyze_news(stock_id, stock_name)
+            news_bundle = analyze_news(stock_id, stock_name, include_evidence=True)
+            news_result = news_bundle.get("analysis", "")
             news_score_result = calculate_news_score(news_result)
             news_score = news_score_result.get("score", 50)
 
@@ -346,7 +347,7 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
                     trading_date=context["run_date"],
                     indicator=indicator_result,
                     adr=adr_result,
-                    news=news_result,
+                    news=news_bundle,
                     chip=chip_result,
                     score=total_score_result,
                     analysis=ai_analysis,

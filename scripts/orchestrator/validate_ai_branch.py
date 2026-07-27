@@ -26,6 +26,7 @@ DEFAULT_ALLOWED_PATHS = [
     "analysis/forecast/",
     "analysis/gemini_client.py",
     "analysis/news_fetcher.py",
+    "analysis/news_analysis_engine.py",
     "tests/",
     "scripts/orchestrator/",
     ".github/workflows/ai_dev_validation.yml",

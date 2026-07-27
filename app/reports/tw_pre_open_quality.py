@@ -102,8 +102,8 @@ def news_contract(raw_news: Any, *, generated_at: str | None = None) -> dict[str
     for item in _news_items(raw_news):
         headline = item.get("headline") or item.get("title")
         publisher = item.get("publisher") or item.get("source")
-        published = item.get("published_at") or item.get("timestamp") or item.get("date")
-        source_url = item.get("source_url") or item.get("url") or item.get("source_id")
+        published = item.get("published_at") or item.get("published") or item.get("timestamp") or item.get("date")
+        source_url = item.get("source_url") or item.get("url") or item.get("link") or item.get("source_id")
         if not all(_present(value) for value in (headline, publisher, published, source_url)):
             continue
         tier = _source_tier(item)
@@ -129,15 +129,19 @@ def news_contract(raw_news: Any, *, generated_at: str | None = None) -> dict[str
         }
     else:
         confidence = {"score": None, "level": "not_applicable", "components": {}, "reason_codes": ["NO_ADMITTED_NEWS_EVIDENCE"]}
-    failure = "NO_RESULT" if not _present(raw_news) else "LOW_QUALITY_ONLY"
+    supplied_retrieval = raw_news.get("retrieval") if isinstance(raw_news, dict) and isinstance(raw_news.get("retrieval"), dict) else {}
+    failure = str(supplied_retrieval.get("failure_reason") or ("NO_RESULT" if not _present(raw_news) else "LOW_QUALITY_ONLY"))
+    attempted = list(supplied_retrieval.get("sources_attempted") or ["UNSPECIFIED_UPSTREAM"])
+    configured_failed = list(supplied_retrieval.get("sources_failed") or [])
+    succeeded = list(supplied_retrieval.get("sources_succeeded") or [])
     return {
         "status": "available" if primary else "unavailable", "evidence": admitted, "primary_evidence": primary,
         "source_quality": quality, "confidence": confidence,
         "retrieval": {
-            "lookback_hours": NEWS_LOOKBACK_HOURS, "sources_attempted": list(NEWS_SOURCE_ATTEMPTS),
-            "sources_succeeded": sorted({"MOPS" if item["source_tier"] == 1 else "GENERAL_FINANCIAL_MEDIA" for item in admitted}),
-            "sources_failed": [] if admitted else [{"source": source, "reason": failure} for source in NEWS_SOURCE_ATTEMPTS],
-            "query_started_at": generated_at, "query_completed_at": generated_at,
+            "lookback_hours": int(supplied_retrieval.get("lookback_hours") or NEWS_LOOKBACK_HOURS), "sources_attempted": attempted,
+            "sources_succeeded": succeeded,
+            "sources_failed": configured_failed,
+            "query_started_at": supplied_retrieval.get("query_started_at") or generated_at, "query_completed_at": supplied_retrieval.get("query_completed_at") or generated_at,
             "result_count_raw": len(_news_items(raw_news)), "result_count_deduped": len(admitted), "result_count_admitted": len(admitted),
             "failure_reason": None if admitted else failure,
         },
