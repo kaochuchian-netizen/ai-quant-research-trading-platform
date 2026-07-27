@@ -179,6 +179,9 @@ def technical_factors(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "latest_low": _round(latest.get("low")),
         "latest_volume": _round(latest.get("volume"), 0),
         "history_days": len(rows),
+        "history_start": rows[0].get("date") if rows else None,
+        "history_end": rows[-1].get("date") if rows else None,
+        "source": "canonical_historical_csv",
         "ma5": _round(ma5), "ma10": _round(ma10), "ma20": _round(ma20), "ma60": _round(ma60),
         "ma20_slope": _round(_slope(closes, 20), 5), "ma60_slope": _round(_slope(closes, 60), 5),
         "rsi14": _round(rsi14(closes), 2),
@@ -334,11 +337,8 @@ def setup_detection(tech: dict[str, Any], market: dict[str, Any], data_quality: 
     if close and low20 and pos is not None and pos <= 0.25 and rsi is not None and rsi <= 38: return "neutral", "mean_reversion", ["價格接近 20 日區間下緣", "RSI 偏低，觀察反彈"], []
     if pos is not None and 0.25 < pos < 0.75: return "neutral", "range_trade", ["價格位於 20 日區間中段，適合區間觀察"], []
     if tr == "bearish": return "bearish", "reversal_watch", ["趨勢偏弱，僅觀察止穩訊號"], ["trend bearish"]
-    if data_quality == "limited" and close and _num(tech.get("atr14")):
-        ma10v = _num(tech.get("ma10"))
-        if ma10v and close >= ma10v:
-            return "neutral", "range_trade", ["歷史資料有限，但價格仍在 MA10 附近或上方", "以區間觀察，不提高部位"], ["limited history below 20 bars; confidence downgraded"]
-        return "neutral", "reversal_watch", ["歷史資料有限，僅觀察止穩訊號"], ["limited history below 20 bars; trend confirmation unavailable"]
+    if data_quality == "limited":
+        return "unavailable", "no_trade", ["歷史資料不足最低需求，無法確認趨勢"], ["INSUFFICIENT_HISTORY", "TREND_UNAVAILABLE", "CONFIDENCE_DOWNGRADED"]
     return "no_trade", "no_trade", ["缺乏明確 setup，暫不操作"], ["setup not confirmed"]
 
 
@@ -376,7 +376,7 @@ def build_tactical(stock: dict[str, Any], tech: dict[str, Any], market: dict[str
     coverage = factor_coverage(tech, stock_id); data_quality = str(coverage.get("data_quality") or "insufficient")
     sr = support_resistance(tech); chip = chip_tactical(stock_id, tech); direction, setup, reasons, risk_reasons = setup_detection(tech, market, data_quality); levels = price_levels(direction, setup, tech, sr)
     rr = _num(levels.get("reward_risk")); cr, chase_reasons = chase_risk(tech)
-    if rr is not None and rr < 0.8 and setup != "no_trade": direction, setup = "no_trade", "no_trade"; risk_reasons.append("reward/risk below 0.8 threshold"); levels = price_levels(direction, setup, tech, sr)
+    if rr is not None and rr < 0.8 and setup != "no_trade": direction, setup = "no_trade", "no_trade"; risk_reasons.append("RR_BELOW_THRESHOLD"); levels = price_levels(direction, setup, tech, sr)
     technical_setup = 70 if setup in {"breakout", "pullback", "trend_continuation"} else 55 if setup in {"mean_reversion", "range_trade"} else 42 if setup == "reversal_watch" else 35
     volume_confirmation = 66 if tech.get("volume_expansion") else 55 if not tech.get("volume_contraction") else 42
     chip_score = _num(chip.get("chip_score")) or 45; market_score = _num(market.get("market_context_score")) or 50; risk_quality = 72 if cr == "low" and setup != "no_trade" else 52 if cr == "medium" else 28; dq_score = 82 if data_quality == "complete" else 62 if data_quality == "partial" else 40 if data_quality == "limited" else 18
@@ -391,7 +391,7 @@ def build_tactical(stock: dict[str, Any], tech: dict[str, Any], market: dict[str
     action = {"breakout": "突破確認後偏多", "pullback": "拉回承接", "trend_continuation": "拉回觀察", "mean_reversion": "區間操作", "range_trade": "區間操作", "reversal_watch": "等待止穩", "no_trade": "避免追高" if cr == "high" else "暫不操作"}.get(setup, "暫不操作")
     position_size = "avoid" if setup == "no_trade" or data_quality == "insufficient" else "small" if cr == "high" or data_quality == "limited" else "half" if confidence < 58 or cr == "medium" else "normal"
     playbook = {"breakout": "等待有效突破壓力並確認量能；未站穩突破區不追價，跌回失效區取消。", "pullback": "等待回測支撐或短期均線止穩；量縮不破可觀察，跌破結構支撐取消。", "trend_continuation": "趨勢延續但不追高，優先等待短線回測或量價同步確認。", "mean_reversion": "僅在超跌後出現止穩訊號時觀察；若中期結構繼續轉弱，不建立部位。", "range_trade": "接近區間支撐才具備操作價值；接近壓力不追價，跌破區間下緣取消。", "reversal_watch": "只列為觀察，等待止穩與量能確認，未轉強前偏防守。", "no_trade": "目前缺乏合理進場結構、資料品質不足或報酬風險不合格，暫不建立戰術部位。"}[setup]
-    if setup == "no_trade" and not risk_reasons: risk_reasons.append("no actionable tactical setup")
+    if setup == "no_trade" and not risk_reasons: risk_reasons.append("SETUP_NOT_CONFIRMED")
     return {"market": "TW", "stock_id": stock_id, "stock_name": stock_name, "strategy_id": TW_TACTICAL_VERSION, "strategy_type": "daily_tactical", "strategy_version": "v1", "factor_version": TW_TACTICAL_FACTOR_VERSION, "factor_weights": TW_TACTICAL_WEIGHTS, "generated_at": now_taipei(), "direction": direction, "setup_type": setup, "action": action, "score": _round(score, 2), "rating": rating, "confidence": _round(confidence, 1), "entry_zone": levels.get("entry_zone"), "stop_invalidation": levels.get("stop_invalidation"), "target_1": levels.get("target_1"), "target_2": levels.get("target_2"), "expected_move_pct": levels.get("expected_move_pct"), "reward_risk": levels.get("reward_risk"), "level_method": levels.get("level_method"), "chase_risk": cr, "event_risk": "unknown", "position_size": position_size, "time_horizon": "intraday_to_5d", "data_quality": data_quality, "factor_coverage": coverage, "source_status": source_status(tech, stock_id), "technical_factors": tech, "support_resistance": sr, "chip_tactical": chip, "market_context": market, "score_components": components, "score_before_penalty": _round(score_before_penalty, 2), "risk_penalty": _round(risk_penalty, 2), "data_quality_penalty": _round(data_quality_penalty, 2), "final_score": _round(score, 2), "reasons": reasons, "risk_reasons": risk_reasons or chase_reasons, "playbook": {"setup_type": setup, "template": playbook, "entry_condition": "use deterministic entry_zone when present", "invalidation_condition": levels.get("stop_invalidation", {}).get("reason") if isinstance(levels.get("stop_invalidation"), dict) else "資料不足", "risk_context": risk_reasons or chase_reasons}, "advisory_only": True, "trading_or_order_executed": False}
 
 
