@@ -239,7 +239,10 @@ def main() -> int:
                 checks[key + ":email_v4"] = "Decision Intelligence V4" in email_text
                 if (market, window) == ("US", "us_intraday_2300"):
                     checks[key + ":line_semantic_parity"] = all(
-                        marker in line_summary for marker in ("已觸發", "取消追價", "量能確認", get_window_report_contract(market, window).dashboard_url)
+                        marker in line_summary for marker in (
+                            "已觸發", "已失效", "仍可行動", "行情不足",
+                            get_window_report_contract(market, window).dashboard_url,
+                        )
                     )
                 elif (market, window) == ("US", "us_post_close_review_0630"):
                     checks[key + ":line_semantic_parity"] = all(

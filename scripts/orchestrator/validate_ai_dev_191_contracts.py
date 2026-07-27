@@ -37,8 +37,10 @@ def _setup(symbol: str = "TEST", *, plan: str = "active") -> dict[str, Any]:
         "predicted_low": None if no_trade else 100.0, "predicted_high": None if no_trade else 105.0,
         "prediction_status": "no_trade" if no_trade else "active",
         "action": "暫不操作" if no_trade else "觀察切入", "actionable": plan == "active",
+        "chase_risk": "low", "event_risk": "low",
         "strategies": {"daily_tactical": {
             "setup_type": "no_trade" if no_trade else "pullback_long",
+            "direction": "bullish",
             "technical_factors": {"volume_ma20": 100000.0},
         }},
     }

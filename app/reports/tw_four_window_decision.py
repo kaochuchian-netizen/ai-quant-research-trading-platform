@@ -23,7 +23,7 @@ from app.reports.presentation_normalization import (
 from app.reports.tw_pre_open_quality import data_gaps, public_reason, technical_contract
 
 TAIPEI = ZoneInfo("Asia/Taipei")
-SCHEMA_VERSION = "tw_intraday_close_lifecycle_v1"
+SCHEMA_VERSION = "tw_decision_lifecycle_evidence_v1"
 TW_WINDOWS = ("pre_open_0700", "intraday_1305", "pre_close_1335", "post_close_1500")
 OBSERVED_WINDOWS = TW_WINDOWS[1:]
 PLAN_STATUSES = ("no_trade", "watch", "active")
@@ -34,6 +34,7 @@ TRADE_OUTCOMES = ("win", "loss", "not_triggered", "no_trade", "open_at_close", "
 PREDICTION_RESULTS = ("hit", "partial_hit", "miss", "not_applicable")
 EVIDENCE_STATUSES = ("complete", "partial", "missing", "not_applicable")
 RISK_STATES = ("normal", "target_near", "stop_near", "both_near", "invalidated", "not_applicable")
+PRE_ENTRY_ACTIONS = ("wait", "cancel_setup", "wait_volume", "wait_event", "recheck")
 TARGET_NEAR_THRESHOLD_PCT = 1.5
 STOP_NEAR_THRESHOLD_PCT = 1.5
 
@@ -57,6 +58,9 @@ LOCALIZED = {
     "not_applicable": "不適用", "active": "正式交易計畫",
     "unknown": "尚未判定", "neutral": "中性", "downtrend": "偏空趨勢",
     "uptrend": "偏多趨勢", "strong_uptrend": "強勢多頭",
+    "partial_hit": "預測區間部分命中", "miss": "預測區間未命中",
+    "price_reached": "價格已到達", "wait_event": "等待事件風險確認",
+    "wait_confirmation": "等待完整證據確認", "recheck": "重新檢查",
 }
 
 PRE_OPEN_ACTION_GATE = {"minimum_reward_risk": 1.0}
@@ -279,18 +283,20 @@ def _trigger_state(low: float | None, high: float | None, current: float | None,
 def _plan_status(setup: dict[str, Any], *, no_trade: bool) -> str:
     if no_trade:
         return "no_trade"
-    if setup.get("entry_readiness") == "entry_ready" or setup.get("actionable") is True:
+    # The admitted 07:00 decision owns plan creation. Price levels are useful
+    # monitoring ranges, but their mere presence never promotes a watch card.
+    if setup.get("entry_readiness") == "entry_ready" and setup.get("actionable") is not False:
         return "active"
-    if all(number(setup.get(key)) is not None for key in ("entry_low", "entry_high", "stop_level", "target_1")):
+    if setup.get("actionable") is True and setup.get("entry_readiness") not in {"watch", "no_trade"}:
         return "active"
     return "watch"
 
 
-def _canonical_trigger(raw: Any, *, plan_status: str) -> str:
-    if plan_status == "no_trade":
+def _canonical_trigger(raw: Any, *, plan_status: str, evidence_complete: bool = True) -> str:
+    if plan_status != "active":
         return "not_applicable"
     value = str(raw or "")
-    if value in {"triggered", "inside_zone"}:
+    if value in {"triggered", "inside_zone"} and evidence_complete:
         return "triggered"
     if value == "invalidated":
         return "invalidated"
@@ -300,7 +306,7 @@ def _canonical_trigger(raw: Any, *, plan_status: str) -> str:
 
 
 def _risk_state(*, plan_status: str, trigger_status: str, near_target: bool, near_stop: bool) -> str:
-    if plan_status == "no_trade":
+    if plan_status != "active":
         return "not_applicable"
     if trigger_status == "invalidated":
         return "invalidated"
@@ -340,6 +346,46 @@ def _identity_transition(window: str, card: dict[str, Any], state: str) -> dict[
     }
 
 
+def _dedupe_timeline(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Keep one traceable transition per window, preferring admitted identity."""
+    order = {name: index for index, name in enumerate(TW_WINDOWS)}
+    selected: dict[str, dict[str, Any]] = {}
+    for raw in items:
+        if not isinstance(raw, dict):
+            continue
+        window = str(raw.get("source_window") or "")
+        if window not in order:
+            continue
+        candidate = dict(raw)
+        current = selected.get(window)
+        admitted = bool(candidate.get("source_snapshot_id"))
+        current_admitted = bool(current and current.get("source_snapshot_id"))
+        if current is None or admitted or not current_admitted:
+            selected[window] = candidate
+    return [selected[name] for name in TW_WINDOWS if name in selected]
+
+
+def _prediction_explainability(setup: dict[str, Any], actual_low: float | None, actual_high: float | None, result: str) -> dict[str, Any]:
+    predicted_low, predicted_high = number(setup.get("predicted_low")), number(setup.get("predicted_high"))
+    reasons = {
+        "hit": "實際區間完整涵蓋預測區間",
+        "partial_hit": "實際區間與預測區間部分重疊，但未完整涵蓋",
+        "miss": "實際區間未與預測區間重疊",
+        "not_applicable": "未建立可檢驗的預測區間",
+    }
+    if result == "partial_hit" and None not in (predicted_low, predicted_high, actual_low, actual_high):
+        if actual_high > predicted_high:
+            reasons[result] = "實際最高價突破預測區間上緣，僅部分落在預測範圍"
+        elif actual_low < predicted_low:
+            reasons[result] = "實際最低價跌破預測區間下緣，僅部分落在預測範圍"
+    return {
+        "predicted_range": {"low": predicted_low, "high": predicted_high},
+        "actual_range": {"low": actual_low, "high": actual_high},
+        "range_result": result,
+        "reason": reasons.get(result, "無法安全說明預測結果"),
+    }
+
+
 def normalize_lifecycle_card(card: dict[str, Any], window: str) -> dict[str, Any]:
     """Project legacy immutable cards into the canonical lifecycle for presentation.
 
@@ -354,8 +400,14 @@ def normalize_lifecycle_card(card: dict[str, Any], window: str) -> dict[str, Any
         or item.get("holding_decision") == "no_trade"
         or tactical.get("setup_type") == "no_trade"
     )
-    plan_status = str(item.get("plan_status") or _plan_status(item, no_trade=no_trade))
-    trigger_status = str(item.get("trigger_status") or _canonical_trigger(item.get("entry_trigger_state"), plan_status=plan_status))
+    owner = item.get("canonical_plan_owner") if isinstance(item.get("canonical_plan_owner"), dict) else {}
+    owned_status = str(owner.get("plan_status") or "")
+    plan_status = owned_status if owned_status in PLAN_STATUSES else str(item.get("plan_status") or _plan_status(item, no_trade=no_trade))
+    trigger_gate = item.get("trigger_evidence") if isinstance(item.get("trigger_evidence"), dict) else {}
+    trigger_evidence_complete = bool(trigger_gate.get("complete")) if trigger_gate else bool(item.get("trigger_evidence_complete", True))
+    trigger_status = str(item.get("trigger_status") or _canonical_trigger(
+        item.get("entry_trigger_state"), plan_status=plan_status, evidence_complete=trigger_evidence_complete,
+    ))
     near_target = bool(item.get("near_target"))
     near_stop = bool(item.get("near_stop"))
     risk_state = str(item.get("risk_state") or _risk_state(
@@ -386,6 +438,12 @@ def normalize_lifecycle_card(card: dict[str, Any], window: str) -> dict[str, Any
         "stop_near_threshold_pct": number(item.get("stop_near_threshold_pct")) or STOP_NEAR_THRESHOLD_PCT,
         "volume_ratio_basis": item.get("volume_ratio_basis") or item.get("volume_baseline_method") or "historical_20d_daily_mean_prorated_by_session_elapsed_v1",
         "lookback_sessions": int(item.get("lookback_sessions") or 20),
+        "trigger_evidence_complete": trigger_evidence_complete,
+        "canonical_plan_owner": owner or {
+            "source_window": "pre_open_0700", "plan_status": plan_status,
+            "source_snapshot_id": item.get("source_snapshot_id"), "source_revision": item.get("source_revision"),
+            "source_hash": item.get("parent_source_payload_hash"), "effective_date": item.get("trading_date"),
+        },
         "evidence_status": item.get("evidence_status") or (
             "not_applicable" if plan_status == "no_trade" else
             "complete" if item.get("data_status") == "complete" else
@@ -399,6 +457,19 @@ def normalize_lifecycle_card(card: dict[str, Any], window: str) -> dict[str, Any
             "distance_to_target_2_pct": None, "near_stop": False, "near_target": False,
             "risk_state": "not_applicable",
         })
+    elif plan_status == "watch":
+        item.update({
+            "monitoring_range": item.get("monitoring_range") or {"low": item.get("entry_low"), "high": item.get("entry_high")},
+            "entry_low": None, "entry_high": None, "stop_level": None, "target_1": None, "target_2": None,
+            "entry_trigger_state": "not_applicable", "trigger_status": "not_applicable",
+            "distance_to_stop_pct": None, "distance_to_target_1_pct": None,
+            "distance_to_target_2_pct": None, "near_stop": False, "near_target": False,
+            "risk_state": "not_applicable", "canonical_intraday_action": "wait_volume",
+            "overnight_action": "watch",
+        })
+    item["lifecycle_timeline"] = _dedupe_timeline(
+        item.get("lifecycle_timeline") if isinstance(item.get("lifecycle_timeline"), list) else []
+    )
     if window == "post_close_1500":
         actual_complete = item.get("actual_status") == "complete" or all(
             number(item.get(key)) is not None for key in ("actual_open", "actual_high", "actual_low", "actual_close")
@@ -416,10 +487,14 @@ def normalize_lifecycle_card(card: dict[str, Any], window: str) -> dict[str, Any
         ) or str(item.get("prediction_range_result") or _prediction_result(
             item, number(item.get("actual_low")), number(item.get("actual_high")), no_trade=plan_status == "no_trade",
         ))
+        explanation = item.get("prediction_explainability") if isinstance(item.get("prediction_explainability"), dict) else _prediction_explainability(
+            item, number(item.get("actual_low")), number(item.get("actual_high")), prediction_result,
+        )
         item.update({
             "trade_outcome": trade_outcome,
             "prediction_evaluation": {"range_result": prediction_result},
             "prediction_range_result": prediction_result,
+            "prediction_explainability": explanation,
             "trade_status": item.get("trade_status") or (
                 "not_applicable" if trade_outcome == "no_trade" else "not_started" if trade_outcome == "not_triggered"
                 else "open" if trade_outcome == "open_at_close" else "closed" if trade_outcome in {"win", "loss"} else "not_started"
@@ -471,7 +546,7 @@ def build_observed_card(
     required = {"current_price": current, "market_data_as_of": observed_at, "session_open": session_open, "session_high": high, "session_low": low}
     missing = [key for key, value in required.items() if value in (None, "")]
     data_status = "complete" if not missing else "partial" if current is not None or observed_at else "unavailable"
-    trigger, trigger_price = _trigger_state(low, high, current, entry_low, entry_high, stop)
+    price_trigger, trigger_price = _trigger_state(low, high, current, entry_low, entry_high, stop)
     ratio, volume_state, baseline = _volume_ratio(volume, tactical, window)
     distance_stop = None if current in (None, 0) or stop is None else round((stop - current) / current * 100, 4)
     distance_t1 = None if current in (None, 0) or target1 is None else round((target1 - current) / current * 100, 4)
@@ -480,29 +555,62 @@ def build_observed_card(
     near_stop = distance_stop is not None and abs(distance_stop) <= STOP_NEAR_THRESHOLD_PCT
     near_target = distance_t1 is not None and abs(distance_t1) <= TARGET_NEAR_THRESHOLD_PCT
     plan_status = _plan_status(setup_card, no_trade=no_trade)
-    trigger_status = _canonical_trigger(trigger, plan_status=plan_status)
+    direction = str(setup_card.get("predicted_direction") or tactical.get("direction") or "")
+    eligibility_evidence = plan_status == "active" and setup_card.get("entry_readiness") == "entry_ready"
+    direction_evidence = direction in {"bullish", "bearish", "neutral", "long", "short"}
+    risk_evidence = str(setup_card.get("chase_risk")) in {"low", "medium", "high"} and str(setup_card.get("event_risk")) in {"low", "medium", "high"}
+    price_evidence = price_trigger in {"triggered", "inside_zone", "invalidated"} and trigger_price is not None and observed_at not in (None, "")
+    volume_evidence = volume_state in {"strong", "confirmed", "normal", "weak"} and ratio is not None
+    trigger_evidence = {
+        "price": {"complete": price_evidence, "state": price_trigger, "value": trigger_price, "as_of": observed_at},
+        "volume": {"complete": volume_evidence, "state": volume_state, "ratio": ratio, "as_of": observed_at},
+        "eligibility": {"complete": eligibility_evidence, "plan_status": plan_status},
+        "direction": {"complete": direction_evidence, "value": direction or "unavailable"},
+        "risk": {"complete": risk_evidence, "chase_risk": setup_card.get("chase_risk"), "event_risk": setup_card.get("event_risk")},
+    }
+    trigger_evidence_complete = all(bool(value.get("complete")) for value in trigger_evidence.values())
+    trigger_evidence["complete"] = trigger_evidence_complete
+    trigger_status = _canonical_trigger(price_trigger, plan_status=plan_status, evidence_complete=trigger_evidence_complete)
+    trigger_gate_state = (
+        "wait_confirmation" if plan_status != "active" else "wait" if not price_evidence else
+        "wait_volume" if not volume_evidence else "wait_event" if not risk_evidence else
+        "wait_confirmation" if not trigger_evidence_complete else "price_reached"
+    )
     if data_status == "unavailable":
         action, reason = "data_unavailable", "盤中行情來源暫時無法取得，本次無法安全判定策略"
     elif no_trade:
-        action, reason = "no_trade", "07:00 setup 明確為無交易"
-    elif trigger == "invalidated":
+        action, reason = "no_trade", "07:00 明確為無交易"
+    elif plan_status != "active":
+        action, reason = "maintain_watch", "07:00 僅建立觀察狀態，本批次不得升級為正式交易計畫"
+    elif price_trigger == "invalidated":
         action, reason = "stop_invalidated", "盤中價格已觸及失效／停損條件"
-    elif trigger == "passed_without_safe_entry" or setup_card.get("chase_risk") == "high":
+    elif price_trigger == "passed_without_safe_entry" or setup_card.get("chase_risk") == "high":
         action, reason = "cancel_chase", "價格已偏離安全進場區或追價風險過高"
-    elif near_stop:
+    elif not trigger_evidence_complete and price_evidence and not volume_evidence:
+        action, reason = "wait_for_volume", "價格已到達觀察區，但量能證據尚未完整"
+    elif not trigger_evidence_complete and price_evidence and not risk_evidence:
+        action, reason = "maintain_watch", "價格已到達觀察區，但事件與追價風險證據尚未完整"
+    elif near_stop and trigger_status == "triggered":
         action, reason = "reduce_risk", "目前價格接近停損／失效條件"
-    elif near_target:
+    elif near_target and trigger_status == "triggered":
         action, reason = "target_near", "目前價格接近第一目標"
-    elif trigger in {"triggered", "inside_zone"} and volume_state in {"strong", "confirmed"}:
+    elif trigger_status == "triggered" and volume_state in {"strong", "confirmed"}:
         action, reason = "entry_triggered_hold", f"進場條件已觸發，量能為基準 {ratio:.2f} 倍" if ratio is not None else "進場條件已觸發"
-    elif trigger in {"triggered", "inside_zone"}:
+    elif price_trigger in {"triggered", "inside_zone"}:
         action, reason = "wait_for_volume", "價格已到達進場區，但量能尚未確認"
     else:
         action, reason = "maintain_watch", "尚未到達進場條件，維持觀察"
     canonical_action = (
         "no_trade" if no_trade else "exit" if action in {"stop_invalidated", "cancel_chase"} else
-        "reduce" if action == "reduce_risk" else "hold" if action in {"entry_triggered_hold", "target_near"} else
+        "reduce" if action == "reduce_risk" and trigger_status == "triggered" else
+        "hold" if action in {"entry_triggered_hold", "target_near"} and trigger_status == "triggered" else
         "wait_volume"
+    )
+    pre_entry_action = None if trigger_status in {"triggered", "invalidated"} else (
+        "cancel_setup" if action in {"stop_invalidated", "cancel_chase"} else
+        "wait_volume" if trigger_gate_state == "wait_volume" else
+        "wait_event" if trigger_gate_state == "wait_event" else
+        "recheck" if data_status != "complete" else "wait"
     )
     risk_state = _risk_state(
         plan_status=plan_status, trigger_status=trigger_status, near_target=near_target, near_stop=near_stop,
@@ -530,16 +638,32 @@ def build_observed_card(
         "source_record_time_kind": quote.get("source_record_time_kind") or "exchange_local_datetime",
         "normalized_timezone": quote.get("normalized_timezone") or "Asia/Taipei",
         "freshness_status": "fresh" if observed_at else "unavailable",
-        "entry_low": entry_low, "entry_high": entry_high, "entry_trigger_state": trigger,
+        "entry_low": entry_low if plan_status == "active" else None,
+        "entry_high": entry_high if plan_status == "active" else None,
+        "monitoring_range": {"low": entry_low, "high": entry_high} if plan_status == "watch" else None,
+        "entry_trigger_state": price_trigger,
         "plan_status": plan_status, "trigger_status": trigger_status,
-        "entry_trigger_price": trigger_price, "entry_trigger_time": observed_at if trigger in {"triggered", "invalidated", "inside_zone"} else None,
+        "canonical_plan_owner": {
+            "source_window": "pre_open_0700", "source_snapshot_id": source_snapshot_id,
+            "source_revision": int(source_revision), "source_hash": source_payload_hash,
+            "effective_date": trading_date, "plan_status": plan_status,
+        },
+        "trigger_evidence": trigger_evidence, "trigger_evidence_complete": trigger_evidence_complete,
+        "trigger_gate_state": trigger_gate_state, "pre_entry_action": pre_entry_action,
+        "entry_trigger_price": trigger_price if trigger_status in {"triggered", "invalidated"} else None,
+        "entry_trigger_time": observed_at if trigger_status in {"triggered", "invalidated"} else None,
         "volume_baseline": baseline, "volume_baseline_method": "historical_20d_daily_mean_prorated_by_session_elapsed_v1",
         "volume_ratio_basis": "historical_20d_daily_mean_prorated_by_session_elapsed_v1",
         "lookback_sessions": 20, "volume_ratio_as_of": observed_at,
         "volume_ratio": ratio, "volume_confirmation_state": volume_state,
-        "stop_level": stop, "target_1": target1, "target_2": target2,
-        "distance_to_stop_pct": distance_stop, "distance_to_target_1_pct": distance_t1,
-        "distance_to_target_2_pct": distance_t2, "near_stop": near_stop, "near_target": near_target,
+        "stop_level": stop if plan_status == "active" else None,
+        "target_1": target1 if plan_status == "active" else None,
+        "target_2": target2 if plan_status == "active" else None,
+        "distance_to_stop_pct": distance_stop if plan_status == "active" else None,
+        "distance_to_target_1_pct": distance_t1 if plan_status == "active" else None,
+        "distance_to_target_2_pct": distance_t2 if plan_status == "active" else None,
+        "near_stop": near_stop if plan_status == "active" else False,
+        "near_target": near_target if plan_status == "active" else False,
         "pre_open_action": setup_card.get("action"), "intraday_action": action,
         "canonical_intraday_action": canonical_action,
         "action_change_reason": reason, "holding_decision": holding, "holding_reason": reason,
@@ -554,8 +678,8 @@ def build_observed_card(
             "hold_candidate": holding in {"hold", "hold_with_protection"}, "avoid_hold": holding in {"reduce", "exit"},
             "no_trade": no_trade, "late_session_risk": holding in {"hold_with_protection", "reduce", "exit"},
             "tomorrow_watch": holding in {"hold", "watch"}, "near_target": near_target,
-            "near_stop": near_stop, "setup_triggered": trigger in {"triggered", "inside_zone"},
-            "setup_invalidated": trigger == "invalidated",
+            "near_stop": near_stop, "setup_triggered": trigger_status == "triggered",
+            "setup_invalidated": trigger_status == "invalidated",
         },
     }
     timeline = [dict(item) for item in (lifecycle_timeline or []) if isinstance(item, dict)]
@@ -573,10 +697,22 @@ def build_observed_card(
         "source_hash": None, "effective_date": trading_date, "symbol": symbol,
         "state": current_state, "identity_status": "awaiting_snapshot_admission",
     })
-    result["lifecycle_timeline"] = timeline
+    result["lifecycle_timeline"] = _dedupe_timeline(timeline)
     if window == "post_close_1500":
         result.update(evaluate_post_close(result, setup_card))
         result["lifecycle_timeline"][-1]["state"] = result["trade_outcome"]
+    event = {
+        "time": observed_at, "source_window": window, "source_revision": int(source_revision),
+        "evidence_source": result.get("source_name"), "snapshot_id": source_snapshot_id,
+    }
+    result["transition_evidence"] = {
+        "entry_trigger": event if trigger_status == "triggered" else None,
+        "stop_trigger": event if trigger_status == "invalidated" or result.get("stop_hit") is True else None,
+        "target_trigger": event if result.get("target_1_hit") is True else None,
+        "invalidated": event if trigger_status == "invalidated" else None,
+        "exit": event if canonical_action == "exit" or result.get("trade_outcome") in {"win", "loss"} else None,
+        "identity_status": "bound_to_source_snapshot" if source_snapshot_id else "awaiting_snapshot_admission",
+    }
     without_hash = dict(result)
     result["source_payload_hash"] = stable_hash(without_hash)
     return result
@@ -616,6 +752,7 @@ def evaluate_post_close(observed: dict[str, Any], setup: dict[str, Any]) -> dict
     )
     prediction_status = str(setup.get("prediction_status") or "unavailable")
     prediction_result = _prediction_result(setup, actual_low, actual_high, no_trade=no_trade)
+    prediction_explainability = _prediction_explainability(setup, actual_low, actual_high, prediction_result)
     evidence_status = "not_applicable" if no_trade else "complete" if actual_complete else "missing"
     trade_status = "not_applicable" if no_trade else "not_started" if trade_outcome == "not_triggered" else "open" if trade_outcome == "open_at_close" else "closed" if trade_outcome in {"win", "loss"} else "not_started"
     canonical_outcome = {
@@ -638,6 +775,7 @@ def evaluate_post_close(observed: dict[str, Any], setup: dict[str, Any]) -> dict
         "actual_status": "complete" if actual_complete else "unavailable",
         "actual_missing_reason": None if actual_complete else "observed_post_close_ohlcv_unavailable",
         "prediction_status": prediction_status, "prediction_evaluation": {"range_result": prediction_result},
+        "prediction_explainability": prediction_explainability,
         "prediction_range_result": prediction_result,
         "prediction_missing_reason": None if prediction_status in {"active", "no_trade"} else "upstream_prediction_missing",
         "predicted_direction": setup.get("predicted_direction"), "predicted_low": setup.get("predicted_low"),
@@ -676,8 +814,8 @@ def aggregate_cards(window: str, cards: list[dict[str, Any]]) -> dict[str, Any]:
         "data_complete_count": sum(card.get("data_status") == "complete" for card in cards),
         "data_partial_count": sum(card.get("data_status") == "partial" for card in cards),
         "data_unavailable_count": sum(card.get("data_status") == "unavailable" for card in cards),
-        "triggered_count": sum(card.get("entry_trigger_state") in {"triggered", "inside_zone"} for card in cards),
-        "invalidated_count": sum(card.get("entry_trigger_state") == "invalidated" for card in cards),
+        "triggered_count": sum(card.get("trigger_status") == "triggered" for card in cards),
+        "invalidated_count": sum(card.get("trigger_status") == "invalidated" for card in cards),
         "still_actionable_count": sum(card.get("intraday_action") in {"maintain_watch", "entry_triggered_hold", "wait_for_volume", "target_near"} for card in cards),
         "volume_confirmed_count": sum(card.get("volume_confirmation_state") in {"strong", "confirmed"} for card in cards),
         "no_trade_count": sum(card.get("intraday_action") == "no_trade" for card in cards),
@@ -778,8 +916,8 @@ def render_intraday_email(payload: dict[str, Any], canonical_url: str) -> str:
     groups = summary["intraday_action_symbols"]
     ranked = sorted(cards, key=lambda card: ({"exit": 0, "reduce": 1, "wait_volume": 2, "hold": 3, "no_trade": 4}.get(str(card.get("canonical_intraday_action")), 8), str(card.get("symbol"))))
     lines = [
-        "【Stock AI】13:05 台股盤中追蹤", f"行情時間：{format_timestamp(payload.get('source_data_time'))}",
-        f"正式交易計畫 {summary['plan_status_counts']['active'] + summary['plan_status_counts']['watch']}｜無交易 {summary['plan_status_counts']['no_trade']}",
+        "【Stock AI】13:05 台股盤中追蹤", f"行情證據時間：{format_timestamp(payload.get('source_data_time'))}",
+        f"正式交易計畫 {summary['plan_status_counts']['active']}｜觀察 {summary['plan_status_counts']['watch']}｜無交易 {summary['plan_status_counts']['no_trade']}",
         f"已觸發 {summary['trigger_status_counts']['triggered']}｜策略失效 {summary['trigger_status_counts']['invalidated']}",
         f"等待量能 {_names(groups['wait_volume'])}｜降低風險 {_names(groups['reduce'])}｜退出原策略 {_names(groups['exit'])}",
         f"接近目標 {_names(summary['risk_state_symbols']['target_near'] + summary['risk_state_symbols']['both_near'])}｜接近停損 {_names(summary['risk_state_symbols']['stop_near'] + summary['risk_state_symbols']['both_near'])}",
@@ -798,7 +936,7 @@ def render_intraday_line(payload: dict[str, Any], canonical_url: str) -> str:
     risk = summary["risk_state_symbols"]
     return "\n".join([
         "【Stock AI】13:05 台股盤中",
-        f"正式交易計畫 {summary['plan_status_counts']['active'] + summary['plan_status_counts']['watch']}｜無交易 {summary['plan_status_counts']['no_trade']}",
+        f"正式交易計畫 {summary['plan_status_counts']['active']}｜觀察 {summary['plan_status_counts']['watch']}｜無交易 {summary['plan_status_counts']['no_trade']}",
         f"已觸發 {summary['trigger_status_counts']['triggered']}｜策略失效 {summary['trigger_status_counts']['invalidated']}",
         f"等待量能：{_names(groups['wait_volume'])}",
         f"降低風險：{_names(groups['reduce'])}",
