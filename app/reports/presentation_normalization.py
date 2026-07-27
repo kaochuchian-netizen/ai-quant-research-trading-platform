@@ -209,13 +209,21 @@ def next_session_action(card: dict[str, Any]) -> str:
 
 def concise_news_summary(card: dict[str, Any]) -> dict[str, str]:
     detail = card.get("news_summary") or card.get("news_detail")
-    unavailable = not detail or any(token in str(detail).lower() for token in ("gemini error", "deadline_exceeded", "暫時無法取得", "尚未取得可用分析"))
+    retrieval = card.get("news_retrieval") if isinstance(card.get("news_retrieval"), dict) else {}
+    evidence = card.get("news_items") if isinstance(card.get("news_items"), list) else []
+    unavailable = not evidence or not detail or any(token in str(detail).lower() for token in ("gemini error", "deadline_exceeded", "暫時無法取得", "尚未取得可用分析"))
     if unavailable:
+        attempted = retrieval.get("sources_attempted") or ["MOPS", "TWSE", "COMPANY_IR", "GENERAL_FINANCIAL_MEDIA"]
+        reason = {
+            "NO_RESULT": "最近 72 小時未找到可納入分析的新聞",
+            "NO_MATERIAL_NEWS": "最近 72 小時沒有符合重大性門檻的新聞",
+            "LOW_QUALITY_ONLY": "查詢結果缺少可追溯來源，未納入決策",
+        }.get(str(retrieval.get("failure_reason")), "最近 72 小時未取得符合品質與重大性門檻的新聞")
         return {
-            "direction": "無法判定", "status": "本批次未取得可用分析",
-            "reason": "本批次未取得可用新聞分析",
+            "direction": "無法判定", "status": "未取得可納入分析的內容",
+            "reason": f"{reason}；已檢查：{'、'.join(attempted)}",
             "strategy_impact": "不調整原技術／策略排序",
-            "source_quality": "無法判定", "confidence": "無法判定",
+            "source_quality": "不適用｜無可納入證據", "confidence": "不適用",
         }
     direction = localize_enum(card.get("news_direction") or card.get("predicted_direction") or "unknown")
     reason = safe_public_text(detail, missing="本批次無重大新聞變化")
@@ -230,8 +238,12 @@ def concise_news_summary(card: dict[str, Any]) -> dict[str, str]:
         "wait_for_confirmation": "等待正式資訊與量價確認",
         "no_material_effect": "目前對策略無重大影響",
     }.get(impact, "維持目前優先級")
-    source = localize_enum(card.get("news_source_class") or "unavailable")
-    confidence = localize_enum(card.get("news_confidence") or "unknown")
+    quality = str(card.get("news_source_class") or "not_applicable")
+    source = {"high": "高｜官方一手來源", "medium_high": "中高｜專業或產業來源", "medium": "中｜一般財經媒體", "low": "低｜未充分確認", "not_applicable": "不適用｜無可納入證據"}.get(quality, "不適用｜無可納入證據")
+    confidence_data = card.get("news_confidence") if isinstance(card.get("news_confidence"), dict) else {}
+    score = confidence_data.get("score")
+    level = {"high": "高", "medium": "中等", "low": "偏低", "not_applicable": "不適用"}.get(str(confidence_data.get("level")), "不適用")
+    confidence = f"{score}%｜{level}" if isinstance(score, (int, float)) else level
     return {"direction": direction, "status": "分析可用", "reason": reason, "strategy_impact": impact_text, "source_quality": source, "confidence": confidence}
 
 

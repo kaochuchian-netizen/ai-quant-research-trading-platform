@@ -3,7 +3,10 @@ from datetime import datetime, timedelta
 import pandas as pd
 
 
-MAX_KBARS_LOOKBACK_DAYS = 30
+# Technical decisions require at least 20 trading sessions.  Thirty calendar
+# days produced only 19 rows around weekends/holidays, so keep the upstream
+# requested 180-day audit window instead of silently truncating it.
+MAX_KBARS_LOOKBACK_DAYS = 180
 
 
 def bounded_kbars_date_window(start_date, end_date, max_days=MAX_KBARS_LOOKBACK_DAYS):

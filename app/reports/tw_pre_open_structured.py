@@ -14,6 +14,7 @@ from app.reports.presentation_normalization import (
     safe_public_text,
 )
 from app.reports.tw_four_window_decision import canonical_news_direction, localize, sanitize_text, upgrade_pre_open_card
+from app.reports.tw_pre_open_quality import market_confidence, news_contract
 
 WINDOW = "pre_open_0700"
 MARKET = "TW"
@@ -70,7 +71,10 @@ def _available_text(value: Any) -> bool:
 def _coverage(cards: list[dict[str, Any]]) -> dict[str, dict[str, int]]:
     total = len(cards)
     checks = {
-        "technical": lambda c: _available_text(c.get("technical_summary")),
+        "quote_available": lambda c: bool((c.get("technical_data") or {}).get("price_data_available")) if c.get("technical_data") else _available_text(c.get("technical_summary")),
+        "history_sufficient": lambda c: bool((c.get("technical_data") or {}).get("analysis_eligible")) if c.get("technical_data") else _available_text(c.get("technical_summary")),
+        "trend_confirmed": lambda c: (c.get("technical_data") or {}).get("direction") in {"bullish", "neutral", "bearish"} if c.get("technical_data") else _available_text(c.get("technical_summary")),
+        "technical": lambda c: bool((c.get("technical_data") or {}).get("analysis_eligible")) if c.get("technical_data") else _available_text(c.get("technical_summary")),
         "adr": lambda c: _available_text(c.get("adr_context")),
         "overnight": lambda c: _available_text(c.get("overnight_context")) or _available_text(c.get("adr_context")),
         "chip": lambda c: _available_text(c.get("chip_summary")),
@@ -92,7 +96,8 @@ def _market_bias(coverage: dict[str, dict[str, int]], cards: list[dict[str, Any]
     if coverage["overnight"]["available"] < len(cards): reasons.append("OVERNIGHT_COVERAGE_LOW")
     if coverage["chip"]["available"] < len(cards): reasons.append("CHIP_UNAVAILABLE")
     if coverage["news"]["available"] < len(cards): reasons.append("NEWS_COVERAGE_LOW")
-    return {"market_bias": bias, "market_bias_confidence": confidence, "market_bias_reason_codes": reasons}
+    canonical = market_confidence(coverage, len(cards))
+    return {"market_bias": bias, "market_bias_confidence": canonical["level"], "market_bias_reason_codes": canonical["reason_codes"], "market_confidence": canonical}
 
 
 def build_card(*, symbol: str, name: str, trading_date: str, indicator: dict[str, Any] | None = None, adr: dict[str, Any] | None = None, news: Any = None, chip: dict[str, Any] | None = None, score: dict[str, Any] | None = None, analysis: Any = None, tactical: dict[str, Any] | None = None, source_revision: int = 1, missing_fields: list[str] | None = None, generated_at: str | None = None) -> dict[str, Any]:
@@ -112,6 +117,7 @@ def build_card(*, symbol: str, name: str, trading_date: str, indicator: dict[str
     entry_readiness = "ready_for_open_confirmation" if group == "opportunity" and numeric_score >= 65 else "wait" if group in {"opportunity", "watch"} else "no_trade" if group == "no_trade" else "unavailable"
     generated_at = generated_at or datetime.now(TAIPEI).replace(microsecond=0).isoformat()
     technical_as_of = _first(indicator, "date", "source_data_date")
+    canonical_news = news_contract(news, generated_at=generated_at)
     card: dict[str, Any] = {
         "symbol": str(symbol), "stock_id": str(symbol), "name": name, "stock_name": name,
         "market": MARKET, "window": WINDOW, "trading_date": trading_date,
@@ -127,7 +133,8 @@ def build_card(*, symbol: str, name: str, trading_date: str, indicator: dict[str
         "event_risk": _text(_first(analysis, "event_risk"), "尚未判定"),
         "technical_summary": _text(_first(indicator, "summary", "trend", "signal")),
         "chip_summary": _text(_first(chip, "summary", "chip_signal", "status")),
-        "news_summary": _text(news), "fundamental_summary": "盤前關鍵判斷不使用未驗證的基本面即時補值",
+        "news_summary": _text(news), "news_evidence": canonical_news,
+        "fundamental_summary": "盤前關鍵判斷不使用未驗證的基本面即時補值",
         "reasoning": _text(analysis), "risk_summary": "資料不完整時等待確認，不追價",
         "do_not_trade_reason": "資料不足" if not basic_available else ("策略明確不交易" if group == "no_trade" else None),
         "unavailable_reason": "、".join(missing) if status != "complete" else None,
@@ -273,7 +280,7 @@ def render_email(payload: dict[str, Any], url: str) -> str:
         summary=aggregate(payload.get("structured_pre_open_cards",[]),payload.get("tracking_symbols",[]) or [str(card.get("symbol") or card.get("stock_id")) for card in payload.get("structured_pre_open_cards",[])])
     cards={str(card.get("symbol") or card.get("stock_id")):card for card in payload.get("structured_pre_open_cards",[])}
     top=summary["top_opportunity_symbols"]
-    lines=["【Stock AI】07:00 台股盤前決策",f"交易日：{payload.get('effective_trading_date')}",f"市場基調：{'偏保守' if summary['market_bias']=='cautious' else '中性'}｜信心：{'偏低' if summary['market_bias_confidence']=='low' else '中'}","主要交易機會："]
+    lines=["【Stock AI】07:00 台股盤前決策",f"交易日：{payload.get('effective_trading_date')}",f"市場基調：{'偏保守' if summary['market_bias']=='cautious' else '中性'}｜整體信心：{(summary.get('market_confidence') or {}).get('score',0)}%｜{'偏低' if summary['market_bias_confidence']=='low' else '中'}","主要交易機會："]
     for symbol in top:
         card=cards[symbol]; lines.append(f"- {symbol} {safe_public_text(card.get('name'))}｜{safe_public_text(card.get('action'))}｜{localize(card.get('entry_readiness'))}｜依據：{safe_public_text(card.get('reasoning'))}｜風險：{safe_public_text(card.get('risk_summary'))}")
     if not top:
@@ -289,7 +296,7 @@ def render_email(payload: dict[str, Any], url: str) -> str:
                 f"  策略影響：{news['strategy_impact']}｜來源品質：{news['source_quality']}｜信心：{news['confidence']}",
             ])
     coverage=summary["coverage"]
-    lines += [f"觀察等待：{'、'.join(summary['watch_only_symbols']) or '無'}",f"暫不交易：{'、'.join(summary['no_trade_symbols']) or '無'}",f"避免追價：{'、'.join(summary['avoid_chase_symbols']) or '無'}",f"資料覆蓋：技術 {coverage['technical']['available']}/{coverage['technical']['total']}｜ADR／隔夜 {coverage['overnight']['available']}/{coverage['overnight']['total']}｜籌碼 {coverage['chip']['available']}/{coverage['chip']['total']}｜新聞 {coverage['news']['available']}/{coverage['news']['total']}",f"報告產生：{format_timestamp(_report_generated_at(payload))}","完整報告：",url,"僅供研究參考，非交易指令。"]
+    lines += [f"觀察等待：{'、'.join(summary['watch_only_symbols']) or '無'}",f"暫不交易：{'、'.join(summary['no_trade_symbols']) or '無'}",f"避免追價：{'、'.join(summary['avoid_chase_symbols']) or '無'}",f"資料覆蓋：行情 {coverage['quote_available']['available']}/{coverage['quote_available']['total']}｜技術可執行 {coverage['history_sufficient']['available']}/{coverage['history_sufficient']['total']}｜趨勢確認 {coverage['trend_confirmed']['available']}/{coverage['trend_confirmed']['total']}｜新聞 {coverage['news']['available']}/{coverage['news']['total']}",f"報告產生：{format_timestamp(_report_generated_at(payload))}","完整報告：",url,"僅供研究參考，非交易指令。"]
     return "\n".join(lines)
 
 
@@ -304,4 +311,4 @@ def render_line(payload: dict[str, Any], url: str) -> str:
         news = concise_news_summary(news_card)
         news_line = f"新聞：{news_card.get('symbol')} {news['direction']}｜{news['strategy_impact']}"
     coverage=summary["coverage"]
-    return "\n".join(["【Stock AI】07:00 台股盤前決策",f"市場基調：{'偏保守' if summary['market_bias']=='cautious' else '中性'}｜信心：{'偏低' if summary['market_bias_confidence']=='low' else '中'}","依據：以前一交易日技術面為主；隔夜、籌碼與新聞覆蓋不足",f"主要交易機會：{'、'.join(top) or '無'}",f"觀察等待：{'、'.join(summary['watch_only_symbols']) or '無'}",f"暫不交易：{'、'.join(summary['no_trade_symbols']) or '無'}",f"避免追價：{'、'.join(summary['avoid_chase_symbols']) or '無'}",news_line,f"資料覆蓋：技術 {coverage['technical']['available']}/{coverage['technical']['total']}｜ADR／隔夜 {coverage['overnight']['available']}/{coverage['overnight']['total']}｜籌碼 {coverage['chip']['available']}/{coverage['chip']['total']}｜新聞 {coverage['news']['available']}/{coverage['news']['total']}","完整報告：",url])
+    return "\n".join(["【Stock AI】07:00 台股盤前決策",f"市場基調：{'偏保守' if summary['market_bias']=='cautious' else '中性'}｜整體信心：{(summary.get('market_confidence') or {}).get('score',0)}%｜{'偏低' if summary['market_bias_confidence']=='low' else '中'}","依據：資料覆蓋與可追溯證據不足時採保守判斷",f"主要交易機會：{'、'.join(top) or '無'}",f"觀察等待：{'、'.join(summary['watch_only_symbols']) or '無'}",f"暫不交易：{'、'.join(summary['no_trade_symbols']) or '無'}",f"避免追價：{'、'.join(summary['avoid_chase_symbols']) or '無'}",news_line,f"資料覆蓋：行情 {coverage['quote_available']['available']}/{coverage['quote_available']['total']}｜技術可執行 {coverage['history_sufficient']['available']}/{coverage['history_sufficient']['total']}｜趨勢確認 {coverage['trend_confirmed']['available']}/{coverage['trend_confirmed']['total']}｜新聞 {coverage['news']['available']}/{coverage['news']['total']}","完整報告：",url])

@@ -20,6 +20,7 @@ from app.reports.presentation_normalization import (
     next_session_action,
     safe_public_text,
 )
+from app.reports.tw_pre_open_quality import data_gaps, public_reason, technical_contract
 
 TAIPEI = ZoneInfo("Asia/Taipei")
 SCHEMA_VERSION = "tw_intraday_close_lifecycle_v1"
@@ -134,6 +135,11 @@ def sanitize_text(value: Any, fallback: str = "本批次尚未取得") -> str:
     instruction = {
         "use deterministic entry_zone when present": "價格進入建議區間，且量價與風險條件符合",
         "setup not confirmed": "進場條件尚未確認",
+        "INSUFFICIENT_HISTORY": "歷史資料不足最低需求",
+        "TREND_UNAVAILABLE": "無法確認趨勢",
+        "RR_BELOW_THRESHOLD": "報酬風險比低於最低門檻",
+        "CONFIDENCE_DOWNGRADED": "因資料覆蓋不足，信心下調",
+        "SETUP_NOT_CONFIRMED": "交易條件尚未確認",
     }
     if text in instruction:
         return instruction[text]
@@ -178,7 +184,12 @@ def upgrade_pre_open_card(card: dict[str, Any], tactical: dict[str, Any] | None,
         readiness = "watch"
     normalized_data_status = "partial" if missing or data_quality in {"partial", "limited"} else "unavailable" if data_quality == "insufficient" else "complete"
     news_text = sanitize_text(result.get("news_summary"), "新聞分析暫時無法取得")
-    news_unavailable = "news" in missing or "暫時無法取得" in news_text or "尚未取得" in news_text
+    news_contract = result.get("news_evidence") if isinstance(result.get("news_evidence"), dict) else {}
+    news_unavailable = news_contract.get("status") != "available"
+    technical = technical_contract(tactical)
+    if not technical["analysis_eligible"]:
+        missing.add("technical_history")
+    risk_reasons = list(dict.fromkeys(public_reason(item) for item in tactical.get("risk_reasons", []) if item))
     result.update({
         "schema_version": "tw_pre_open_structured_decision_v2",
         "setup_id": setup, "parent_setup_id": None, "strategy_type": strategy_type,
@@ -189,25 +200,28 @@ def upgrade_pre_open_card(card: dict[str, Any], tactical: dict[str, Any] | None,
         "target_level": tactical.get("target_1"), "risk_reward": reward_risk,
         "action": sanitize_text(tactical.get("action") or result.get("action")),
         "entry_condition": sanitize_text((tactical.get("playbook") or {}).get("entry_condition")),
-        "chase_risk": str(tactical.get("chase_risk") or result.get("chase_risk") or "unavailable"),
+        "chase_risk": "unavailable" if str(result.get("gap_risk")) not in {"low", "medium", "high"} or str(tactical.get("event_risk")) not in {"low", "medium", "high"} else str(tactical.get("chase_risk") or "unavailable"),
         "event_risk": str(tactical.get("event_risk") or result.get("event_risk") or "unavailable"),
-        "no_trade_reason": sanitize_text("；".join(tactical.get("risk_reasons") or []), "不適用") if no_trade else None,
-        "do_not_trade_reason": sanitize_text("；".join(tactical.get("risk_reasons") or []), "不適用") if no_trade else None,
+        "no_trade_reason": "；".join(risk_reasons) if no_trade else None,
+        "do_not_trade_reason": "；".join(risk_reasons) if no_trade else None,
         "data_status": normalized_data_status,
         "availability_status": normalized_data_status,
         "missing_fields": sorted(missing),
-        "technical_summary": localize(result.get("technical_summary")),
+        "technical_data": technical,
+        "technical_summary": "無法判定" if not technical["analysis_eligible"] else localize(result.get("technical_summary")),
         "chip_summary": sanitize_text(result.get("chip_summary")),
         "adr_context": sanitize_text(result.get("adr_context")),
         "overnight_context": sanitize_text(result.get("overnight_context")),
         "news_summary": news_text,
         "news_status": "unavailable" if news_unavailable else "available",
-        "news_source_class": "unavailable" if news_unavailable else str(result.get("news_source_class") or "general_media"),
-        "news_direction": "unavailable" if news_unavailable else canonical_news_direction(result.get("news_direction"), news_text),
-        "news_confidence": None if news_unavailable else result.get("news_confidence"),
+        "news_source_class": news_contract.get("source_quality") or "not_applicable",
+        "news_direction": "unavailable" if news_unavailable else canonical_news_direction(result.get("news_direction") or (news_contract.get("primary_evidence") or {}).get("direction"), news_text),
+        "news_confidence": news_contract.get("confidence") or {"score": None, "level": "not_applicable"},
+        "news_retrieval": news_contract.get("retrieval") or {},
+        "news_items": news_contract.get("evidence") or [],
         "news_strategy_impact": "no_material_effect" if news_unavailable else result.get("news_strategy_impact"),
-        "reasoning": sanitize_text("；".join(tactical.get("reasons") or []) or result.get("reasoning")),
-        "risk_summary": sanitize_text("；".join(tactical.get("risk_reasons") or []) or result.get("risk_summary")),
+        "reasoning": "；".join(public_reason(item) for item in tactical.get("reasons", []) if item) or sanitize_text(result.get("reasoning")),
+        "risk_summary": "；".join(risk_reasons) or sanitize_text(result.get("risk_summary")),
         "strategies": {"daily_tactical": dict(tactical)},
         "prediction_status": "no_trade" if no_trade else "active" if safe_levels else "unavailable",
         "predicted_direction": tactical.get("direction"),
@@ -219,6 +233,10 @@ def upgrade_pre_open_card(card: dict[str, Any], tactical: dict[str, Any] | None,
         "actionable": readiness == "entry_ready", "watch_only": readiness == "watch", "no_trade": no_trade,
         "risk_adjusted_score": round(float(result.get("risk_adjusted_score") or result.get("decision_score") or 0) + (10 if readiness == "entry_ready" else 0), 4),
     })
+    result["data_gaps"] = data_gaps(technical, result)
+    freshness = dict(result.get("data_freshness") or {})
+    freshness.update({"technical_as_of": technical.get("history_end"), "news_as_of": (news_contract.get("primary_evidence") or {}).get("published_at")})
+    result["data_freshness"] = freshness
     without_hash = dict(result)
     without_hash.pop("source_payload_hash", None)
     result["source_payload_hash"] = stable_hash(without_hash)

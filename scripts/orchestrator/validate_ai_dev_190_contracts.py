@@ -71,7 +71,7 @@ def checks() -> dict[str, bool]:
         "tw_summary_count_list_parity": summary["top_opportunity_count"] == 1 == len(summary["top_opportunity_symbols"]) and summary["watch_only_symbols"] == ["WATCH"] and summary["no_trade_symbols"] == ["NO"],
         "tw_category_exclusivity": not (set(summary["top_opportunity_symbols"]) & set(summary["watch_only_symbols"]) or set(summary["watch_only_symbols"]) & set(summary["no_trade_symbols"])),
         "tw_tracking_partition": set(summary["top_opportunity_symbols"] + summary["watch_only_symbols"] + summary["no_trade_symbols"]) == {"TOP", "WATCH", "NO"},
-        "tw_coverage_matrix": set(summary["coverage"]) == {"technical", "adr", "overnight", "chip", "news", "gap", "event_risk"} and summary["coverage"]["technical"]["available"] == 3,
+        "tw_coverage_matrix": {"technical", "quote_available", "history_sufficient", "trend_confirmed", "adr", "overnight", "chip", "news", "gap", "event_risk"}.issubset(summary["coverage"]) and summary["coverage"]["technical"]["available"] == 3,
         "tw_low_coverage_confidence": summary["market_bias_confidence"] == "low",
         "tw_news_direction_enum": canonical_news_direction(None, "消息面方向：偏多") == "bullish" and canonical_news_direction("no_trade") == "unavailable",
         "tw_2305_news_action_separated": canonical_news_direction(None, cards[1]["news_summary"]) == "bullish" and cards[1]["watch_only"],
