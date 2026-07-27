@@ -12,6 +12,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.market.historical_price_loader import MAX_KBARS_LOOKBACK_DAYS, bounded_kbars_date_window
+import analysis.news_analysis_engine as news_engine
 from app.reports.presentation_normalization import concise_news_summary
 from app.reports.tw_pre_open_quality import market_confidence, news_contract, public_reason, technical_contract
 from app.reports.tw_pre_open_structured import aggregate, build_card, render_email, render_line
@@ -50,8 +51,17 @@ def validate() -> dict:
     checks["history_sufficient_is_eligible"] = sufficient["technical_data"]["analysis_eligible"] is True
     checks["news_evidence_traceable"] = sufficient["news_status"] == "available" and len(sufficient["news_items"]) == 1 and sufficient["news_items"][0]["source_tier"] == 1
     checks["news_direction_has_confidence"] = sufficient["news_direction"] == "bullish" and isinstance(sufficient["news_confidence"].get("score"), int)
-    unavailable = news_contract("AI generated prose without headline publisher time URL", generated_at="2026-07-27T07:00:00+08:00")
-    checks["no_news_has_diagnostics"] = unavailable["source_quality"] == "not_applicable" and unavailable["retrieval"]["failure_reason"] == "LOW_QUALITY_ONLY" and len(unavailable["retrieval"]["sources_attempted"]) == 4
+    unavailable = news_contract({"analysis": "目前沒有可用新聞", "items": [], "retrieval": {"lookback_hours": 72, "sources_attempted": ["GOOGLE_NEWS_RSS"], "sources_succeeded": [], "sources_failed": [{"source": "GOOGLE_NEWS_RSS", "reason": "NO_RESULT"}, {"source": "MOPS", "reason": "SOURCE_NOT_CONFIGURED"}, {"source": "TWSE", "reason": "SOURCE_NOT_CONFIGURED"}, {"source": "COMPANY_IR", "reason": "SOURCE_NOT_CONFIGURED"}], "failure_reason": "NO_RESULT"}}, generated_at="2026-07-27T07:00:00+08:00")
+    checks["no_news_has_diagnostics"] = unavailable["source_quality"] == "not_applicable" and unavailable["retrieval"]["failure_reason"] == "NO_RESULT" and unavailable["retrieval"]["sources_attempted"] == ["GOOGLE_NEWS_RSS"]
+    checks["unconfigured_official_sources_not_claimed_attempted"] = all(item["reason"] == "SOURCE_NOT_CONFIGURED" for item in unavailable["retrieval"]["sources_failed"] if item["source"] in {"MOPS", "TWSE", "COMPANY_IR"})
+    original_fetch, original_generate = news_engine.fetch_stock_news, news_engine.generate_analysis
+    try:
+        news_engine.fetch_stock_news = lambda *_args, **_kwargs: [{"title": "測試公告", "source": "測試媒體", "published": "2026-07-27T06:00:00+08:00", "link": "https://example.invalid/news"}]
+        news_engine.generate_analysis = lambda _prompt: "消息面方向：偏多"
+        bundle = news_engine.analyze_news("2337", "旺宏", include_evidence=True)
+    finally:
+        news_engine.fetch_stock_news, news_engine.generate_analysis = original_fetch, original_generate
+    checks["producer_preserves_news_evidence"] = bundle["items"][0]["title"] == "測試公告" and bundle["retrieval"]["sources_attempted"] == ["GOOGLE_NEWS_RSS"]
     checks["news_unavailable_public_semantics"] = concise_news_summary(insufficient)["source_quality"].startswith("不適用")
     cards = [insufficient, sufficient]
     summary = aggregate(cards, ["2330", "2337"])

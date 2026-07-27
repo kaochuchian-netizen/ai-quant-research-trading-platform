@@ -123,7 +123,7 @@ def sanitize_text(value: Any, fallback: str = "本批次尚未取得") -> str:
         if value.get("error") or value.get("error_type") or value.get("reason") in {"DEADLINE_EXCEEDED", "timeout"}:
             return "新聞分析暫時無法取得"
         preferred = []
-        for key in ("summary", "market_summary", "status", "direction", "change_rate", "reason"):
+        for key in ("analysis", "summary", "market_summary", "status", "direction", "change_rate", "reason"):
             item = value.get(key)
             if item not in (None, "", [], {}):
                 preferred.append(f"{key.replace('_', ' ')}：{sanitize_text(item)}")
