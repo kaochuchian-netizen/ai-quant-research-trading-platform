@@ -1,0 +1,101 @@
+{
+  "schema_version": "pending_natural_verification_v1",
+  "updated_at": "2026-07-28T00:00:00+08:00",
+  "sla": {
+    "minimum_trading_days": 2,
+    "maximum_trading_days": 5,
+    "legacy_import_policy": "SLA starts at registry adoption for pre-existing pending tasks."
+  },
+  "records": [
+    {
+      "task_id": "AI-DEV-185",
+      "state": "PENDING",
+      "registered_at": "2026-07-28",
+      "owner": "Production Verification Owner",
+      "required_windows": ["US us_intraday_2300"],
+      "acceptance": "Observed price, gap, volume, trigger and tactical adjustment remain truthful across channels.",
+      "monitoring": "Inspect the next eligible natural US 23:00 snapshot and provenance identities."
+    },
+    {
+      "task_id": "AI-DEV-186",
+      "state": "PENDING",
+      "registered_at": "2026-07-28",
+      "owner": "Production Verification Owner",
+      "required_windows": ["TW pre_open_0700", "TW intraday_1305", "TW pre_close_1335", "TW post_close_1500"],
+      "acceptance": "The complete natural TW decision chain retains observed data and parity.",
+      "monitoring": "Inspect the next complete eligible TW trading day."
+    },
+    {
+      "task_id": "AI-DEV-187",
+      "state": "PENDING",
+      "registered_at": "2026-07-28",
+      "owner": "Production Verification Owner",
+      "required_windows": ["TW four windows", "US us_post_close_review_0630"],
+      "acceptance": "Localized presentation and truthful US review appear in natural outputs.",
+      "monitoring": "Scan visible content and canonical review counts."
+    },
+    {
+      "task_id": "AI-DEV-188",
+      "state": "PENDING",
+      "registered_at": "2026-07-28",
+      "owner": "Production Verification Owner",
+      "required_windows": ["TW pre_close_1335", "TW post_close_1500", "US us_post_close_review_0630"],
+      "acceptance": "Latest identity, time semantics and outcome taxonomy agree naturally.",
+      "monitoring": "Compare effective date, snapshot identity and public wording."
+    },
+    {
+      "task_id": "AI-DEV-189",
+      "state": "PENDING",
+      "registered_at": "2026-07-28",
+      "owner": "Production Verification Owner",
+      "required_windows": ["US us_pre_market_2000"],
+      "acceptance": "Premarket context, eligibility and SEC/news separation remain truthful.",
+      "monitoring": "Inspect source freshness, action groups and channel parity."
+    },
+    {
+      "task_id": "AI-DEV-190",
+      "state": "PENDING",
+      "registered_at": "2026-07-28",
+      "owner": "Production Verification Owner",
+      "required_windows": ["TW pre_open_0700", "US us_post_close_review_0630"],
+      "acceptance": "TW canonical summary and US trade outcomes close with source binding.",
+      "monitoring": "Compare natural aggregates, MFE/MAE and source identities."
+    },
+    {
+      "task_id": "AI-DEV-191",
+      "state": "PENDING",
+      "registered_at": "2026-07-28",
+      "owner": "Production Verification Owner",
+      "required_windows": ["TW intraday_1305", "TW pre_close_1335", "TW post_close_1500"],
+      "acceptance": "Lifecycle partitions, open-at-close and compact outcomes remain correct.",
+      "monitoring": "Inspect the next complete intraday-to-close sequence."
+    },
+    {
+      "task_id": "AI-DEV-192",
+      "state": "PENDING",
+      "registered_at": "2026-07-28",
+      "owner": "Production Verification Owner",
+      "required_windows": ["US us_pre_market_2000", "US us_intraday_2300", "US us_post_close_review_0630"],
+      "acceptance": "One source plan and direction-aware evidence persist across all US windows.",
+      "monitoring": "Inspect the next complete US three-window sequence."
+    },
+    {
+      "task_id": "AI-DEV-193",
+      "state": "PENDING",
+      "registered_at": "2026-07-28",
+      "owner": "Production Verification Owner",
+      "required_windows": ["TW pre_open_0700"],
+      "acceptance": "Technical coverage, news diagnostics, confidence and chase risk are truthful.",
+      "monitoring": "Inspect history bars, news evidence and five-channel identity."
+    },
+    {
+      "task_id": "AI-DEV-194",
+      "state": "PENDING",
+      "registered_at": "2026-07-28",
+      "owner": "Production Verification Owner",
+      "required_windows": ["TW pre_open_0700", "TW intraday_1305", "TW pre_close_1335", "TW post_close_1500"],
+      "acceptance": "Plan ownership, trigger evidence, transition identity and public explanation pass naturally.",
+      "monitoring": "Inspect the next full TW lifecycle and channel parity."
+    }
+  ]
+}

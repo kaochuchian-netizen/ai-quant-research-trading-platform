@@ -1,0 +1,77 @@
+{
+  "schema_version": "platform_phase_status_v1",
+  "updated_at": "2026-07-28T00:00:00+08:00",
+  "current_phase_id": "phase_1",
+  "phases": [
+    {
+      "id": "phase_1",
+      "name": "Product Quality Consolidation",
+      "status": "IN_PROGRESS",
+      "objective": "Establish a trustworthy V1 Product Baseline across all TW and US production windows.",
+      "health_target": 85,
+      "exit_items": [
+        {
+          "id": "p1-must-fix-public-truthfulness",
+          "classification": "MUST_FIX_BEFORE_CLOSE",
+          "status": "IN_PROGRESS",
+          "owner": "Product Quality PM",
+          "evidence": "Natural verification registry still contains affected production-window tasks."
+        },
+        {
+          "id": "p1-must-fix-channel-parity",
+          "classification": "MUST_FIX_BEFORE_CLOSE",
+          "status": "IN_PROGRESS",
+          "owner": "Platform Engineering",
+          "evidence": "Deterministic parity gates pass; remaining natural batches are tracked in the pending registry."
+        },
+        {
+          "id": "p1-limitation-provider-availability",
+          "classification": "ACCEPTABLE_LIMITATION",
+          "status": "ACCEPTED",
+          "owner": "Data Quality Owner",
+          "evidence": "Provider failures must render unavailable and cannot create unsupported decisions."
+        },
+        {
+          "id": "p1-deferred-advanced-learning",
+          "classification": "DEFERRED_ENHANCEMENT",
+          "status": "DEFERRED",
+          "owner": "Research Platform Lead",
+          "target_phase": "phase_4",
+          "evidence": "Evaluation and learning expansion is outside the V1 Product Baseline."
+        }
+      ]
+    },
+    {
+      "id": "phase_2",
+      "name": "Research Intelligence",
+      "status": "PLANNED",
+      "objective": "Deepen source coverage, synthesis and source-quality ranking.",
+      "health_target": 85,
+      "exit_items": []
+    },
+    {
+      "id": "phase_3",
+      "name": "Decision Intelligence",
+      "status": "PLANNED",
+      "objective": "Improve scenario reasoning, portfolio context and decision confidence.",
+      "health_target": 88,
+      "exit_items": []
+    },
+    {
+      "id": "phase_4",
+      "name": "Evaluation & Learning",
+      "status": "PLANNED",
+      "objective": "Connect canonical decisions to outcomes, calibration and controlled learning.",
+      "health_target": 90,
+      "exit_items": []
+    },
+    {
+      "id": "phase_5",
+      "name": "Institutional-grade Platform",
+      "status": "PLANNED",
+      "objective": "Mature reliability, auditability, resilience and institutional workflows.",
+      "health_target": 92,
+      "exit_items": []
+    }
+  ]
+}

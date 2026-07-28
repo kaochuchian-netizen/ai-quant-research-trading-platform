@@ -29,6 +29,8 @@ DEFAULT_ALLOWED_PATHS = [
     "analysis/news_analysis_engine.py",
     "tests/",
     "scripts/orchestrator/",
+    "scripts/governance/",
+    "config/governance/",
     ".github/workflows/ai_dev_validation.yml",
     "app/trading/",
     "app/us_stock/",
