@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any
+from app.reports.daily_decision_experience import build_daily_decision_experience
 
 def build_operations_provenance(*, market: str, window: str, runtime_status: str, runtime_trading_date: str, snapshot: dict[str, Any], public_sync: dict[str, Any], email_result: str, line_result: str) -> dict[str, Any]:
     archive_observed = ((public_sync.get("public_archive_verification") or {}).get("observed_identity"))
@@ -147,6 +148,10 @@ def build_operations_provenance(*, market: str, window: str, runtime_status: str
             evidence = card.get("intraday_evidence") if isinstance(card.get("intraday_evidence"), dict) else {}
             bindings.append({"symbol": card.get("symbol"), "source_window": source.get("source_window"), "source_snapshot_id": source.get("source_snapshot_id"), "source_revision": source.get("source_revision"), "source_hash": source.get("source_hash"), "intraday_evidence_snapshot_id": evidence.get("source_snapshot_id"), "intraday_evidence_hash": evidence.get("source_hash")})
         result["source_trade_plan_bindings"] = bindings
+    payload = snapshot.get("payload") if isinstance(snapshot.get("payload"), dict) else {}
+    canonical = build_daily_decision_experience(market.upper(), window, payload)
+    result["canonical_daily_decision"] = canonical
+    result["canonical_daily_decision_hash"] = canonical["canonical_summary_hash"]
     return result
 
 def write_operations_provenance(path: Path, payload: dict[str, Any]) -> None:
