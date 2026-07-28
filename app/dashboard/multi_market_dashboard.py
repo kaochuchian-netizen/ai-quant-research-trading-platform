@@ -830,6 +830,28 @@ def _window_metric_grid(rows: list[tuple[str, Any]]) -> str:
 
 def _decision_intelligence_v4_html(market: str, window: str, payload: dict[str, Any] | None) -> str:
     projection = project_decision_intelligence_v4(market, window, payload)
+    canonical = projection.get("canonical_decision_summary") if isinstance(projection.get("canonical_decision_summary"), dict) else {}
+    confidence = canonical.get("confidence_explanation") if isinstance(canonical.get("confidence_explanation"), dict) else {}
+    transition = canonical.get("change_from_previous_window") if isinstance(canonical.get("change_from_previous_window"), dict) else {}
+    why_items = canonical.get("why") if isinstance(canonical.get("why"), list) else []
+    missing = canonical.get("missing_data_impact") if isinstance(canonical.get("missing_data_impact"), dict) else {}
+    why_html = "".join(f"<li>{_escape(item)}</li>" for item in why_items[:4]) or "<li>本批次未提供可追溯 evidence；不補造原因。</li>"
+    score = canonical.get("confidence")
+    score_text = "尚未取得" if score is None else f"{float(score):.1f}"
+    story_html = f"""
+      <section class="decision-section canonical-decision-story" data-summary-hash="{_escape(canonical.get('canonical_summary_hash'))}">
+        <h4>本批次決策故事</h4>
+        {_window_metric_grid([
+            ('目前判斷', canonical.get('current_view')),
+            ('目前行動', canonical.get('current_action')),
+            ('信心', f"{score_text}｜{confidence.get('explanation') or '本批次未提供信心解釋'}"),
+            ('相較上一時段', f"{transition.get('public_label') or '當日尚無上一正式時段'}｜{transition.get('reason') or '沒有可安全引用的上一時段決策'}"),
+            ('下一觸發', canonical.get('next_trigger')),
+        ])}
+        <h4>主要依據</h4><ul>{why_html}</ul>
+        <p class="decision-note">資料缺口：{int(missing.get('count') or 0)} 項；缺資料不視為中性證據。</p>
+      </section>
+    """
     counts = projection["counts"]
     labels = {
         "total": "標的數", "top_opportunities": "主要交易機會", "no_trade": "暫不交易",
@@ -895,6 +917,7 @@ def _decision_intelligence_v4_html(market: str, window: str, payload: dict[str, 
     <section class="decision-section decision-intelligence-v4" data-presentation-version="seven-window-decision-intelligence-v4" data-card-type="{_escape(projection['expected_card_type'])}">
       <h3>Decision Intelligence V4</h3>
       <p>{_escape(projection['question'])}</p>
+      {story_html}
       {_window_metric_grid(metric_rows)}
       <section class="decision-section"><h4>本批次決策清單</h4>{_window_metric_grid(list_rows)}</section>
       <section class="decision-section"><h4>{'Outcome distribution' if window in {'post_close_1500', 'us_post_close_review_0630'} else 'Confidence distribution'}</h4>{distribution_html}</section>

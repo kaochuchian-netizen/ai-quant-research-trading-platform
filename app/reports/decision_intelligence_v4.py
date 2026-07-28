@@ -12,6 +12,7 @@ from typing import Any, Iterable
 
 from .window_report_contract import get_window_report_contract, normalize_window
 from .canonical_outcomes import CANONICAL_OUTCOMES
+from .daily_decision_experience import build_daily_decision_experience, compact_decision_story
 
 SCHEMA_VERSION = "seven_window_decision_intelligence_v4"
 
@@ -269,6 +270,7 @@ def project_decision_intelligence_v4(
             )) if any((row.get("late_session_risk"), row.get("near_stop"), row.get("near_target"), row.get("hold_candidate"), row.get("avoid_hold"))) and not row.get("no_trade")],
             "unavailable_is_not_zero": True,
         }
+    canonical_decision = build_daily_decision_experience(market, window, payload)
     return {
         "schema_version": SCHEMA_VERSION,
         "market": market,
@@ -295,6 +297,8 @@ def project_decision_intelligence_v4(
         "confidence_distribution": _confidence_distribution(rows),
         "pre_close_decision": pre_close_decision,
         "same_window_change": {"available": bool(previous_projection), "count_deltas": deltas, "policy": "same_market_same_window_previous_effective_trading_date"},
+        "canonical_decision_summary": canonical_decision,
+        "canonical_summary_hash": canonical_decision["canonical_summary_hash"],
         "provenance": {
             "payload": "function argument: immutable snapshot payload or current window artifact",
             "classification": "explicit card tactical/review fields only",
@@ -305,6 +309,10 @@ def project_decision_intelligence_v4(
 
 
 def compact_summary(projection: dict[str, Any], channel: str) -> str:
+    canonical = projection.get("canonical_decision_summary")
+    if isinstance(canonical, dict):
+        lines = compact_decision_story(canonical)
+        return "\n".join(lines)
     counts = projection["counts"]
     window = projection["window"]
     if window in {"pre_open_0700", "us_pre_market_2000"}:
@@ -346,6 +354,8 @@ def delivery_summary_lines(
     review_payload: dict[str, Any] | None = None,
 ) -> list[str]:
     """Render actual delivery values, never contract field names or N placeholders."""
+    canonical = projection.get("canonical_decision_summary")
+    story = compact_decision_story(canonical) if isinstance(canonical, dict) else []
     if projection.get("market") == "TW" and projection.get("window") == "post_close_1500":
         dist = projection.get("outcome_distribution", {})
         outcome_line = (
@@ -364,7 +374,9 @@ def delivery_summary_lines(
                 f"7 日檢討：有效樣本 {seven_day['sample_count']}，"
                 f"平均命中率 {seven_day['hit_rate']:.1%}"
             )
-        return [outcome_line, review_line]
+        return [*story, outcome_line, review_line]
+    if story:
+        return story
     return [compact_summary(projection, "line")]
 
 

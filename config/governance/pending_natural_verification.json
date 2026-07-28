@@ -1,6 +1,6 @@
 {
   "schema_version": "pending_natural_verification_v1",
-  "updated_at": "2026-07-28T00:00:00+08:00",
+  "updated_at": "2026-07-28T09:00:00+08:00",
   "sla": {
     "minimum_trading_days": 2,
     "maximum_trading_days": 5,
@@ -96,6 +96,15 @@
       "required_windows": ["TW pre_open_0700", "TW intraday_1305", "TW pre_close_1335", "TW post_close_1500"],
       "acceptance": "Plan ownership, trigger evidence, transition identity and public explanation pass naturally.",
       "monitoring": "Inspect the next full TW lifecycle and channel parity."
+    },
+    {
+      "task_id": "AI-DEV-195",
+      "state": "PENDING",
+      "registered_at": "2026-07-28",
+      "owner": "Production Verification Owner",
+      "required_windows": ["TW four formal windows", "US three formal windows"],
+      "acceptance": "Decision Story, evidence chain, confidence limits, missing-data impact, transition and five-channel semantics agree naturally.",
+      "monitoring": "Observe complete TW and US sequences for 2–5 trading days; label deterministic-only scenarios separately."
     }
   ]
 }

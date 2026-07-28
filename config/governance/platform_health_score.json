@@ -1,81 +1,105 @@
 {
   "schema_version": "platform_health_score_v1",
-  "measured_at": "2026-07-28T00:00:00+08:00",
+  "measured_at": "2026-07-28T09:00:00+08:00",
   "current_phase_id": "phase_1",
-  "overall_score": 70.1,
+  "overall_score": 71.5,
   "overall_target": 85,
   "dimensions": [
     {
       "id": "product_quality",
       "name": "Product Quality",
-      "score": 72,
+      "score": 73,
+      "previous_score": 72,
+      "implemented_score": 80,
+      "verified_score": 73,
+      "residual_limitation": "Seven-window natural verification for the unified Decision Story is pending.",
       "description": "Correct, complete, consistent and usable public research across seven windows.",
       "measurement": "Product Quality Gate pass rate plus unresolved natural production defects.",
       "owner": "Product Quality PM",
       "target": 85,
       "trend": "improving",
       "weight": 0.1,
-      "evidence": "AI-DEV-185–194 consolidated public contracts; natural verification remains pending."
+      "evidence": "AI-DEV-195 adds one deterministic Decision Story contract; existing and new natural verification remain pending."
     },
     {
       "id": "decision_explainability",
       "name": "Decision Explainability",
-      "score": 76,
+      "score": 78,
+      "previous_score": 76,
+      "implemented_score": 84,
+      "verified_score": 78,
+      "residual_limitation": "Natural reports have not yet demonstrated all transition and missing-data scenarios.",
       "description": "Users can understand actions, confidence, outcomes and unavailable states.",
       "measurement": "Public localization, reason, distance, prediction and next-action validator results.",
       "owner": "Decision UX Owner",
       "target": 88,
       "trend": "improving",
       "weight": 0.1,
-      "evidence": "Shared presentation and lifecycle explainability validators pass on deterministic replay."
+      "evidence": "AI-DEV-195 deterministic fixtures cover view, action, why, confidence limits, transition and next trigger."
     },
     {
       "id": "data_truthfulness",
       "name": "Data Truthfulness",
-      "score": 78,
+      "score": 79,
+      "previous_score": 78,
+      "implemented_score": 84,
+      "verified_score": 79,
+      "residual_limitation": "Provider failure and stale-evidence behavior still require natural observation.",
       "description": "Observed, stale, unavailable and inferred data are not conflated.",
       "measurement": "Freshness, unavailable semantics and outcome truthfulness gates.",
       "owner": "Data Quality Owner",
       "target": 90,
       "trend": "improving",
       "weight": 0.1,
-      "evidence": "TW and US observed-market and prediction-versus-trade contracts are validator-protected."
+      "evidence": "Missing and stale evidence are deterministically prohibited from becoming neutral or current claims."
     },
     {
       "id": "evidence_traceability",
       "name": "Evidence Traceability",
-      "score": 78,
+      "score": 80,
+      "previous_score": 78,
+      "implemented_score": 85,
+      "verified_score": 80,
+      "residual_limitation": "Some historical immutable snapshots lack complete evidence timestamps.",
       "description": "Decisions retain source, time, snapshot, revision and payload identity.",
       "measurement": "Provenance, source binding and transition identity coverage.",
       "owner": "Platform Engineering",
       "target": 90,
       "trend": "improving",
       "weight": 0.1,
-      "evidence": "Notification provenance, archive identity and lifecycle transition evidence gates pass."
+      "evidence": "AI-DEV-195 normalizes source, reference, timestamps, freshness, reliability and decision impact."
     },
     {
       "id": "cross_window_continuity",
       "name": "Cross-window Continuity",
-      "score": 74,
+      "score": 76,
+      "previous_score": 74,
+      "implemented_score": 84,
+      "verified_score": 76,
+      "residual_limitation": "Full TW and US natural window sequences are not yet verified.",
       "description": "Plans and outcomes retain ownership and identity across TW and US windows.",
       "measurement": "Per-symbol source-plan and lifecycle continuity validation.",
       "owner": "Decision Lifecycle Owner",
       "target": 90,
       "trend": "improving",
       "weight": 0.1,
-      "evidence": "TW four-window and US three-window deterministic continuity gates pass."
+      "evidence": "Lifecycle timelines are deduplicated and semantic transition fixtures pass without changing plan ownership."
     },
     {
       "id": "cross_channel_parity",
       "name": "Cross-channel Parity",
-      "score": 80,
+      "score": 81,
+      "previous_score": 80,
+      "implemented_score": 86,
+      "verified_score": 81,
+      "residual_limitation": "Real Email and LINE delivery is intentionally not exercised by this task.",
       "description": "Dashboard, Archive, Email, LINE and Operations share canonical identity and counts.",
       "measurement": "Channel source-hash, symbol-set and aggregate parity gates.",
       "owner": "Delivery Contract Owner",
       "target": 92,
       "trend": "improving",
       "weight": 0.1,
-      "evidence": "Seven-window cross-feature and notification provenance matrices pass."
+      "evidence": "Dashboard, LINE, Email, Archive projection and Operations share the AI-DEV-195 canonical summary hash."
     },
     {
       "id": "natural_verification",
@@ -104,26 +128,34 @@
     {
       "id": "technical_debt",
       "name": "Technical Debt",
-      "score": 58,
+      "score": 61,
+      "previous_score": 58,
+      "implemented_score": 68,
+      "verified_score": 61,
+      "residual_limitation": "Legacy V4 count projections remain for backward-compatible secondary metrics.",
       "description": "Higher score means lower debt and fewer duplicated contracts or legacy fallbacks.",
       "measurement": "Duplicate formatter, legacy schema and deferred-governance inventory.",
       "owner": "Platform Architecture",
       "target": 80,
       "trend": "stable",
       "weight": 0.1,
-      "evidence": "Canonical layers improved, while legacy formatter and validator wrappers remain."
+      "evidence": "AI-DEV-195 extends the existing projection instead of creating a disconnected sidecar truth source."
     },
     {
       "id": "phase_completion",
       "name": "Phase Completion",
-      "score": 55,
+      "score": 57,
+      "previous_score": 55,
+      "implemented_score": 65,
+      "verified_score": 57,
+      "residual_limitation": "Phase 1 cannot close while natural-verification must-fix records remain pending.",
       "description": "Progress toward all Phase 1 exit outcomes with must-fix items closed.",
       "measurement": "Closed exit items, health target and natural-verification readiness.",
       "owner": "Platform Roadmap Owner",
       "target": 100,
       "trend": "improving",
       "weight": 0.1,
-      "evidence": "Engineering consolidation is advanced; natural verification prevents Phase 1 close."
+      "evidence": "AI-DEV-195 prepares the integrated Product Review baseline; natural verification still prevents Phase 1 close."
     }
   ]
 }

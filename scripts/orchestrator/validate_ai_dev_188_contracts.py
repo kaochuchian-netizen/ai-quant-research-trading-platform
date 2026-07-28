@@ -66,8 +66,9 @@ def checks() -> dict[str, bool]:
         "trade_hit_requires_target": trade_hit["trade_outcome"] == "hit",
         "separate_aggregate": aggregate["prediction_range_hit_count"] == 1 and aggregate["trade_pending_count"] == 1 and aggregate["trade_hit_count"] == 0,
         "news_unavailable_truthful": unavailable_news == {
-            "direction": "無法判定", "status": "本批次未取得可用分析", "reason": "本批次未取得可用新聞分析",
-            "strategy_impact": "不調整原技術／策略排序", "source_quality": "無法判定", "confidence": "無法判定",
+            "direction": "無法判定", "status": "未取得可納入分析的內容",
+            "reason": "最近 72 小時未取得符合品質與重大性門檻的新聞；已檢查：MOPS、TWSE、COMPANY_IR、GENERAL_FINANCIAL_MEDIA",
+            "strategy_impact": "不調整原技術／策略排序", "source_quality": "不適用｜無可納入證據", "confidence": "不適用",
         },
         "rr_localized": safe_public_text("reward/risk below 0.8 threshold").startswith("風險報酬比"),
         "adr_semantics": all(token in format_adr_context("change rate：5.55", strategy_action="no_trade") for token in ("TSM ADR", "上漲 5.55%", "最近一個美股交易日", "不改變目前無交易判斷")),
