@@ -50,3 +50,15 @@ jobs:
         run: |
           python3 scripts/orchestrator/audit_source_inventory_registry.py \
             --pretty
+
+      - name: Validate platform governance
+        run: |
+          python3 -m py_compile \
+            scripts/governance/governance_common.py \
+            scripts/governance/validate_ai_dev_task_package_v2.py \
+            scripts/governance/validate_completion_report.py \
+            scripts/governance/inspect_pending_natural_verification.py \
+            scripts/governance/validate_phase_registry.py \
+            scripts/governance/validate_platform_health_score.py \
+            scripts/governance/run_governance_validation.py
+          python3 scripts/governance/run_governance_validation.py --pretty

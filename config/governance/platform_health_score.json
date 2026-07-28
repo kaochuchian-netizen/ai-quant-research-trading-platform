@@ -1,0 +1,129 @@
+{
+  "schema_version": "platform_health_score_v1",
+  "measured_at": "2026-07-28T00:00:00+08:00",
+  "current_phase_id": "phase_1",
+  "overall_score": 70.1,
+  "overall_target": 85,
+  "dimensions": [
+    {
+      "id": "product_quality",
+      "name": "Product Quality",
+      "score": 72,
+      "description": "Correct, complete, consistent and usable public research across seven windows.",
+      "measurement": "Product Quality Gate pass rate plus unresolved natural production defects.",
+      "owner": "Product Quality PM",
+      "target": 85,
+      "trend": "improving",
+      "weight": 0.1,
+      "evidence": "AI-DEV-185–194 consolidated public contracts; natural verification remains pending."
+    },
+    {
+      "id": "decision_explainability",
+      "name": "Decision Explainability",
+      "score": 76,
+      "description": "Users can understand actions, confidence, outcomes and unavailable states.",
+      "measurement": "Public localization, reason, distance, prediction and next-action validator results.",
+      "owner": "Decision UX Owner",
+      "target": 88,
+      "trend": "improving",
+      "weight": 0.1,
+      "evidence": "Shared presentation and lifecycle explainability validators pass on deterministic replay."
+    },
+    {
+      "id": "data_truthfulness",
+      "name": "Data Truthfulness",
+      "score": 78,
+      "description": "Observed, stale, unavailable and inferred data are not conflated.",
+      "measurement": "Freshness, unavailable semantics and outcome truthfulness gates.",
+      "owner": "Data Quality Owner",
+      "target": 90,
+      "trend": "improving",
+      "weight": 0.1,
+      "evidence": "TW and US observed-market and prediction-versus-trade contracts are validator-protected."
+    },
+    {
+      "id": "evidence_traceability",
+      "name": "Evidence Traceability",
+      "score": 78,
+      "description": "Decisions retain source, time, snapshot, revision and payload identity.",
+      "measurement": "Provenance, source binding and transition identity coverage.",
+      "owner": "Platform Engineering",
+      "target": 90,
+      "trend": "improving",
+      "weight": 0.1,
+      "evidence": "Notification provenance, archive identity and lifecycle transition evidence gates pass."
+    },
+    {
+      "id": "cross_window_continuity",
+      "name": "Cross-window Continuity",
+      "score": 74,
+      "description": "Plans and outcomes retain ownership and identity across TW and US windows.",
+      "measurement": "Per-symbol source-plan and lifecycle continuity validation.",
+      "owner": "Decision Lifecycle Owner",
+      "target": 90,
+      "trend": "improving",
+      "weight": 0.1,
+      "evidence": "TW four-window and US three-window deterministic continuity gates pass."
+    },
+    {
+      "id": "cross_channel_parity",
+      "name": "Cross-channel Parity",
+      "score": 80,
+      "description": "Dashboard, Archive, Email, LINE and Operations share canonical identity and counts.",
+      "measurement": "Channel source-hash, symbol-set and aggregate parity gates.",
+      "owner": "Delivery Contract Owner",
+      "target": 92,
+      "trend": "improving",
+      "weight": 0.1,
+      "evidence": "Seven-window cross-feature and notification provenance matrices pass."
+    },
+    {
+      "id": "natural_verification",
+      "name": "Natural Verification",
+      "score": 48,
+      "description": "Merged behavior is verified in eligible scheduled production batches within SLA.",
+      "measurement": "Verified pending-registry records divided by records requiring natural evidence.",
+      "owner": "Production Verification Owner",
+      "target": 85,
+      "trend": "stable",
+      "weight": 0.1,
+      "evidence": "Multiple Phase 1 tasks remain IMPLEMENTED_PENDING_NATURAL_VERIFICATION."
+    },
+    {
+      "id": "regression_risk",
+      "name": "Regression Risk",
+      "score": 82,
+      "description": "Higher score means lower residual risk across protected contracts.",
+      "measurement": "Required branch, seven-window, archive, landing and post-merge gates.",
+      "owner": "Quality Engineering",
+      "target": 90,
+      "trend": "improving",
+      "weight": 0.1,
+      "evidence": "Branch CI and deterministic cross-feature regression gates are active."
+    },
+    {
+      "id": "technical_debt",
+      "name": "Technical Debt",
+      "score": 58,
+      "description": "Higher score means lower debt and fewer duplicated contracts or legacy fallbacks.",
+      "measurement": "Duplicate formatter, legacy schema and deferred-governance inventory.",
+      "owner": "Platform Architecture",
+      "target": 80,
+      "trend": "stable",
+      "weight": 0.1,
+      "evidence": "Canonical layers improved, while legacy formatter and validator wrappers remain."
+    },
+    {
+      "id": "phase_completion",
+      "name": "Phase Completion",
+      "score": 55,
+      "description": "Progress toward all Phase 1 exit outcomes with must-fix items closed.",
+      "measurement": "Closed exit items, health target and natural-verification readiness.",
+      "owner": "Platform Roadmap Owner",
+      "target": 100,
+      "trend": "improving",
+      "weight": 0.1,
+      "evidence": "Engineering consolidation is advanced; natural verification prevents Phase 1 close."
+    }
+  ]
+}
