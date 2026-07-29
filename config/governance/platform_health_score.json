@@ -1,8 +1,8 @@
 {
   "schema_version": "platform_health_score_v1",
-  "measured_at": "2026-07-28T09:00:00+08:00",
+  "measured_at": "2026-07-29T21:50:00+08:00",
   "current_phase_id": "phase_1",
-  "overall_score": 71.5,
+  "overall_score": 70.2,
   "overall_target": 85,
   "dimensions": [
     {
@@ -40,18 +40,18 @@
     {
       "id": "data_truthfulness",
       "name": "Data Truthfulness",
-      "score": 79,
+      "score": 76,
       "previous_score": 78,
       "implemented_score": 84,
-      "verified_score": 79,
-      "residual_limitation": "Provider failure and stale-evidence behavior still require natural observation.",
+      "verified_score": 76,
+      "residual_limitation": "The 2026-07-29 TW 07:00 Google Sheets 503 prevented a canonical batch; bounded fallback is implemented but naturally unverified.",
       "description": "Observed, stale, unavailable and inferred data are not conflated.",
       "measurement": "Freshness, unavailable semantics and outcome truthfulness gates.",
       "owner": "Data Quality Owner",
       "target": 90,
-      "trend": "improving",
+      "trend": "declining",
       "weight": 0.1,
-      "evidence": "Missing and stale evidence are deterministically prohibited from becoming neutral or current claims."
+      "evidence": "AI-DEV-196 records the natural provider failure, adds admitted-snapshot universe fallback and fails closed when no bounded source exists."
     },
     {
       "id": "evidence_traceability",
@@ -104,26 +104,26 @@
     {
       "id": "natural_verification",
       "name": "Natural Verification",
-      "score": 48,
+      "score": 45,
       "description": "Merged behavior is verified in eligible scheduled production batches within SLA.",
       "measurement": "Verified pending-registry records divided by records requiring natural evidence.",
       "owner": "Production Verification Owner",
       "target": 85,
-      "trend": "stable",
+      "trend": "declining",
       "weight": 0.1,
-      "evidence": "Multiple Phase 1 tasks remain IMPLEMENTED_PENDING_NATURAL_VERIFICATION."
+      "evidence": "The missing 2026-07-29 TW 07:00 batch blocks AI-DEV-195 natural verification; AI-DEV-196 is pending the next complete natural chain."
     },
     {
       "id": "regression_risk",
       "name": "Regression Risk",
-      "score": 82,
+      "score": 78,
       "description": "Higher score means lower residual risk across protected contracts.",
       "measurement": "Required branch, seven-window, archive, landing and post-merge gates.",
       "owner": "Quality Engineering",
       "target": 90,
-      "trend": "improving",
+      "trend": "declining",
       "weight": 0.1,
-      "evidence": "Branch CI and deterministic cross-feature regression gates are active."
+      "evidence": "Existing content gates did not detect a missing effective-date batch; AI-DEV-196 adds deadline-aware seven-window completeness checks."
     },
     {
       "id": "technical_debt",
@@ -144,18 +144,18 @@
     {
       "id": "phase_completion",
       "name": "Phase Completion",
-      "score": 57,
+      "score": 54,
       "previous_score": 55,
       "implemented_score": 65,
-      "verified_score": 57,
-      "residual_limitation": "Phase 1 cannot close while natural-verification must-fix records remain pending.",
+      "verified_score": 54,
+      "residual_limitation": "Phase 1 cannot close while AI-DEV-195 is blocked by the missing 07:00 batch and AI-DEV-196 remains naturally unverified.",
       "description": "Progress toward all Phase 1 exit outcomes with must-fix items closed.",
       "measurement": "Closed exit items, health target and natural-verification readiness.",
       "owner": "Platform Roadmap Owner",
       "target": 100,
-      "trend": "improving",
+      "trend": "declining",
       "weight": 0.1,
-      "evidence": "AI-DEV-195 prepares the integrated Product Review baseline; natural verification still prevents Phase 1 close."
+      "evidence": "AI-DEV-196 adds recovery and detection controls, but the next natural TW chain is required before Phase 1 verification can resume."
     }
   ]
 }

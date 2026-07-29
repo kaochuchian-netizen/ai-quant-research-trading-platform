@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from app.loaders.google_sheet_loader import load_stock_ids
+from app.loaders.google_sheet_loader import load_stock_ids_with_provenance
 from app.market.shioaji_client import classify_shioaji_error, get_api
 from app.market.historical_price_loader import get_historical_prices
 from app.market.historical_normalizer import minute_to_daily
@@ -47,12 +47,17 @@ def _empty_status(start_date, end_date):
     }
 
 
-def main(raise_on_failure=False):
-    stock_ids = load_stock_ids()
+def main(raise_on_failure=False, stock_ids=None, universe_evidence=None):
+    if stock_ids is None:
+        stock_ids, universe_evidence = load_stock_ids_with_provenance()
 
     end_date = datetime.today().strftime("%Y-%m-%d")
     start_date = (datetime.today() - timedelta(days=180)).strftime("%Y-%m-%d")
     status = _empty_status(start_date, end_date)
+    status["stock_universe"] = universe_evidence or {
+        "source": "caller_supplied", "fallback_used": False,
+        "stock_count": len(stock_ids), "market": "TW", "window": "pre_open_0700",
+    }
 
     try:
         api = get_api()

@@ -5,7 +5,7 @@ from pathlib import Path
 from time import monotonic
 from zoneinfo import ZoneInfo
 
-from app.loaders.google_sheet_loader import load_stock_ids
+from app.loaders.google_sheet_loader import load_stock_ids_with_provenance
 from app.market.stock_name_loader import resolve_stock_name
 from app.market.adr_service import get_adr_result
 from app.market.adr_score_engine import calculate_adr_score
@@ -167,6 +167,19 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
     print(f"run_date: {context['run_date']}", flush=True)
     print(f"run_time: {context['run_time']}", flush=True)
 
+    stage_timing.start("load_stock_universe")
+    stock_ids, stock_universe_evidence = load_stock_ids_with_provenance()
+    stage_timing.finish(
+        "load_stock_universe",
+        stock_count=len(stock_ids),
+        source=stock_universe_evidence["source"],
+        fallback_used=stock_universe_evidence["fallback_used"],
+        source_effective_trading_date=stock_universe_evidence.get("source_effective_trading_date"),
+        source_snapshot_id=stock_universe_evidence.get("source_snapshot_id"),
+        source_revision=stock_universe_evidence.get("source_revision"),
+        source_payload_hash=stock_universe_evidence.get("source_payload_hash"),
+    )
+
     if dry_run:
         print("dry-run 模式：略過 SQLite 初始化")
     else:
@@ -184,7 +197,10 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
     else:
         print("開始更新 historical CSV", flush=True)
         stage_timing.start("historical_csv_update")
-        pipeline_pre_delivery_status = update_historical_csv()
+        pipeline_pre_delivery_status = update_historical_csv(
+            stock_ids=stock_ids,
+            universe_evidence=stock_universe_evidence,
+        )
         stage_timing.finish(
             "historical_csv_update",
             updated_count=pipeline_pre_delivery_status.get("updated_count"),
@@ -200,10 +216,8 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
         else:
             print("historical CSV 更新失敗且 fallback 不足，pipeline 將繼續嘗試既有逐檔檢查")
 
-    stage_timing.start("load_stock_universe")
-    stock_ids = load_stock_ids()
-    stage_timing.finish("load_stock_universe", stock_count=len(stock_ids))
     print(f"pre_open stock universe count: {len(stock_ids)}", flush=True)
+    print("pre_open stock universe evidence:", json.dumps(stock_universe_evidence, ensure_ascii=False, sort_keys=True), flush=True)
     print(f"pre_open dry_run: {dry_run}")
     print(f"pre_open limit: {limit}")
 
