@@ -775,6 +775,62 @@ def dry_run_result(args: argparse.Namespace, generated_at: str, run_id: str) -> 
     }
 
 
+def build_pipeline_failure_result(
+    args: argparse.Namespace,
+    cfg: dict[str, Any],
+    *,
+    generated_at: str,
+    run_id: str,
+    returncode: int,
+    progress: dict[str, Any],
+    pipeline_diagnostics: dict[str, Any],
+) -> dict[str, Any]:
+    """Build a complete no-delivery incident artifact for a failed child pipeline."""
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "task_id": TASK_ID,
+        "run_id": run_id,
+        "generated_at": generated_at,
+        "mode": "approved_delivery_pipeline_failed",
+        "scheduler_window": args.window,
+        "schedule_time_taiwan": cfg["local_time"],
+        "pipeline_type": cfg["pipeline_type"],
+        "pipeline_returncode": returncode,
+        "pipeline_status": "failed",
+        "pipeline_completed": False,
+        "content_state": "pipeline failed; diagnostic artifact available",
+        "delivery_attempted": False,
+        "dashboard_publish_attempted": False,
+        "email_attempted": False,
+        "line_attempted": False,
+        "dashboard_delivery_status": "not_published",
+        "email_delivery_status": "not_built",
+        "line_delivery_status": "not_built",
+        "archive_write": {"written": False, "reason": "pipeline_failed_before_admission"},
+        "public_latest_sync": {"status": "not_attempted", "reason": "pipeline_failed_before_admission"},
+        "stage_results": {
+            "scheduler": "PASS",
+            "pipeline": "FAIL",
+            "research": "SKIPPED",
+            "canonical_decision": "NOT_BUILT",
+            "artifact_builder": "NOT_BUILT",
+            "admission": "NOT_ATTEMPTED",
+            "archive": "NOT_WRITTEN",
+            "dashboard": "NOT_PUBLISHED",
+            "line": "NOT_BUILT",
+            "email": "NOT_BUILT",
+            "operations": "NOT_BUILT",
+        },
+        "progress_artifact": progress,
+        "diagnostics": {"pipeline": pipeline_diagnostics},
+        "safe_to_retry": True,
+        "secret_values_printed": False,
+        "trading_order_portfolio_action": False,
+        "ok": False,
+        "decision": "approved_scheduler_pipeline_failed_no_delivery",
+    }
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run approved scheduler delivery.")
     parser.add_argument("--window", required=True, choices=sorted(WINDOWS))
@@ -906,6 +962,22 @@ def main() -> int:
         Path(args.output).write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         print(stable_json({key: result[key] for key in ["schema_version", "task_id", "run_id", "scheduler_window", "pipeline_status", "late_delivery_suppressed", "line_attempted", "email_attempted", "ok", "decision"]}))
         return 0
+    if pipeline_status != "completed":
+        result = build_pipeline_failure_result(
+            args,
+            cfg,
+            generated_at=generated_at,
+            run_id=run_id,
+            returncode=completed.returncode,
+            progress=progress,
+            pipeline_diagnostics=pipeline_diagnostics,
+        )
+        write_json(args.output, result)
+        print(stable_json({key: result[key] for key in [
+            "schema_version", "task_id", "run_id", "scheduler_window", "pipeline_status",
+            "dashboard_publish_attempted", "email_attempted", "line_attempted", "ok", "decision",
+        ]}))
+        return completed.returncode or 1
     window_runtime = _window_runtime(args.window, output)
     report_generated_at = now_taipei().isoformat()
     effective_batch_time = scheduled_datetime_taipei(args.window, generated).isoformat()
@@ -979,11 +1051,11 @@ def main() -> int:
                 "structured_card_count": window_runtime.get("structured_card_count", 0),
             } if args.window in {"intraday_1305", "pre_close_1335"} else {}),
             **({
-                "structured_pre_open_cards": structured_pre_open["structured_pre_open_cards"],
-                "tracking_symbols": structured_pre_open["tracking_symbols"],
-                "structured_card_count": structured_pre_open["structured_card_count"],
-                "rendered_card_count": structured_pre_open["rendered_card_count"],
-                "pre_open_summary": structured_pre_open["pre_open_summary"],
+                "structured_pre_open_cards": structured_pre_open.get("structured_pre_open_cards", []),
+                "tracking_symbols": structured_pre_open.get("tracking_symbols", []),
+                "structured_card_count": structured_pre_open.get("structured_card_count", 0),
+                "rendered_card_count": structured_pre_open.get("rendered_card_count", 0),
+                "pre_open_summary": structured_pre_open.get("pre_open_summary", {}),
             } if args.window == "pre_open_0700" else {}),
             "structured_review_cards": structured_review.get("structured_review_cards", []),
             "structured_review": structured_review,
