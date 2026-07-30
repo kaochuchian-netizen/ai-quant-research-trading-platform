@@ -149,6 +149,20 @@ def build_operations_provenance(*, market: str, window: str, runtime_status: str
             bindings.append({"symbol": card.get("symbol"), "source_window": source.get("source_window"), "source_snapshot_id": source.get("source_snapshot_id"), "source_revision": source.get("source_revision"), "source_hash": source.get("source_hash"), "intraday_evidence_snapshot_id": evidence.get("source_snapshot_id"), "intraday_evidence_hash": evidence.get("source_hash")})
         result["source_trade_plan_bindings"] = bindings
     payload = snapshot.get("payload") if isinstance(snapshot.get("payload"), dict) else {}
+    if market.upper() == "US":
+        research_summary = payload.get("institutional_research_summary") if isinstance(payload.get("institutional_research_summary"), dict) else {}
+        cards = ((payload.get("dashboard_ready_contract") or {}).get("cards") or [])
+        result["institutional_research_summary"] = research_summary
+        result["research_summary_hash"] = research_summary.get("research_summary_hash")
+        result["research_identity_bindings"] = [
+            {
+                "symbol": card.get("symbol"),
+                "research_identity": (card.get("institutional_research") or {}).get("research_identity"),
+                "source_window": ((card.get("institutional_research") or {}).get("continuity") or {}).get("source_window"),
+                "source_snapshot_id": ((card.get("institutional_research") or {}).get("continuity") or {}).get("source_snapshot_id"),
+            }
+            for card in cards if isinstance(card, dict)
+        ]
     canonical = build_daily_decision_experience(market.upper(), window, payload)
     result["canonical_daily_decision"] = canonical
     result["canonical_daily_decision_hash"] = canonical["canonical_summary_hash"]

@@ -266,6 +266,17 @@ def _num(value: Any, suffix: str = "") -> str:
         return "尚未取得"
 
 
+def _research_preview_lines(card: dict[str, Any]) -> list[str]:
+    bundle = card.get("institutional_research") if isinstance(card.get("institutional_research"), dict) else {}
+    if not bundle:
+        return ["機構研究：歷史 payload 尚未包含研究包"]
+    synthesis, coverage, conflict = bundle.get("synthesis") or {}, bundle.get("coverage") or {}, bundle.get("conflict") or {}
+    return [
+        f"機構研究：{localize_enum(synthesis.get('research_stance'))}｜研究分數 {synthesis.get('research_score')}（非交易分數）｜信心 {synthesis.get('research_confidence')}",
+        f"研究覆蓋 {coverage.get('score', 0)}%｜衝突 {conflict.get('level') or 'LOW'}｜Identity {bundle.get('research_identity') or '尚未取得'}",
+    ]
+
+
 def _compact_us_email_block(card: dict[str, Any], window: str) -> str:
     presentation = decision_presentation_v2("US", card)
     symbol = str(card.get("symbol") or "")
@@ -300,6 +311,7 @@ def _compact_us_email_block(card: dict[str, Any], window: str) -> str:
             f"SEC：{sec.get('form') or '尚未取得'}｜{sec.get('filing_date') or '日期尚未取得'}",
             f"即時新聞：{news.get('headline') or '無法取得'}｜來源 {news.get('publisher') or '無'}",
         ])
+        lines.extend(_research_preview_lines(card))
         return "\n".join(lines)
     if window == "us_intraday_2300":
         plan_status = str(card.get("plan_status") or "watch")
@@ -319,6 +331,7 @@ def _compact_us_email_block(card: dict[str, Any], window: str) -> str:
             lines.insert(7, f"{format_distance(card.get('distance_to_stop_pct'), kind='stop')}｜{format_distance(card.get('distance_to_target_pct'), kind='target')}")
         else:
             lines.insert(6, "正式進場／停損／目標：未建立；盤中僅監控價格與量能")
+        lines.extend(_research_preview_lines(card))
         return "\n".join(lines)
     if window == "us_post_close_review_0630":
         card = normalize_review_card(card)
@@ -330,7 +343,7 @@ def _compact_us_email_block(card: dict[str, Any], window: str) -> str:
         news = source_plan.get("news_evidence") if isinstance(source_plan.get("news_evidence"), dict) else {}
         news_text = news.get("headline") if news.get("availability") == "available" and news.get("headline") else "無法取得；不以 SEC filing 代替即時新聞"
         actual_available = all(review.get(key) is not None for key in ("actual_high", "actual_low", "actual_close"))
-        return "\n".join([
+        lines = [
             f"{symbol} {name}",
             f"預測區間結果：{localize_enum(prediction_result)}｜交易結果：{localize_enum(review_outcome)}",
             f"實際結果證據：{'已取得' if actual_available else '尚未取得'}",
@@ -341,7 +354,11 @@ def _compact_us_email_block(card: dict[str, Any], window: str) -> str:
             f"即時新聞：{news_text}",
             f"隔夜事件更新：{safe_public_text(risk)}",
             f"下一交易日：{safe_public_text(review.get('next_session_action'), missing='補足行情時序證據後再判定。').replace('setup', '策略')}",
-        ])
+        ]
+        lines.extend(_research_preview_lines(card))
+        diagnosis = card.get("research_review_diagnosis") or {}
+        lines.append(f"研究診斷：{diagnosis.get('research_diagnosis') or '尚未取得'}｜不自動調整權重")
+        return "\n".join(lines)
     return decision_email_block_v2(presentation)
 
 def build_email_body(artifact: dict[str, Any], window: str) -> str:
@@ -351,6 +368,11 @@ def build_email_body(artifact: dict[str, Any], window: str) -> str:
     projection = project_decision_intelligence_v4("US", window, artifact)
     projection_summary = compact_summary(projection, "email") if window != "us_post_close_review_0630" else "預測評估與交易結果分開呈現；不以區間命中宣稱交易命中。"
     lines = [f"{contract.title} {date}", "", f"Dashboard: {contract.dashboard_url}", "", contract.primary_question, "", "Decision Intelligence V4", projection_summary, "內容範圍：" + "、".join(projection["section_inventory"]), "", "本批次內容："]
+    research_summary = artifact.get("institutional_research_summary") or {}
+    lines.extend([
+        f"Research Identity Hash：{research_summary.get('research_summary_hash') or '尚未取得'}",
+        f"平均研究覆蓋：{research_summary.get('average_coverage_score', 0)}%｜去重後平均事件：{research_summary.get('average_deduplicated_event_count', 0)}",
+    ])
     if window == "us_post_close_review_0630":
         cards = [normalize_review_card(card) for card in cards]
         aggregate = aggregate_us_post_close_review(cards)
@@ -405,6 +427,8 @@ def build_email_body(artifact: dict[str, Any], window: str) -> str:
 def line_text(artifact: dict[str, Any], window: str) -> str:
     contract = get_window_report_contract("US", window)
     cards = [card for card in artifact.get("dashboard_ready_contract", {}).get("cards", []) if isinstance(card, dict)]
+    research_summary = artifact.get("institutional_research_summary") or {}
+    research_line = f"研究覆蓋 {research_summary.get('average_coverage_score', 0)}%｜研究識別 {str(research_summary.get('research_summary_hash') or '尚未取得')[:12]}"
     if window == "us_intraday_2300":
         summary = artifact.get("intraday_summary") or {}
         groups = summary.get("groups") if isinstance(summary.get("groups"), dict) else {}
@@ -419,7 +443,7 @@ def line_text(artifact: dict[str, Any], window: str) -> str:
             f"已觸發 {summary.get('triggered_count', 0)}｜已失效 {summary.get('invalidated_count', 0)}｜仍可行動 {summary.get('still_actionable_count', 0)}",
             f"接近停損 {summary.get('near_stop_count', 0)}｜接近目標 {summary.get('near_target_count', 0)}｜行情不足 {summary.get('data_unavailable_count', 0)}",
             f"主要交易機會：{'、'.join(groups.get('top_opportunity') or []) or '無'}",
-            f"重點調整：{changes}", "完整報告：", contract.dashboard_url, "僅供研究參考，非交易指令。",
+            f"重點調整：{changes}", research_line, "完整報告：", contract.dashboard_url, "僅供研究參考，非交易指令。",
         ])
     if window == "us_post_close_review_0630":
         cards = [normalize_review_card(card) for card in cards]
@@ -433,7 +457,7 @@ def line_text(artifact: dict[str, Any], window: str) -> str:
             f"交易結果：命中 {aggregate['trade_hit_count']}｜失敗 {aggregate['trade_fail_count']}｜未觸發 {aggregate['trade_not_triggered_count']}｜無交易 {aggregate['trade_no_trade_count']}｜待補證據 {aggregate['trade_pending_count']}",
             f"預測區間命中：{prediction_hits}",
             f"交易命中：{groups['win']}｜交易失敗：{groups['loss']}",
-            f"未觸發：{groups['not_triggered']}｜無交易：{groups['no_trade']}｜待補證據：{groups['pending_evidence']}",
+            f"未觸發：{groups['not_triggered']}｜無交易：{groups['no_trade']}｜待補證據：{groups['pending_evidence']}", research_line,
             "完整報告：", contract.dashboard_url, "僅供研究參考，非交易指令。",
         ])
     if window == "us_pre_market_2000":
@@ -455,7 +479,7 @@ def line_text(artifact: dict[str, Any], window: str) -> str:
             f"主要交易機會 {len(top)}：{'、'.join(top) or '無'}",
             f"觀察等待：{'、'.join(watch) or '無'}",
             f"暫不交易：{'、'.join(no_trade) or '無'}",
-            lead_line, "完整報告：", contract.dashboard_url, "僅供研究參考，非交易指令。",
+            lead_line, research_line, "完整報告：", contract.dashboard_url, "僅供研究參考，非交易指令。",
         ])
     parts = [f"【Stock AI】{contract.title}已更新", "美股決策摘要已更新"]
     parts.append(compact_summary(project_decision_intelligence_v4("US", window, artifact), "line"))

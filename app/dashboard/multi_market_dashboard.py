@@ -512,6 +512,36 @@ def _us_proximity(card: dict[str, Any], kind: str) -> str:
     return f"距停損仍有 {amount:.2f}%" if kind == "stop" else f"距目標 {amount:.2f}%"
 
 
+def _institutional_research_html(card: dict[str, Any]) -> str:
+    bundle = card.get("institutional_research") if isinstance(card.get("institutional_research"), dict) else {}
+    if not bundle:
+        return "<section class='decision-section' data-section='institutional-research'><h4>機構研究脈絡</h4><p>本歷史資料尚未包含機構研究包。</p></section>"
+    synthesis = bundle.get("synthesis") or {}
+    coverage = bundle.get("coverage") or {}
+    conflict = bundle.get("conflict") or {}
+    evidence = [item for item in bundle.get("evidence", []) if isinstance(item, dict) and item.get("counted_in_synthesis")]
+    evidence_text = "；".join(
+        f"{item.get('headline') or '事件'}（{item.get('provider')}｜品質 {item.get('quality_score')}｜{localize_enum(item.get('direction'))}）"
+        for item in evidence[:3]
+    ) or "尚無可納入研究合成的事件"
+    gaps = "、".join(coverage.get("coverage_gap") or []) or "無"
+    identity = str(bundle.get("research_identity") or "尚未取得")
+    return (
+        "<section class='decision-section' data-section='institutional-research'><h4>機構研究脈絡</h4>"
+        + _window_metric_grid([
+            ("研究立場", localize_enum(synthesis.get("research_stance"))),
+            ("研究分數（非交易分數）", synthesis.get("research_score")),
+            ("研究信心", synthesis.get("research_confidence")),
+            ("來源衝突", conflict.get("level")),
+            ("研究覆蓋", f"{coverage.get('score', 0)}%"),
+            ("覆蓋缺口", gaps),
+            ("最高品質來源", "、".join(synthesis.get("highest_quality_sources") or []) or "尚無"),
+            ("Research Identity", identity),
+        ])
+        + f"<p>{_escape(evidence_text)}</p></section>"
+    )
+
+
 def _us_window_card(card: dict[str, Any], window: str) -> str:
     symbol = _escape(card.get("symbol"))
     name = _escape(card.get("name"))
@@ -523,6 +553,7 @@ def _us_window_card(card: dict[str, Any], window: str) -> str:
     news_text = _research_v3_text(presentation, "material_news")
     sec_text = _research_v3_text(presentation, "sec")
     review_text = _research_v3_text(presentation, "review")
+    institutional_research = _institutional_research_html(card)
     report_type = {
         "us_pre_market_2000": "us-pre-market",
         "us_intraday_2300": "us-intraday-change",
@@ -554,6 +585,7 @@ def _us_window_card(card: dict[str, Any], window: str) -> str:
           <section class="decision-section" data-section="premarket-eligibility"><h4>行動資格</h4>{_window_metric_grid([('目前狀態', state), ('交易方向', localize_enum(card.get('direction'))), ('策略型態', safe_public_text(card.get('setup_type'))), ('市場方向衝突', '是' if card.get('market_conflict') else '否'), ('進場條件就緒', '是' if eligibility.get('entry_ready') else '否'), ('主要交易機會', '是' if eligibility.get('top_opportunity') else '否'), ('信心', tactical.get('confidence')), ('報酬風險比', plan.get('reward_risk')), ('事件風險', localize_enum(event.get('canonical_level'))), ('行動理由', safe_public_text(card.get('action_rationale'))), ('原因', reasons)])}</section>
           <section class="decision-section" data-section="premarket-plan"><h4>{'正式交易計畫' if active else '觀察與重新評估'}</h4>{_window_metric_grid([(entry_label, format_price_range(plan.get('entry') if active else plan.get('observation_zone'))), ('Stop 停損', f"{float(plan['stop']):.2f}" if active and isinstance(plan.get('stop'), (int, float)) else '不建立'), ('Target 目標', format_price_range(plan.get('target')) if active else '不建立'), ('失效條件', plan.get('invalidation_condition') if active else '不適用'), ('重新評估條件', plan.get('reassessment_condition'))])}</section>
           <section class="decision-section" data-section="premarket-research"><h4>SEC 與即時新聞</h4>{_window_metric_grid([('SEC', f"{sec.get('form') or '尚未取得'}｜{sec.get('filing_date') or '日期尚未取得'}｜{localize_enum(sec.get('materiality'))}"), ('即時新聞', news.get('headline') or '無法取得'), ('新聞來源', news.get('publisher') or '無'), ('新聞方向', localize_enum(news.get('direction'))), ('新聞可信度', localize_enum(news.get('confidence'))), ('策略影響', news.get('strategy_impact') or '不納入本次盤前方向判斷')])}</section>
+          {institutional_research}
         </article>
         """
     if window == "us_intraday_2300":
@@ -569,6 +601,7 @@ def _us_window_card(card: dict[str, Any], window: str) -> str:
           {failure_note}
           <section class="decision-section" data-section="us-intraday-change"><h4>開盤後量價</h4>{_window_metric_grid([('目前價格', _intraday_number(card.get('current_price'))), ('美東行情時間', format_timestamp(card.get('market_data_as_of'), timezone_name='America/New_York')), ('Gap', _intraday_state(card.get('gap_state'))), ('開盤 Gap', _intraday_number(card.get('gap_open_pct'), '%')), ('目前 Gap', _intraday_number(card.get('gap_current_pct'), '%')), ('Gap 回補', _intraday_number(card.get('gap_fill_pct'), '%')), ('量能狀態', _intraday_state(card.get('volume_confirmation_state'))), ('成交量倍率', _intraday_number(card.get('volume_ratio'), 'x')), ('20:00 狀態', localize_enum(plan_status)), ('交易方向', localize_enum(card.get('direction'))), ('來源 Snapshot', safe_public_text((card.get('source_plan') or {}).get('source_snapshot_id')))])}</section>
           <section class="decision-section" data-section="us-proximity"><h4>{'進場／目標／停損監控' if active_plan else '觀察狀態'}</h4>{_window_metric_grid(([('進場區', f"{_intraday_number(card.get('entry_low'))}–{_intraday_number(card.get('entry_high'))}"), ('觸發狀態', _intraday_state(card.get('entry_trigger_state'))), ('停損距離', _us_proximity(card, 'stop')), ('目標距離', _us_proximity(card, 'target'))] if active_plan else [('正式交易計畫', '未建立'), ('觸發狀態', '不適用')]) + [('盤中調整', _intraday_state(card.get('tactical_adjustment'))), ('調整原因', safe_public_text(card.get('adjustment_reason'))), ('主要風險', safe_public_text(risk_text)), ('資料來源', safe_public_text(card.get('source'))), ('資料狀態', _intraday_state(data_status))])}</section>
+          {institutional_research}
         </article>
         """
     card = normalize_review_card(card)
@@ -587,6 +620,7 @@ def _us_window_card(card: dict[str, Any], window: str) -> str:
       <div class="decision-card__head"><div><div class="decision-card__market">US｜06:30 美股檢討｜決策呈現 V3</div><h3>{symbol} {name}</h3></div><span class="decision-badge decision-badge--warn">{_escape(localize_enum(review_outcome))}</span></div>
       <section class="decision-section" data-section="us-prediction-review"><h4>預測評估／交易結果</h4>{_window_metric_grid([('預測區間結果', localize_enum(prediction_result)), ('交易結果', localize_enum(review_outcome)), ('預測區間', safe_public_text(prediction.get('today_range'))), ('實際最高／最低', f"{safe_public_text(review.get('actual_high'))} / {safe_public_text(review.get('actual_low'))}"), ('實際證據', '已取得' if actual_available else '尚未取得'), ('進場結果', localize_enum(review.get('entry_outcome'))), ('目標結果', localize_enum(review.get('target_outcome'))), ('停損結果', localize_enum(review.get('stop_outcome'))), ('來源 Snapshot', safe_public_text((card.get('source_trade_plan') or {}).get('source_snapshot_id')))])}</section>
       <section class="decision-section" data-section="us-review-next"><h4>最大有利／不利變動與下一交易日</h4>{_window_metric_grid([('最大有利變動', safe_public_text(review.get('mfe'), missing='待補證據')), ('最大不利變動', safe_public_text(review.get('mae'), missing='待補證據')), ('下一交易日', safe_public_text(review.get('next_session_action'), missing='補足行情時序證據後再判定。').replace('setup', '策略')), ('事件更新', localize_enum((source_plan.get('event_risk') or {}).get('canonical_level'))), ('即時新聞', news_display), ('SEC', sec_display), ('20:00 來源 Snapshot', safe_public_text(source_plan.get('source_snapshot_id'))), ('23:00 證據 Snapshot', safe_public_text((card.get('intraday_evidence') or {}).get('source_snapshot_id')))])}</section>
+      {institutional_research}
     </article>
     """
 

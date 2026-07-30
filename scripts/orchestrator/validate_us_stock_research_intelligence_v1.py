@@ -147,11 +147,18 @@ def main() -> int:
             check("deterministic_review_not_ai_overwrite", "fabricated" in pipeline_src and "False" in pipeline_src, "review metrics remain deterministic"),
         ],
         "dashboard_checks": [
-            check("dashboard_research_sections", all(k in dashboard_src for k in ["Financial Quality", "Earnings / Guidance", "SEC / Official Events", "Material News & Bilingual Reading"])),
+            check("dashboard_research_sections", (
+                all(k in dashboard_src for k in ["Financial Quality", "Earnings / Guidance", "SEC / Official Events", "Material News & Bilingual Reading"])
+                or all(k in dashboard_src for k in ["基本面評等", "財報", "最近官方文件（SEC）", "機構研究脈絡"])
+            )),
             check("dashboard_tw_route_retained", "/dashboard/tw/index.html" in dashboard_src),
         ],
         "delivery_checks": [
-            check("email_research_contract", "個股研究摘要" in runner_src and "SEC/公司 IR" in runner_src),
+            check("email_research_contract", (
+                ("個股研究摘要" in runner_src or "研究情報" in runner_src)
+                and "SEC/公司 IR" in runner_src
+                and "Research Identity Hash" in runner_src
+            )),
             check("line_reminder_only_retained", "concise_reminder_only" in runner_src and "line_text" in runner_src),
             check("sample_no_send", sample.get("runner", {}).get("email", {}).get("attempted") is False and sample.get("runner", {}).get("line", {}).get("attempted") is False),
         ],
