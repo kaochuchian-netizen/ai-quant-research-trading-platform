@@ -84,6 +84,8 @@ def validate() -> dict[str, Any]:
             errors.append(f"{window}:missing_truthfulness_fixture")
         if any(item["status"] == "MISSING" and "降低研究信心" not in item["decision_impact"] for row in rows for item in row["coverage"].values()):
             errors.append(f"{window}:missing_not_neutral")
+        if any(row["coverage"]["news"]["status"] == "AVAILABLE" and not row["coverage"]["news"].get("evidence") for row in rows):
+            errors.append(f"{window}:news_coverage_without_evidence")
         if len({row["opportunity_projection_score"] for row in rows}) < 3:
             errors.append(f"{window}:stock_differentiation")
         if set(bundle["rankings"]) != {"opportunity", "research", "risk"}:
@@ -159,6 +161,21 @@ def validate() -> dict[str, Any]:
     corrupt = copy.deepcopy(pre); first = corrupt["stock_intelligence"][0]["symbol"]; corrupt["decision_categories"]["BUY_CANDIDATE"].append(first)
     details["negative_tests"]["category_overlap"] = validate_tw_decision_intelligence_v2(corrupt)
     if "category_partition" not in details["negative_tests"]["category_overlap"]: errors.append("negative:category_overlap")
+    all_avoid = copy.deepcopy(fixtures["pre_open_0700"])
+    for card in all_avoid["cards"]:
+        tactical = card.setdefault("strategies", {}).setdefault("daily_tactical", {})
+        tactical["setup_type"] = "no_trade"
+        tactical["action"] = "暫不操作"
+        card["plan_status"] = "no_trade"
+        card["action"] = "暫不操作"
+        card["eligibility"] = {"actionable": False}
+    no_trade_bundle = build_tw_decision_intelligence_v2("pre_open_0700", all_avoid)
+    no_trade_pm = no_trade_bundle["pm_daily_summary"]
+    details["negative_tests"]["all_avoid_truthfulness"] = no_trade_pm
+    if "沒有通過既有 action gate" not in no_trade_pm["largest_opportunity"]:
+        errors.append("negative:all_avoid_opportunity")
+    if no_trade_pm["most_worth_tracking"] == no_trade_pm["most_worth_dropping"] and len(no_trade_bundle["stock_intelligence"]) > 1:
+        errors.append("negative:tracking_risk_same_symbol")
     details["decision_identities"] = identities
     details["model_boundary"] = pre["model_boundary"]
     return {"ok": not errors, "validator": "validate_ai_dev_198_tw_decision_intelligence_v2", "errors": sorted(set(errors)), "details": details}
