@@ -27,6 +27,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from app.reports.multi_window_formatter import line_notification_text  # noqa: E402
 from app.reports.decision_intelligence_v4 import delivery_summary_lines, project_decision_intelligence_v4  # noqa: E402
+from app.reports.tw_decision_intelligence_v2 import compact_tw_v2_lines  # noqa: E402
 from app.dashboard.dashboard_url_registry import get_delivery_dashboard_url, get_tw_dashboard_url  # noqa: E402
 from app.dashboard.market_dashboard_alias import payload_hash  # noqa: E402
 from app.dashboard.window_snapshot_archive import resolve_snapshots, write_snapshot  # noqa: E402
@@ -404,6 +405,14 @@ def _tw_delivery_projection(window_id: str) -> tuple[dict[str, Any], dict[str, A
     return project_decision_intelligence_v4("TW", normalized_window, payload), review
 
 
+def _append_tw_v2(text: str, projection: dict[str, Any], *, line_mode: bool = False) -> str:
+    bundle = projection.get("tw_decision_intelligence_v2") if isinstance(projection.get("tw_decision_intelligence_v2"), dict) else {}
+    lines = compact_tw_v2_lines(bundle) if bundle else []
+    if line_mode:
+        lines = lines[:2]
+    return text + (("\n" + "\n".join(lines)) if lines else "")
+
+
 def _latest_post_close_context() -> tuple[dict[str, Any], dict[str, Any]]:
     snapshot = resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, "TW", "post_close_1500").latest or {}
     payload = snapshot.get("payload") if isinstance(snapshot.get("payload"), dict) else {}
@@ -478,20 +487,20 @@ def build_email_body(window_id: str, run_id: str, generated_at: str, pipeline_st
     selected = resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, "TW", normalized_window).latest or {}
     selected_payload = selected.get("payload") if isinstance(selected.get("payload"), dict) else {}
     if window_id == "pre_open_0700" and selected_payload:
-        return render_tw_0700_email(selected_payload, dashboard_url)
+        return _append_tw_v2(render_tw_0700_email(selected_payload, dashboard_url), project_decision_intelligence_v4("TW", "pre_open_0700", selected_payload))
     if window_id == "intraday_1305" and selected_payload.get("structured_intraday_cards"):
-        return render_tw_1305_email(selected_payload, dashboard_url)
+        return _append_tw_v2(render_tw_1305_email(selected_payload, dashboard_url), project_decision_intelligence_v4("TW", "intraday_1305", selected_payload))
     if window_id == "pre_close_1335":
         context = resolve_tw_1335_context(WINDOW_SNAPSHOT_ARCHIVE)
         if context:
-            return render_tw_1335_email(context)
+            return _append_tw_v2(render_tw_1335_email(context), context["projection"])
     if normalized_window == "post_close_1500" and selected_payload.get("structured_review_cards"):
-        return render_tw_1500_email(selected_payload, dashboard_url)
+        return _append_tw_v2(render_tw_1500_email(selected_payload, dashboard_url), project_decision_intelligence_v4("TW", "post_close_1500", selected_payload))
     dashboard_url = _delivery_dashboard_url(window_id, dashboard_url)
     if window_id == "pre_open_0700":
         payload, _snapshot = _latest_pre_open_context()
         if payload:
-            return render_tw_0700_email(payload, dashboard_url)
+            return _append_tw_v2(render_tw_0700_email(payload, dashboard_url), project_decision_intelligence_v4("TW", "pre_open_0700", payload))
         return "\n".join([
             "【Stock AI】07:00 台股盤前決策尚未建立",
             "本批次未通過正式 structured payload admission，不沿用舊批次內容。",
@@ -502,16 +511,16 @@ def build_email_body(window_id: str, run_id: str, generated_at: str, pipeline_st
     if window_id == "pre_close_1335":
         context = resolve_tw_1335_context(WINDOW_SNAPSHOT_ARCHIVE)
         if context:
-            return render_tw_1335_email(context)
+            return _append_tw_v2(render_tw_1335_email(context), context["projection"])
     if window_id in {"post_close_1500", "prediction_review_1500"}:
         payload, snapshot = _latest_post_close_context()
-        return render_tw_1500_email(
+        return _append_tw_v2(render_tw_1500_email(
             payload,
             dashboard_url,
             snapshot_id=str(snapshot.get("snapshot_id") or ""),
             revision=int(snapshot.get("revision") or 1),
             payload_hash=payload_hash(payload),
-        )
+        ), project_decision_intelligence_v4("TW", "post_close_1500", payload))
     summary = _production_email_summary()
     projection, review = _tw_delivery_projection(window_id)
     titles = {
@@ -582,7 +591,8 @@ def build_line_message(window_id: str, generated_at: str, pipeline_status: str, 
     if window_id == "pre_open_0700":
         payload, _snapshot = _latest_pre_open_context()
         if payload:
-            return tail_text(render_tw_0700_line(payload, dashboard_url), LINE_BODY_LIMIT)
+            projection = project_decision_intelligence_v4("TW", "pre_open_0700", payload)
+            return tail_text(_append_tw_v2(render_tw_0700_line(payload, dashboard_url), projection, line_mode=True), LINE_BODY_LIMIT)
         return "\n".join([
             "【Stock AI】07:00 台股盤前決策尚未建立",
             "本批次未通過正式資料驗證，不沿用舊內容。",
@@ -592,15 +602,17 @@ def build_line_message(window_id: str, generated_at: str, pipeline_status: str, 
     if window_id == "pre_close_1335":
         context = resolve_tw_1335_context(WINDOW_SNAPSHOT_ARCHIVE)
         if context:
-            return tail_text(render_tw_1335_line(context), LINE_BODY_LIMIT)
+            return tail_text(_append_tw_v2(render_tw_1335_line(context), context["projection"], line_mode=True), LINE_BODY_LIMIT)
     if window_id == "intraday_1305":
         selected = resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, "TW", "intraday_1305").latest or {}
         payload = selected.get("payload") if isinstance(selected.get("payload"), dict) else {}
         if payload.get("structured_intraday_cards"):
-            return tail_text(render_tw_1305_line(payload, dashboard_url), LINE_BODY_LIMIT)
+            projection = project_decision_intelligence_v4("TW", "intraday_1305", payload)
+            return tail_text(_append_tw_v2(render_tw_1305_line(payload, dashboard_url), projection, line_mode=True), LINE_BODY_LIMIT)
     if window_id in {"post_close_1500", "prediction_review_1500"}:
         payload, _snapshot = _latest_post_close_context()
-        return tail_text(render_tw_1500_line(payload, dashboard_url), LINE_BODY_LIMIT)
+        projection = project_decision_intelligence_v4("TW", "post_close_1500", payload)
+        return tail_text(_append_tw_v2(render_tw_1500_line(payload, dashboard_url), projection, line_mode=True), LINE_BODY_LIMIT)
     context = get_window_context(window_id)
     projection, review = _tw_delivery_projection(window_id)
     return tail_text(

@@ -864,6 +864,7 @@ def _window_metric_grid(rows: list[tuple[str, Any]]) -> str:
 
 def _decision_intelligence_v4_html(market: str, window: str, payload: dict[str, Any] | None) -> str:
     projection = project_decision_intelligence_v4(market, window, payload)
+    tw_v2 = projection.get("tw_decision_intelligence_v2") if isinstance(projection.get("tw_decision_intelligence_v2"), dict) else {}
     canonical = projection.get("canonical_decision_summary") if isinstance(projection.get("canonical_decision_summary"), dict) else {}
     confidence = canonical.get("confidence_explanation") if isinstance(canonical.get("confidence_explanation"), dict) else {}
     transition = canonical.get("change_from_previous_window") if isinstance(canonical.get("change_from_previous_window"), dict) else {}
@@ -947,10 +948,50 @@ def _decision_intelligence_v4_html(market: str, window: str, payload: dict[str, 
         confidence_labels = {"high": "高信心", "medium": "中信心", "low": "低信心", "unknown": "信心資料待接"}
         distribution_rows.extend((confidence_labels.get(key, "其他"), value) for key, value in projection["confidence_distribution"].items())
     distribution_html = _window_metric_grid(distribution_rows) if distribution_rows else '<p class="decision-note">尚無可安全彙整的分布。</p>'
+    v2_html = ""
+    if tw_v2:
+        pm = tw_v2.get("pm_daily_summary") or {}
+        rankings = tw_v2.get("rankings") or {}
+        stock_rows = []
+        for row in tw_v2.get("stock_intelligence") or []:
+            stock_rows.append(
+                "<tr>"
+                f"<td>{_escape(row.get('symbol'))} {_escape(row.get('name'))}</td>"
+                f"<td>{_escape(row.get('decision_category_label'))}</td>"
+                f"<td>{_escape(row.get('opportunity_rank'))}</td>"
+                f"<td>{_escape(row.get('research_rank'))}</td>"
+                f"<td>{_escape(row.get('risk_rank'))}</td>"
+                f"<td>{_escape((row.get('decision_reason') or ['尚未取得'])[0])}</td>"
+                "</tr>"
+            )
+        coverage_rows = []
+        for dimension, states in (tw_v2.get("coverage_registry") or {}).items():
+            coverage_rows.append((dimension, "｜".join(f"{state} {count}" for state, count in sorted(states.items()))))
+        v2_html = f"""
+          <section class="decision-section tw-decision-intelligence-v2" data-decision-identity="{_escape(tw_v2.get('decision_identity'))}">
+            <h3>台股決策智慧 V2</h3>
+            {_window_metric_grid([
+                ('今日一句話', pm.get('one_line')), ('今日最大機會', pm.get('largest_opportunity')),
+                ('今日最大風險', pm.get('largest_risk')), ('最值得追蹤', pm.get('most_worth_tracking')),
+                ('下一步觀察', pm.get('next_observation')), ('決策識別碼', tw_v2.get('decision_identity')),
+            ])}
+            <section class="decision-section"><h4>PM 決策優先級</h4>{_window_metric_grid([
+                ('機會閱讀順序', '、'.join((rankings.get('opportunity') or [])[:5]) or '無'),
+                ('研究閱讀順序', '、'.join((rankings.get('research') or [])[:5]) or '無'),
+                ('風險閱讀順序', '、'.join((rankings.get('risk') or [])[:5]) or '無'),
+            ])}</section>
+            <details class="decision-details"><summary>逐股差異化決策與資料覆蓋</summary><div class="decision-details__body">
+              <div class="table-wrap"><table><thead><tr><th>標的</th><th>決策候選</th><th>機會</th><th>研究</th><th>風險</th><th>主要原因</th></tr></thead><tbody>{''.join(stock_rows)}</tbody></table></div>
+              {_window_metric_grid(coverage_rows)}
+              <p class="decision-note">排序只供 PM 閱讀優先級；未修改既有策略排序、評分、預測模型或因子權重。</p>
+            </div></details>
+          </section>
+        """
     return f"""
     <section class="decision-section decision-intelligence-v4" data-presentation-version="seven-window-decision-intelligence-v4" data-card-type="{_escape(projection['expected_card_type'])}">
       <h3>Decision Intelligence V4</h3>
       <p>{_escape(projection['question'])}</p>
+      {v2_html}
       {story_html}
       {_window_metric_grid(metric_rows)}
       <section class="decision-section"><h4>本批次決策清單</h4>{_window_metric_grid(list_rows)}</section>

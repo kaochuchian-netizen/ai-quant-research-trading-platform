@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 from app.reports.daily_decision_experience import build_daily_decision_experience
+from app.reports.tw_decision_intelligence_v2 import build_tw_decision_intelligence_v2
 
 def build_operations_provenance(*, market: str, window: str, runtime_status: str, runtime_trading_date: str, snapshot: dict[str, Any], public_sync: dict[str, Any], email_result: str, line_result: str) -> dict[str, Any]:
     archive_observed = ((public_sync.get("public_archive_verification") or {}).get("observed_identity"))
@@ -166,6 +167,10 @@ def build_operations_provenance(*, market: str, window: str, runtime_status: str
     canonical = build_daily_decision_experience(market.upper(), window, payload)
     result["canonical_daily_decision"] = canonical
     result["canonical_daily_decision_hash"] = canonical["canonical_summary_hash"]
+    if market.upper() == "TW":
+        tw_v2 = build_tw_decision_intelligence_v2(window, payload)
+        result["tw_decision_intelligence_v2"] = tw_v2
+        result["tw_decision_identity"] = tw_v2["decision_identity"]
     return result
 
 def write_operations_provenance(path: Path, payload: dict[str, Any]) -> None:
