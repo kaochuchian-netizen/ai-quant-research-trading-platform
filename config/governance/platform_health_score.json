@@ -1,6 +1,6 @@
 {
   "schema_version": "platform_health_score_v1",
-  "measured_at": "2026-07-29T21:50:00+08:00",
+  "measured_at": "2026-07-30T23:00:00+08:00",
   "current_phase_id": "phase_1",
   "overall_score": 70.2,
   "overall_target": 85,
@@ -58,16 +58,16 @@
       "name": "Evidence Traceability",
       "score": 80,
       "previous_score": 78,
-      "implemented_score": 85,
+      "implemented_score": 87,
       "verified_score": 80,
-      "residual_limitation": "Some historical immutable snapshots lack complete evidence timestamps.",
+      "residual_limitation": "AI-DEV-197 institutional evidence is deterministically implemented but not naturally verified; historical immutable snapshots remain unchanged.",
       "description": "Decisions retain source, time, snapshot, revision and payload identity.",
       "measurement": "Provenance, source binding and transition identity coverage.",
       "owner": "Platform Engineering",
       "target": 90,
       "trend": "improving",
       "weight": 0.1,
-      "evidence": "AI-DEV-195 normalizes source, reference, timestamps, freshness, reliability and decision impact."
+      "evidence": "AI-DEV-197 adds provider tier, quality, event cluster, deduplication, knowledge, coverage and conflict evidence while the verified score remains unchanged pending natural US batches."
     },
     {
       "id": "cross_window_continuity",
@@ -90,7 +90,7 @@
       "name": "Cross-channel Parity",
       "score": 81,
       "previous_score": 80,
-      "implemented_score": 86,
+      "implemented_score": 88,
       "verified_score": 81,
       "residual_limitation": "Real Email and LINE delivery is intentionally not exercised by this task.",
       "description": "Dashboard, Archive, Email, LINE and Operations share canonical identity and counts.",
@@ -99,7 +99,7 @@
       "target": 92,
       "trend": "improving",
       "weight": 0.1,
-      "evidence": "Dashboard, LINE, Email, Archive projection and Operations share the AI-DEV-195 canonical summary hash."
+      "evidence": "AI-DEV-197 deterministically binds Dashboard, Archive, Email preview, LINE preview and Operations to one research identity; verified score remains unchanged pending natural US parity."
     },
     {
       "id": "natural_verification",
@@ -130,7 +130,7 @@
       "name": "Technical Debt",
       "score": 61,
       "previous_score": 58,
-      "implemented_score": 68,
+      "implemented_score": 70,
       "verified_score": 61,
       "residual_limitation": "Legacy V4 count projections remain for backward-compatible secondary metrics.",
       "description": "Higher score means lower debt and fewer duplicated contracts or legacy fallbacks.",
@@ -139,7 +139,7 @@
       "target": 80,
       "trend": "stable",
       "weight": 0.1,
-      "evidence": "AI-DEV-195 extends the existing projection instead of creating a disconnected sidecar truth source."
+      "evidence": "AI-DEV-197 extends the existing collected research object with one canonical projection and preserves the legacy Decision Engine inputs for compatibility."
     },
     {
       "id": "phase_completion",

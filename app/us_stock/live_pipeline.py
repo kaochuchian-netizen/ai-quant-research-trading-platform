@@ -10,6 +10,13 @@ from zoneinfo import ZoneInfo
 from app.us_stock.constants import DEFAULT_CURRENCY, DEFAULT_MARKET, US_BATCH_WINDOWS, US_SCORING_WEIGHTS
 from app.us_stock.live_data import YFinanceUSClient, analyze_history, clean_number, now_taipei
 from app.us_stock.research_intelligence import RESEARCH_FACTOR_VERSION, USResearchIntelligenceBuilder
+from app.us_stock.institutional_research import (
+    BOUNDARY as INSTITUTIONAL_RESEARCH_BOUNDARY,
+    aggregate_bundles,
+    build_bundle,
+    resolve_bundle,
+    review_diagnosis,
+)
 from app.strategy.dual_strategy import DAILY_TACTICAL, RESEARCH_POSITION, US_TACTICAL_FACTOR_VERSION, build_dual_strategies
 from app.reports.canonical_outcomes import aggregate_us_post_close_review, build_structured_review_cards
 from app.us_stock.intraday_observed import (
@@ -276,12 +283,31 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
         result = client.fetch_symbol(symbol)
         technical = analyze_history(result.history) if result.history is not None else {"ok": False, "data_quality": {"history_days": 0}, "indicators": {}, "trend_1m": "insufficient_data", "trend_3m": "insufficient_data", "volatility_state": "insufficient_data", "technical_score": None, "technical_summary": "history unavailable"}
         research = research_builder.build_for_symbol(symbol, technical, market_context, result.news)
+        # Preserve the existing Decision Engine inputs and call order.  The
+        # institutional bundle is attached only after scoring/prediction/
+        # strategy construction, so it is a read-only context export.
         score = score_symbol(technical, market_context, result.news, research)
         prediction = prediction_for_symbol(result.quote, technical, window, research)
         prediction["one_month_trend"] = technical.get("trend_1m")
         prediction["three_month_trend"] = technical.get("trend_3m")
         strategies = build_dual_strategies(DEFAULT_MARKET, score, prediction, result.quote, technical, market_context=market_context, research=research, generated_at=generated_at)
         card = dashboard_card(entry, result.quote, technical, score, prediction, result.news, window, research, strategies)
+        fresh_research_bundle = build_bundle(symbol, research, market_context, generated_at)
+        institutional_research = (
+            fresh_research_bundle
+            if window == "us_pre_market_2000"
+            else resolve_bundle(WINDOW_ARCHIVE_DIR, context["session_date"], symbol)
+        )
+        if institutional_research is None:
+            institutional_research = fresh_research_bundle
+            institutional_research["continuity"] = {
+                "source_window": "us_pre_market_2000",
+                "status": "source_bundle_unavailable",
+                "effective_trading_date": context["session_date"],
+            }
+        research["institutional_research"] = institutional_research
+        card["institutional_research"] = institutional_research
+        card["research_identity"] = institutional_research["research_identity"]
         if window == "us_pre_market_2000":
             card = build_premarket_card(card, result.quote, research, result.news, market_context, reference)
         if window == "us_intraday_2300":
@@ -305,18 +331,20 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
             success += 1
         else:
             insufficient += 1
-        item = {"symbol": symbol, "name": entry.get("name"), "market": DEFAULT_MARKET, "quote": result.quote, "fetch_ok": result.ok, "fetch_error": result.error, "technical": technical, "market_context_ref": "market_context", "news": result.news, "research_intelligence": research, "strategies": strategies, "score": score, "prediction": prediction, "structured_intraday_card": card if window == "us_intraday_2300" else None, "data_quality": {"quote_available": result.quote.get("last_price") is not None, "history_days": technical.get("data_quality", {}).get("history_days"), "news_count": len(result.news), "sec_ok": research.get("sec", {}).get("ok"), "research_factor_version": research.get("research_factors", {}).get("research_factor_version")}, "source_timestamp": result.quote.get("source_timestamp")}
+        item = {"symbol": symbol, "name": entry.get("name"), "market": DEFAULT_MARKET, "quote": result.quote, "fetch_ok": result.ok, "fetch_error": result.error, "technical": technical, "market_context_ref": "market_context", "news": result.news, "research_intelligence": research, "institutional_research": institutional_research, "research_identity": institutional_research["research_identity"], "strategies": strategies, "score": score, "prediction": prediction, "structured_intraday_card": card if window == "us_intraday_2300" else None, "data_quality": {"quote_available": result.quote.get("last_price") is not None, "history_days": technical.get("data_quality", {}).get("history_days"), "news_count": len(result.news), "sec_ok": research.get("sec", {}).get("ok"), "research_factor_version": research.get("research_factors", {}).get("research_factor_version")}, "source_timestamp": result.quote.get("source_timestamp")}
         items.append(item)
         cards.append(card)
         if window in {"us_pre_market_2000", "us_intraday_2300"} and write_snapshots and prediction.get("prediction_status") == "available":
             spath = snapshot_path(context["session_date"], window, symbol)
-            snap = {"schema_version": "us_stock_prediction_snapshot_v1", "market": DEFAULT_MARKET, "session_date": context["session_date"], "window": window, "symbol": symbol, "generated_at": generated_at, "prediction": prediction, "rating": score.get("rating"), "action": score.get("action"), "confidence_score": score.get("confidence_score"), "model_version": MODEL_VERSION, "data_source_timestamps": {"quote": result.quote.get("market_data_as_of")}, "pre_open_setup": card.get("daily_tactical_summary") if window == "us_pre_market_2000" else None, "eligibility": card.get("eligibility") if window == "us_pre_market_2000" else None, "trade_plan": card.get("trade_plan") if window == "us_pre_market_2000" else None, "event_risk": card.get("event_risk") if window == "us_pre_market_2000" else None, "sec_evidence": card.get("sec_evidence") if window == "us_pre_market_2000" else None, "news_evidence": card.get("news_evidence") if window == "us_pre_market_2000" else None, "structured_intraday_card": card if window == "us_intraday_2300" else None, "fixture": False, "validation_only": False}
+            snap = {"schema_version": "us_stock_prediction_snapshot_v1", "market": DEFAULT_MARKET, "session_date": context["session_date"], "window": window, "symbol": symbol, "generated_at": generated_at, "prediction": prediction, "rating": score.get("rating"), "action": score.get("action"), "confidence_score": score.get("confidence_score"), "model_version": MODEL_VERSION, "data_source_timestamps": {"quote": result.quote.get("market_data_as_of")}, "pre_open_setup": card.get("daily_tactical_summary") if window == "us_pre_market_2000" else None, "eligibility": card.get("eligibility") if window == "us_pre_market_2000" else None, "trade_plan": card.get("trade_plan") if window == "us_pre_market_2000" else None, "event_risk": card.get("event_risk") if window == "us_pre_market_2000" else None, "sec_evidence": card.get("sec_evidence") if window == "us_pre_market_2000" else None, "news_evidence": card.get("news_evidence") if window == "us_pre_market_2000" else None, "institutional_research": institutional_research, "research_identity": institutional_research["research_identity"], "structured_intraday_card": card if window == "us_intraday_2300" else None, "fixture": False, "validation_only": False}
             snap["snapshot_path"] = str(spath.relative_to(REPO_ROOT))
             write_json(spath, snap)
         if window == "us_post_close_review_0630":
             review = build_review(symbol, context["session_date"], result.quote, result.history, client.fetch_intraday_bars(symbol))
             reviews.append(review)
     structured_review_cards = build_structured_review_cards(cards, reviews) if window == "us_post_close_review_0630" else []
+    for review_card in structured_review_cards:
+        review_card["research_review_diagnosis"] = review_diagnosis(review_card)
     premarket_context = normalize_market_context(market_context, reference) if window == "us_pre_market_2000" else None
     premarket_summary = summarize_premarket(cards, premarket_context) if window == "us_pre_market_2000" else None
     premarket_validation_errors = validate_premarket_contract(cards, premarket_summary) if window == "us_pre_market_2000" else []
@@ -328,6 +356,14 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
     }
     if structured_review_cards:
         cards = structured_review_cards
+    institutional_research_summary = aggregate_bundles(cards)
+    continuity_errors = [
+        f"{card.get('symbol')}:missing_admitted_2000_research_bundle"
+        for card in cards if window != "us_pre_market_2000"
+        and ((card.get("institutional_research") or {}).get("continuity") or {}).get("status") != "inherited"
+    ]
+    institutional_research_summary["continuity_errors"] = continuity_errors
+    institutional_research_summary["continuity_valid"] = not continuity_errors
     intraday_summary = summarize_intraday(structured_intraday_cards) if window == "us_intraday_2300" else None
     artifact = {
         "schema_version": "us_stock_live_runtime_v1",
@@ -358,6 +394,8 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
             "valid": not premarket_validation_errors,
         } if window == "us_pre_market_2000" else None,
         "research_intelligence_contract": {"source_hierarchy": "tier1_official_sec_ir_company; tier2_market_reference_yfinance; tier3_secondary_news", "research_factor_version": RESEARCH_FACTOR_VERSION, "copyright_policy": "no full filings/articles/transcripts stored", "official_source_required_for_official_claims": True},
+        "institutional_research_contract": {"schema_version": "us_institutional_research_bundle_v1", "canonical_owner_window": "us_pre_market_2000", "later_windows_are_read_only_consumers": True, "decision_engine_boundary": INSTITUTIONAL_RESEARCH_BOUNDARY},
+        "institutional_research_summary": institutional_research_summary,
         "dual_strategy_contract": {"market": DEFAULT_MARKET, "strategy_types": [RESEARCH_POSITION, DAILY_TACTICAL], "research_position_version": "us_research_position_v1", "daily_tactical_version": "us_daily_tactical_v1", "daily_tactical_factor_version": US_TACTICAL_FACTOR_VERSION, "research_overwritten_by_tactical": False, "tactical_overwrites_research": False, "line_email_sent_by_builder": False},
         "items": items,
         "tracking_stock_count": len(watchlist),

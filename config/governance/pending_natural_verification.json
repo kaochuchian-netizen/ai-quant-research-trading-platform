@@ -1,6 +1,6 @@
 {
   "schema_version": "pending_natural_verification_v1",
-  "updated_at": "2026-07-29T21:50:00+08:00",
+  "updated_at": "2026-07-30T23:00:00+08:00",
   "sla": {
     "minimum_trading_days": 2,
     "maximum_trading_days": 5,
@@ -114,6 +114,15 @@
       "required_windows": ["TW pre_open_0700", "TW intraday_1305", "TW pre_close_1335", "TW post_close_1500"],
       "acceptance": "The next natural 07:00 batch survives a transient universe-source failure through the bounded admitted-snapshot fallback, creates the canonical artifact, and preserves four-window identity continuity.",
       "monitoring": "Inspect the next natural 07:00 trigger, duration, stage results, canonical artifact, admission, Archive, public identity and no unsupported notification claims; retain the 07:05 warning and 07:10 hard-failure evidence."
+    },
+    {
+      "task_id": "AI-DEV-197",
+      "state": "PENDING",
+      "registered_at": "2026-07-30",
+      "owner": "Research Platform Owner",
+      "required_windows": ["US us_pre_market_2000", "US us_intraday_2300", "US us_post_close_review_0630"],
+      "acceptance": "The institutional research bundle is complete, source-truthful, deduplicated, conflict-aware and retains one research identity across the natural US three-window chain and five channels.",
+      "monitoring": "Inspect provider availability, evidence traceability, per-symbol coverage, conflicts, research identity and Dashboard/Archive/Email preview/LINE preview/Operations parity during the next complete US chain."
     }
   ]
 }
