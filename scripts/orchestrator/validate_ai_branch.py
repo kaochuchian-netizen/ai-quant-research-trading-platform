@@ -42,6 +42,7 @@ DEFAULT_ALLOWED_PATHS = [
     "app/explainability/",
     "app/calibration/",
     "app/recommendation/",
+    "app/research/",
     "app/dashboard/",
     "app/dashboard_intelligence/",
     "app/dashboard_review/",
