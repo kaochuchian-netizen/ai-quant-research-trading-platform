@@ -12,6 +12,8 @@ import json
 from collections import Counter
 from typing import Any, Iterable
 
+from .tw_pre_open_quality import public_reason
+
 SCHEMA_VERSION = "tw_decision_intelligence_v2"
 WINDOWS = ("pre_open_0700", "intraday_1305", "pre_close_1335", "post_close_1500")
 STATUSES = {"AVAILABLE", "MISSING", "STALE", "NOT_APPLICABLE"}
@@ -141,7 +143,7 @@ def coverage_registry(card: dict[str, Any], payload: dict[str, Any], window: str
         "gap": (_is_available(card.get("gap_risk") or card.get("gap_state") or card.get("gap_pct")), "canonical_quote", card.get("gap_risk") or card.get("gap_state") or card.get("gap_pct")),
         "volume": (card.get("volume_ratio") is not None or _is_available(tactical.get("technical_factors", {}).get("volume_ma20") if isinstance(tactical.get("technical_factors"), dict) else None), "canonical_volume", card.get("volume_ratio") or (tactical.get("technical_factors") or {}).get("volume_ma20")),
         "event": (_text(card.get("event_risk")).lower() in {"low", "medium", "high"}, "canonical_event", card.get("event_risk")),
-        "news": (card.get("news_status") == "available" or bool(news.get("primary_evidence")), "canonical_news", news.get("primary_evidence") or card.get("news_summary")),
+        "news": (bool(news.get("primary_evidence") or news.get("admitted_evidence")), "canonical_news", news.get("primary_evidence") or news.get("admitted_evidence")),
         "sector": (_is_available(card.get("sector_context") or card.get("sector") or market.get("sector_rotation")), "tw_sector_context", card.get("sector_context") or card.get("sector") or market.get("sector_rotation")),
         "etf": (_is_available(card.get("etf_context") or market.get("etf")) or etf_symbol, "tw_etf_context", card.get("etf_context") or market.get("etf") or ("self_etf" if etf_symbol else None)),
         "adr": (_is_available(card.get("adr_context")), "canonical_adr", card.get("adr_context")),
@@ -171,7 +173,7 @@ def _score(card: dict[str, Any]) -> float:
 
 def _risk_flags(card: dict[str, Any]) -> list[str]:
     tactical = _tactical(card)
-    return _unique([
+    return _unique(public_reason(item) for item in [
         *(card.get("risk_reasons") or []), *(tactical.get("risk_reasons") or []),
         card.get("risk_summary"), card.get("do_not_trade_reason"), card.get("action_change_reason"),
         "追價風險偏高" if _text(card.get("chase_risk") or tactical.get("chase_risk")).lower() in {"high", "高"} else None,
@@ -332,18 +334,22 @@ def build_tw_decision_intelligence_v2(window: str, payload: dict[str, Any] | Non
         if (row.get("decision_reason") or [""])[0].startswith("沿用既有正式決策")
     ]
     top = opportunity[0] if opportunity else None
+    actionable_top = next((row for row in opportunity if row["decision_category"] in {"BUY_CANDIDATE", "HOLD_CANDIDATE", "WATCH_CANDIDATE"}), None)
+    tracking_top = research[0] if research else top
     top_risk = risks[0] if risks else None
+    if top_risk and tracking_top and top_risk["symbol"] == tracking_top["symbol"]:
+        top_risk = next((row for row in risks if row["symbol"] != tracking_top["symbol"]), top_risk)
     best_etf = next((row for row in opportunity if row["symbol"].startswith("00")), None)
     avoid_sectors = [item["sector"] for item in sector_rotation if item["state"] in {"Lagging", "Weakening"} and item["sector"] != "未分類"]
     pm_summary = {
         "one_line": market_narrative,
-        "largest_opportunity": f"{top['symbol']} {_name(top['_source'])}：{top['decision_reason'][0]}" if top else "本批次沒有可排序標的",
+        "largest_opportunity": f"{actionable_top['symbol']} {_name(actionable_top['_source'])}：{actionable_top['decision_reason'][0]}" if actionable_top else (f"本批次沒有通過既有 action gate 的交易機會；最佳研究觀察為 {tracking_top['symbol']} {_name(tracking_top['_source'])}。" if tracking_top else "本批次沒有可排序標的"),
         "largest_risk": f"{top_risk['symbol']} {_name(top_risk['_source'])}：{top_risk['risk_factors'][0]}" if top_risk else "本批次沒有可排序風險",
-        "most_worth_tracking": top["symbol"] if top else None,
+        "most_worth_tracking": tracking_top["symbol"] if tracking_top else None,
         "most_worth_dropping": top_risk["symbol"] if top_risk and top_risk["decision_category"] == "AVOID_CANDIDATE" else None,
-        "next_observation": top["tomorrow_watch"] if top else "等待下一正式 window",
-        "if_only_one_symbol": top["symbol"] if top else None,
-        "if_no_trade_reason": (top["decision_reason"][0] if top and not categories["BUY_CANDIDATE"] else None),
+        "next_observation": tracking_top["tomorrow_watch"] if tracking_top else "等待下一正式 window",
+        "if_only_one_symbol": tracking_top["symbol"] if tracking_top else None,
+        "if_no_trade_reason": ("沒有標的通過既有 action gate；主要限制為 " + "、".join((tracking_top["confidence_explanation"].get("limiting") or [])[:3])) if tracking_top and not categories["BUY_CANDIDATE"] else None,
     }
     window_intelligence = {
         "pre_open_0700": {"top_opportunities": [row["symbol"] for row in opportunity[:3]], "top_risks": [row["symbol"] for row in risks[:3]], "best_watch": research[0]["symbol"] if research else None, "best_etf": best_etf["symbol"] if best_etf else None, "avoid_sectors": avoid_sectors, "pm_one_line": market_narrative},
