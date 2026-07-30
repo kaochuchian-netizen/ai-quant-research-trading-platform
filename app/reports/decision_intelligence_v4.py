@@ -13,6 +13,7 @@ from typing import Any, Iterable
 from .window_report_contract import get_window_report_contract, normalize_window
 from .canonical_outcomes import CANONICAL_OUTCOMES
 from .daily_decision_experience import build_daily_decision_experience, compact_decision_story
+from .tw_decision_intelligence_v2 import build_tw_decision_intelligence_v2
 
 SCHEMA_VERSION = "seven_window_decision_intelligence_v4"
 
@@ -271,6 +272,7 @@ def project_decision_intelligence_v4(
             "unavailable_is_not_zero": True,
         }
     canonical_decision = build_daily_decision_experience(market, window, payload)
+    tw_v2 = build_tw_decision_intelligence_v2(window, payload) if market == "TW" else None
     return {
         "schema_version": SCHEMA_VERSION,
         "market": market,
@@ -299,6 +301,9 @@ def project_decision_intelligence_v4(
         "same_window_change": {"available": bool(previous_projection), "count_deltas": deltas, "policy": "same_market_same_window_previous_effective_trading_date"},
         "canonical_decision_summary": canonical_decision,
         "canonical_summary_hash": canonical_decision["canonical_summary_hash"],
+        "tw_decision_intelligence_v2": tw_v2,
+        "decision_identity": canonical_decision["canonical_summary_hash"],
+        "tw_decision_identity": tw_v2.get("decision_identity") if isinstance(tw_v2, dict) else None,
         "provenance": {
             "payload": "function argument: immutable snapshot payload or current window artifact",
             "classification": "explicit card tactical/review fields only",
