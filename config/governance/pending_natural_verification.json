@@ -1,6 +1,6 @@
 {
   "schema_version": "pending_natural_verification_v1",
-  "updated_at": "2026-07-30T23:30:00+08:00",
+  "updated_at": "2026-07-31T09:00:00+08:00",
   "sla": {
     "minimum_trading_days": 2,
     "maximum_trading_days": 5,
@@ -132,6 +132,15 @@
       "required_windows": ["TW pre_open_0700", "TW intraday_1305", "TW pre_close_1335", "TW post_close_1500"],
       "acceptance": "TW Decision Intelligence V2 provides differentiated, evidence-truthful, ranked PM reading priorities and coherent review attribution with one identity across five channels without changing model behavior.",
       "monitoring": "Inspect the next complete TW chain for per-symbol differentiation, truthful coverage, window-specific intelligence, PM usefulness, 15:00 attribution and Dashboard/Archive/Email preview/LINE preview/Operations identity parity."
+    },
+    {
+      "task_id": "AI-DEV-200",
+      "state": "PENDING",
+      "registered_at": "2026-07-31",
+      "owner": "Research Platform Owner",
+      "required_windows": ["TW pre_open_0700", "TW intraday_1305", "TW pre_close_1335", "TW post_close_1500"],
+      "acceptance": "Every natural TW symbol receives an RRE-generated research note with knowledge context, supporting/opposing/missing evidence, hypothesis, invalidation and counter-argument; one research identity is consumed by Dashboard, Archive, previews and Operations without changing canonical decisions.",
+      "monitoring": "Inspect the next complete TW chain for research-first hierarchy, non-template brief, per-window hypothesis update, evidence truthfulness, decision immutability and cross-channel research identity parity."
     }
   ]
 }

@@ -8,9 +8,10 @@ REQUIRED_CLASSES = ("market", "technical", "fundamental", "news", "sector")
 
 def build_reasoning(market: str, symbol: str, evidence: list[dict[str, Any]], knowledge: dict[str, Any]) -> dict[str, Any]:
     counted = [x for x in evidence if x.get("counted_in_reasoning") and x["symbol_or_scope"] in {symbol.upper(), "MARKET"}]
-    supporting = [x for x in counted if x["direction"] == "bullish"]
-    opposing = [x for x in counted if x["direction"] == "bearish"]
-    neutral = [x for x in counted if x["direction"] in {"neutral", "unavailable"}]
+    usable = [x for x in counted if x.get("coverage_status") == "AVAILABLE"]
+    supporting = [x for x in usable if x["direction"] == "bullish"]
+    opposing = [x for x in usable if x["direction"] == "bearish"]
+    neutral = [x for x in counted if x not in supporting and x not in opposing]
     present = {x["evidence_class"] for x in counted if x["coverage_status"] == "AVAILABLE"}
     missing = [name for name in REQUIRED_CLASSES if name not in present]
     if supporting and opposing: conclusion, conflict = "mixed", "HIGH" if any(x["materiality"] in {"high", "critical"} for x in supporting + opposing) else "MEDIUM"

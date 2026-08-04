@@ -862,6 +862,52 @@ def _window_metric_grid(rows: list[tuple[str, Any]]) -> str:
     return '<div class="decision-plan">' + ''.join(_metric(label, value) for label, value in rows) + '</div>'
 
 
+def _tw_rre_production_html(tw_v2: dict[str, Any]) -> str:
+    research = tw_v2.get("research_reasoning_projection") if isinstance(tw_v2.get("research_reasoning_projection"), dict) else {}
+    if not research:
+        return ""
+    brief = research.get("morning_or_window_brief") or {}
+    note_html = []
+    for note in research.get("research_notes") or []:
+        hypothesis = note.get("hypothesis") or {}
+        supporting = "；".join(note.get("supporting") or []) or "目前沒有足以支持方向的證據"
+        opposing = "；".join(note.get("opposing") or []) or "目前沒有已確認的反向證據"
+        missing_values = "、".join(note.get("missing") or []) or "無"
+        context = "、".join(note.get("company_context") or []) or "長期公司脈絡尚未建檔"
+        note_html.append(f"""
+          <details class="decision-details research-note" data-symbol="{_escape(note.get('symbol'))}" data-generated-by="research_reasoning_engine_v1">
+            <summary>{_escape(note.get('research_summary'))}</summary>
+            <div class="decision-details__body">
+              {_window_metric_grid([
+                  ('公司脈絡', context),
+                  ('支持證據', supporting),
+                  ('反對證據', opposing),
+                  ('未知／缺口', missing_values),
+                  ('研究假設', hypothesis.get('statement')),
+                  ('成立條件', hypothesis.get('expected_trigger')),
+                  ('失效條件', hypothesis.get('invalidation')),
+                  ('如果判斷錯誤', note.get('counter_argument')),
+              ])}
+            </div>
+          </details>
+        """)
+    return f"""
+      <section class="decision-section tw-rre-production" data-research-identity="{_escape(research.get('production_research_identity'))}">
+        <h3>{_escape(brief.get('label') or '研究摘要')}</h3>
+        <p>{_escape(brief.get('market_narrative'))}</p>
+        {_window_metric_grid([
+            ('最佳研究', brief.get('best_research')),
+            ('最大研究風險', brief.get('largest_research_risk')),
+            ('下一個研究問題', brief.get('next_question')),
+            ('研究識別碼', research.get('production_research_identity')),
+        ])}
+        <h3>逐股機構研究筆記</h3>
+        {''.join(note_html)}
+        <p class="decision-note">研究由 RRE V1 產生；Decision Layer 僅讀取研究內容，未修改策略、評分、排序、預測或交易行動。</p>
+      </section>
+    """
+
+
 def _decision_intelligence_v4_html(market: str, window: str, payload: dict[str, Any] | None) -> str:
     projection = project_decision_intelligence_v4(market, window, payload)
     tw_v2 = projection.get("tw_decision_intelligence_v2") if isinstance(projection.get("tw_decision_intelligence_v2"), dict) else {}
@@ -948,6 +994,7 @@ def _decision_intelligence_v4_html(market: str, window: str, payload: dict[str, 
         confidence_labels = {"high": "高信心", "medium": "中信心", "low": "低信心", "unknown": "信心資料待接"}
         distribution_rows.extend((confidence_labels.get(key, "其他"), value) for key, value in projection["confidence_distribution"].items())
     distribution_html = _window_metric_grid(distribution_rows) if distribution_rows else '<p class="decision-note">尚無可安全彙整的分布。</p>'
+    research_html = _tw_rre_production_html(tw_v2)
     v2_html = ""
     if tw_v2:
         pm = tw_v2.get("pm_daily_summary") or {}
@@ -991,6 +1038,7 @@ def _decision_intelligence_v4_html(market: str, window: str, payload: dict[str, 
     <section class="decision-section decision-intelligence-v4" data-presentation-version="seven-window-decision-intelligence-v4" data-card-type="{_escape(projection['expected_card_type'])}">
       <h3>Decision Intelligence V4</h3>
       <p>{_escape(projection['question'])}</p>
+      {research_html}
       {v2_html}
       {story_html}
       {_window_metric_grid(metric_rows)}
@@ -1180,6 +1228,9 @@ def render_tw_window_report(window: str, artifact: dict[str, Any] | None = None)
     presentation_artifact = dict(artifact) if isinstance(artifact, dict) else {}
     if window == "post_close_1500":
         presentation_artifact["cards"] = cards
+    projection = project_decision_intelligence_v4("TW", window, presentation_artifact)
+    projected_tw = projection.get("tw_decision_intelligence_v2") if isinstance(projection.get("tw_decision_intelligence_v2"), dict) else {}
+    research_html = _tw_rre_production_html(projected_tw)
     if window == "pre_open_0700":
         summary = artifact.get("pre_open_summary", {}) if isinstance(artifact, dict) else {}
         if cards and not summary.get("coverage"):
@@ -1192,6 +1243,7 @@ def render_tw_window_report(window: str, artifact: dict[str, Any] | None = None)
         <section class="section window-report-section" data-market="TW" data-window="{_escape(window)}" data-report-type="pre-open-decision">
           <h2>{_escape(contract.title)}</h2>
           <p>今日盤前重點、市場環境、可觀察標的與短線操作計畫。</p>
+          {research_html}
           <div class="decision-plan pre-open-summary">{_metric('主要交易機會', summary.get('top_opportunity_count'))}{_metric('進場條件就緒', summary.get('entry_ready_count'))}{_metric('觀察等待', summary.get('watch_only_count'))}{_metric('暫不交易', summary.get('no_trade_count'))}{_metric('避免追價', summary.get('avoid_chase_count'))}</div>
           <p class="decision-note">市場基調：{_escape('偏保守' if summary.get('market_bias') == 'cautious' else '中性')}｜整體信心：{_escape((summary.get('market_confidence') or {}).get('score', 0))}%｜{_escape('偏低' if summary.get('market_bias_confidence') == 'low' else '中')}</p>
           <p class="decision-note">主要交易機會：{_escape('、'.join(groups.get('top_opportunities') or []) or '無')}｜觀察等待：{_escape('、'.join(groups.get('watch_only') or groups.get('watch_wait') or []) or '無')}｜暫不交易：{_escape('、'.join(groups.get('no_trade') or []) or '無')}｜避免追價：{_escape('、'.join(groups.get('avoid_chase') or groups.get('high_chase_risk') or []) or '無')}</p>
@@ -1258,6 +1310,7 @@ def render_tw_window_report(window: str, artifact: dict[str, Any] | None = None)
     <section class="section window-report-section" data-market="TW" data-window="{_escape(window)}" data-report-type="{_escape({'pre_open_0700':'pre-open-decision','intraday_1305':'intraday-change','pre_close_1335':'pre-close-snapshot','post_close_1500':'post-close-review'}[window])}">
       <h2>{_escape(contract.title)}</h2>
       <p>{_escape(section_intro)}</p>
+      {research_html}
       {decision_summary}
       {('<p class="decision-note review-card-count" data-tracking-stock-count="' + str(artifact.get('tracking_stock_count', len(cards))) + '" data-rendered-review-card-count="' + str(len(cards)) + '">追蹤 ' + str(artifact.get('tracking_stock_count', len(cards))) + '｜呈現 ' + str(len(cards)) + '</p>') if window == 'post_close_1500' else ''}
       <div class="grid decision-grid">{body}</div>
