@@ -8,11 +8,15 @@ Starting main: `10de5cfb576a4150c97df68f9e7e177dafd74975`.
 
 Feature branch: `ai-dev/200-rre-production-integration-v1`.
 
+Implementation commit: `5eb032d`.
+
+Pull request: `#244`.
+
 The implementation extends the existing canonical TW Decision Intelligence V2 builder instead of creating a parallel sidecar. Its production projection is now:
 
 `admitted evidence → RRE V1 → canonical research notes → Decision Intelligence V2 → existing Dashboard/Archive/preview/Operations adapters`.
 
-Implementation commit, PR and merge identities are recorded in the repository and final task handoff after GitHub Actions completes.
+The merge identity is recorded in the final task handoff after GitHub Actions completes.
 
 ## User-visible Outcome
 
