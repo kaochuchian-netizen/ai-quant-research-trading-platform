@@ -302,8 +302,16 @@ def project_decision_intelligence_v4(
         "canonical_decision_summary": canonical_decision,
         "canonical_summary_hash": canonical_decision["canonical_summary_hash"],
         "tw_decision_intelligence_v2": tw_v2,
+        "research_reasoning_projection": (
+            tw_v2.get("research_reasoning_projection")
+            if isinstance(tw_v2, dict) else None
+        ),
         "decision_identity": canonical_decision["canonical_summary_hash"],
         "tw_decision_identity": tw_v2.get("decision_identity") if isinstance(tw_v2, dict) else None,
+        "research_reasoning_identity": (
+            tw_v2.get("research_reasoning_identity")
+            if isinstance(tw_v2, dict) else None
+        ),
         "provenance": {
             "payload": "function argument: immutable snapshot payload or current window artifact",
             "classification": "explicit card tactical/review fields only",

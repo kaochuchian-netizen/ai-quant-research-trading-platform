@@ -13,6 +13,11 @@ from collections import Counter
 from typing import Any, Iterable
 
 from .tw_pre_open_quality import public_reason
+from app.research.tw_daily_generator import (
+    build_tw_daily_research,
+    compact_research_lines,
+    validate_tw_daily_research,
+)
 
 SCHEMA_VERSION = "tw_decision_intelligence_v2"
 WINDOWS = ("pre_open_0700", "intraday_1305", "pre_close_1335", "post_close_1500")
@@ -300,6 +305,14 @@ def build_tw_decision_intelligence_v2(window: str, payload: dict[str, Any] | Non
     _rank(rows, "opportunity_projection_score", "opportunity_rank")
     _rank(rows, "research_projection_score", "research_rank")
     _rank(rows, "risk_projection_score", "risk_rank")
+    research_projection = build_tw_daily_research(window, payload, source_cards, rows)
+    research_by_symbol = {
+        row["symbol"]: row for row in research_projection["research_notes"]
+    }
+    for row in rows:
+        research_note = research_by_symbol.get(row["symbol"])
+        if research_note:
+            row["research_note"] = research_note
     public_rows = [{key: value for key, value in row.items() if key != "_source"} for row in rows]
     coverage_summary = {
         dimension: dict(Counter(row["coverage"][dimension]["status"] for row in rows))
@@ -319,10 +332,7 @@ def build_tw_decision_intelligence_v2(window: str, payload: dict[str, Any] | Non
         score = sum(1 if item["direction"] == "bullish" else -1 if item["direction"] == "bearish" else 0 for item in members)
         state = "Leading" if score > 0 else "Lagging" if score < 0 else "Improving" if any(item["opportunity_projection_score"] > 50 for item in members) else "Weakening"
         sector_rotation.append({"sector": sector, "state": state, "symbol_count": len(members), "source": "canonical_symbol_cards"})
-    market_narrative = (
-        f"本批次 {directions.get('bullish', 0)} 檔偏多、{directions.get('bearish', 0)} 檔偏空、{directions.get('neutral', 0)} 檔中性；"
-        + (f"{sector_rotation[0]['sector']} 為目前最先呈現的產業脈絡。" if sector_rotation and sector_rotation[0]["sector"] != "未分類" else "產業廣度證據不足，市場敘事以個股量價與已取得證據為主。")
-    )
+    market_narrative = research_projection["morning_or_window_brief"]["market_narrative"]
     evidence_conflicts = [row["symbol"] for row in rows if (row.get("confidence_explanation") or {}).get("conflict")]
     supporting_evidence = _unique(
         item
@@ -341,15 +351,18 @@ def build_tw_decision_intelligence_v2(window: str, payload: dict[str, Any] | Non
         top_risk = next((row for row in risks if row["symbol"] != tracking_top["symbol"]), top_risk)
     best_etf = next((row for row in opportunity if row["symbol"].startswith("00")), None)
     avoid_sectors = [item["sector"] for item in sector_rotation if item["state"] in {"Lagging", "Weakening"} and item["sector"] != "未分類"]
+    top_note = research_by_symbol.get(actionable_top["symbol"]) if actionable_top else None
+    tracking_note = research_by_symbol.get(tracking_top["symbol"]) if tracking_top else None
+    risk_note = research_by_symbol.get(top_risk["symbol"]) if top_risk else None
     pm_summary = {
         "one_line": market_narrative,
-        "largest_opportunity": f"{actionable_top['symbol']} {_name(actionable_top['_source'])}：{actionable_top['decision_reason'][0]}" if actionable_top else (f"本批次沒有通過既有 action gate 的交易機會；最佳研究觀察為 {tracking_top['symbol']} {_name(tracking_top['_source'])}。" if tracking_top else "本批次沒有可排序標的"),
-        "largest_risk": f"{top_risk['symbol']} {_name(top_risk['_source'])}：{top_risk['risk_factors'][0]}" if top_risk else "本批次沒有可排序風險",
+        "largest_opportunity": top_note["research_summary"] if top_note else (f"本批次沒有通過既有 action gate 的交易機會；最佳研究觀察為 {tracking_note['research_summary']}" if tracking_note else "本批次沒有可排序標的"),
+        "largest_risk": (f"{top_risk['symbol']} {_name(top_risk['_source'])}：{risk_note['counter_argument']}" if risk_note else f"{top_risk['symbol']} {_name(top_risk['_source'])}：{top_risk['risk_factors'][0]}") if top_risk else "本批次沒有可排序風險",
         "most_worth_tracking": tracking_top["symbol"] if tracking_top else None,
         "most_worth_dropping": top_risk["symbol"] if top_risk and top_risk["decision_category"] == "AVOID_CANDIDATE" else None,
         "next_observation": tracking_top["tomorrow_watch"] if tracking_top else "等待下一正式 window",
         "if_only_one_symbol": tracking_top["symbol"] if tracking_top else None,
-        "if_no_trade_reason": ("沒有標的通過既有 action gate；主要限制為 " + "、".join((tracking_top["confidence_explanation"].get("limiting") or [])[:3])) if tracking_top and not categories["BUY_CANDIDATE"] else None,
+        "if_no_trade_reason": ("沒有標的通過既有 action gate；最佳研究候選仍維持觀察，因為 " + (tracking_note["research_summary"] if tracking_note else "正反證據與未知項尚未共同支持進場")) if tracking_top and not categories["BUY_CANDIDATE"] else None,
     }
     window_intelligence = {
         "pre_open_0700": {"top_opportunities": [row["symbol"] for row in opportunity[:3]], "top_risks": [row["symbol"] for row in risks[:3]], "best_watch": research[0]["symbol"] if research else None, "best_etf": best_etf["symbol"] if best_etf else None, "avoid_sectors": avoid_sectors, "pm_one_line": market_narrative},
@@ -369,7 +382,10 @@ def build_tw_decision_intelligence_v2(window: str, payload: dict[str, Any] | Non
         "rankings": {"opportunity": [row["symbol"] for row in opportunity], "research": [row["symbol"] for row in research], "risk": [row["symbol"] for row in risks]},
         "market_intelligence": {"direction_distribution": dict(sorted(directions.items())), "sector_rotation": sector_rotation, "market_narrative": market_narrative, "breadth_source": "有明確市場廣度時使用該證據；否則僅標示為個股卡分布", "supporting_evidence": supporting_evidence, "evidence_conflicts": evidence_conflicts, "conflict_policy": "衝突證據不平均抵銷；保留雙方並限制信心。", "template_fallback_symbols": template_fallbacks},
         "window_intelligence": window_intelligence, "prediction_review": _prediction_review(rows, window),
-        "pm_daily_summary": pm_summary, "model_boundary": MODEL_BOUNDARY,
+        "pm_daily_summary": pm_summary,
+        "research_reasoning_projection": research_projection,
+        "research_reasoning_identity": research_projection["production_research_identity"],
+        "model_boundary": MODEL_BOUNDARY,
     }
     result["decision_identity"] = "twdi2_" + _hash(result)[:24]
     return result
@@ -378,10 +394,12 @@ def build_tw_decision_intelligence_v2(window: str, payload: dict[str, Any] | Non
 def compact_tw_v2_lines(bundle: dict[str, Any]) -> list[str]:
     pm = bundle.get("pm_daily_summary") or {}
     ranks = bundle.get("rankings") or {}
+    research = bundle.get("research_reasoning_projection") if isinstance(bundle.get("research_reasoning_projection"), dict) else {}
+    research_lines = compact_research_lines(research) if research else []
     return [
-        f"PM 摘要：{pm.get('one_line') or '尚未取得'}",
-        f"最大機會：{pm.get('largest_opportunity') or '尚未取得'}",
-        f"最大風險：{pm.get('largest_risk') or '尚未取得'}",
+        research_lines[0] if research_lines else f"PM 摘要：{pm.get('one_line') or '尚未取得'}",
+        research_lines[1] if len(research_lines) > 1 else f"最大機會：{pm.get('largest_opportunity') or '尚未取得'}",
+        research_lines[2] if len(research_lines) > 2 else f"最大風險：{pm.get('largest_risk') or '尚未取得'}",
         f"優先追蹤：{'、'.join((ranks.get('opportunity') or [])[:3]) or '無'}｜決策識別碼 {bundle.get('decision_identity') or '尚未取得'}",
     ]
 
@@ -390,6 +408,9 @@ def validate_tw_decision_intelligence_v2(bundle: dict[str, Any]) -> list[str]:
     errors: list[str] = []
     if bundle.get("schema_version") != SCHEMA_VERSION:
         errors.append("schema_version")
+    research = bundle.get("research_reasoning_projection")
+    if not isinstance(research, dict):
+        errors.append("research_reasoning_projection")
     boundary = bundle.get("model_boundary") or {}
     if any(boundary.get(key) is not False for key in (
         "strategy_changed", "scoring_changed", "strategy_ranking_changed",
@@ -416,6 +437,11 @@ def validate_tw_decision_intelligence_v2(bundle: dict[str, Any]) -> list[str]:
     rankings = bundle.get("rankings") or {}
     if any(sorted(values) != sorted(symbols) for values in rankings.values()):
         errors.append("ranking_partition")
+    if isinstance(research, dict):
+        errors.extend(
+            f"research:{item}"
+            for item in validate_tw_daily_research(research, set(symbols))
+        )
     copy = {key: value for key, value in bundle.items() if key != "decision_identity"}
     if bundle.get("decision_identity") != "twdi2_" + _hash(copy)[:24]:
         errors.append("decision_identity")
