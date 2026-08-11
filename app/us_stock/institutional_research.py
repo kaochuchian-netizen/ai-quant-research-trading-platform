@@ -9,6 +9,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
+from app.us_stock.research_intelligence_v2 import (
+    attach_initial as attach_research_v2,
+    classify_sec_filing,
+    effective_coverage,
+    normalize_news,
+    validate_projection,
+)
+
 SCHEMA_VERSION = "us_institutional_research_bundle_v1"
 BOUNDARY = {"consumer": "existing_decision_engine", "mode": "read_only_context",
             "trade_action_exported": False, "ranking_modified": False,
@@ -89,12 +97,14 @@ def _event_type(value: Any) -> str:
     return normalized if normalized in EVENT_TYPES else "news"
 
 
-def _freshness(value: Any) -> str:
+def _freshness(value: Any, observed_at: Any = None) -> str:
     if not value: return "unknown"
     try:
         parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
         if parsed.tzinfo is None: parsed = parsed.replace(tzinfo=timezone.utc)
-        hours = (datetime.now(timezone.utc) - parsed.astimezone(timezone.utc)).total_seconds() / 3600
+        reference = datetime.fromisoformat(str(observed_at).replace("Z", "+00:00")) if observed_at else datetime.now(timezone.utc)
+        if reference.tzinfo is None: reference = reference.replace(tzinfo=timezone.utc)
+        hours = (reference.astimezone(timezone.utc) - parsed.astimezone(timezone.utc)).total_seconds() / 3600
     except (TypeError, ValueError): return "unknown"
     return "fresh" if hours <= 72 else "recent" if hours <= 720 else "stale"
 
@@ -130,16 +140,25 @@ def evidence_record(symbol: str, provider: str, tier: str, headline: str, summar
                     official: bool = False, reference: Any = None) -> dict[str, Any]:
     normalized = re.sub(r"[^a-z0-9]+", " ", headline.lower()).strip()
     canonical_event_type = _event_type(event_type)
+    freshness = _freshness(published_at, observed_at)
     item = {"event_cluster_id": "evt_" + stable_hash([symbol, canonical_event_type, normalized, str(published_at or "")[:10], reference])[:16],
             "market": "US", "symbol": symbol.upper(), "provider": provider,
+            "source": provider, "source_class": "official_primary" if tier == "A" else "market_reference" if tier == "B" else "financial_media" if tier == "C" else "weak_reference",
+            "source_quality": f"tier_{1 if tier == 'A' else 2 if tier == 'B' else 3 if tier == 'C' else 5}",
             "provider_tier": tier, "quality_score": QUALITY[tier], "headline": headline,
             "summary": summary, "published_at": published_at, "observed_at": observed_at,
-            "freshness": _freshness(published_at), "event_type": canonical_event_type,
+            "freshness": freshness, "stale": freshness == "stale", "event_type": canonical_event_type,
             "direction": _direction(direction), "materiality": materiality,
             "relevance": relevance, "confidence": round(float(confidence), 2),
             "official_confirmation": official, "source_reference": reference,
+            "primary_source_confirmed": official, "role": "supporting" if _direction(direction) == "bullish" else "opposing" if _direction(direction) == "bearish" else "neutral",
+            "novelty": "new", "time_horizon": "near_term", "related_hypothesis": None,
             "duplicate_of": None, "counted_in_synthesis": True,
-            "decision_context": "research_context_only_no_trade_action"}
+            "decision_context": "research_context_only_no_trade_action",
+            "provenance": {"provider": provider, "source_reference": reference, "published_at": published_at, "observed_at": observed_at}}
+    item["evidence_nature"] = "primary_source_fact" if official else "normalized_source_reference"
+    item["fact"] = {"headline": headline, "summary": summary, "published_at": published_at, "source_reference": reference}
+    item["interpretation"] = {"direction": item["direction"], "materiality": materiality, "time_horizon": item["time_horizon"], "method": "deterministic_normalization_v2"}
     item["evidence_id"] = "ev_" + stable_hash(item)[:20]
     return item
 
@@ -147,7 +166,13 @@ def evidence_record(symbol: str, provider: str, tier: str, headline: str, summar
 def canonical_evidence(symbol: str, research: dict[str, Any], market_context: dict[str, Any], observed_at: str) -> list[dict[str, Any]]:
     rows = []
     for filing in [x for x in (research.get("sec") or {}).get("filings", []) if isinstance(x, dict)][:4]:
-        rows.append(evidence_record(symbol, "sec_edgar", "A", f"{filing.get('form') or 'SEC'} filing", "SEC official filing metadata", observed_at, "filing", published_at=filing.get("filing_date"), materiality="medium" if filing.get("form") == "8-K" else "low", confidence=.98, official=True, reference=filing.get("filing_url") or filing.get("accession")))
+        classification = classify_sec_filing(filing)
+        evidence = evidence_record(symbol, "sec_edgar", "A", f"{filing.get('form') or 'SEC'} filing", classification["explanation"], observed_at, "filing", published_at=filing.get("filing_date"), direction=classification["direction"], materiality=classification["materiality"], confidence=.98, official=True, reference=filing.get("filing_url") or filing.get("accession"))
+        evidence["filing_intelligence"] = classification
+        evidence["time_horizon"] = classification["time_horizon"]
+        evidence["role"] = classification["role"]
+        evidence["interpretation"] = {"direction": classification["direction"], "materiality": classification["materiality"], "time_horizon": classification["time_horizon"], "method": classification["method"]}
+        rows.append(evidence)
     fundamentals = research.get("fundamentals") or {}; metrics = fundamentals.get("metrics") or {}
     available = [key for key, value in metrics.items() if isinstance(value, dict) and value.get("value") is not None]
     if available:
@@ -162,7 +187,9 @@ def canonical_evidence(symbol: str, research: dict[str, Any], market_context: di
         value = market_context.get(ticker.lower()) or market_context.get(ticker) or {}
         change = value.get("premarket_change_pct") if value.get("premarket_change_pct") is not None else value.get("change_pct")
         if isinstance(change, (int, float)):
-            rows.append(evidence_record(symbol, "yfinance", "B", f"{ticker} market context", f"{ticker} change reference {change}", observed_at, "sector" if ticker == "SOXX" else "market_context", published_at=value.get("timestamp") or value.get("source_timestamp"), direction="bullish" if change > 0 else "bearish" if change < 0 else "neutral", confidence=.82, reference=ticker))
+            market_evidence = evidence_record(symbol, "yfinance", "B", f"{ticker} market context", f"{ticker} change reference {change}", observed_at, "sector" if ticker == "SOXX" else "market_context", published_at=value.get("timestamp") or value.get("source_timestamp"), direction="bullish" if change > 0 else "bearish" if change < 0 else "neutral", confidence=.82, reference=ticker)
+            market_evidence["observed_change_pct"] = round(float(change), 6)
+            rows.append(market_evidence)
     return deduplicate(rows)
 
 
@@ -244,7 +271,8 @@ def build_bundle(symbol: str, research: dict[str, Any], market_context: dict[str
               "decision_engine_boundary": BOUNDARY,
               "continuity": {"source_window": "us_pre_market_2000", "status": "originated"}}
     bundle["research_identity"] = "research_" + stable_hash(bundle)[:24]
-    return bundle
+    bundle["news_intelligence_v2"] = normalize_news((research.get("material_news") or {}).get("items", []), observed_at)
+    return attach_research_v2(bundle, observed_at)
 
 
 def resolve_bundle(archive_root: Path, effective_date: str, symbol: str) -> dict[str, Any] | None:
@@ -259,16 +287,23 @@ def resolve_bundle(archive_root: Path, effective_date: str, symbol: str) -> dict
         if isinstance(bundle, dict): candidates.append((int(wrapper.get("revision") or 0), str(wrapper.get("admitted_at") or ""), wrapper, bundle))
     if not candidates: return None
     _, _, wrapper, bundle = max(candidates, key=lambda x: (x[0], x[1]))
-    inherited = json.loads(json.dumps(bundle)); inherited["continuity"] = {"source_window": "us_pre_market_2000", "status": "inherited", "source_snapshot_id": wrapper.get("snapshot_id"), "source_revision": int(wrapper.get("revision") or 0), "source_hash": wrapper.get("source_payload_hash") or wrapper.get("snapshot_id"), "effective_trading_date": effective_date}
+    inherited = json.loads(json.dumps(bundle))
+    if not isinstance(inherited.get("research_intelligence_v2"), dict):
+        inherited = attach_research_v2(inherited, inherited.get("research_effective_at") or wrapper.get("admitted_at") or effective_date)
+        inherited["v2_compatibility_projection"] = "derived_in_memory_from_immutable_v1_bundle"
+    inherited["continuity"] = {"source_window": "us_pre_market_2000", "status": "inherited", "source_snapshot_id": wrapper.get("snapshot_id"), "source_revision": int(wrapper.get("revision") or 0), "source_hash": wrapper.get("source_payload_hash") or wrapper.get("snapshot_id"), "effective_trading_date": effective_date}
     return inherited
 
 
 def aggregate_bundles(cards: Iterable[dict[str, Any]]) -> dict[str, Any]:
     bundles = [x["institutional_research"] for x in cards if isinstance(x, dict) and isinstance(x.get("institutional_research"), dict)]
     coverage, events = [x["coverage"]["score"] for x in bundles], [sum(y["counted_in_synthesis"] for y in x["evidence"]) for x in bundles]
-    summary = {"schema_version": "us_institutional_research_summary_v1", "bundle_count": len(bundles),
+    v2_coverage = [effective_coverage(x)["score"] for x in bundles]
+    summary = {"schema_version": "us_institutional_research_summary_v1", "canonical_research_schema_version": "us_research_intelligence_v2", "bundle_count": len(bundles),
                "research_identities": {x["symbol"]: x["research_identity"] for x in bundles},
+               "window_research_identities": {x["symbol"]: (x.get("research_intelligence_v2") or {}).get("window_research_identity") for x in bundles},
                "average_coverage_score": round(sum(coverage) / len(coverage), 2) if coverage else 0.,
+               "average_effective_coverage_score_v2": round(sum(v2_coverage) / len(v2_coverage), 2) if v2_coverage else 0.,
                "average_deduplicated_event_count": round(sum(events) / len(events), 2) if events else 0.,
                "provider_availability_counts": dict(sorted(Counter(y["availability"] for x in bundles for y in x["providers"]).items())),
                "single_source_stance_symbols": sorted(x["symbol"] for x in bundles if x["synthesis"]["single_source_direct_stance"]),
@@ -282,7 +317,10 @@ def review_diagnosis(card: dict[str, Any]) -> dict[str, Any]:
     evidence = [x["evidence_id"] for x in bundle.get("evidence", []) if x["counted_in_synthesis"]]
     used = set(synthesis.get("supporting_evidence") or []) | set(synthesis.get("contradicting_evidence") or [])
     failures = (["PREDICTION_RANGE_MISS"] if prediction == "miss" else []) + (["TRADE_OUTCOME_" + trade.upper()] if trade in {"loss", "pending_evidence"} else [])
-    return {"prediction_failure_attribution": failures, "unused_evidence": [x for x in evidence if x not in used], "coverage_gap": coverage.get("coverage_gap") or [], "research_diagnosis": f"研究立場 {synthesis.get('research_stance') or 'insufficient_evidence'}；預測 {prediction}；交易結果 {trade}。", "learning_candidate": bool(failures), "auto_learning_applied": False, "weights_modified": False, "research_identity": bundle.get("research_identity")}
+    v2 = bundle.get("research_intelligence_v2") or {}
+    evaluation = v2.get("prediction_evaluation") or {}
+    learning = v2.get("no_trade_learning") or {}
+    return {"prediction_failure_attribution": failures, "unused_evidence": [x for x in evidence if x not in used], "coverage_gap": (v2.get("effective_coverage") or {}).get("coverage_gap") or coverage.get("coverage_gap") or [], "research_diagnosis": f"研究假設 {((v2.get('hypothesis') or {}).get('state') or '尚未建立')}；預測 {prediction}；交易結果 {trade}。", "prediction_evaluation_v2": evaluation, "no_trade_learning": learning, "next_session_carryforward": v2.get("next_session_carryforward") or {}, "learning_candidate": bool(failures) or bool(learning.get("missed_opportunity_candidate")), "auto_learning_applied": False, "weights_modified": False, "research_identity": bundle.get("research_identity"), "window_research_identity": v2.get("window_research_identity")}
 
 
 def validate_bundle(bundle: dict[str, Any]) -> list[str]:
@@ -293,4 +331,7 @@ def validate_bundle(bundle: dict[str, Any]) -> list[str]:
             if item.get(key) is None: errors.append(f"evidence_missing:{key}")
     if (bundle.get("decision_context_export") or {}).get("trade_action") is not None: errors.append("trade_action_exported")
     if any((bundle.get("decision_engine_boundary") or {}).get(key) for key in ("ranking_modified", "scoring_modified", "prediction_modified", "strategy_weights_modified", "auto_learning")): errors.append("decision_boundary_violation")
+    projection = bundle.get("research_intelligence_v2")
+    if not isinstance(projection, dict): errors.append("research_intelligence_v2_missing")
+    else: errors.extend(f"v2:{error}" for error in validate_projection(projection))
     return sorted(set(errors))

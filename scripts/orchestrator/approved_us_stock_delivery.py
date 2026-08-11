@@ -271,6 +271,16 @@ def _research_preview_lines(card: dict[str, Any]) -> list[str]:
     if not bundle:
         return ["機構研究：歷史 payload 尚未包含研究包"]
     synthesis, coverage, conflict = bundle.get("synthesis") or {}, bundle.get("coverage") or {}, bundle.get("conflict") or {}
+    v2 = bundle.get("research_intelligence_v2") if isinstance(bundle.get("research_intelligence_v2"), dict) else {}
+    if v2:
+        hypothesis = v2.get("hypothesis") if isinstance(v2.get("hypothesis"), dict) else {}
+        effective = v2.get("effective_coverage") if isinstance(v2.get("effective_coverage"), dict) else {}
+        hypothesis_state = {"confirmed": "研究假設確認", "invalidated": "研究假設失效", "unchanged": "研究假設未改變"}.get(str(hypothesis.get("state") or ""), localize_enum(hypothesis.get("state")))
+        return [
+            f"機構研究：{localize_enum(v2.get('research_stance'))}｜研究分數 {v2.get('research_score') if v2.get('research_score') is not None else '證據不足'}（非交易分數）｜信心 {v2.get('research_confidence')}",
+            f"研究更新：{hypothesis_state}｜有效覆蓋 {effective.get('score', 0)}%｜{(v2.get('window_update') or {}).get('explanation') or '尚無本視窗新增證據'}",
+            f"研究 Identity：{v2.get('window_research_identity') or bundle.get('research_identity') or '尚未取得'}｜Origin {bundle.get('research_identity') or '尚未取得'}",
+        ]
     return [
         f"機構研究：{localize_enum(synthesis.get('research_stance'))}｜研究分數 {synthesis.get('research_score')}（非交易分數）｜信心 {synthesis.get('research_confidence')}",
         f"研究覆蓋 {coverage.get('score', 0)}%｜衝突 {conflict.get('level') or 'LOW'}｜Identity {bundle.get('research_identity') or '尚未取得'}",

@@ -17,6 +17,12 @@ from app.us_stock.institutional_research import (
     resolve_bundle,
     review_diagnosis,
 )
+from app.us_stock.research_intelligence_v2 import (
+    evolve_intraday,
+    evolve_post_close,
+    prediction_evaluation,
+    stable_hash as research_v2_hash,
+)
 from app.strategy.dual_strategy import DAILY_TACTICAL, RESEARCH_POSITION, US_TACTICAL_FACTOR_VERSION, build_dual_strategies
 from app.reports.canonical_outcomes import aggregate_us_post_close_review, build_structured_review_cards
 from app.us_stock.intraday_observed import (
@@ -256,8 +262,15 @@ def build_review(symbol: str, session_date: str, quote: dict[str, Any], history:
         "snapshot_ref": snap.get("snapshot_path"), "actual_high": actual_high,
         "actual_low": actual_low, "actual_close": actual_close,
         "range_covered": covered, "high_error": high_err, "low_error": low_err,
+        "originating_prediction": pred,
+        "originating_prediction_snapshot": {
+            "window": snap.get("window"), "generated_at": snap.get("generated_at"),
+            "snapshot_ref": snap.get("snapshot_path"),
+            "identity": "us_prediction_" + research_v2_hash({"symbol": symbol, "session_date": session_date, "window": snap.get("window"), "prediction": pred})[:24],
+        },
         "source_trade_plan": source_plan, "intraday_evidence": intraday_evidence, "fabricated": False, **evaluated,
     }
+    review["prediction_evaluation_v2"] = prediction_evaluation(pred, review)
     review["next_session_action"] = trade_next_session_action(str(review.get("trade_review_outcome")))
     review["pending_reason"] = evaluated.get("pending_reason") if evaluated.get("trade_review_outcome") == "pending_evidence" else None
     return review
@@ -326,6 +339,12 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
             # Compatibility presentation fields and observed evidence are one
             # object, preventing Dashboard/Email/LINE from diverging.
             card = {**card, **observed}
+            origin_projection = institutional_research.get("research_intelligence_v2") or {}
+            institutional_research["research_intelligence_v2"] = evolve_intraday(
+                origin_projection, observed, observed_at=generated_at,
+            )
+            card["institutional_research"] = institutional_research
+            card["window_research_identity"] = institutional_research["research_intelligence_v2"]["window_research_identity"]
             structured_intraday_cards.append(card)
         if result.ok and prediction.get("prediction_status") == "available":
             success += 1
@@ -344,6 +363,18 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
             reviews.append(review)
     structured_review_cards = build_structured_review_cards(cards, reviews) if window == "us_post_close_review_0630" else []
     for review_card in structured_review_cards:
+        bundle = review_card.get("institutional_research") if isinstance(review_card.get("institutional_research"), dict) else {}
+        origin_projection = bundle.get("research_intelligence_v2") if isinstance(bundle.get("research_intelligence_v2"), dict) else {}
+        review_payload = review_card.get("review") if isinstance(review_card.get("review"), dict) else {}
+        prediction = review_payload.get("originating_prediction") if isinstance(review_payload.get("originating_prediction"), dict) else {}
+        intraday_evidence = review_card.get("intraday_evidence") if isinstance(review_card.get("intraday_evidence"), dict) else {}
+        if bundle and origin_projection:
+            bundle["research_intelligence_v2"] = evolve_post_close(
+                origin_projection, intraday_evidence, prediction, review_card,
+                observed_at=generated_at,
+            )
+            review_card["institutional_research"] = bundle
+            review_card["window_research_identity"] = bundle["research_intelligence_v2"]["window_research_identity"]
         review_card["research_review_diagnosis"] = review_diagnosis(review_card)
     premarket_context = normalize_market_context(market_context, reference) if window == "us_pre_market_2000" else None
     premarket_summary = summarize_premarket(cards, premarket_context) if window == "us_pre_market_2000" else None
@@ -394,7 +425,7 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
             "valid": not premarket_validation_errors,
         } if window == "us_pre_market_2000" else None,
         "research_intelligence_contract": {"source_hierarchy": "tier1_official_sec_ir_company; tier2_market_reference_yfinance; tier3_secondary_news", "research_factor_version": RESEARCH_FACTOR_VERSION, "copyright_policy": "no full filings/articles/transcripts stored", "official_source_required_for_official_claims": True},
-        "institutional_research_contract": {"schema_version": "us_institutional_research_bundle_v1", "canonical_owner_window": "us_pre_market_2000", "later_windows_are_read_only_consumers": True, "decision_engine_boundary": INSTITUTIONAL_RESEARCH_BOUNDARY},
+        "institutional_research_contract": {"schema_version": "us_institutional_research_bundle_v1", "canonical_research_schema_version": "us_research_intelligence_v2", "canonical_owner_window": "us_pre_market_2000", "later_windows_are_read_only_consumers": True, "later_windows_may_append_research_evidence": True, "origin_identity_is_immutable": True, "window_research_identity_evolves": True, "decision_engine_boundary": INSTITUTIONAL_RESEARCH_BOUNDARY},
         "institutional_research_summary": institutional_research_summary,
         "dual_strategy_contract": {"market": DEFAULT_MARKET, "strategy_types": [RESEARCH_POSITION, DAILY_TACTICAL], "research_position_version": "us_research_position_v1", "daily_tactical_version": "us_daily_tactical_v1", "daily_tactical_factor_version": US_TACTICAL_FACTOR_VERSION, "research_overwritten_by_tactical": False, "tactical_overwrites_research": False, "line_email_sent_by_builder": False},
         "items": items,

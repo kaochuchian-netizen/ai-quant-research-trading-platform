@@ -18,6 +18,10 @@ MARKET_WINDOWS = {
     "US": ("us_pre_market_2000", "us_intraday_2300", "us_post_close_review_0630"),
 }
 REJECTED_RUN_KINDS = {"fixture", "validator", "test", "failed", "incomplete"}
+_ADMITTED_SNAPSHOT_CACHE: dict[
+    str,
+    tuple[tuple[tuple[str, int, int], ...], tuple[dict[str, Any], ...]],
+] = {}
 
 
 @dataclass(frozen=True)
@@ -83,11 +87,39 @@ def _normalized_admission_metadata(item: dict[str, Any]) -> dict[str, Any]:
     return normalized
 
 
-def load_admitted_snapshots(archive_root: Path) -> list[dict[str, Any]]:
-    admitted: list[dict[str, Any]] = []
+def _archive_signature(archive_root: Path) -> tuple[tuple[str, int, int], ...]:
+    """Cheaply identify archive changes without reparsing every large payload."""
+    signature: list[tuple[str, int, int]] = []
     if not archive_root.exists():
-        return admitted
+        return ()
     for path in sorted(archive_root.rglob("*.json")):
+        try:
+            stat = path.stat()
+        except OSError:
+            continue
+        signature.append((str(path), stat.st_size, stat.st_mtime_ns))
+    return tuple(signature)
+
+
+def load_admitted_snapshots(archive_root: Path) -> list[dict[str, Any]]:
+    """Load admitted snapshots once per unchanged archive state.
+
+    Natural archives contain large canonical payloads. Dashboard builders resolve
+    every market/window repeatedly, so reparsing the complete archive for each
+    lookup made validation and controlled builds scale with ``routes * bytes``.
+    The path/size/mtime signature preserves resolver semantics and automatically
+    invalidates after an immutable snapshot is added or replaced.
+    """
+    admitted: list[dict[str, Any]] = []
+    signature = _archive_signature(archive_root)
+    if not signature:
+        return admitted
+    cache_key = str(archive_root.resolve())
+    cached = _ADMITTED_SNAPSHOT_CACHE.get(cache_key)
+    if cached and cached[0] == signature:
+        return list(cached[1])
+    for path_value, _, _ in signature:
+        path = Path(path_value)
         try:
             item = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
@@ -100,6 +132,7 @@ def load_admitted_snapshots(archive_root: Path) -> list[dict[str, Any]]:
         item["snapshot_id"] = item.get("snapshot_id") or snapshot_id(item)
         item["archive_path"] = str(path)
         admitted.append(item)
+    _ADMITTED_SNAPSHOT_CACHE[cache_key] = (signature, tuple(admitted))
     return admitted
 
 

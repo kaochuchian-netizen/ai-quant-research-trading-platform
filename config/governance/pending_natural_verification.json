@@ -1,6 +1,6 @@
 {
   "schema_version": "pending_natural_verification_v1",
-  "updated_at": "2026-07-31T09:00:00+08:00",
+  "updated_at": "2026-08-10T00:00:00+08:00",
   "sla": {
     "minimum_trading_days": 2,
     "maximum_trading_days": 5,
@@ -141,6 +141,15 @@
       "required_windows": ["TW pre_open_0700", "TW intraday_1305", "TW pre_close_1335", "TW post_close_1500"],
       "acceptance": "Every natural TW symbol receives an RRE-generated research note with knowledge context, supporting/opposing/missing evidence, hypothesis, invalidation and counter-argument; one research identity is consumed by Dashboard, Archive, previews and Operations without changing canonical decisions.",
       "monitoring": "Inspect the next complete TW chain for research-first hierarchy, non-template brief, per-window hypothesis update, evidence truthfulness, decision immutability and cross-channel research identity parity."
+    },
+    {
+      "task_id": "AI-DEV-201",
+      "state": "PENDING",
+      "registered_at": "2026-08-10",
+      "owner": "US Research Platform Owner",
+      "required_windows": ["US us_pre_market_2000", "US us_intraday_2300", "US us_post_close_review_0630"],
+      "acceptance": "One complete natural US lifecycle demonstrates source-truthful differentiated research, SEC/news classification, decomposed broad/sector regime, meaningful hypothesis evolution, prediction calibration and no-trade learning with origin/window research identity parity and no Decision Layer ownership regression.",
+      "monitoring": "Inspect source availability and coverage, per-symbol evidence partitions, SEC classification, news dedup/freshness, broad-versus-sector regime, 23:00 hypothesis state, 06:30 calibration/no-trade learning and Dashboard/Archive/Email preview/LINE preview/Operations identity parity."
     }
   ]
 }
