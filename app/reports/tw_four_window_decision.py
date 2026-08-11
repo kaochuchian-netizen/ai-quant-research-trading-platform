@@ -21,6 +21,13 @@ from app.reports.presentation_normalization import (
     safe_public_text,
 )
 from app.reports.tw_pre_open_quality import data_gaps, public_reason, technical_contract
+from app.research.tw_production_intelligence_v2 import (
+    build_prediction_snapshot as build_research_prediction_v2,
+    effective_coverage as effective_research_coverage_v2,
+    evaluate_prediction as evaluate_research_prediction_v2,
+    instrument_context,
+    verification_record,
+)
 
 TAIPEI = ZoneInfo("Asia/Taipei")
 SCHEMA_VERSION = "tw_decision_lifecycle_evidence_v1"
@@ -241,6 +248,12 @@ def upgrade_pre_open_card(card: dict[str, Any], tactical: dict[str, Any] | None,
     freshness = dict(result.get("data_freshness") or {})
     freshness.update({"technical_as_of": technical.get("history_end"), "news_as_of": (news_contract.get("primary_evidence") or {}).get("published_at")})
     result["data_freshness"] = freshness
+    result["instrument_context_v2"] = instrument_context(symbol)
+    result["effective_research_coverage_v2"] = effective_research_coverage_v2(result)
+    result["prediction_snapshot_v2"] = build_research_prediction_v2(
+        result, effective_date=trading_date, generated_at=result.get("generated_at") or result.get("as_of"),
+    )
+    result["verification_record_v1"] = verification_record(result["prediction_snapshot_v2"])
     without_hash = dict(result)
     without_hash.pop("source_payload_hash", None)
     result["source_payload_hash"] = stable_hash(without_hash)
@@ -674,6 +687,18 @@ def build_observed_card(
         "event_risk": setup_card.get("event_risk"), "tomorrow_watch_status": holding in {"hold", "watch"},
         "data_status": data_status, "evidence_status": evidence_status,
         "missing_fields": sorted(missing), "strategies": {"daily_tactical": dict(tactical)},
+        "technical_data": dict(setup_card.get("technical_data") or {}),
+        "news_evidence": dict(setup_card.get("news_evidence") or {}),
+        "news_items": list(setup_card.get("news_items") or []),
+        "news_direction": setup_card.get("news_direction"), "news_summary": setup_card.get("news_summary"),
+        "adr_context": setup_card.get("adr_context"), "fundamental_context": setup_card.get("fundamental_context"),
+        "sector_context": setup_card.get("sector_context"), "market_context": setup_card.get("market_context"),
+        "data_gaps": list(setup_card.get("data_gaps") or []), "data_freshness": dict(setup_card.get("data_freshness") or {}),
+        "instrument_context_v2": setup_card.get("instrument_context_v2") or instrument_context(symbol),
+        "effective_research_coverage_v2": setup_card.get("effective_research_coverage_v2") or effective_research_coverage_v2(setup_card),
+        "prediction_snapshot_v2": dict(setup_card.get("prediction_snapshot_v2") or build_research_prediction_v2(
+            setup_card, effective_date=trading_date, generated_at=setup_card.get("generated_at"),
+        )),
         "decision_state": {
             "hold_candidate": holding in {"hold", "hold_with_protection"}, "avoid_hold": holding in {"reduce", "exit"},
             "no_trade": no_trade, "late_session_risk": holding in {"hold_with_protection", "reduce", "exit"},
@@ -753,6 +778,15 @@ def evaluate_post_close(observed: dict[str, Any], setup: dict[str, Any]) -> dict
     prediction_status = str(setup.get("prediction_status") or "unavailable")
     prediction_result = _prediction_result(setup, actual_low, actual_high, no_trade=no_trade)
     prediction_explainability = _prediction_explainability(setup, actual_low, actual_high, prediction_result)
+    prediction_v2 = setup.get("prediction_snapshot_v2") if isinstance(setup.get("prediction_snapshot_v2"), dict) else build_research_prediction_v2(
+        setup, effective_date=str(setup.get("trading_date") or observed.get("trading_date") or ""), generated_at=setup.get("generated_at"),
+    )
+    prediction_evaluation_v2 = evaluate_research_prediction_v2(
+        prediction_v2,
+        {"open": actual_open, "high": actual_high, "low": actual_low, "close": actual_close},
+        reviewed_at=str(observed.get("market_data_as_of") or observed.get("generated_at") or "") or None,
+    )
+    verification_v2 = verification_record(prediction_v2, prediction_evaluation_v2)
     evidence_status = "not_applicable" if no_trade else "complete" if actual_complete else "missing"
     trade_status = "not_applicable" if no_trade else "not_started" if trade_outcome == "not_triggered" else "open" if trade_outcome == "open_at_close" else "closed" if trade_outcome in {"win", "loss"} else "not_started"
     canonical_outcome = {
@@ -775,6 +809,8 @@ def evaluate_post_close(observed: dict[str, Any], setup: dict[str, Any]) -> dict
         "actual_status": "complete" if actual_complete else "unavailable",
         "actual_missing_reason": None if actual_complete else "observed_post_close_ohlcv_unavailable",
         "prediction_status": prediction_status, "prediction_evaluation": {"range_result": prediction_result},
+        "prediction_snapshot_v2": prediction_v2, "prediction_evaluation_v2": prediction_evaluation_v2,
+        "verification_record_v1": verification_v2,
         "prediction_explainability": prediction_explainability,
         "prediction_range_result": prediction_result,
         "prediction_missing_reason": None if prediction_status in {"active", "no_trade"} else "upstream_prediction_missing",
@@ -857,7 +893,7 @@ def aggregate_cards(window: str, cards: list[dict[str, Any]]) -> dict[str, Any]:
         trade = Counter(str(card.get("trade_outcome") or {
             "hit": "win", "fail": "loss", "pending": "open_at_close",
         }.get(str(card.get("canonical_outcome") or ""), card.get("canonical_outcome") or "pending_evidence")) for card in cards)
-        prediction = Counter(str((card.get("prediction_evaluation") or {}).get("range_result") or card.get("prediction_range_result") or "not_applicable") for card in cards)
+        prediction = Counter(str((card.get("prediction_evaluation_v2") or {}).get("range_result") or (card.get("prediction_evaluation") or {}).get("range_result") or card.get("prediction_range_result") or "not_applicable") for card in cards)
         trade_distribution = {key: int(trade.get(key, 0)) for key in TRADE_OUTCOMES}
         prediction_distribution = {key: int(prediction.get(key, 0)) for key in PREDICTION_RESULTS}
         legacy = {
@@ -867,6 +903,9 @@ def aggregate_cards(window: str, cards: list[dict[str, Any]]) -> dict[str, Any]:
         }
         base.update({
             "prediction_evaluation_counts": prediction_distribution,
+            "prediction_v2_evaluable_count": sum((card.get("prediction_snapshot_v2") or {}).get("prediction_status") == "evaluable" for card in cards),
+            "prediction_v2_evaluated_count": sum((card.get("prediction_evaluation_v2") or {}).get("evaluation_status") == "evaluated" for card in cards),
+            "no_trade_prediction_evaluated_count": sum(card.get("trade_outcome") == "no_trade" and (card.get("prediction_evaluation_v2") or {}).get("evaluation_status") == "evaluated" for card in cards),
             "trade_outcome_counts": trade_distribution, "outcome_counts": legacy,
             "trade_outcome_symbols": {name: [str(card.get("symbol")) for card in cards if str(card.get("trade_outcome") or {"hit": "win", "fail": "loss", "pending": "open_at_close"}.get(str(card.get("canonical_outcome") or ""), card.get("canonical_outcome"))) == name] for name in TRADE_OUTCOMES},
             "review_card_count": len(cards),

@@ -4,7 +4,8 @@ Pure helpers only: no network, filesystem writes, notifications or trading.
 """
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from typing import Any
 
 REQUIRED_HISTORY_BARS = 20
@@ -65,6 +66,12 @@ def technical_contract(tactical: dict[str, Any]) -> dict[str, Any]:
         "source": factors.get("source") or "canonical_historical_csv",
         "source_timestamp": factors.get("latest_date"),
         "freshness": "fresh" if factors.get("latest_date") else "unavailable",
+        "calculation_method": "tw_daily_ohlcv_features_v2",
+        "feature_provenance": {
+            "period_end": factors.get("history_end") or factors.get("latest_date"),
+            "bars": bars, "required_bars": REQUIRED_HISTORY_BARS,
+            "source": factors.get("source") or "canonical_historical_csv",
+        },
         "analysis_eligible": eligible,
         "direction": direction,
         "reason_codes": reasons,
@@ -99,6 +106,7 @@ def _source_tier(item: dict[str, Any]) -> int:
 
 def news_contract(raw_news: Any, *, generated_at: str | None = None) -> dict[str, Any]:
     admitted = []
+    reference = _parse_time(generated_at)
     for item in _news_items(raw_news):
         headline = item.get("headline") or item.get("title")
         publisher = item.get("publisher") or item.get("source")
@@ -107,6 +115,9 @@ def news_contract(raw_news: Any, *, generated_at: str | None = None) -> dict[str
         if not all(_present(value) for value in (headline, publisher, published, source_url)):
             continue
         tier = _source_tier(item)
+        published_time = _parse_time(published)
+        age_hours = None if not reference or not published_time else max(0.0, (reference - published_time).total_seconds() / 3600)
+        freshness = "fresh" if age_hours is not None and age_hours <= NEWS_LOOKBACK_HOURS else "stale" if age_hours is not None else "unknown"
         admitted.append({
             "headline": str(headline), "publisher": str(publisher), "published_at": str(published),
             "source_url": str(source_url), "source_tier": tier,
@@ -116,9 +127,13 @@ def news_contract(raw_news: Any, *, generated_at: str | None = None) -> dict[str
             "materiality": str(item.get("materiality") or "medium"),
             "official_source": tier == 1,
             "dedupe_key": str(item.get("dedupe_key") or source_url),
+            "freshness": freshness, "age_hours": None if age_hours is None else round(age_hours, 2),
         })
-    admitted.sort(key=lambda item: (item["source_tier"], item["published_at"], item["headline"]))
-    primary = admitted[0] if admitted else None
+    unique = {item["dedupe_key"]: item for item in admitted}
+    admitted = list(unique.values())
+    admitted.sort(key=lambda item: (item["source_tier"], item["freshness"] == "stale", item["published_at"], item["headline"]))
+    usable = [item for item in admitted if item["freshness"] != "stale" and item["direction"] in {"bullish", "neutral", "bearish"}]
+    primary = usable[0] if usable else None
     quality = primary["source_quality"] if primary else "not_applicable"
     if primary:
         base = {"high": 82, "medium_high": 70, "medium": 58, "low": 35}[quality]
@@ -135,17 +150,33 @@ def news_contract(raw_news: Any, *, generated_at: str | None = None) -> dict[str
     configured_failed = list(supplied_retrieval.get("sources_failed") or [])
     succeeded = list(supplied_retrieval.get("sources_succeeded") or [])
     return {
-        "status": "available" if primary else "unavailable", "evidence": admitted, "primary_evidence": primary,
+        "status": "available" if primary else "partial" if admitted else "unavailable", "evidence": admitted, "primary_evidence": primary,
         "source_quality": quality, "confidence": confidence,
         "retrieval": {
             "lookback_hours": int(supplied_retrieval.get("lookback_hours") or NEWS_LOOKBACK_HOURS), "sources_attempted": attempted,
             "sources_succeeded": succeeded,
             "sources_failed": configured_failed,
             "query_started_at": supplied_retrieval.get("query_started_at") or generated_at, "query_completed_at": supplied_retrieval.get("query_completed_at") or generated_at,
-            "result_count_raw": len(_news_items(raw_news)), "result_count_deduped": len(admitted), "result_count_admitted": len(admitted),
-            "failure_reason": None if admitted else failure,
+            "result_count_raw": len(_news_items(raw_news)), "result_count_deduped": len(admitted), "result_count_admitted": len(usable),
+            "failure_reason": None if usable else "OUTSIDE_LOOKBACK" if admitted and all(item["freshness"] == "stale" for item in admitted) else "NO_RELIABLE_NEWS" if admitted else failure,
         },
     }
+
+
+def _parse_time(value: Any) -> datetime | None:
+    if not value:
+        return None
+    text = str(value).strip().replace("Z", "+00:00")
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        try:
+            parsed = parsedate_to_datetime(str(value))
+        except (TypeError, ValueError):
+            return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
 
 
 def data_gaps(technical: dict[str, Any], card: dict[str, Any]) -> list[str]:

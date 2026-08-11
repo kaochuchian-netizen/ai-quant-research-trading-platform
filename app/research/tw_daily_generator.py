@@ -12,6 +12,8 @@ from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from typing import Any
 
+from app.research.tw_production_intelligence_v2 import effective_coverage, instrument_context, technical_evidence
+
 from .projection import MODEL_BOUNDARY, build_research_reasoning_projection
 
 WINDOWS = ("pre_open_0700", "intraday_1305", "pre_close_1335", "post_close_1500")
@@ -147,7 +149,7 @@ def _card_evidence(card: dict[str, Any], market_time: str) -> list[dict[str, Any
         source=_text(technical.get("source"), "canonical_technical"),
         summary=(f"技術歷史 {bars} 根，方向{DIRECTION_LABELS[technical_direction]}" if technical_ok else f"技術歷史 {bars or '不足'} 根，尚不足以確認趨勢"),
         direction=technical_direction if technical_ok else "unavailable",
-        coverage="AVAILABLE" if technical_ok else "MISSING",
+        coverage="AVAILABLE" if technical_ok else "PARTIAL" if int(bars or 0) > 0 else "MISSING",
         confidence=.8 if technical_ok else .2, reliability=.85,
         published_at=technical.get("source_timestamp"),
     ))
@@ -213,11 +215,22 @@ def _card_evidence(card: dict[str, Any], market_time: str) -> list[dict[str, Any
         ))
     price = card.get("current_price") or card.get("observed_price")
     if price is not None:
+        session_open = _number(card.get("session_open"))
+        current = _number(price)
+        change_pct = None if current is None or session_open in (None, 0) else (current / session_open - 1) * 100
+        price_direction = "bullish" if change_pct is not None and change_pct > .2 else "bearish" if change_pct is not None and change_pct < -.2 else "neutral"
         rows.append(_record(
             market_time=market_time, symbol=symbol, evidence_class="market",
-            source="canonical_observed_quote", summary=f"盤中觀察價格 {price}",
-            direction="neutral", confidence=.9, reliability=.95,
+            source="canonical_observed_quote",
+            summary=(f"盤中價格 {price}，較開盤{change_pct:+.2f}%（高 {card.get('session_high')}／低 {card.get('session_low')}）" if change_pct is not None else f"盤中價格證據 {price} 已取得；缺少開盤價，暫不推導方向"),
+            direction=price_direction if change_pct is not None else "unavailable", confidence=.9, reliability=.95,
         ))
+    context = instrument_context(symbol)
+    rows.append(_record(
+        market_time=market_time, symbol=symbol, evidence_class="sector", source="canonical_tw_instrument_map_v2",
+        summary=f"{context['sector']}｜{context['industry']}｜同儕 {context['peer']}", direction="neutral",
+        coverage="AVAILABLE" if context["sector"] != "未分類" else "MISSING", confidence=.75, reliability=.9,
+    ))
     return rows
 
 
@@ -237,6 +250,27 @@ def _labels(ids: list[str], evidence: list[dict[str, Any]]) -> list[str]:
         f"{CLASS_LABELS.get(by_id[item]['evidence_class'], by_id[item]['evidence_class'])}｜{by_id[item]['summary']}"
         for item in ids if item in by_id
     ]
+
+
+def _hypothesis_state(window: str, card: dict[str, Any]) -> dict[str, Any]:
+    if window == "pre_open_0700":
+        return {"state": "created", "reason": "盤前 admitted evidence 建立初始研究假設"}
+    prediction = card.get("prediction_snapshot_v2") if isinstance(card.get("prediction_snapshot_v2"), dict) else {}
+    predicted = str(prediction.get("direction_forecast") or "insufficient_data")
+    current, opened = _number(card.get("current_price")), _number(card.get("session_open"))
+    if current is None or opened in (None, 0) or predicted == "insufficient_data":
+        return {"state": "insufficient_new_evidence", "reason": "缺少可比較的盤前預測或盤中開收價格"}
+    actual = "bullish" if current > opened * 1.002 else "bearish" if current < opened * .998 else "neutral"
+    if actual == predicted:
+        state = "confirmed" if window == "post_close_1500" else "strengthened"
+        reason = f"本批次價格方向 {actual} 與盤前假設一致"
+    elif actual == "neutral" or predicted == "neutral":
+        state = "weakened"
+        reason = f"本批次價格方向 {actual} 未充分確認盤前假設 {predicted}"
+    else:
+        state = "contradicted" if window != "post_close_1500" else "invalidated"
+        reason = f"本批次價格方向 {actual} 與盤前假設 {predicted} 相反"
+    return {"state": state, "reason": reason, "predicted_direction": predicted, "observed_direction": actual}
 
 
 def _window_update(window: str, card: dict[str, Any], conclusion: str) -> dict[str, Any]:
@@ -316,6 +350,11 @@ def build_tw_daily_research(
             "hypothesis": bundle["hypothesis"], "confidence_reasoning": reasoning["confidence"],
             "reasoning_chain": reasoning["reasoning_chain"],
             "window_update": _window_update(window, card, reasoning["conclusion"]),
+            "hypothesis_lifecycle": _hypothesis_state(window, card),
+            "technical_evidence_v2": technical_evidence(card),
+            "effective_coverage_v2": effective_coverage(card),
+            "instrument_context_v2": instrument_context(symbol),
+            "prediction_snapshot_v2": card.get("prediction_snapshot_v2"),
             "decision_category": decision.get("decision_category"),
             "decision_category_label": action, "decision_modified": False,
         })
