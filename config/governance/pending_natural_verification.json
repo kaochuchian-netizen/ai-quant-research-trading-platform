@@ -1,6 +1,6 @@
 {
   "schema_version": "pending_natural_verification_v1",
-  "updated_at": "2026-08-10T00:00:00+08:00",
+  "updated_at": "2026-08-11T00:00:00+08:00",
   "sla": {
     "minimum_trading_days": 2,
     "maximum_trading_days": 5,
@@ -150,6 +150,15 @@
       "required_windows": ["US us_pre_market_2000", "US us_intraday_2300", "US us_post_close_review_0630"],
       "acceptance": "One complete natural US lifecycle demonstrates source-truthful differentiated research, SEC/news classification, decomposed broad/sector regime, meaningful hypothesis evolution, prediction calibration and no-trade learning with origin/window research identity parity and no Decision Layer ownership regression.",
       "monitoring": "Inspect source availability and coverage, per-symbol evidence partitions, SEC classification, news dedup/freshness, broad-versus-sector regime, 23:00 hypothesis state, 06:30 calibration/no-trade learning and Dashboard/Archive/Email preview/LINE preview/Operations identity parity."
+    },
+    {
+      "task_id": "AI-DEV-202",
+      "state": "PENDING",
+      "registered_at": "2026-08-11",
+      "owner": "TW Research and Prediction Verification Owner",
+      "required_windows": ["TW pre_open_0700", "TW intraday_1305", "TW pre_close_1335", "TW post_close_1500"],
+      "acceptance": "A complete natural TW lifecycle demonstrates refreshed historical OHLCV, deterministic technical evidence, explicit source failures, differentiated RRE hypotheses, independent no-trade predictions, post-close prediction evaluation, append-safe verification maturity and five-channel research/prediction identity parity without changing Decision Layer ownership.",
+      "monitoring": "Inspect history bars/freshness and fallback provenance at 07:00; intraday price-evidence hypothesis evolution at 13:05/13:35; prediction range/direction/error/no-trade evaluation and registry growth at 15:00; distinguish natural samples from replay."
     }
   ]
 }

@@ -911,6 +911,18 @@ def _tw_rre_production_html(tw_v2: dict[str, Any]) -> str:
     note_html = []
     for note in research.get("research_notes") or []:
         hypothesis = note.get("hypothesis") or {}
+        prediction = note.get("prediction_snapshot_v2") if isinstance(note.get("prediction_snapshot_v2"), dict) else {}
+        forecast_range = prediction.get("range_forecast") if isinstance(prediction.get("range_forecast"), dict) else {}
+        direction_label = {"bullish": "偏多", "neutral": "中性", "bearish": "偏空"}.get(
+            str(prediction.get("direction_forecast")), str(prediction.get("direction_forecast") or "資料不足")
+        )
+        prediction_text = (
+            f"{direction_label}｜"
+            f"{forecast_range.get('low')}–{forecast_range.get('high')}｜"
+            f"信心 {prediction.get('confidence')}%"
+            if prediction.get("prediction_status") == "evaluable" else
+            f"無法建立可評估預測｜{prediction.get('reason_code') or '行情證據不足'}"
+        )
         supporting = "；".join(note.get("supporting") or []) or "目前沒有足以支持方向的證據"
         opposing = "；".join(note.get("opposing") or []) or "目前沒有已確認的反向證據"
         missing_values = "、".join(note.get("missing") or []) or "無"
@@ -925,6 +937,8 @@ def _tw_rre_production_html(tw_v2: dict[str, Any]) -> str:
                   ('反對證據', opposing),
                   ('未知／缺口', missing_values),
                   ('研究假設', hypothesis.get('statement')),
+                  ('獨立預測快照', prediction_text),
+                  ('預測識別碼', prediction.get('prediction_identity')),
                   ('成立條件', hypothesis.get('expected_trigger')),
                   ('失效條件', hypothesis.get('invalidation')),
                   ('如果判斷錯誤', note.get('counter_argument')),
@@ -933,7 +947,7 @@ def _tw_rre_production_html(tw_v2: dict[str, Any]) -> str:
           </details>
         """)
     return f"""
-      <section class="decision-section tw-rre-production" data-research-identity="{_escape(research.get('production_research_identity'))}">
+      <section class="decision-section tw-rre-production" data-research-identity="{_escape(research.get('production_research_identity'))}" data-prediction-identity="{_escape(tw_v2.get('prediction_identity'))}">
         <h3>{_escape(brief.get('label') or '研究摘要')}</h3>
         <p>{_escape(brief.get('market_narrative'))}</p>
         {_window_metric_grid([

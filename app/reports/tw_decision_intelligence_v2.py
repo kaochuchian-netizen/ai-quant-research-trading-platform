@@ -18,6 +18,7 @@ from app.research.tw_daily_generator import (
     compact_research_lines,
     validate_tw_daily_research,
 )
+from app.research.tw_production_intelligence_v2 import source_health, verification_health
 
 SCHEMA_VERSION = "tw_decision_intelligence_v2"
 WINDOWS = ("pre_open_0700", "intraday_1305", "pre_close_1335", "post_close_1500")
@@ -270,12 +271,13 @@ def _prediction_review(rows: list[dict[str, Any]], window: str) -> dict[str, Any
     failures: list[dict[str, Any]] = []
     for row in rows:
         source = row["_source"]
-        prediction = _text((source.get("prediction_evaluation") or {}).get("range_result") or source.get("prediction_range_result"), "not_applicable")
+        evaluation_v2 = source.get("prediction_evaluation_v2") if isinstance(source.get("prediction_evaluation_v2"), dict) else {}
+        prediction = _text(evaluation_v2.get("range_result") or (source.get("prediction_evaluation") or {}).get("range_result") or source.get("prediction_range_result"), "not_applicable")
         outcome = _text(source.get("trade_outcome") or source.get("canonical_outcome"), "pending_evidence")
         predictions[prediction] += 1
         outcomes[outcome] += 1
         if prediction in {"miss", "partial_hit"} or outcome in {"loss", "fail", "pending_evidence"}:
-            failures.append({"symbol": row["symbol"], "prediction": prediction, "trade_outcome": outcome, "error_attribution": row["risk_factors"][:2], "unused_evidence": [key for key, item in row["coverage"].items() if item["status"] == "AVAILABLE" and key not in {"technical", "trend"}], "missing_evidence": [key for key, item in row["coverage"].items() if item["status"] in {"MISSING", "STALE"}], "learning_candidate": True})
+            failures.append({"symbol": row["symbol"], "prediction": prediction, "trade_outcome": outcome, "direction_result": evaluation_v2.get("direction_result"), "interval_width": evaluation_v2.get("interval_width"), "high_error": evaluation_v2.get("high_error"), "low_error": evaluation_v2.get("low_error"), "midpoint_error": evaluation_v2.get("midpoint_error"), "no_trade_classification": evaluation_v2.get("no_trade_classification"), "error_attribution": row["risk_factors"][:2], "unused_evidence": [key for key, item in row["coverage"].items() if item["status"] == "AVAILABLE" and key not in {"technical", "trend"}], "missing_evidence": [key for key, item in row["coverage"].items() if item["status"] in {"MISSING", "STALE"}], "learning_candidate": True})
     best = sorted(rows, key=lambda row: (-row["opportunity_projection_score"], row["symbol"]))
     worst = sorted(rows, key=lambda row: (-row["risk_projection_score"], row["symbol"]))
     return {
@@ -283,7 +285,7 @@ def _prediction_review(rows: list[dict[str, Any]], window: str) -> dict[str, Any
         "direction_accuracy": {"status": "available" if predictions else "missing", "hit": predictions.get("hit", 0), "partial_hit": predictions.get("partial_hit", 0), "miss": predictions.get("miss", 0)},
         "entry_accuracy": {"not_triggered": outcomes.get("not_triggered", 0), "review_source": "canonical_trade_outcome"},
         "exit_accuracy": {"win": outcomes.get("win", 0), "loss": outcomes.get("loss", 0), "open_at_close": outcomes.get("open_at_close", 0)},
-        "confidence_calibration": {"method": "existing_confidence_vs_canonical_outcome", "weights_modified": False},
+        "confidence_calibration": {"method": "prediction_v2_confidence_bucket_vs_forward_outcome", "weights_modified": False, "sample_claim": "early_sample_no_statistical_claim"},
         "error_attribution": failures, "factor_attribution": "existing evidence coverage and canonical outcome only",
         "strategy_attribution": "read_only; no strategy mutation", "top_performer": best[0]["symbol"] if best else None,
         "worst_performer": worst[0]["symbol"] if worst else None,
@@ -376,6 +378,9 @@ def build_tw_decision_intelligence_v2(window: str, payload: dict[str, Any] | Non
         "snapshot_id": payload.get("snapshot_id"), "revision": payload.get("revision"),
         "source_payload_hash": payload.get("source_payload_hash"),
     }
+    prediction_ids = sorted(str(card.get("prediction_snapshot_v2", {}).get("prediction_identity")) for card in source_cards if isinstance(card.get("prediction_snapshot_v2"), dict) and card.get("prediction_snapshot_v2", {}).get("prediction_identity"))
+    review_ids = sorted(str(card.get("prediction_evaluation_v2", {}).get("review_identity")) for card in source_cards if isinstance(card.get("prediction_evaluation_v2"), dict) and card.get("prediction_evaluation_v2", {}).get("review_identity"))
+    prediction_bundle_identity = "twpredbundle_" + _hash({"identity": identity, "predictions": prediction_ids, "reviews": review_ids})[:24]
     result = {
         "schema_version": SCHEMA_VERSION, "identity": identity, "stock_intelligence": public_rows,
         "coverage_registry": coverage_summary, "decision_categories": categories,
@@ -385,6 +390,10 @@ def build_tw_decision_intelligence_v2(window: str, payload: dict[str, Any] | Non
         "pm_daily_summary": pm_summary,
         "research_reasoning_projection": research_projection,
         "research_reasoning_identity": research_projection["production_research_identity"],
+        "source_health_v1": source_health(source_cards),
+        "model_verifiability_health_v1": verification_health([card.get("verification_record_v1") for card in source_cards if isinstance(card.get("verification_record_v1"), dict)]),
+        "prediction_identity": prediction_bundle_identity,
+        "prediction_identities": prediction_ids, "review_identities": review_ids,
         "model_boundary": MODEL_BOUNDARY,
     }
     result["decision_identity"] = "twdi2_" + _hash(result)[:24]
@@ -400,7 +409,7 @@ def compact_tw_v2_lines(bundle: dict[str, Any]) -> list[str]:
         research_lines[0] if research_lines else f"PM 摘要：{pm.get('one_line') or '尚未取得'}",
         research_lines[1] if len(research_lines) > 1 else f"最大機會：{pm.get('largest_opportunity') or '尚未取得'}",
         research_lines[2] if len(research_lines) > 2 else f"最大風險：{pm.get('largest_risk') or '尚未取得'}",
-        f"優先追蹤：{'、'.join((ranks.get('opportunity') or [])[:3]) or '無'}｜決策識別碼 {bundle.get('decision_identity') or '尚未取得'}",
+        f"優先追蹤：{'、'.join((ranks.get('opportunity') or [])[:3]) or '無'}｜決策 {bundle.get('decision_identity') or '尚未取得'}｜預測 {bundle.get('prediction_identity') or '尚未取得'}",
     ]
 
 

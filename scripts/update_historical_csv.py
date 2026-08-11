@@ -1,10 +1,82 @@
 from datetime import datetime, timedelta
 
+import pandas as pd
+
 from app.loaders.google_sheet_loader import load_stock_ids_with_provenance
 from app.market.shioaji_client import classify_shioaji_error, get_api
 from app.market.historical_price_loader import get_historical_prices
 from app.market.historical_normalizer import minute_to_daily
 from app.market.historical_storage import inspect_historical_csv, save_historical_to_csv
+
+
+MIN_TECHNICAL_BARS = 20
+
+
+def fetch_yfinance_daily(stock_id, start_date, end_date, downloader=None):
+    """Fetch a credential-free TW fallback, trying listed then OTC suffix.
+
+    ``downloader`` is injectable so deterministic validators never use the
+    network.  Directional/research interpretation remains downstream.
+    """
+    if downloader is None:
+        import yfinance as yf
+        downloader = yf.download
+    failures = []
+    for suffix in (".TW", ".TWO"):
+        ticker = f"{str(stock_id).zfill(4)}{suffix}"
+        try:
+            frame = downloader(ticker, start=start_date, end=end_date, progress=False, auto_adjust=False, timeout=20)
+            if frame is None or frame.empty:
+                failures.append(f"{ticker}:empty")
+                continue
+            frame = frame.reset_index()
+            if isinstance(frame.columns, pd.MultiIndex):
+                frame.columns = [str(item[0]) for item in frame.columns]
+            columns = {str(name).lower().replace(" ", "_"): name for name in frame.columns}
+            required = {"date", "open", "high", "low", "close", "volume"}
+            if not required.issubset(columns):
+                failures.append(f"{ticker}:columns")
+                continue
+            normalized = pd.DataFrame({
+                "date": pd.to_datetime(frame[columns["date"]], errors="coerce").dt.date,
+                "open": pd.to_numeric(frame[columns["open"]], errors="coerce"),
+                "high": pd.to_numeric(frame[columns["high"]], errors="coerce"),
+                "low": pd.to_numeric(frame[columns["low"]], errors="coerce"),
+                "close": pd.to_numeric(frame[columns["close"]], errors="coerce"),
+                "volume": pd.to_numeric(frame[columns["volume"]], errors="coerce"),
+            }).dropna(subset=["date", "open", "high", "low", "close"])
+            normalized = normalized[
+                (normalized[["open", "high", "low", "close"]] > 0).all(axis=1)
+                & (normalized["high"] >= normalized[["open", "close"]].max(axis=1))
+                & (normalized["low"] <= normalized[["open", "close"]].min(axis=1))
+                & (normalized["volume"].fillna(0) >= 0)
+            ]
+            normalized = normalized.sort_values("date").drop_duplicates("date", keep="last")
+            if len(normalized) >= MIN_TECHNICAL_BARS:
+                return normalized, ticker, failures
+            failures.append(f"{ticker}:insufficient:{len(normalized)}")
+        except Exception as exc:
+            failures.append(f"{ticker}:{exc.__class__.__name__}")
+    return pd.DataFrame(), None, failures
+
+
+def _fallback_history(stock_id, start_date, end_date, *, downloader=None):
+    existing = inspect_historical_csv(stock_id)
+    bars_before = int(existing.get("row_count") or 0)
+    frame, ticker, failures = fetch_yfinance_daily(stock_id, start_date, end_date, downloader=downloader)
+    if not frame.empty:
+        path = save_historical_to_csv(frame, stock_id)
+        return {
+            "usable": True, "source": "yfinance_tw_reference", "ticker": ticker,
+            "csv_path": path, "latest_date": str(frame["date"].max()),
+            "bars_before": bars_before, "bars_after": len(frame), "failures": failures,
+        }
+    return {
+        "usable": bool(existing.get("usable")), "source": "existing_historical_csv",
+        "ticker": None, "csv_path": existing.get("csv_path"), "latest_date": existing.get("latest_date"),
+        "bars_before": bars_before, "bars_after": bars_before, "failures": failures,
+        "warning": existing.get("warning"),
+    }
 
 
 def _warning(code, message, stock_id=None, severity="warning", source="historical_csv_update"):
@@ -38,8 +110,9 @@ def _empty_status(start_date, end_date):
         "report_ready_available": False,
         "fallback_policy": {
             "enabled": True,
-            "fallback_source": "existing_historical_csv",
-            "bounded_kbars_window_days": 30,
+            "fallback_order": ["yfinance_tw_reference", "existing_historical_csv"],
+            "bounded_kbars_window_days": 180,
+            "minimum_technical_bars": MIN_TECHNICAL_BARS,
             "crash_pipeline_on_shioaji_failure": False,
         },
         "warnings": [],
@@ -47,7 +120,7 @@ def _empty_status(start_date, end_date):
     }
 
 
-def main(raise_on_failure=False, stock_ids=None, universe_evidence=None):
+def main(raise_on_failure=False, stock_ids=None, universe_evidence=None, yfinance_downloader=None):
     if stock_ids is None:
         stock_ids, universe_evidence = load_stock_ids_with_provenance()
 
@@ -91,20 +164,23 @@ def main(raise_on_failure=False, stock_ids=None, universe_evidence=None):
         print(f"開始更新歷史資料：{stock_id}")
 
         if api is None:
-            csv_status = inspect_historical_csv(stock_id)
+            csv_status = _fallback_history(stock_id, start_date, end_date, downloader=yfinance_downloader)
             stock_status.update(
                 {
-                    "update_status": "fallback_existing_csv",
+                    "update_status": f"fallback_{csv_status['source']}",
                     "fallback_used": True,
                     "fallback_usable": csv_status["usable"],
                     "csv_path": csv_status["csv_path"],
                     "latest_date": csv_status["latest_date"],
-                    "warning": csv_status["warning"],
+                    "warning": csv_status.get("warning"),
+                    "fallback_source": csv_status["source"],
+                    "bars_before": csv_status["bars_before"], "bars_after": csv_status["bars_after"],
+                    "fallback_failures": csv_status.get("failures", []),
                 }
             )
             if csv_status["usable"]:
                 status["fallback_count"] += 1
-                print(f"Shioaji 不可用，沿用既有 historical CSV：{csv_status['csv_path']}")
+                print(f"Shioaji 不可用，使用 {csv_status['source']}：{csv_status['csv_path']}")
             else:
                 status["missing_count"] += 1
                 status["warnings"].append(
@@ -140,15 +216,17 @@ def main(raise_on_failure=False, stock_ids=None, universe_evidence=None):
             print(f"完成：{csv_path}")
         except Exception as exc:
             classification = classify_shioaji_error(exc)
-            csv_status = inspect_historical_csv(stock_id)
+            csv_status = _fallback_history(stock_id, start_date, end_date, downloader=yfinance_downloader)
             stock_status.update(
                 {
-                    "update_status": "fallback_existing_csv_after_fetch_error",
+                    "update_status": f"fallback_{csv_status['source']}_after_fetch_error",
                     "fallback_used": True,
                     "fallback_usable": csv_status["usable"],
                     "csv_path": csv_status["csv_path"],
                     "latest_date": csv_status["latest_date"],
-                    "warning": classification,
+                    "warning": classification, "fallback_source": csv_status["source"],
+                    "bars_before": csv_status["bars_before"], "bars_after": csv_status["bars_after"],
+                    "fallback_failures": csv_status.get("failures", []),
                 }
             )
             status["failed_count"] += 1
