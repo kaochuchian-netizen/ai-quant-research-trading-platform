@@ -35,6 +35,10 @@ ENUM_LABELS = {
     "available": "可用", "unclassified": "尚未分類", "miss": "預測區間未命中",
     "long": "偏多交易", "short": "偏空交易", "not_applicable": "不適用",
     "target_hit": "目標已觸及", "stop_hit": "停損已觸及",
+    "mixed": "多空混合", "insufficient_evidence": "證據不足",
+    "insufficient_new_evidence": "新增證據不足", "created": "研究假設已建立",
+    "strengthened": "研究假設增強", "weakened": "研究假設減弱",
+    "contradicted": "研究假設受到反證", "supportive": "支持", "adverse": "不利",
 }
 
 INSTRUCTION_LABELS = {

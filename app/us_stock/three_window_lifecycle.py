@@ -172,5 +172,8 @@ def resolve_intraday_evidence(archive_root: Path, session_date: str, symbol: str
         "source_hash": wrapper.get("source_payload_hash") or wrapper.get("snapshot_id"),
         "source_plan_snapshot_id": source_plan.get("source_snapshot_id"),
         "trigger_status": card.get("entry_trigger_state"), "volume_state": card.get("volume_confirmation_state"),
+        "gap_state": card.get("gap_state"), "gap_current_pct": card.get("gap_current_pct"),
+        "volume_ratio": card.get("volume_ratio"), "volume_confirmation_state": card.get("volume_confirmation_state"),
         "data_status": card.get("data_status"), "current_price": card.get("current_price"),
+        "market_data_as_of": card.get("market_data_as_of"), "source": card.get("source"),
     }

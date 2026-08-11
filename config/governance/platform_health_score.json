@@ -1,6 +1,6 @@
 {
   "schema_version": "platform_health_score_v1",
-  "measured_at": "2026-07-30T23:30:00+08:00",
+  "measured_at": "2026-08-10T00:00:00+08:00",
   "current_phase_id": "phase_1",
   "overall_score": 70.2,
   "overall_target": 85,
@@ -10,7 +10,7 @@
       "name": "Product Quality",
       "score": 73,
       "previous_score": 72,
-      "implemented_score": 84,
+      "implemented_score": 86,
       "verified_score": 73,
       "residual_limitation": "Seven-window natural verification for the unified Decision Story is pending.",
       "description": "Correct, complete, consistent and usable public research across seven windows.",
@@ -19,14 +19,14 @@
       "target": 85,
       "trend": "improving",
       "weight": 0.1,
-      "evidence": "AI-DEV-198 adds differentiated TW symbol research, window intelligence and PM summaries; verified score remains unchanged pending a natural four-window chain."
+      "evidence": "AI-DEV-201 adds deterministic US evidence utility, differentiated research briefs, hypothesis continuity and calibration while leaving the verified score unchanged pending a natural US three-window lifecycle."
     },
     {
       "id": "decision_explainability",
       "name": "Decision Explainability",
       "score": 78,
       "previous_score": 76,
-      "implemented_score": 88,
+      "implemented_score": 90,
       "verified_score": 78,
       "residual_limitation": "Natural reports have not yet demonstrated all transition and missing-data scenarios.",
       "description": "Users can understand actions, confidence, outcomes and unavailable states.",
@@ -35,14 +35,14 @@
       "target": 88,
       "trend": "improving",
       "weight": 0.1,
-      "evidence": "AI-DEV-198 deterministically explains coverage, supporting and conflicting evidence, ranks, invalidation and next observation per symbol; natural verification is pending."
+      "evidence": "AI-DEV-201 deterministically explains supporting, opposing and missing US evidence, decomposed market/sector context, triggers, invalidation, counterargument and window-specific hypothesis changes; natural verification is pending."
     },
     {
       "id": "data_truthfulness",
       "name": "Data Truthfulness",
       "score": 76,
       "previous_score": 78,
-      "implemented_score": 84,
+      "implemented_score": 86,
       "verified_score": 76,
       "residual_limitation": "The 2026-07-29 TW 07:00 Google Sheets 503 prevented a canonical batch; bounded fallback is implemented but naturally unverified.",
       "description": "Observed, stale, unavailable and inferred data are not conflated.",
@@ -51,14 +51,14 @@
       "target": 90,
       "trend": "declining",
       "weight": 0.1,
-      "evidence": "AI-DEV-196 records the natural provider failure, adds admitted-snapshot universe fallback and fails closed when no bounded source exists."
+      "evidence": "AI-DEV-201 preserves missing, stale and failed US sources as explicit non-neutral states; no external source or live news is fabricated. Verified score remains constrained by natural provider availability."
     },
     {
       "id": "evidence_traceability",
       "name": "Evidence Traceability",
       "score": 80,
       "previous_score": 78,
-      "implemented_score": 89,
+      "implemented_score": 92,
       "verified_score": 80,
       "residual_limitation": "AI-DEV-197 institutional evidence is deterministically implemented but not naturally verified; historical immutable snapshots remain unchanged.",
       "description": "Decisions retain source, time, snapshot, revision and payload identity.",
@@ -67,14 +67,14 @@
       "target": 90,
       "trend": "improving",
       "weight": 0.1,
-      "evidence": "AI-DEV-198 adds a complete TW per-symbol evidence coverage registry and disclosed conflict/template fallbacks; verified score remains unchanged pending natural TW batches."
+      "evidence": "AI-DEV-201 adds source class/quality, timestamps, freshness, role, materiality, provenance, dedup identity, admitted origin identity and per-window research identity to the US canonical bundle."
     },
     {
       "id": "cross_window_continuity",
       "name": "Cross-window Continuity",
       "score": 76,
       "previous_score": 74,
-      "implemented_score": 87,
+      "implemented_score": 90,
       "verified_score": 76,
       "residual_limitation": "Full TW and US natural window sequences are not yet verified.",
       "description": "Plans and outcomes retain ownership and identity across TW and US windows.",
@@ -83,14 +83,14 @@
       "target": 90,
       "trend": "improving",
       "weight": 0.1,
-      "evidence": "AI-DEV-198 adds coherent window-specific intelligence on top of the existing lifecycle without changing plan ownership; verified score remains unchanged."
+      "evidence": "AI-DEV-201 deterministically replays 20:00 origin research through 23:00 hypothesis evolution and 06:30 calibration/carryforward without changing the admitted source plan or Decision Layer action."
     },
     {
       "id": "cross_channel_parity",
       "name": "Cross-channel Parity",
       "score": 81,
       "previous_score": 80,
-      "implemented_score": 90,
+      "implemented_score": 92,
       "verified_score": 81,
       "residual_limitation": "Real Email and LINE delivery is intentionally not exercised by this task.",
       "description": "Dashboard, Archive, Email, LINE and Operations share canonical identity and counts.",
@@ -99,7 +99,7 @@
       "target": 92,
       "trend": "improving",
       "weight": 0.1,
-      "evidence": "AI-DEV-198 deterministically binds Dashboard, Archive, Email preview, LINE preview and Operations to one TW decision identity; verified score remains unchanged pending natural parity."
+      "evidence": "AI-DEV-201 deterministically binds the US window research identity to Dashboard, Archive payload, Email preview, LINE summary and Operations while retaining the immutable 20:00 origin identity."
     },
     {
       "id": "natural_verification",
@@ -117,20 +117,22 @@
       "id": "regression_risk",
       "name": "Regression Risk",
       "score": 78,
+      "implemented_score": 84,
+      "verified_score": 78,
       "description": "Higher score means lower residual risk across protected contracts.",
       "measurement": "Required branch, seven-window, archive, landing and post-merge gates.",
       "owner": "Quality Engineering",
       "target": 90,
       "trend": "declining",
       "weight": 0.1,
-      "evidence": "Existing content gates did not detect a missing effective-date batch; AI-DEV-196 adds deadline-aware seven-window completeness checks."
+      "evidence": "AI-DEV-201 adds positive/negative semantic fixtures, historical three-window replay, source-quality and SEC/news gates; verified risk remains unchanged until natural US lifecycle evidence."
     },
     {
       "id": "technical_debt",
       "name": "Technical Debt",
       "score": 61,
       "previous_score": 58,
-      "implemented_score": 70,
+      "implemented_score": 72,
       "verified_score": 61,
       "residual_limitation": "Legacy V4 count projections remain for backward-compatible secondary metrics.",
       "description": "Higher score means lower debt and fewer duplicated contracts or legacy fallbacks.",
@@ -139,7 +141,7 @@
       "target": 80,
       "trend": "stable",
       "weight": 0.1,
-      "evidence": "AI-DEV-197 extends the existing collected research object with one canonical projection and preserves the legacy Decision Engine inputs for compatibility."
+      "evidence": "AI-DEV-201 extends the existing AI-DEV-197 bundle instead of creating a sidecar, preserves V1 compatibility fields and isolates V2 contracts in a pure reusable module."
     },
     {
       "id": "phase_completion",

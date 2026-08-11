@@ -526,6 +526,47 @@ def _institutional_research_html(card: dict[str, Any]) -> str:
     ) or "尚無可納入研究合成的事件"
     gaps = "、".join(coverage.get("coverage_gap") or []) or "無"
     identity = str(bundle.get("research_identity") or "尚未取得")
+    v2 = bundle.get("research_intelligence_v2") if isinstance(bundle.get("research_intelligence_v2"), dict) else {}
+    if v2:
+        hypothesis = v2.get("hypothesis") if isinstance(v2.get("hypothesis"), dict) else {}
+        context = v2.get("market_sector_context") if isinstance(v2.get("market_sector_context"), dict) else {}
+        effective = v2.get("effective_coverage") if isinstance(v2.get("effective_coverage"), dict) else {}
+        by_id = {item.get("evidence_id"): item for item in evidence}
+        evidence_line = lambda ids: "；".join(
+            str((by_id.get(item_id) or {}).get("headline") or item_id) for item_id in (ids or [])[:3]
+        ) or "無"
+        hypothesis_state = {
+            "confirmed": "研究假設確認", "invalidated": "研究假設失效",
+            "unchanged": "研究假設未改變",
+        }.get(str(hypothesis.get("state") or ""), localize_enum(hypothesis.get("state")))
+        return (
+            "<section class='decision-section' data-section='institutional-research-v2'><h4>US Research Brief｜機構研究脈絡</h4>"
+            f"<p>{_escape(v2.get('research_brief') or '研究摘要尚未建立')}</p>"
+            + _window_metric_grid([
+                ("研究立場", localize_enum(v2.get("research_stance"))),
+                ("研究分數（非交易分數）", v2.get("research_score") if v2.get("research_score") is not None else "證據不足"),
+                ("研究信心", v2.get("research_confidence")),
+                ("有效研究覆蓋", f"{effective.get('score', 0)}%"),
+                ("假設狀態", hypothesis_state),
+                ("大盤環境", localize_enum(context.get("broad_market"))),
+                ("成長／科技", localize_enum(context.get("growth_technology"))),
+                ("類股 SOXX", localize_enum(context.get("sector"))),
+                ("Window Research Identity", v2.get("window_research_identity")),
+                ("Origin Research Identity", identity),
+            ])
+            + "<details><summary>研究證據、假設與校準</summary>"
+            + _window_metric_grid([
+                ("支持證據 Supporting", evidence_line(v2.get("supporting_evidence"))),
+                ("反對證據 Opposing", evidence_line(v2.get("opposing_evidence"))),
+                ("缺失證據 Missing", "、".join(v2.get("missing_evidence") or []) or "無"),
+                ("研究假設 Hypothesis", hypothesis.get("statement")),
+                ("確認條件 Trigger", hypothesis.get("trigger")),
+                ("失效條件 Invalidation", hypothesis.get("invalidation")),
+                ("反方論點 Counter", hypothesis.get("counter_argument")),
+                ("本視窗更新", (v2.get("window_update") or {}).get("explanation")),
+            ])
+            + "</details></section>"
+        )
     return (
         "<section class='decision-section' data-section='institutional-research'><h4>機構研究脈絡</h4>"
         + _window_metric_grid([

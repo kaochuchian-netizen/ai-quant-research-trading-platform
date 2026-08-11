@@ -159,6 +159,8 @@ def build_operations_provenance(*, market: str, window: str, runtime_status: str
             {
                 "symbol": card.get("symbol"),
                 "research_identity": (card.get("institutional_research") or {}).get("research_identity"),
+                "window_research_identity": ((card.get("institutional_research") or {}).get("research_intelligence_v2") or {}).get("window_research_identity"),
+                "hypothesis_state": ((((card.get("institutional_research") or {}).get("research_intelligence_v2") or {}).get("hypothesis") or {}).get("state")),
                 "source_window": ((card.get("institutional_research") or {}).get("continuity") or {}).get("source_window"),
                 "source_snapshot_id": ((card.get("institutional_research") or {}).get("continuity") or {}).get("source_snapshot_id"),
             }
