@@ -75,7 +75,6 @@ def validate() -> dict:
     checks["case_d_admitted_used_rendered"] = funnel["stages"]["ADMITTED"] == funnel["stages"]["RRE_USED"] == funnel["stages"]["RENDERED"] == 1 and "公司公告營運展望更新" in html
 
     duplicate = contract([item(), item(headline="轉載：公司公告營運展望更新", publisher="可信媒體")])
-    # Same canonical URL is the deterministic dedupe identity.
     checks["case_e_duplicate"] = duplicate["evidence_funnel"]["rejection_reasons"].get("DUPLICATE") == 1 and duplicate["evidence_funnel"]["stages"]["ADMITTED"] == 1
 
     stale = contract([item(published_at="2026-08-01T10:00:00+08:00")])
@@ -94,6 +93,45 @@ def validate() -> dict:
     states = {row["symbol"]: (row["tomorrow_state"], row["tomorrow_watch"]) for row in decision["stock_intelligence"]}
     checks["case_j_tomorrow_semantics"] = states["2330"] == ("REASSESS", "明日重新評估") and states["6873"] == ("CONTINUE_OBSERVE", "明日延續觀察")
 
+    directionless_item = item(direction=None, headline="公司公告新產品時程", source_url="mops:2330:directionless")
+    directionless = contract([directionless_item])
+    directionless_research = research([card(news=directionless)])
+    directionless_note = directionless_research["research_notes"][0]
+    directionless_funnel = directionless_note["research_evidence_observability"]["news"]
+    directionless_html = _tw_rre_production_html({"research_reasoning_projection": directionless_research, "prediction_identity": "fixture"})
+    checks["case_k_directionless_qualified_news_admitted"] = (
+        directionless["evidence_funnel"]["stages"]["ADMITTED"] == 1
+        and directionless["primary_evidence"]["direction"] == "unavailable"
+        and directionless["primary_evidence"]["direction_status"] == "NOT_EVALUATED"
+        and "UNSAFE_TO_CITE" not in directionless["evidence_funnel"]["rejection_reasons"]
+    )
+    checks["case_l_directionless_news_no_false_direction"] = (
+        directionless_note["conclusion"] == "insufficient_evidence"
+        and not directionless_note["supporting"]
+        and not directionless_note["opposing"]
+        and directionless_research["morning_or_window_brief"]["best_research_status"] == "NO_QUALIFIED_RESEARCH"
+        and "0 檔具偏多研究證據" in directionless_research["morning_or_window_brief"]["market_narrative"]
+        and "0 檔具偏空證據" in directionless_research["morning_or_window_brief"]["market_narrative"]
+    )
+    checks["case_m_directionless_news_visible"] = (
+        directionless_funnel["stages"]["ADMITTED"] == 1
+        and directionless_funnel["stages"]["RRE_USED"] == 1
+        and directionless_funnel["stages"]["RENDERED"] == 1
+        and "公司公告新產品時程" in directionless_html
+    )
+
+    legacy_news = copy.deepcopy(official)
+    legacy_news.pop("evidence_funnel", None)
+    legacy_research = research([card(news=legacy_news)])
+    legacy_diag = legacy_research["research_notes"][0]["research_evidence_observability"]["news"]
+    checks["case_n_legacy_funnel_lower_bound_truthful"] = (
+        legacy_diag["count_semantics"] == "COMPATIBILITY_LOWER_BOUND"
+        and bool(legacy_diag["inferred_stages"])
+        and legacy_diag["stages"]["ADMITTED"] == 1
+        and not validate_tw_daily_research(legacy_research, {"2330"})
+    )
+    checks["case_o_exact_funnel_marked"] = funnel["count_semantics"] == "EXACT" and not funnel["inferred_stages"]
+
     narrative = market_only["morning_or_window_brief"]["market_narrative"]
     checks["direction_counts_substantive"] = "0 檔具偏多研究證據" in narrative and "1 檔證據不足" in narrative
     boundary = decision["model_boundary"]
@@ -106,7 +144,17 @@ def validate() -> dict:
     mutated = copy.deepcopy(market_only)
     mutated["morning_or_window_brief"]["best_research_status"] = "QUALIFIED"
     mutation_errors = validate_tw_daily_research(mutated, {"2330"})
-    details.update({"none": none, "filtered": filtered, "official_funnel": funnel, "market_note": market_note, "tomorrow_states": states, "negative_best_research_mutation_errors": mutation_errors})
+    details.update({
+        "none": none,
+        "filtered": filtered,
+        "official_funnel": funnel,
+        "directionless": directionless,
+        "directionless_note": directionless_note,
+        "legacy_funnel": legacy_diag,
+        "market_note": market_note,
+        "tomorrow_states": states,
+        "negative_best_research_mutation_errors": mutation_errors,
+    })
     checks["negative_best_research_mutation"] = "best_research_without_qualified_candidate" in mutation_errors
     checks["canonical_research_validation"] = not validate_tw_daily_research(official_research, {"2330"}) and not validate_tw_daily_research(market_only, {"2330"})
     return {"ok": all(checks.values()), "validator": "validate_ai_dev_207_tw_research_evidence_coverage_news_visibility_v1", "checks": checks, "details": details, "safety": {"network": False, "production_pipeline": False, "notification": False, "trading": False, "archive_write": False}}
