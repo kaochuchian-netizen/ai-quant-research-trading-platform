@@ -7,7 +7,8 @@ Status: `IMPLEMENTED_DETERMINISTIC_QA_PASS_PENDING_NATURAL_VERIFICATION`
 - Starting main: `e34a35141643c2c8a46bc65c0bd1d010c12bcdc3`
 - Branch: `ai-dev/209-qualified-news-rre-rendering-hardening-v2`
 - Issue: [#263](https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/issues/263)
-- Commits / PR / CI / merge: reconciled in the governed final handoff.
+- Implementation commit: `4bd2499` (full SHA recorded by Git/GitHub)
+- PR / CI / merge: reconciled in the governed final handoff after GitHub gates complete.
 
 ## Root-cause audit
 
@@ -29,7 +30,9 @@ The initial RRE hypothesis/trigger/invalidation text was also stance-template ba
 
 The ACTIVE leaf H2 validator mirrors the natural six-symbol admitted partition `4/3/8/4/2/1`, checks non-zero RRE/rendered counts, bounded-selection reasons, official-source preference, stale exclusion, zero directional contribution, differentiated hypothesis/risk/trigger/invalidation, news coverage availability, provenance rendering, unchanged Decision output, AI-DEV-210 regression and registry closure.
 
-Exact final commands, counts, CI and post-merge identities are reported in the final Codex handoff.
+Targeted PASS: AI-DEV-198, 201, 202, 207, 208, 209, 210, cross-feature, admission/public parity, notification provenance, production landing integrity, source inventory, Python compile and `git diff --check`.
+
+The executable branch registry selected 24 validators, executed all 23 required leaves, recursion-guarded only the branch orchestrator, passed 23/23 leaves, failed 0 and had 0 unexplained skips. Exact CI and post-merge identities are reported in the final Codex handoff.
 
 ## Safety
 
