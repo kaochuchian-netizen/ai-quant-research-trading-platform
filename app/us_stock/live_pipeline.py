@@ -15,6 +15,7 @@ from app.us_stock.institutional_research import (
     BOUNDARY as INSTITUTIONAL_RESEARCH_BOUNDARY,
     aggregate_bundles,
     build_bundle,
+    refresh_current_news,
     resolve_bundle,
     review_diagnosis,
 )
@@ -308,6 +309,10 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
         strategies = build_dual_strategies(DEFAULT_MARKET, score, prediction, result.quote, technical, market_context=market_context, research=research, generated_at=generated_at)
         card = dashboard_card(entry, result.quote, technical, score, prediction, result.news, window, research, strategies)
         fresh_research_bundle = build_bundle(symbol, research, market_context, generated_at)
+        finalized_funnel = ((fresh_research_bundle.get("news_intelligence_v2") or {}).get("evidence_funnel") or {})
+        if isinstance((research.get("material_news") or {}).get("evidence_funnel"), dict):
+            research["material_news"]["evidence_funnel"] = json.loads(json.dumps(finalized_funnel))
+            card["research_sections"]["material_news"] = research["material_news"]
         institutional_research = (
             fresh_research_bundle
             if window == "us_pre_market_2000"
@@ -320,6 +325,13 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
                 "status": "source_bundle_unavailable",
                 "effective_trading_date": context["session_date"],
             }
+        elif window != "us_pre_market_2000":
+            # Later windows inherit the immutable origin identity, but append
+            # current qualified news as read-only research context.  Scoring,
+            # prediction, strategy and Decision inputs were already built.
+            institutional_research = refresh_current_news(
+                institutional_research, fresh_research_bundle, generated_at,
+            )
         research["institutional_research"] = institutional_research
         card["institutional_research"] = institutional_research
         card["research_identity"] = institutional_research["research_identity"]

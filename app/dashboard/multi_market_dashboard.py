@@ -535,6 +535,11 @@ def _institutional_research_html(card: dict[str, Any]) -> str:
         evidence_line = lambda ids: "；".join(
             str((by_id.get(item_id) or {}).get("headline") or item_id) for item_id in (ids or [])[:3]
         ) or "無"
+        selected_news = [item for item in (v2.get("selected_news_evidence") or []) if isinstance(item, dict)]
+        selected_news_line = "；".join(
+            f"{item.get('headline') or '未命名事件'}（{item.get('publisher') or item.get('source_class') or '來源未標示'}｜{item.get('published_at') or '時間未標示'}｜{item.get('source_class') or '來源類別未標示'}｜非方向性）"
+            for item in selected_news[:2]
+        ) or "本視窗無可選用的當期個股新聞"
         hypothesis_state = {
             "confirmed": "研究假設確認", "invalidated": "研究假設失效",
             "unchanged": "研究假設未改變",
@@ -556,12 +561,14 @@ def _institutional_research_html(card: dict[str, Any]) -> str:
             ])
             + "<details><summary>研究證據、假設與校準</summary>"
             + _window_metric_grid([
+                ("個股當期證據 Current News", selected_news_line),
                 ("支持證據 Supporting", evidence_line(v2.get("supporting_evidence"))),
                 ("反對證據 Opposing", evidence_line(v2.get("opposing_evidence"))),
                 ("缺失證據 Missing", "、".join(v2.get("missing_evidence") or []) or "無"),
                 ("研究假設 Hypothesis", hypothesis.get("statement")),
                 ("確認條件 Trigger", hypothesis.get("trigger")),
                 ("失效條件 Invalidation", hypothesis.get("invalidation")),
+                ("主要風險 Main Risk", v2.get("primary_risk")),
                 ("反方論點 Counter", hypothesis.get("counter_argument")),
                 ("本視窗更新", (v2.get("window_update") or {}).get("explanation")),
             ])
@@ -590,7 +597,9 @@ def _us_window_card(card: dict[str, Any], window: str) -> str:
     tactical = presentation.get("daily_tactical", {})
     prediction = presentation.get("prediction", {})
     reason_text = _joined_text(presentation.get("reasons"), "等待量價與資料確認")
-    risk_text = _joined_text(presentation.get("risks"), "未偵測到額外風險")
+    bundle = card.get("institutional_research") if isinstance(card.get("institutional_research"), dict) else {}
+    research_v2 = bundle.get("research_intelligence_v2") if isinstance(bundle.get("research_intelligence_v2"), dict) else {}
+    risk_text = safe_public_text(research_v2.get("primary_risk"), missing="") or _joined_text(presentation.get("risks"), "未偵測到額外風險")
     news_text = _research_v3_text(presentation, "material_news")
     sec_text = _research_v3_text(presentation, "sec")
     review_text = _research_v3_text(presentation, "review")
