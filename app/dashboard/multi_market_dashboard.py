@@ -1212,7 +1212,7 @@ def _tw_post_close_card(card: dict[str, Any]) -> str:
         return f"""
         <article class="stock-card decision-card window-stock-card compact-no-trade-card" data-market="TW" data-card-type="window-review" data-report-type="post-close-review">
           <div class="decision-card__head"><div><div class="decision-card__market">TW｜15:00 盤後檢討</div><h3>{stock_id} {stock_name}</h3></div><span class="decision-badge decision-badge--warn">無交易</span></div>
-          <section class="decision-section"><h4>今日結果</h4>{_window_metric_grid([('預測區間', '不適用'), ('交易結果', '無交易'), ('明日行動', '維持觀察，除非重新形成完整策略')])}</section>
+          <section class="decision-section"><h4>今日結果</h4>{_window_metric_grid([('預測區間', '不適用'), ('交易結果', '無交易'), ('明日行動', next_action_for_outcome('no_trade'))])}</section>
         </article>"""
     mfe = card.get("mfe") if isinstance(card.get("mfe"), dict) else {}
     mae = card.get("mae") if isinstance(card.get("mae"), dict) else {}

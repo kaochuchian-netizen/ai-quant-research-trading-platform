@@ -39,6 +39,40 @@ INTRADAY_ACTIONS = ("hold", "wait_volume", "reduce", "exit", "no_trade")
 OVERNIGHT_ACTIONS = ("hold", "hold_with_protection", "watch", "reduce", "exit", "no_trade")
 TRADE_OUTCOMES = ("win", "loss", "not_triggered", "no_trade", "open_at_close", "pending_evidence")
 PREDICTION_RESULTS = ("hit", "partial_hit", "miss", "not_applicable")
+
+
+def canonical_prediction_range_result(card: dict[str, Any]) -> str:
+    """Resolve the public prediction result without allowing V2 to override canon.
+
+    Prediction evaluation remains separate from trade authorization, but a
+    canonical no-trade review is not a range-result sample in the four-window
+    Decision presentation.  V2 is a compatibility fallback only when its
+    originating snapshot and evaluation are both explicitly valid.
+    """
+    trade_outcome = str(card.get("trade_outcome") or "").lower()
+    prediction_status = str(card.get("prediction_status") or "").lower()
+    if trade_outcome == "no_trade" or prediction_status == "no_trade":
+        return "not_applicable"
+    candidates = [card.get("prediction_range_result")]
+    evaluation = card.get("prediction_evaluation")
+    if isinstance(evaluation, dict):
+        candidates.append(evaluation.get("range_result"))
+    for candidate in candidates:
+        value = str(candidate or "").lower()
+        if value in PREDICTION_RESULTS:
+            return value
+    snapshot_v2 = card.get("prediction_snapshot_v2")
+    evaluation_v2 = card.get("prediction_evaluation_v2")
+    if (
+        isinstance(snapshot_v2, dict)
+        and snapshot_v2.get("prediction_status") == "evaluable"
+        and isinstance(evaluation_v2, dict)
+        and evaluation_v2.get("evaluation_status") == "evaluated"
+    ):
+        value = str(evaluation_v2.get("range_result") or "").lower()
+        if value in PREDICTION_RESULTS:
+            return value
+    return "not_applicable"
 EVIDENCE_STATUSES = ("complete", "partial", "missing", "not_applicable")
 RISK_STATES = ("normal", "target_near", "stop_near", "both_near", "invalidated", "not_applicable")
 PRE_ENTRY_ACTIONS = ("wait", "cancel_setup", "wait_volume", "wait_event", "recheck")
@@ -494,12 +528,20 @@ def normalize_lifecycle_card(card: dict[str, Any], window: str) -> dict[str, Any
             "not_triggered" if legacy == "not_triggered" else
             "open_at_close" if actual_complete and trigger_status == "triggered" else "pending_evidence"
         ))
-        prediction_result = str(
+        resolver_input = dict(item)
+        resolver_input["trade_outcome"] = trade_outcome
+        has_prediction_result = bool(item.get("prediction_range_result")) or bool(
             (item.get("prediction_evaluation") or {}).get("range_result")
-            if isinstance(item.get("prediction_evaluation"), dict) else ""
-        ) or str(item.get("prediction_range_result") or _prediction_result(
+            if isinstance(item.get("prediction_evaluation"), dict) else None
+        ) or (
+            isinstance(item.get("prediction_snapshot_v2"), dict)
+            and item["prediction_snapshot_v2"].get("prediction_status") == "evaluable"
+            and isinstance(item.get("prediction_evaluation_v2"), dict)
+            and item["prediction_evaluation_v2"].get("evaluation_status") == "evaluated"
+        )
+        prediction_result = canonical_prediction_range_result(resolver_input) if has_prediction_result else _prediction_result(
             item, number(item.get("actual_low")), number(item.get("actual_high")), no_trade=plan_status == "no_trade",
-        ))
+        )
         explanation = item.get("prediction_explainability") if isinstance(item.get("prediction_explainability"), dict) else _prediction_explainability(
             item, number(item.get("actual_low")), number(item.get("actual_high")), prediction_result,
         )
@@ -898,7 +940,11 @@ def aggregate_cards(window: str, cards: list[dict[str, Any]]) -> dict[str, Any]:
         trade = Counter(str(card.get("trade_outcome") or {
             "hit": "win", "fail": "loss", "pending": "open_at_close",
         }.get(str(card.get("canonical_outcome") or ""), card.get("canonical_outcome") or "pending_evidence")) for card in cards)
-        prediction = Counter(str((card.get("prediction_evaluation_v2") or {}).get("range_result") or (card.get("prediction_evaluation") or {}).get("range_result") or card.get("prediction_range_result") or "not_applicable") for card in cards)
+        prediction_results = {
+            str(card.get("symbol") or card.get("stock_id") or ""): canonical_prediction_range_result(card)
+            for card in cards
+        }
+        prediction = Counter(prediction_results.values())
         trade_distribution = {key: int(trade.get(key, 0)) for key in TRADE_OUTCOMES}
         prediction_distribution = {key: int(prediction.get(key, 0)) for key in PREDICTION_RESULTS}
         legacy = {
@@ -908,6 +954,10 @@ def aggregate_cards(window: str, cards: list[dict[str, Any]]) -> dict[str, Any]:
         }
         base.update({
             "prediction_evaluation_counts": prediction_distribution,
+            "prediction_evaluation_symbols": {
+                result: [symbol for symbol, value in prediction_results.items() if value == result]
+                for result in PREDICTION_RESULTS
+            },
             "prediction_v2_evaluable_count": sum((card.get("prediction_snapshot_v2") or {}).get("prediction_status") == "evaluable" for card in cards),
             "prediction_v2_evaluated_count": sum((card.get("prediction_evaluation_v2") or {}).get("evaluation_status") == "evaluated" for card in cards),
             "no_trade_prediction_evaluated_count": sum(card.get("trade_outcome") == "no_trade" and (card.get("prediction_evaluation_v2") or {}).get("evaluation_status") == "evaluated" for card in cards),
@@ -918,6 +968,8 @@ def aggregate_cards(window: str, cards: list[dict[str, Any]]) -> dict[str, Any]:
             "open_at_close_count": trade_distribution["open_at_close"],
             "pending_review_count": trade_distribution["pending_evidence"], "review_universe_count": len(cards),
         })
+        if sum(prediction_distribution.values()) != len(cards):
+            raise ValueError("prediction_evaluation_partition_mismatch")
     base["summary_hash"] = stable_hash(base)
     return base
 
