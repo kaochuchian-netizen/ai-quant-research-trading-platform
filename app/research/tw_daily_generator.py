@@ -171,7 +171,6 @@ def _card_evidence(card: dict[str, Any], market_time: str) -> list[dict[str, Any
         ))
 
     news = card.get("news_evidence") if isinstance(card.get("news_evidence"), dict) else {}
-    news_direction = _direction(card.get("news_direction"))
     news_conf = news.get("confidence") if isinstance(news.get("confidence"), dict) else {}
     admitted_news = [item for item in (news.get("evidence") or []) if isinstance(item, dict)]
     for item in admitted_news[:3]:
@@ -179,8 +178,6 @@ def _card_evidence(card: dict[str, Any], market_time: str) -> list[dict[str, Any
         if not headline:
             continue
         direction = _direction(item.get("direction"))
-        if direction == "unavailable":
-            direction = news_direction
         coverage = _freshness_status(item.get("published_at"), market_time)
         rows.append(_record(
             market_time=market_time, symbol=symbol, evidence_class="news",
@@ -274,10 +271,20 @@ def _news_diagnostics(card: dict[str, Any], bundle: dict[str, Any], *, rendered_
     stages = dict(source.get("stages") or {})
     admitted_count = len([item for item in news.get("evidence") or [] if isinstance(item, dict)])
     upstream_stages = ("DISCOVERED", "RETRIEVED", "NORMALIZED", "SYMBOL_ATTRIBUTED", "RELEVANT", "MATERIAL", "QUALITY_QUALIFIED", "FRESH", "DEDUPLICATED", "ADMITTED")
+    inferred_stages = []
     for name in upstream_stages:
-        # Compatibility-projected admitted evidence necessarily passed the
-        # canonical upstream gates even if an older payload predates funnel V1.
-        stages.setdefault(name, admitted_count)
+        if name not in stages:
+            stages[name] = admitted_count
+            inferred_stages.append(name)
+    source_semantics = source.get("count_semantics")
+    if source_semantics:
+        count_semantics = str(source_semantics)
+    elif source.get("stages"):
+        count_semantics = "EXACT_LEGACY_V1"
+    else:
+        count_semantics = "COMPATIBILITY_LOWER_BOUND"
+    if inferred_stages and source.get("stages"):
+        count_semantics = "PARTIAL_COMPATIBILITY_LOWER_BOUND"
     used = sum(item.get("evidence_class") == "news" and item.get("evidence_id") in set(bundle["reasoning"].get("substantive_evidence_ids") or []) for item in bundle["evidence"])
     stages["RRE_USED"] = used
     stages["RENDERED"] = min(rendered_count, used)
@@ -287,7 +294,14 @@ def _news_diagnostics(card: dict[str, Any], bundle: dict[str, Any], *, rendered_
     if used > stages["RENDERED"]:
         rejection_reasons["RENDERER_NOT_SELECTED"] = used - stages["RENDERED"]
     absence = "NEWS_SELECTED_AND_RENDERED" if stages["RENDERED"] else "NEWS_ADMITTED_NOT_SELECTED" if stages.get("ADMITTED", 0) else "NEWS_DISCOVERED_BUT_FILTERED" if stages.get("DISCOVERED", 0) else "NO_RELEVANT_NEWS_DISCOVERED"
-    return {"schema_version": "tw_research_evidence_funnel_v1", "stages": stages, "rejection_reasons": rejection_reasons, "absence_state": absence}
+    return {
+        "schema_version": "tw_research_evidence_funnel_v1",
+        "count_semantics": count_semantics,
+        "inferred_stages": inferred_stages,
+        "stages": stages,
+        "rejection_reasons": rejection_reasons,
+        "absence_state": absence,
+    }
 
 
 def _hypothesis_state(window: str, card: dict[str, Any]) -> dict[str, Any]:
@@ -363,6 +377,14 @@ def build_tw_daily_research(
         supporting = _labels(reasoning["supporting_evidence_ids"], bundle["evidence"])
         opposing = _labels(reasoning["opposing_evidence_ids"], bundle["evidence"])
         contextual = _labels(reasoning.get("contextual_evidence_ids") or [], bundle["evidence"])
+        evidence_by_id = {item["evidence_id"]: item for item in bundle["evidence"]}
+        neutral_research_ids = [
+            evidence_id for evidence_id in reasoning.get("neutral_evidence_ids") or []
+            if evidence_id in evidence_by_id
+            and evidence_by_id[evidence_id].get("research_role") == "substantive"
+            and evidence_by_id[evidence_id].get("evidence_class") == "news"
+        ]
+        neutral_research = _labels(neutral_research_ids, bundle["evidence"])
         missing = _missing(card, reasoning)
         company = bundle["knowledge"].get("dimensions") or {}
         context = [
@@ -370,23 +392,26 @@ def build_tw_daily_research(
             *company.get("long_term_drivers", [])[:2],
         ]
         action = _text(decision.get("decision_category_label") or card.get("action"), "觀察候選")
+        neutral_clause = f"；另有非方向性研究證據：{neutral_research[0]}" if neutral_research else ""
         if supporting and opposing:
-            summary = f"{symbol} {_name(card)}同時有正反證據；{supporting[0]}，但{opposing[0]}，因此維持「{action}」。"
+            summary = f"{symbol} {_name(card)}同時有正反證據；{supporting[0]}，但{opposing[0]}{neutral_clause}，因此維持「{action}」。"
         elif supporting:
             limit = f"；但仍缺少{'、'.join(missing[:2])}" if missing else ""
-            summary = f"{symbol} {_name(card)}的主要支持為{supporting[0]}{limit}，目前維持「{action}」。"
+            summary = f"{symbol} {_name(card)}的主要支持為{supporting[0]}{neutral_clause}{limit}，目前維持「{action}」。"
         elif opposing:
-            summary = f"{symbol} {_name(card)}受{opposing[0]}限制，且需確認{'、'.join(missing[:2]) or '後續證據'}，目前維持「{action}」。"
+            summary = f"{symbol} {_name(card)}受{opposing[0]}限制{neutral_clause}，且需確認{'、'.join(missing[:2]) or '後續證據'}，目前維持「{action}」。"
+        elif neutral_research:
+            summary = f"{symbol} {_name(card)}已取得非方向性研究證據：{neutral_research[0]}；目前仍不足以形成偏多或偏空結論，維持「{action}」。"
         else:
             summary = f"{symbol} {_name(card)}目前沒有足以形成方向結論的證據；長期脈絡為{'、'.join(context[:2]) or '尚未建檔'}，先維持「{action}」。"
         substantive_count = len(reasoning.get("substantive_evidence_ids") or [])
         qualified = reasoning["conclusion"] in {"bullish", "bearish", "mixed"} and substantive_count > 0 and float(reasoning["confidence"]["score"]) >= 50
-        news_rendered = sum(item.startswith("新聞｜") for item in supporting + opposing)
+        news_rendered = sum(item.startswith("新聞｜") for item in supporting + opposing) + (1 if neutral_research else 0)
         notes.append({
             "symbol": symbol, "name": _name(card), "generated_by": "research_reasoning_engine_v1",
             "research_summary": summary, "conclusion": reasoning["conclusion"],
             "supporting": supporting, "opposing": opposing, "missing": missing,
-            "contextual_evidence": contextual,
+            "contextual_evidence": contextual, "neutral_research_evidence": neutral_research,
             "why": reasoning.get("why") or [], "why_not": reasoning.get("why_not") or [],
             "unknown": missing, "counter_argument": reasoning["counter_argument"],
             "company_context": context, "knowledge_status": bundle["knowledge"]["status"],
@@ -427,9 +452,7 @@ def build_tw_daily_research(
         "best_research_status": "QUALIFIED" if strongest else "NO_QUALIFIED_RESEARCH",
         "relative_evidence_candidate": f"{relative['symbol']} {relative['name']}" if relative else None,
         "largest_research_risk": f"{risk['symbol']} {risk['name']}｜缺口：{'、'.join(risk['missing'][:3]) or '無'}" if risk else "尚無研究風險",
-        "next_question": (
-            strongest["hypothesis"]["expected_trigger"] if strongest else "等待下一批次研究證據"
-        ),
+        "next_question": strongest["hypothesis"]["expected_trigger"] if strongest else "等待下一批次研究證據",
     }
     result = {
         "schema_version": "tw_daily_research_reasoning_v1", "market": "TW", "window": window,
@@ -471,7 +494,7 @@ def validate_tw_daily_research(value: dict[str, Any], expected_symbols: set[str]
         errors.append("legacy_research_note")
     for row in notes:
         symbol = row.get("symbol")
-        for key in ("supporting", "opposing", "missing", "unknown", "reasoning_chain"):
+        for key in ("supporting", "opposing", "missing", "unknown", "reasoning_chain", "neutral_research_evidence"):
             if not isinstance(row.get(key), list):
                 errors.append(f"{symbol}:{key}")
         hypothesis = row.get("hypothesis") or {}
@@ -491,6 +514,11 @@ def validate_tw_daily_research(value: dict[str, Any], expected_symbols: set[str]
             errors.append(f"{symbol}:news_funnel_counts")
         elif any(stages[left] < stages[right] for left, right in zip(ordered, ordered[1:])):
             errors.append(f"{symbol}:news_funnel_non_monotonic")
+        semantics = diagnostic.get("count_semantics")
+        if semantics not in {"EXACT", "EXACT_LEGACY_V1", "COMPATIBILITY_LOWER_BOUND", "PARTIAL_COMPATIBILITY_LOWER_BOUND"}:
+            errors.append(f"{symbol}:news_funnel_count_semantics")
+        if semantics in {"COMPATIBILITY_LOWER_BOUND", "PARTIAL_COMPATIBILITY_LOWER_BOUND"} and not diagnostic.get("inferred_stages"):
+            errors.append(f"{symbol}:news_funnel_inference_provenance")
     if value.get("research_first_pipeline") is not True or value.get("decision_is_read_only_consumer") is not True:
         errors.append("production_pipeline_order")
     if value.get("model_boundary") != MODEL_BOUNDARY:

@@ -157,14 +157,14 @@ def news_contract(raw_news: Any, *, generated_at: str | None = None) -> dict[str
             continue
         fresh_count += 1
         direction = str(item.get("direction") or "unavailable").lower()
-        if direction not in {"bullish", "neutral", "bearish"}:
-            reject("UNSAFE_TO_CITE")
-            continue
+        if direction not in {"bullish", "neutral", "bearish", "unavailable"}:
+            direction = "unavailable"
         admitted.append({
             "headline": str(headline), "publisher": str(publisher), "published_at": str(published),
             "source_url": str(source_url), "source_tier": tier,
             "source_quality": {1: "high", 2: "medium_high", 3: "medium", 4: "low"}[tier],
             "direction": direction,
+            "direction_status": "QUALIFIED" if direction in {"bullish", "neutral", "bearish"} else "NOT_EVALUATED",
             "relevance": relevance,
             "materiality": materiality,
             "official_source": tier == 1,
@@ -199,6 +199,7 @@ def news_contract(raw_news: Any, *, generated_at: str | None = None) -> dict[str
     retrieved = len(raw_items)
     funnel = {
         "schema_version": "tw_research_evidence_funnel_v1",
+        "count_semantics": "EXACT",
         "stages": {
             "DISCOVERED": discovered, "RETRIEVED": retrieved,
             "NORMALIZED": normalized_count, "SYMBOL_ATTRIBUTED": attributed_count,
