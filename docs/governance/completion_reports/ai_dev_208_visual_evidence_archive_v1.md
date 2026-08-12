@@ -14,7 +14,10 @@ IMPLEMENTED_DETERMINISTIC_QA_PASS_PENDING_NATURAL_VERIFICATION
 - V1 merge/current main before Hardening V2: `70c817eb479334d56b9917765d1dd762488302ad`
 - Hardening V2 issue: [#257](https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/issues/257)
 - Hardening V2 branch: `ai-dev/208-visual-evidence-hardening-v2`
-- Hardening V2 PR / CI / merge: pending until the governed workflow creates those immutable values; they are not fabricated pre-merge
+- Hardening V2 implementation commit: `5348999d5a59ae3601b316f1b3eda3a238fcee83`
+- Hardening V2 PR: [#258](https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/pull/258), merged
+- Hardening V2 final GitHub Actions: run `31587698210` PASS
+- Hardening V2 merge/current implementation main: `e1637701dee8c2e47fd06a4d4283765a32c8d78d`
 - Production pipeline executed: false
 
 ## Architecture
