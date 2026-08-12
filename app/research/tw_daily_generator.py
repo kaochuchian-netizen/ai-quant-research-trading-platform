@@ -239,9 +239,17 @@ def _card_evidence(card: dict[str, Any], market_time: str) -> list[dict[str, Any
     return rows
 
 
-def _missing(card: dict[str, Any], reasoning: dict[str, Any]) -> list[str]:
+def _missing(card: dict[str, Any], reasoning: dict[str, Any], evidence: list[dict[str, Any]]) -> list[str]:
     result = [MISSING_LABELS.get(str(code).upper(), str(code)) for code in (card.get("data_gaps") or [])]
     result.extend(CLASS_LABELS.get(value, value) for value in reasoning.get("missing_evidence") or [])
+    news = [item for item in evidence if item.get("evidence_class") == "news"]
+    current_news = any(item.get("coverage_status") == "AVAILABLE" for item in news)
+    stale_news = any(item.get("coverage_status") == "STALE" for item in news)
+    result = [value for value in result if value not in {"新聞", "近期有效新聞（僅有過期證據）"}]
+    if stale_news and not current_news:
+        result.append("近期有效新聞（僅有過期證據）")
+    elif not current_news:
+        result.append("新聞")
     output: list[str] = []
     for value in result:
         if value and value not in output:
@@ -383,9 +391,10 @@ def build_tw_daily_research(
             if evidence_id in evidence_by_id
             and evidence_by_id[evidence_id].get("research_role") == "substantive"
             and evidence_by_id[evidence_id].get("evidence_class") == "news"
+            and evidence_by_id[evidence_id].get("coverage_status") == "AVAILABLE"
         ]
         neutral_research = _labels(neutral_research_ids, bundle["evidence"])
-        missing = _missing(card, reasoning)
+        missing = _missing(card, reasoning, bundle["evidence"])
         company = bundle["knowledge"].get("dimensions") or {}
         context = [
             *company.get("business", [])[:1], *company.get("products", [])[:2],

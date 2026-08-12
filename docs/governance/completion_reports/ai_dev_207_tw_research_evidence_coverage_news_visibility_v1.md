@@ -80,6 +80,14 @@ Observe the first eligible post-hardening TW lifecycle `07:00 → 13:05 → 13:3
 
 The 2026-08-12 13:05 and 13:35 batches are pre-change root-cause evidence, not post-merge natural verification.
 
+### First post-H2 natural smoke and V3 remediation
+
+The natural 2026-08-12 15:00 batch is the first post-H2 production smoke. It confirmed directionless qualified-news visibility, but it also exposed deterministic cross-consumer defects that prevent closure: aggregate prediction counts preferred V2 and reported 9 hits while canonical per-symbol review was 8 no-trade/not-applicable plus one 6873 partial hit; stale news could be rendered as current neutral research; the missing-news label could not distinguish stale-only evidence; same-event selection did not guarantee official-source preference or newest-first ordering within a tier; and the compact NO_TRADE renderer used OBSERVE-style tomorrow wording.
+
+AI-DEV-207 Natural Production Remediation V3 uses branch `ai-dev/207-post-close-natural-remediation-v3`, implementation commit `562082ba05ad7e8a18281b503279756b769288a6`, and PR [#255](https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/pull/255). Initial GitHub Actions run `31575649448` passed. V3 introduces one shared canonical prediction-range resolver for aggregate and Decision review consumers, requires AVAILABLE coverage for neutral current-news rendering, distinguishes stale-only news gaps, prefers official and then newest same-event representations, and routes compact NO_TRADE tomorrow text through the canonical presentation helper. The deterministic V3 fixture requires prediction counts `hit=0, partial_hit=1, miss=0, not_applicable=8` with an exact nine-symbol partition. The immutable 2026-08-12 artifact is not rewritten or republished.
+
+V3 returns the task to deterministic-QA-pass pending natural verification after PR, CI and post-merge gates pass. Only the next eligible post-V3 TW `07:00 → 13:05 → 13:35 → 15:00` lifecycle may provide final natural evidence.
+
 ## Final Status
 
 IMPLEMENTED_DETERMINISTIC_QA_PASS_PENDING_NATURAL_VERIFICATION

@@ -13,6 +13,7 @@ from collections import Counter
 from typing import Any, Iterable
 
 from .tw_pre_open_quality import public_reason
+from .tw_four_window_decision import PREDICTION_RESULTS, canonical_prediction_range_result
 from app.research.tw_daily_generator import (
     build_tw_daily_research,
     compact_research_lines,
@@ -276,7 +277,7 @@ def _prediction_review(rows: list[dict[str, Any]], window: str) -> dict[str, Any
     for row in rows:
         source = row["_source"]
         evaluation_v2 = source.get("prediction_evaluation_v2") if isinstance(source.get("prediction_evaluation_v2"), dict) else {}
-        prediction = _text(evaluation_v2.get("range_result") or (source.get("prediction_evaluation") or {}).get("range_result") or source.get("prediction_range_result"), "not_applicable")
+        prediction = canonical_prediction_range_result(source)
         outcome = _text(source.get("trade_outcome") or source.get("canonical_outcome"), "pending_evidence")
         predictions[prediction] += 1
         outcomes[outcome] += 1
@@ -285,7 +286,7 @@ def _prediction_review(rows: list[dict[str, Any]], window: str) -> dict[str, Any
     best = sorted(rows, key=lambda row: (-row["opportunity_projection_score"], row["symbol"]))
     worst = sorted(rows, key=lambda row: (-row["risk_projection_score"], row["symbol"]))
     return {
-        "prediction_distribution": dict(sorted(predictions.items())), "trade_outcome_distribution": dict(sorted(outcomes.items())),
+        "prediction_distribution": {name: int(predictions.get(name, 0)) for name in PREDICTION_RESULTS}, "trade_outcome_distribution": dict(sorted(outcomes.items())),
         "direction_accuracy": {"status": "available" if predictions else "missing", "hit": predictions.get("hit", 0), "partial_hit": predictions.get("partial_hit", 0), "miss": predictions.get("miss", 0)},
         "entry_accuracy": {"not_triggered": outcomes.get("not_triggered", 0), "review_source": "canonical_trade_outcome"},
         "exit_accuracy": {"win": outcomes.get("win", 0), "loss": outcomes.get("loss", 0), "open_at_close": outcomes.get("open_at_close", 0)},

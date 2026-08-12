@@ -100,7 +100,16 @@ def main() -> int:
     summary = aggregate_cards("post_close_1500", postclose)
     check("no_trade_preserved", summary["trade_outcome_counts"]["no_trade"] == 9, failures)
     check("no_trade_predictions_evaluated", summary["prediction_v2_evaluated_count"] == 9 and summary["no_trade_prediction_evaluated_count"] == 9, failures)
-    check("prediction_results_nonzero", sum(summary["prediction_evaluation_counts"].get(key, 0) for key in ("hit", "partial_hit", "miss")) == 9, failures)
+    v2_directional_results = sum(
+        (card.get("prediction_evaluation_v2") or {}).get("range_result") in {"hit", "partial_hit", "miss"}
+        for card in postclose
+    )
+    check(
+        "no_trade_prediction_evaluation_separated",
+        summary["prediction_evaluation_counts"]["not_applicable"] == 9
+        and v2_directional_results == 9,
+        failures,
+    )
     check("error_metrics", all((card["prediction_evaluation_v2"].get("midpoint_error") is not None) for card in postclose), failures)
     check("no_lookahead", all(card["prediction_evaluation_v2"]["no_lookahead_status"] == "pass" for card in postclose), failures)
 

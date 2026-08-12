@@ -12,8 +12,9 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.dashboard.multi_market_dashboard import _tw_rre_production_html
+from app.dashboard.multi_market_dashboard import _tw_post_close_card, _tw_rre_production_html
 from app.reports.tw_decision_intelligence_v2 import build_tw_decision_intelligence_v2
+from app.reports.tw_four_window_decision import aggregate_cards, canonical_prediction_range_result
 from app.reports.tw_pre_open_quality import news_contract
 from app.research.tw_daily_generator import build_tw_daily_research, validate_tw_daily_research
 
@@ -132,6 +133,76 @@ def validate() -> dict:
     )
     checks["case_o_exact_funnel_marked"] = funnel["count_semantics"] == "EXACT" and not funnel["inferred_stages"]
 
+    # V3 natural-production remediation: canonical post-close partition wins
+    # over conflicting V2 evaluation metadata.
+    post_close_cards = []
+    for index in range(8):
+        post_close_cards.append({
+            "symbol": f"N{index}", "stock_id": f"N{index}", "stock_name": f"無交易{index}",
+            "plan_status": "no_trade", "trade_outcome": "no_trade", "prediction_status": "no_trade",
+            "prediction_range_result": "hit", "prediction_evaluation": {"range_result": "hit"},
+            "prediction_snapshot_v2": {"prediction_status": "evaluable"},
+            "prediction_evaluation_v2": {"evaluation_status": "evaluated", "range_result": "hit"},
+        })
+    partial_card = {
+        "symbol": "6873", "stock_id": "6873", "stock_name": "泓德能源",
+        "plan_status": "watch", "trade_outcome": "not_triggered", "prediction_status": "active",
+        "prediction_range_result": "partial_hit", "prediction_evaluation": {"range_result": "hit"},
+        "prediction_snapshot_v2": {"prediction_status": "evaluable"},
+        "prediction_evaluation_v2": {"evaluation_status": "evaluated", "range_result": "hit"},
+    }
+    post_close_cards.append(partial_card)
+    post_close_aggregate = aggregate_cards("post_close_1500", post_close_cards)
+    post_close_decision = build_tw_decision_intelligence_v2("post_close_1500", {
+        "generated_at": NOW, "effective_trading_date": "2026-08-12",
+        "structured_review_cards": post_close_cards,
+    })
+    expected_partition = {"hit": 0, "partial_hit": 1, "miss": 0, "not_applicable": 8}
+    checks["case_p_natural_post_close_partition"] = post_close_aggregate["prediction_evaluation_counts"] == expected_partition
+    checks["case_q_no_trade_v2_cannot_override"] = all(canonical_prediction_range_result(row) == "not_applicable" for row in post_close_cards[:8])
+    checks["case_r_canonical_partial_beats_v2"] = canonical_prediction_range_result(partial_card) == "partial_hit"
+    partition_symbols = post_close_aggregate["prediction_evaluation_symbols"]
+    checks["case_s_exact_symbol_partition"] = (
+        sum(len(values) for values in partition_symbols.values()) == len(post_close_cards)
+        and partition_symbols["partial_hit"] == ["6873"]
+        and len(partition_symbols["not_applicable"]) == 8
+        and post_close_decision["prediction_review"]["prediction_distribution"] == expected_partition
+    )
+
+    stale_legacy_news = {
+        "evidence": [{
+            "headline": "歷史公司公告", "publisher": "MOPS",
+            "published_at": "2026-02-10T10:00:00+08:00", "source_url": "mops:2330:stale",
+            "source_tier": 1, "direction": "unavailable", "materiality": "high",
+        }],
+        "confidence": {"score": 82},
+    }
+    stale_research = research([card(news=stale_legacy_news)])
+    stale_note = stale_research["research_notes"][0]
+    stale_diag = stale_note["research_evidence_observability"]["news"]
+    checks["case_t_stale_news_not_current_rre"] = (
+        stale_diag["stages"]["RRE_USED"] == 0
+        and stale_diag["stages"]["RENDERED"] == 0
+        and not stale_note["neutral_research_evidence"]
+        and "已取得非方向性研究證據" not in stale_note["research_summary"]
+    )
+    checks["case_u_stale_only_gap_truthful"] = "近期有效新聞（僅有過期證據）" in stale_note["missing"] and "新聞" not in stale_note["missing"]
+    checks["case_v_current_news_no_missing_contradiction"] = not any(value in {"新聞", "近期有效新聞（僅有過期證據）"} for value in directionless_note["missing"])
+
+    event_id = "event:2330:guidance:20260812"
+    official_preferred = contract([
+        item(publisher="可信財經媒體", official_source=False, canonical_event_id=event_id, source_url="media:new", published_at="2026-08-12T12:00:00+08:00"),
+        item(publisher="MOPS", official_source=True, canonical_event_id=event_id, source_url="mops:official", published_at="2026-08-12T11:00:00+08:00"),
+    ])
+    newest_preferred = contract([
+        item(publisher="財經媒體甲", official_source=False, canonical_event_id="event:same-tier", source_url="media:old", published_at="2026-08-12T10:00:00+08:00"),
+        item(publisher="財經媒體乙", official_source=False, canonical_event_id="event:same-tier", source_url="media:newer", published_at="2026-08-12T12:00:00+08:00"),
+    ])
+    checks["case_w_official_event_preferred"] = official_preferred["primary_evidence"]["publisher"] == "MOPS" and official_preferred["primary_evidence"]["canonical_event_id"] == event_id
+    checks["case_x_same_tier_newest_preferred"] = newest_preferred["primary_evidence"]["publisher"] == "財經媒體乙"
+    no_trade_html = _tw_post_close_card(post_close_cards[0])
+    checks["case_y_no_trade_tomorrow_reassess"] = "明日重新評估" in no_trade_html and "維持觀察，除非重新形成完整策略" not in no_trade_html
+
     narrative = market_only["morning_or_window_brief"]["market_narrative"]
     checks["direction_counts_substantive"] = "0 檔具偏多研究證據" in narrative and "1 檔證據不足" in narrative
     boundary = decision["model_boundary"]
@@ -151,6 +222,10 @@ def validate() -> dict:
         "directionless": directionless,
         "directionless_note": directionless_note,
         "legacy_funnel": legacy_diag,
+        "v3_prediction_partition": post_close_aggregate["prediction_evaluation_counts"],
+        "v3_prediction_symbols": partition_symbols,
+        "v3_stale_news": {"diagnostic": stale_diag, "missing": stale_note["missing"]},
+        "v3_source_preference": {"official": official_preferred["primary_evidence"], "newest": newest_preferred["primary_evidence"]},
         "market_note": market_note,
         "tomorrow_states": states,
         "negative_best_research_mutation_errors": mutation_errors,

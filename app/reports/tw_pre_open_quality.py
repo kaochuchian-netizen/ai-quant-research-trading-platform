@@ -104,6 +104,12 @@ def _source_tier(item: dict[str, Any]) -> int:
     return 4
 
 
+def _news_preference(item: dict[str, Any]) -> tuple[int, float, str]:
+    published = _parse_time(item.get("published_at"))
+    newest_first = -(published.timestamp()) if published else 0.0
+    return int(item.get("source_tier") or 4), newest_first, str(item.get("headline") or "")
+
+
 def news_contract(raw_news: Any, *, generated_at: str | None = None) -> dict[str, Any]:
     admitted = []
     raw_items = _news_items(raw_news)
@@ -159,6 +165,7 @@ def news_contract(raw_news: Any, *, generated_at: str | None = None) -> dict[str
         direction = str(item.get("direction") or "unavailable").lower()
         if direction not in {"bullish", "neutral", "bearish", "unavailable"}:
             direction = "unavailable"
+        canonical_event_id = item.get("canonical_event_id") or item.get("event_cluster_id")
         admitted.append({
             "headline": str(headline), "publisher": str(publisher), "published_at": str(published),
             "source_url": str(source_url), "source_tier": tier,
@@ -168,16 +175,21 @@ def news_contract(raw_news: Any, *, generated_at: str | None = None) -> dict[str
             "relevance": relevance,
             "materiality": materiality,
             "official_source": tier == 1,
-            "dedupe_key": str(item.get("dedupe_key") or source_url),
+            "canonical_event_id": str(canonical_event_id) if canonical_event_id else None,
+            "dedupe_key": str(canonical_event_id or item.get("dedupe_key") or source_url),
             "freshness": freshness, "age_hours": None if age_hours is None else round(age_hours, 2),
         })
     before_dedupe = len(admitted)
-    unique = {item["dedupe_key"]: item for item in admitted}
+    unique: dict[str, dict[str, Any]] = {}
+    for item in admitted:
+        incumbent = unique.get(item["dedupe_key"])
+        if incumbent is None or _news_preference(item) < _news_preference(incumbent):
+            unique[item["dedupe_key"]] = item
     admitted = list(unique.values())
     duplicate_count = before_dedupe - len(admitted)
     if duplicate_count:
         rejection_reasons["DUPLICATE"] = duplicate_count
-    admitted.sort(key=lambda item: (item["source_tier"], item["freshness"] == "stale", item["published_at"], item["headline"]))
+    admitted.sort(key=_news_preference)
     usable = list(admitted)
     primary = usable[0] if usable else None
     quality = primary["source_quality"] if primary else "not_applicable"
