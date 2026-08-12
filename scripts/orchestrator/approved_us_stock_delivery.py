@@ -33,6 +33,7 @@ from app.dashboard.decision_presentation import decision_email_block_v2, decisio
 from app.reports.decision_intelligence_v4 import compact_summary, project_decision_intelligence_v4
 from app.dashboard.window_snapshot_archive import resolve_snapshots, write_snapshot
 from app.dashboard.public_latest_sync import synchronize_admitted_latest, write_sync_artifact
+from app.dashboard.visual_evidence_archive import capture_published_snapshot_non_blocking
 from app.reports.delivery_provenance import build_delivery_provenance, write_delivery_provenance
 from app.reports.window_report_contract import get_window_report_contract
 from app.reports.canonical_outcomes import aggregate_us_post_close_review, normalize_review_card
@@ -595,6 +596,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 US_RUNTIME_DIR / "public_latest_sync" / f"{args.window}_latest.json",
                 public_latest_sync,
             )
+        visual_evidence = capture_published_snapshot_non_blocking(
+            market="US",
+            window=str(archive_result.get("window") or args.window),
+            archive_write=archive_result,
+            public_sync=public_latest_sync,
+            static_root=Path("/var/www/stock-ai-dashboard"),
+            snapshot_archive_root=WINDOW_SNAPSHOT_ARCHIVE,
+            capture_origin="manual_rerun" if args.manual_rerun else "scheduled",
+        )
         if production_approved and not args.manual_rerun:
             dashboard_result = {
                 "attempted": public_latest_sync.get("status") != "not_attempted",
@@ -678,6 +688,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "dry_run": not production_approved,
             "archive_write": archive_result,
             "public_latest_sync": public_latest_sync,
+            "visual_evidence": visual_evidence,
             "operations_provenance_preview": operations_provenance,
             "delivery_provenance_persisted": persist_formal_runtime,
             "python3_main_executed": False,
@@ -686,7 +697,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if persist_formal_runtime:
             write_json(STATUS_PATH, status)
             write_json(US_STATUS_PATH, status)
-        return {"ok": (not production_approved or args.manual_rerun or public_latest_sync.get("status") == "verified"), "status": status, "archive_write": archive_result, "dashboard": dashboard_result, "email": email_result, "line": line_result, "line_payload_preview": status["line_payload_preview"], "email_payload_preview": status["email_payload_preview"], "dashboard_url": get_window_report_contract("US", args.window).dashboard_url}
+        return {"ok": (not production_approved or args.manual_rerun or public_latest_sync.get("status") == "verified"), "status": status, "archive_write": archive_result, "visual_evidence": visual_evidence, "dashboard": dashboard_result, "email": email_result, "line": line_result, "line_payload_preview": status["line_payload_preview"], "email_payload_preview": status["email_payload_preview"], "dashboard_url": get_window_report_contract("US", args.window).dashboard_url}
     except Exception as exc:
         error = {"ok": False, "status": "failed", "window": args.window, "error_type": type(exc).__name__, "error_message": str(exc)[:240], "line_attempted": False, "email_attempted": False, "trading_or_order_executed": False, "production_pipeline_executed": False}
         if production_approved or production_artifact:

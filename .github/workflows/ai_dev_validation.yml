@@ -26,6 +26,9 @@ jobs:
       - name: Install validator runtime dependencies
         run: python3 -m pip install --disable-pip-version-check -r requirements-validation.txt
 
+      - name: Install deterministic Chromium runtime
+        run: python3 -m playwright install --with-deps chromium
+
       - name: Compile orchestrator scripts
         run: |
           python3 -m py_compile \

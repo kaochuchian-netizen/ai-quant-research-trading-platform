@@ -73,6 +73,9 @@ PRESERVED_PATH_PATTERNS = tuple(
         rf"artifacts/runtime/stage_timing/(?:tw_(?:{'|'.join(TW_WINDOWS)})|us_(?:{'|'.join(US_WINDOWS)}))_latest\.json",
         rf"artifacts/runtime/tw_window_decision/(?:{'|'.join(TW_WINDOWS)})_latest\.json",
         rf"templates/multi_market_dashboard_v2/dashboard/archive/(?:tw/(?:{'|'.join(TW_WINDOWS)})|us/(?:{'|'.join(US_WINDOWS)}))/(?:latest|previous)/index\.html",
+        r"artifacts/archive/visual_evidence/index\.json",
+        rf"artifacts/archive/visual_evidence/\d{{4}}-\d{{2}}-\d{{2}}/(?:TW/(?:{'|'.join(TW_WINDOWS)})|US/(?:{'|'.join(US_WINDOWS)}))/(?:revision_\d{{3}}/(?:screenshot_full\.png|rendered_page\.html|rendered_text\.md|manifest\.json|canonical_reference\.json)|failures/revision_\d{{3}}_[0-9a-f]{{12}}\.json)",
+        rf"artifacts/archive/visual_evidence/daily_reviews/\d{{4}}-\d{{2}}-\d{{2}}/(?:review_manifest\.json|review_summary\.md|(?:TW/(?:{'|'.join(TW_WINDOWS)})|US/(?:{'|'.join(US_WINDOWS)}))/(?:screenshot_full\.png|rendered_page\.html|rendered_text\.md|manifest\.json|canonical_reference\.json))",
     )
 )
 
