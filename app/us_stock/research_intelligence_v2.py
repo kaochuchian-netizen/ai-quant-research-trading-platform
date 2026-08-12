@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from datetime import datetime, timezone
 from typing import Any, Iterable
 
 from app.research.news_evidence_funnel import with_downstream_counts
@@ -43,6 +44,7 @@ BOUNDARY = {
     "strategy_weights_modified": False, "prediction_model_modified": False,
     "auto_learning": False,
 }
+NEWS_SELECTION_LIMIT = 2
 
 
 def stable_hash(value: Any) -> str:
@@ -119,9 +121,11 @@ def classify_sec_filing(filing: dict[str, Any]) -> dict[str, Any]:
 
 
 def normalize_news(items: Iterable[dict[str, Any]], observed_at: str, diagnostics: dict[str, Any] | None = None) -> dict[str, Any]:
-    """Normalize and deduplicate actual items. Never creates live-news facts."""
-    normalized: list[dict[str, Any]] = []
-    seen: dict[str, str] = {}
+    """Select bounded current news without assigning an unsafe direction."""
+    candidates: list[dict[str, Any]] = []
+    observed = datetime.fromisoformat(str(observed_at).replace("Z", "+00:00"))
+    if observed.tzinfo is None:
+        observed = observed.replace(tzinfo=timezone.utc)
     for raw in items:
         if not isinstance(raw, dict):
             continue
@@ -130,7 +134,14 @@ def normalize_news(items: Iterable[dict[str, Any]], observed_at: str, diagnostic
         reference = _text(provenance.get("source_reference") or raw.get("source_url") or raw.get("source_id"))
         published = provenance.get("published_at") or raw.get("published_at")
         cluster = "news_" + stable_hash([re.sub(r"[^a-z0-9]+", " ", headline.lower()).strip(), str(published)[:10]])[:16]
-        duplicate_of = seen.get(cluster)
+        try:
+            published_time = datetime.fromisoformat(str(published).replace("Z", "+00:00"))
+            if published_time.tzinfo is None:
+                published_time = published_time.replace(tzinfo=timezone.utc)
+            age_hours = (observed.astimezone(timezone.utc) - published_time.astimezone(timezone.utc)).total_seconds() / 3600
+        except (TypeError, ValueError):
+            age_hours = None
+        freshness = "current" if age_hours is not None and 0 <= age_hours <= 72 else "future" if age_hours is not None and age_hours < 0 else "stale"
         item = {
             "news_id": "news_" + stable_hash([cluster, reference, headline])[:20],
             "event_cluster_id": cluster, "headline": headline or None,
@@ -146,21 +157,63 @@ def normalize_news(items: Iterable[dict[str, Any]], observed_at: str, diagnostic
             "relevance": _text(raw.get("relevance") or "medium").lower(),
             "time_horizon": _text(raw.get("time_horizon") or "near_term").lower(),
             "primary_source_confirmed": bool(raw.get("official_source")),
-            "duplicate_of": duplicate_of, "counted": duplicate_of is None,
+            "freshness": freshness, "age_hours": None if age_hours is None else round(age_hours, 3),
+            "duplicate_of": None, "counted": False, "eligible_for_rre": freshness == "current",
+            "selection_status": "PENDING", "selection_reason": None,
         }
-        if duplicate_of is None:
-            seen[cluster] = item["news_id"]
-        normalized.append(item)
-    admitted = sum(1 for x in normalized if x["counted"])
-    # The canonical card renderer selects the first admitted item.  Keep the
-    # remainder traceable as intentionally not rendered.
-    funnel = with_downstream_counts(diagnostics or {}, rre_used=admitted, rendered=min(1, admitted))
+        candidates.append(item)
+
+    materiality_rank = {"critical": 4, "high": 3, "medium": 2, "low": 1}
+    relevance_rank = {"high": 3, "medium": 2, "low": 1}
+    candidates.sort(key=lambda x: (
+        bool(x["primary_source_confirmed"]),
+        materiality_rank.get(str(x["materiality"]), 0),
+        relevance_rank.get(str(x["relevance"]), 0),
+        -(x["age_hours"] if isinstance(x.get("age_hours"), (int, float)) else 10**9),
+        str(x.get("headline") or ""),
+    ), reverse=True)
+    seen: dict[str, str] = {}
+    eligible: list[dict[str, Any]] = []
+    for item in candidates:
+        duplicate_of = seen.get(item["event_cluster_id"])
+        if duplicate_of:
+            item.update({"duplicate_of": duplicate_of, "selection_status": "NOT_SELECTED", "selection_reason": "DUPLICATE_EVENT_LOWER_PRIORITY_SOURCE"})
+            continue
+        seen[item["event_cluster_id"]] = item["news_id"]
+        item["counted"] = True
+        if item["eligible_for_rre"]:
+            eligible.append(item)
+        else:
+            item.update({"selection_status": "NOT_SELECTED", "selection_reason": "STALE_OR_INVALID_TIMESTAMP"})
+    selected = eligible[:NEWS_SELECTION_LIMIT]
+    selected_ids = {item["news_id"] for item in selected}
+    for item in candidates:
+        if item["news_id"] in selected_ids:
+            item.update({"selection_status": "SELECTED_AND_RENDERED", "selection_reason": "HIGHEST_VALUE_CURRENT_EVIDENCE", "selected_for_rre": True, "rendered": True})
+        elif item["selection_status"] == "PENDING":
+            item.update({"selection_status": "NOT_SELECTED", "selection_reason": "SELECTION_LIMIT_LOWER_PRIORITY_SOURCE", "selected_for_rre": False, "rendered": False})
+        else:
+            item.update({"selected_for_rre": False, "rendered": False})
+    admitted = int(((diagnostics or {}).get("stages") or {}).get("ADMITTED") or sum(x["counted"] for x in candidates))
+    funnel = with_downstream_counts(diagnostics or {}, rre_used=len(selected), rendered=len(selected))
+    reasons = dict(funnel.get("rejection_reasons") or {})
+    reasons.pop("RRE_NOT_SELECTED", None)
+    selection_limited = max(0, admitted - len(selected))
+    if selection_limited:
+        reasons["SELECTION_LIMIT_LOWER_PRIORITY_SOURCE"] = selection_limited
+    stale_count = sum(1 for x in candidates if x.get("selection_reason") == "STALE_OR_INVALID_TIMESTAMP")
+    if stale_count:
+        reasons["STALE"] = reasons.get("STALE", 0) + stale_count
+    funnel["rejection_reasons"] = dict(sorted(reasons.items()))
     return {
-        "status": "AVAILABLE" if any(x["counted"] for x in normalized) else "MISSING",
-        "items": normalized,
-        "deduplicated_count": sum(x["counted"] for x in normalized),
-        "missing_reason": None if normalized else "LIVE_NEWS_SOURCE_UNAVAILABLE_OR_NO_ADMITTED_ITEMS",
-        "fabricated": False, "evidence_funnel": funnel,
+        "status": "AVAILABLE" if selected else "MISSING",
+        "items": candidates, "selected_items": selected,
+        "deduplicated_count": sum(x["counted"] for x in candidates),
+        "selected_count": len(selected), "selection_limit": NEWS_SELECTION_LIMIT,
+        "selection_method": "official_materiality_relevance_freshness_event_uniqueness_v1",
+        "missing_reason": None if selected else "NO_CURRENT_QUALIFIED_NEWS_SELECTED",
+        "fabricated": False, "directional_contribution": {"bullish": 0, "bearish": 0},
+        "evidence_funnel": funnel,
     }
 
 
@@ -237,7 +290,13 @@ def _role_lists(bundle: dict[str, Any]) -> tuple[list[dict[str, Any]], list[dict
     opposing = [x for x in counted if _direction(x.get("direction")) == "bearish"]
     neutral = [x for x in counted if _direction(x.get("direction")) not in {"bullish", "bearish"}]
     order = lambda x: (x.get("quality_score") or 0, x.get("confidence") or 0)
-    return sorted(supporting, key=order, reverse=True), sorted(opposing, key=order, reverse=True), sorted(neutral, key=order, reverse=True)
+    specific_order = lambda x: (
+        x.get("event_type") not in {"market_context", "sector"},
+        bool(x.get("official_confirmation")),
+        x.get("quality_score") or 0,
+        x.get("confidence") or 0,
+    )
+    return sorted(supporting, key=order, reverse=True), sorted(opposing, key=order, reverse=True), sorted(neutral, key=specific_order, reverse=True)
 
 
 def build_initial_projection(bundle: dict[str, Any], *, observed_at: str) -> dict[str, Any]:
@@ -260,16 +319,38 @@ def build_initial_projection(bundle: dict[str, Any], *, observed_at: str) -> dic
     if supporting and opposing:
         confidence = max(0.0, confidence - 8.0)
     missing = coverage["coverage_gap"]
+    selected_news = [
+        item for item in ((bundle.get("news_intelligence_v2") or {}).get("selected_items") or [])
+        if isinstance(item, dict) and item.get("selected_for_rre")
+    ]
+    primary_news = selected_news[0] if selected_news else None
+    symbol = str(bundle.get("symbol") or "US symbol")
+    if primary_news:
+        headline = _text(primary_news.get("headline"))
+        publisher = _text(primary_news.get("publisher") or primary_news.get("source_class"))
+        published = _text(primary_news.get("published_at"))
+        news_context = f"{headline}（{publisher}｜{published}）"
+        event_type = _text(primary_news.get("event_type") or "news")
+        thesis_suffix = f"；當前個股事件脈絡：{news_context}。此項為非方向性證據，不單獨改變研究方向。"
+        trigger = f"持續追蹤 {symbol} 的 {event_type} 事件是否獲官方確認，並觀察其後量價／相對強弱是否形成與原假設一致的可驗證反應。"
+        invalidation = f"若官方澄清或後續高品質證據否定「{headline}」所代表的事件脈絡，或量價形成與原研究方向相反的持續走勢，則假設失效。"
+        primary_risk = f"{symbol} 主要事件風險：{headline}；來源 {publisher}，目前方向未評估，需等待官方或後續高品質證據確認。"
+    else:
+        thesis_suffix = ""
+        trigger = f"{symbol} 尚無可選用的個股事件觸發；僅在量價與相對強弱形成可驗證延續時更新研究假設。"
+        invalidation = f"{symbol} 若出現高品質反向事件，或量價形成與研究方向相反的持續走勢，則假設失效。"
+        primary_risk = f"{symbol} 缺少可選用的當期個股事件證據；主要風險是以共享市場脈絡代替公司特定資訊。"
+    base_statement = {
+        "bullish": "高品質支持證據目前多於反對證據，後續需由量價與相對強弱確認。",
+        "bearish": "高品質反對證據目前多於支持證據，後續需觀察跌勢與風險是否延續。",
+        "mixed": "支持與反對證據並存，需等待價格與新事件化解衝突。",
+        "insufficient_evidence": "現有研究證據不足以建立方向性結論，保留可驗證的觀察假設。",
+    }[stance]
     hypothesis = {
-        "statement": {
-            "bullish": "高品質支持證據目前多於反對證據，後續需由量價與相對強弱確認。",
-            "bearish": "高品質反對證據目前多於支持證據，後續需觀察跌勢與風險是否延續。",
-            "mixed": "支持與反對證據並存，需等待價格與新事件化解衝突。",
-            "insufficient_evidence": "現有研究證據不足以建立方向性結論，保留可驗證的觀察假設。",
-        }[stance],
+        "statement": base_statement + thesis_suffix,
         "expected_direction": stance if stance in {"bullish", "bearish"} else "unavailable",
-        "trigger": "23:00 以 Gap 延續、相對強弱與量能確認研究假設",
-        "invalidation": "價格與量能形成與研究方向相反的明確延續，或出現高品質反向事件",
+        "trigger": trigger,
+        "invalidation": invalidation,
         "counter_argument": "市場／類股脈絡可能與個股證據背離；缺失來源可能改變目前結論。",
         "state": "created", "method": "deterministic_evidence_balance_v2",
     }
@@ -307,6 +388,8 @@ def build_initial_projection(bundle: dict[str, Any], *, observed_at: str) -> dic
         "neutral_evidence": [x["evidence_id"] for x in neutral[:6]],
         "missing_evidence": missing, "effective_coverage": coverage,
         "market_sector_context": regime, "hypothesis": hypothesis,
+        "selected_news_evidence": selected_news,
+        "primary_risk": primary_risk,
         "context_contracts": context_contracts,
         "window_update": {"state": "created", "new_evidence": [], "explanation": "20:00 建立初始研究假設。"},
         "decision_context_export": {"trade_action": None, "eligibility": None, "ranking": None},

@@ -338,10 +338,71 @@ def build_bundle(symbol: str, research: dict[str, Any], market_context: dict[str
               "continuity": {"source_window": "us_pre_market_2000", "status": "originated"}}
     bundle["research_identity"] = "research_" + stable_hash(bundle)[:24]
     material_news = research.get("material_news") or {}
-    bundle["news_intelligence_v2"] = normalize_news(
+    news_intelligence = normalize_news(
         material_news.get("items", []), observed_at, material_news.get("evidence_funnel"),
     )
-    return attach_research_v2(bundle, observed_at)
+    return _apply_current_news(bundle, bundle, news_intelligence, observed_at)
+
+
+def _news_evidence(item: dict[str, Any]) -> bool:
+    return item.get("provider_tier") == "C" or item.get("provider") == "company_ir"
+
+
+def _apply_current_news(base: dict[str, Any], current: dict[str, Any],
+                        news_intelligence: dict[str, Any], observed_at: str) -> dict[str, Any]:
+    """Attach selected current news while preserving Decision ownership."""
+    updated = json.loads(json.dumps(base))
+    selected_refs = {
+        str(item.get("source_reference") or "")
+        for item in news_intelligence.get("selected_items", []) if isinstance(item, dict)
+    } - {""}
+    non_news = [
+        item for item in updated.get("evidence", [])
+        if isinstance(item, dict) and not _news_evidence(item)
+    ]
+    selected_evidence = [
+        item for item in current.get("evidence", [])
+        if isinstance(item, dict) and _news_evidence(item)
+        and str(item.get("source_reference") or "") in selected_refs
+        and item.get("freshness") != "stale"
+    ]
+    updated["evidence"] = deduplicate([*non_news, *selected_evidence])
+    updated["news_intelligence_v2"] = json.loads(json.dumps(news_intelligence))
+    providers = updated.get("providers") or []
+    knowledge = updated.get("knowledge") or {"status": "PARTIAL"}
+    coverage = analyze_coverage(updated["evidence"], knowledge, providers)
+    conflict = analyze_conflict(updated["evidence"])
+    synthesis = synthesize(updated["evidence"], coverage, conflict)
+    updated.update({"coverage": coverage, "conflict": conflict, "synthesis": synthesis})
+    updated["decision_context_export"] = {
+        "research_score": synthesis["research_score"],
+        "research_stance": synthesis["research_stance"],
+        "confidence": synthesis["research_confidence"],
+        "coverage_gap": coverage["coverage_gap"],
+        "conflict_level": conflict["level"],
+        "evidence_ids": [x["evidence_id"] for x in updated["evidence"] if x.get("counted_in_synthesis")],
+        "trade_action": None,
+    }
+    return attach_research_v2(updated, observed_at)
+
+
+def refresh_current_news(origin: dict[str, Any], current: dict[str, Any], observed_at: str) -> dict[str, Any]:
+    """Bridge later-window admitted news into the inherited research bundle."""
+    news = current.get("news_intelligence_v2") if isinstance(current.get("news_intelligence_v2"), dict) else {}
+    refreshed = _apply_current_news(origin, current, news, observed_at)
+    refreshed["research_identity"] = origin.get("research_identity")
+    refreshed["continuity"] = json.loads(json.dumps(origin.get("continuity") or {}))
+    projection = refreshed.get("research_intelligence_v2") or {}
+    projection["origin_research_identity"] = origin.get("research_identity")
+    projection["window_research_identity"] = "us_rv2_" + stable_hash({k: v for k, v in projection.items() if k != "window_research_identity"})[:24]
+    refreshed["research_intelligence_v2"] = projection
+    refreshed["current_news_bridge"] = {
+        "schema_version": "us_current_news_bridge_v1",
+        "status": "APPLIED" if news.get("selected_count") else "NO_CURRENT_SELECTION",
+        "selected_count": int(news.get("selected_count") or 0),
+        "decision_layer_action_changed": False,
+    }
+    return refreshed
 
 
 def resolve_bundle(archive_root: Path, effective_date: str, symbol: str) -> dict[str, Any] | None:
