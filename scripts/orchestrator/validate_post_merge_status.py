@@ -82,7 +82,7 @@ BLOCKING_SOURCE_PREFIXES = (
 )
 BLOCKING_ROOT_FILES = {
     "AGENTS.md", "AGENTS.override.md", "main.py", "run_stock_analysis.sh",
-    "requirements.txt", "pyproject.toml", "setup.cfg", "tox.ini", "Makefile",
+    "requirements.txt", "requirements-validation.txt", "pyproject.toml", "setup.cfg", "tox.ini", "Makefile",
 }
 
 

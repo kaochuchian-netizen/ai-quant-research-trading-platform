@@ -85,6 +85,7 @@ DEFAULT_ALLOWED_PATHS = [
     "artifacts/archive/",
     "artifacts/audit/",
     "requirements.txt",
+    "requirements-validation.txt",
     "test_shioaji.py",
 ]
 

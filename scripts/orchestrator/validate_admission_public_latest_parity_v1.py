@@ -14,6 +14,7 @@ def validate() -> dict:
     rows=[]
     with tempfile.TemporaryDirectory(prefix="ai183-public-") as tmp:
         root=Path(tmp)/"public"; build=Path(tmp)/"build"
+        root.mkdir(parents=True, exist_ok=True)
         for market, windows in MARKET_WINDOWS.items():
             for window in windows:
                 result=synchronize_admitted_latest(market=market, window=window, static_root=root, output_dir=build/market/window)

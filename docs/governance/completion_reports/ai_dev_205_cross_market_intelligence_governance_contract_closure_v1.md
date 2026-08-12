@@ -40,7 +40,7 @@ Closes deterministic governance gaps in the Production Intelligence Foundation b
 
 ## Regression
 
-AI-DEV-201/202/203/204, TW production intelligence, US institutional research, cross-feature, admission/public parity, notification provenance, landing integrity, source inventory, governance, compile, diff, branch and post-merge gates form the required matrix.
+AI-DEV-201/202/203/204, TW production intelligence, US institutional research, cross-feature, admission/public parity, notification provenance, landing integrity, source inventory, governance, compile, diff, branch and post-merge gates form the required matrix. The first GitHub Actions run exposed the pre-existing difference between the fully provisioned GCP venv and the dependency-free CI runner: required leaves failed imports for pandas/numpy/gspread and one admission fixture omitted its temporary public root. The task added a pinned validator-only dependency profile and fixed that fixture precondition; no validator was skipped or weakened.
 
 ## Production Usability
 
