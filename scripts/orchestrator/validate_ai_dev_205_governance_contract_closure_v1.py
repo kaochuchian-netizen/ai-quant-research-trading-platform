@@ -138,10 +138,14 @@ def main() -> int:
     # Per-dimension applicability and denominator integrity.
     applicable_ready = coverage_dimension(1, 1)
     applicable_missing = coverage_dimension(0, 1)
+    not_applicable = coverage_dimension(0, 0)
     not_evaluated = coverage_dimension(0, 0, zero_status="NOT_EVALUATED", reason_codes=["NOT_EVALUATED_IN_RESEARCH_BUNDLE"])
     check("applicable_ready_complete", applicable_ready["status"] == "COMPLETE", checks)
+    check("applicable_ready_semantics", applicable_ready["applicability"] == "APPLICABLE", checks)
     check("applicable_missing_none", applicable_missing["status"] == "NONE", checks)
-    check("zero_applicable_not_evaluated", not_evaluated["status"] == "NOT_EVALUATED" and not_evaluated["coverage_ratio"] is None, checks)
+    check("applicable_missing_semantics", applicable_missing["applicability"] == "APPLICABLE", checks)
+    check("zero_applicable_not_applicable", not_applicable["status"] == "NOT_APPLICABLE" and not_applicable["applicability"] == "OUT_OF_SCOPE", checks)
+    check("zero_applicable_not_evaluated", not_evaluated["status"] == "NOT_EVALUATED" and not_evaluated["coverage_ratio"] is None and not_evaluated["applicability"] == "NOT_EVALUATED", checks)
     try:
         coverage_dimension(1, 0)
         ready_gt_applicable_rejected = False
@@ -151,15 +155,18 @@ def main() -> int:
     contradictory = readiness(total=1, ready=0, applicability={"historical_data": 0}, zero_statuses={"historical_data": "NOT_EVALUATED"})
     contradictory["historical_data"]["reason_codes"] = ["INSUFFICIENT_LOOKBACK"]
     check("out_of_scope_reason_contradiction_rejected", "historical_data:OUT_OF_SCOPE_REASON_CONTRADICTION" in validate_intelligence_readiness(contradictory)["reason_codes"], checks)
+    applicability_contradiction = readiness(total=1, ready=0, applicability={"historical_data": 0}, zero_statuses={"historical_data": "NOT_EVALUATED"})
+    applicability_contradiction["historical_data"]["applicability"] = "OUT_OF_SCOPE"
+    check("not_evaluated_out_of_scope_rejected", "historical_data:APPLICABILITY_STATUS_MISMATCH" in validate_intelligence_readiness(applicability_contradiction)["reason_codes"], checks)
 
-    # US research-only bundle: non-consumer dimensions are genuinely out of scope.
+    # US research-only bundle: non-consumer dimensions are not evaluated in this bundle.
     observed = "2026-08-07T20:00:00+08:00"
     research = {"sec": {"ok": False}, "official_sources": {}, "fundamentals": {}, "earnings": {}, "material_news": {"items": []}}
     us = build_bundle("NVDA", research, us_context(), observed)
     us_ready = us["intelligence_readiness_v1"]
     for name in ("historical_data", "technical_evidence", "baseline_prediction", "full_prediction", "outcome_evaluation"):
-        check(f"us_{name}_not_evaluated", us_ready[name]["status"] == "NOT_EVALUATED" and us_ready[name]["total_applicable_symbols"] == 0, checks)
-    check("us_decision_not_evaluated", us_ready["decision_input"]["status"] == "NOT_EVALUATED", checks)
+        check(f"us_{name}_not_evaluated", us_ready[name]["status"] == "NOT_EVALUATED" and us_ready[name]["total_applicable_symbols"] == 0 and us_ready[name]["applicability"] == "NOT_EVALUATED", checks)
+    check("us_decision_not_evaluated", us_ready["decision_input"]["status"] == "NOT_EVALUATED" and us_ready["decision_input"]["applicability"] == "NOT_EVALUATED", checks)
     check("us_out_of_scope_does_not_degrade", us_ready["overall_intelligence"]["status"] == "READY", checks)
     check("us_prediction_health_truthful", us["intelligence_health"]["prediction_status"] == "NOT_EVALUATED", checks)
     check("us_health_consistency", us["intelligence_health"]["health_readiness_consistency"]["status"] == "PASS", checks)
@@ -181,6 +188,8 @@ def main() -> int:
     check("tw_full_prediction_ready", tw["intelligence_readiness_v1"]["full_prediction"]["status"] == "COMPLETE", checks)
     check("tw_decision_contract_owned", tw["intelligence_readiness_v1"]["decision_input"]["required_input_contract_ids"] == ["tw_decision_input_health_contract_v1"], checks)
     check("tw_required_categories_not_score_only", tw["research_readiness"][0]["required_category_ready"] and tw["research_readiness"][0]["ready"], checks)
+    for name in ("market_data", "historical_data", "technical_evidence", "research_evidence", "baseline_prediction", "full_prediction", "decision_input"):
+        check(f"tw_{name}_applicable_semantics", tw["intelligence_readiness_v1"][name]["applicability"] == "APPLICABLE", checks)
 
     check("canonical_registry_valid", validate_validator_registry()["status"] == "PASS", checks)
     failures = [name for name, passed in checks.items() if not passed]
