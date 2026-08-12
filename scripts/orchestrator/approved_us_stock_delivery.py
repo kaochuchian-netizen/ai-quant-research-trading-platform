@@ -320,7 +320,7 @@ def _compact_us_email_block(card: dict[str, Any], window: str) -> str:
             lines.append(f"重新評估：{plan.get('reassessment_condition') or '等待條件完整'}")
         lines.extend([
             f"SEC：{sec.get('form') or '尚未取得'}｜{sec.get('filing_date') or '日期尚未取得'}",
-            f"即時新聞：{news.get('headline') or '無法取得'}｜來源 {news.get('publisher') or '無'}",
+            f"即時新聞：{news.get('headline') or news.get('absence_label') or '未發現相關即時新聞'}｜來源 {news.get('publisher') or '無'}",
         ])
         lines.extend(_research_preview_lines(card))
         return "\n".join(lines)
@@ -352,7 +352,7 @@ def _compact_us_email_block(card: dict[str, Any], window: str) -> str:
         source_plan = card.get("source_trade_plan") if isinstance(card.get("source_trade_plan"), dict) else {}
         sec = source_plan.get("sec_evidence") if isinstance(source_plan.get("sec_evidence"), dict) else {}
         news = source_plan.get("news_evidence") if isinstance(source_plan.get("news_evidence"), dict) else {}
-        news_text = news.get("headline") if news.get("availability") == "available" and news.get("headline") else "無法取得；不以 SEC filing 代替即時新聞"
+        news_text = news.get("headline") if news.get("availability") == "available" and news.get("headline") else news.get("absence_label") or "未發現相關即時新聞；不以 SEC filing 代替新聞"
         actual_available = all(review.get(key) is not None for key in ("actual_high", "actual_low", "actual_close"))
         lines = [
             f"{symbol} {name}",
@@ -382,7 +382,7 @@ def build_email_body(artifact: dict[str, Any], window: str) -> str:
     research_summary = artifact.get("institutional_research_summary") or {}
     lines.extend([
         f"Research Identity Hash：{research_summary.get('research_summary_hash') or '尚未取得'}",
-        f"平均研究覆蓋：{research_summary.get('average_coverage_score', 0)}%｜去重後平均事件：{research_summary.get('average_deduplicated_event_count', 0)}",
+        f"平均有效研究覆蓋：{research_summary.get('average_coverage_score', 0)}%｜去重後平均事件：{research_summary.get('average_deduplicated_event_count', 0)}",
     ])
     if window == "us_post_close_review_0630":
         cards = [normalize_review_card(card) for card in cards]
@@ -439,7 +439,7 @@ def line_text(artifact: dict[str, Any], window: str) -> str:
     contract = get_window_report_contract("US", window)
     cards = [card for card in artifact.get("dashboard_ready_contract", {}).get("cards", []) if isinstance(card, dict)]
     research_summary = artifact.get("institutional_research_summary") or {}
-    research_line = f"研究覆蓋 {research_summary.get('average_coverage_score', 0)}%｜研究識別 {str(research_summary.get('research_summary_hash') or '尚未取得')[:12]}"
+    research_line = f"有效研究覆蓋 {research_summary.get('average_coverage_score', 0)}%｜研究識別 {str(research_summary.get('research_summary_hash') or '尚未取得')[:12]}"
     if window == "us_intraday_2300":
         summary = artifact.get("intraday_summary") or {}
         groups = summary.get("groups") if isinstance(summary.get("groups"), dict) else {}

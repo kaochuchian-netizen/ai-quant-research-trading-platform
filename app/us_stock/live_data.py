@@ -11,6 +11,8 @@ from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from app.research.news_evidence_funnel import normalize_yfinance_news
+
 import numpy as np
 import pandas as pd
 import yfinance as yf
@@ -182,6 +184,7 @@ class FetchResult:
     quote: dict[str, Any]
     history: pd.DataFrame | None
     news: list[dict[str, Any]]
+    news_diagnostics: dict[str, Any] | None = None
     error: str | None = None
 
 class YFinanceUSClient:
@@ -233,31 +236,18 @@ class YFinanceUSClient:
                 "market_data_as_of": market_time_iso(info.get("regularMarketTime")),
                 "market_data_source": "Yahoo Finance / yfinance",
             }
-            news_items = []
+            raw_news = []
+            news_error = None
             try:
                 raw_news = ticker.news or []
-            except Exception:
-                raw_news = []
-            for item in raw_news[:3]:
-                title = item.get("title") if isinstance(item, dict) else None
-                if not title:
-                    continue
-                provider = item.get("publisher") or item.get("providerPublishTime") or "Yahoo Finance"
-                news_items.append({
-                    "source": str(provider),
-                    "published_at": str(item.get("providerPublishTime") or "time_unavailable"),
-                    "english_headline": str(title),
-                    "chinese_translation": "英文標題摘要：" + str(title),
-                    "english_excerpt": None,
-                    "chinese_summary": "依可取得標題整理，未複製完整文章。",
-                    "vocabulary": [],
-                    "investment_reading": "新聞供事件脈絡參考，不單獨決定評等。",
-                    "source_quality": "external_news_reference",
-                    "official_source": False,
-                })
-            return FetchResult(symbol=symbol, ok=quote["last_price"] is not None and history is not None and not history.empty, quote=quote, history=history, news=news_items, error=None)
+            except Exception as exc:
+                news_error = f"{type(exc).__name__}: {str(exc)[:120]}"
+            news_items, news_diagnostics = normalize_yfinance_news(
+                raw_news, symbol=symbol, observed_at=quote["source_timestamp"], retrieval_error=news_error,
+            )
+            return FetchResult(symbol=symbol, ok=quote["last_price"] is not None and history is not None and not history.empty, quote=quote, history=history, news=news_items, news_diagnostics=news_diagnostics, error=None)
         except Exception as exc:
-            return FetchResult(symbol=symbol, ok=False, quote={"source_timestamp": now_taipei()}, history=None, news=[], error=f"{type(exc).__name__}: {str(exc)[:180]}")
+            return FetchResult(symbol=symbol, ok=False, quote={"source_timestamp": now_taipei()}, history=None, news=[], news_diagnostics=None, error=f"{type(exc).__name__}: {str(exc)[:180]}")
 
     def fetch_intraday_bars(self, symbol: str) -> pd.DataFrame | None:
         """Return bounded 5-minute evidence; callers must fail closed on None."""

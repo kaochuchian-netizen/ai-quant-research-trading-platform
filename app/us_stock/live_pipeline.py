@@ -297,7 +297,7 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
             continue
         result = client.fetch_symbol(symbol)
         technical = analyze_history(result.history) if result.history is not None else {"ok": False, "data_quality": {"history_days": 0}, "indicators": {}, "trend_1m": "insufficient_data", "trend_3m": "insufficient_data", "volatility_state": "insufficient_data", "technical_score": None, "technical_summary": "history unavailable"}
-        research = research_builder.build_for_symbol(symbol, technical, market_context, result.news)
+        research = research_builder.build_for_symbol(symbol, technical, market_context, result.news, result.news_diagnostics)
         # Preserve the existing Decision Engine inputs and call order.  The
         # institutional bundle is attached only after scoring/prediction/
         # strategy construction, so it is a read-only context export.
@@ -324,7 +324,7 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
         card["institutional_research"] = institutional_research
         card["research_identity"] = institutional_research["research_identity"]
         if window == "us_pre_market_2000":
-            card = build_premarket_card(card, result.quote, research, result.news, market_context, reference)
+            card = build_premarket_card(card, result.quote, research, result.news, market_context, reference, result.news_diagnostics)
         if window == "us_intraday_2300":
             tactical = strategies.get(DAILY_TACTICAL, {}) if isinstance(strategies, dict) else {}
             source_plan = resolve_source_trade_plan(WINDOW_ARCHIVE_DIR, context["session_date"], symbol)

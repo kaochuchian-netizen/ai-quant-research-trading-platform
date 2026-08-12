@@ -179,6 +179,18 @@ def _card_evidence(card: dict[str, Any], market_time: str) -> list[dict[str, Any
             continue
         direction = _direction(item.get("direction"))
         coverage = _freshness_status(item.get("published_at"), market_time)
+        # Historical/context news remains diagnosable but cannot re-enter the
+        # current RRE evidence set after the 72-hour admission window.
+        if coverage != "AVAILABLE":
+            rows.append(_record(
+                market_time=market_time, symbol=symbol, evidence_class="news",
+                source=_text(item.get("publisher"), "canonical_news"),
+                summary=f"過期新聞（不納入本批次研究）：{headline}", direction="unavailable",
+                coverage=coverage, confidence=0.0, reliability=.3,
+                published_at=item.get("published_at"), reference=item.get("source_url"),
+                materiality=_text(item.get("materiality"), "medium"), research_role="contextual",
+            ))
+            continue
         rows.append(_record(
             market_time=market_time, symbol=symbol, evidence_class="news",
             source=_text(item.get("publisher"), "canonical_news"),
@@ -277,12 +289,18 @@ def _news_diagnostics(card: dict[str, Any], bundle: dict[str, Any], *, rendered_
     news = card.get("news_evidence") if isinstance(card.get("news_evidence"), dict) else {}
     source = news.get("evidence_funnel") if isinstance(news.get("evidence_funnel"), dict) else {}
     stages = dict(source.get("stages") or {})
-    admitted_count = len([item for item in news.get("evidence") or [] if isinstance(item, dict)])
+    raw_evidence = [item for item in news.get("evidence") or [] if isinstance(item, dict)]
+    observed_at = str(
+        bundle.get("generated_at") or card.get("generated_at") or
+        next((item.get("observed_at") for item in bundle.get("evidence", []) if isinstance(item, dict) and item.get("observed_at")), "")
+    )
+    current_evidence = [item for item in raw_evidence if _freshness_status(item.get("published_at"), observed_at) == "AVAILABLE"]
+    admitted_count = len(current_evidence)
     upstream_stages = ("DISCOVERED", "RETRIEVED", "NORMALIZED", "SYMBOL_ATTRIBUTED", "RELEVANT", "MATERIAL", "QUALITY_QUALIFIED", "FRESH", "DEDUPLICATED", "ADMITTED")
     inferred_stages = []
     for name in upstream_stages:
         if name not in stages:
-            stages[name] = admitted_count
+            stages[name] = len(raw_evidence) if name not in {"FRESH", "DEDUPLICATED", "ADMITTED"} else admitted_count
             inferred_stages.append(name)
     source_semantics = source.get("count_semantics")
     if source_semantics:
@@ -301,7 +319,17 @@ def _news_diagnostics(card: dict[str, Any], bundle: dict[str, Any], *, rendered_
         rejection_reasons["RRE_NOT_SELECTED"] = stages["ADMITTED"] - used
     if used > stages["RENDERED"]:
         rejection_reasons["RENDERER_NOT_SELECTED"] = used - stages["RENDERED"]
-    absence = "NEWS_SELECTED_AND_RENDERED" if stages["RENDERED"] else "NEWS_ADMITTED_NOT_SELECTED" if stages.get("ADMITTED", 0) else "NEWS_DISCOVERED_BUT_FILTERED" if stages.get("DISCOVERED", 0) else "NO_RELEVANT_NEWS_DISCOVERED"
+    retrieval = news.get("retrieval") if isinstance(news.get("retrieval"), dict) else {}
+    failure_reason = str(retrieval.get("failure_reason") or "")
+    stale_count = sum(_freshness_status(item.get("published_at"), observed_at) == "STALE" for item in raw_evidence)
+    absence = (
+        "NEWS_SELECTED_AND_RENDERED" if stages["RENDERED"] else
+        "NEWS_ADMITTED_NOT_SELECTED" if stages.get("ADMITTED", 0) else
+        "NEWS_RETRIEVAL_FAILED" if failure_reason in {"RETRIEVAL_FAILED", "TIMEOUT", "UPSTREAM_ERROR", "PARSER_ERROR"} else
+        "STALE_ONLY" if stale_count and stale_count == len(raw_evidence) else
+        "NEWS_DISCOVERED_BUT_FILTERED" if stages.get("DISCOVERED", 0) else
+        "NO_RELEVANT_NEWS_DISCOVERED"
+    )
     return {
         "schema_version": "tw_research_evidence_funnel_v1",
         "count_semantics": count_semantics,

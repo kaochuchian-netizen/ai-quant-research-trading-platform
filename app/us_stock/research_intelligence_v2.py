@@ -11,6 +11,8 @@ import json
 import re
 from typing import Any, Iterable
 
+from app.research.news_evidence_funnel import with_downstream_counts
+
 SCHEMA_VERSION = "us_research_intelligence_v2"
 PREDICTION_SCHEMA_VERSION = "us_prediction_evaluation_v2"
 WINDOWS = ("us_pre_market_2000", "us_intraday_2300", "us_post_close_review_0630")
@@ -116,7 +118,7 @@ def classify_sec_filing(filing: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def normalize_news(items: Iterable[dict[str, Any]], observed_at: str) -> dict[str, Any]:
+def normalize_news(items: Iterable[dict[str, Any]], observed_at: str, diagnostics: dict[str, Any] | None = None) -> dict[str, Any]:
     """Normalize and deduplicate actual items. Never creates live-news facts."""
     normalized: list[dict[str, Any]] = []
     seen: dict[str, str] = {}
@@ -149,12 +151,16 @@ def normalize_news(items: Iterable[dict[str, Any]], observed_at: str) -> dict[st
         if duplicate_of is None:
             seen[cluster] = item["news_id"]
         normalized.append(item)
+    admitted = sum(1 for x in normalized if x["counted"])
+    # The canonical card renderer selects the first admitted item.  Keep the
+    # remainder traceable as intentionally not rendered.
+    funnel = with_downstream_counts(diagnostics or {}, rre_used=admitted, rendered=min(1, admitted))
     return {
         "status": "AVAILABLE" if any(x["counted"] for x in normalized) else "MISSING",
         "items": normalized,
         "deduplicated_count": sum(x["counted"] for x in normalized),
         "missing_reason": None if normalized else "LIVE_NEWS_SOURCE_UNAVAILABLE_OR_NO_ADMITTED_ITEMS",
-        "fabricated": False,
+        "fabricated": False, "evidence_funnel": funnel,
     }
 
 
