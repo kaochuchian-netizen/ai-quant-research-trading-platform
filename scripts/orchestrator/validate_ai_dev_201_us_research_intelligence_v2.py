@@ -83,8 +83,21 @@ def artifact_for(window: str, cards: list[dict]) -> dict:
     return artifact
 
 
-def function_ast(path: str, name: str, revision: str = "main") -> bool:
+def function_ast(path: str, name: str, revision: str | None = None) -> bool:
     current = (ROOT / path).read_text(encoding="utf-8")
+    if revision is None:
+        for candidate in ("origin/main", "main"):
+            probe = subprocess.run(
+                ["git", "rev-parse", "--verify", candidate],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+            )
+            if probe.returncode == 0:
+                revision = candidate
+                break
+    if revision is None:
+        raise RuntimeError("canonical main baseline is unavailable")
     baseline = subprocess.run(["git", "show", f"{revision}:{path}"], cwd=ROOT, text=True, capture_output=True, check=True).stdout
     def find(source: str) -> str:
         tree = ast.parse(source)

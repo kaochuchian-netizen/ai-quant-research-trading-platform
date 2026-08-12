@@ -6,6 +6,7 @@ gspread==6.2.1
 numpy==2.2.6
 pandas==2.3.3
 python-dateutil==2.9.0.post0
+python-dotenv==1.2.2
 pytz==2026.2
 requests==2.34.2
 yfinance==1.4.1
