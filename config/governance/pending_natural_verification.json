@@ -1,12 +1,21 @@
 {
   "schema_version": "pending_natural_verification_v1",
-  "updated_at": "2026-08-11T00:00:00+08:00",
+  "updated_at": "2026-08-12T00:00:00+08:00",
   "sla": {
     "minimum_trading_days": 2,
     "maximum_trading_days": 5,
     "legacy_import_policy": "SLA starts at registry adoption for pre-existing pending tasks."
   },
   "records": [
+    {
+      "task_id": "AI-DEV-203",
+      "state": "PENDING",
+      "registered_at": "2026-08-12",
+      "owner": "Cross-Market Data Quality Owner",
+      "required_windows": ["US us_pre_market_2000", "US us_intraday_2300", "US us_post_close_review_0630", "TW pre_open_0700", "TW intraday_1305", "TW pre_close_1335", "TW post_close_1500"],
+      "acceptance": "Natural US and TW lifecycles demonstrate production-provider schema parity, unified history admission, taxonomy correctness, scoped completeness, no-lookahead timing and runtime/intelligence health separation.",
+      "monitoring": "Inspect live SPY/QQQ/SOXX canonical context, TW history admission and technical readiness, failure reasons, scoped completeness, timing cutoffs and Operations health across both complete market lifecycles."
+    },
     {
       "task_id": "AI-DEV-185",
       "state": "PENDING",

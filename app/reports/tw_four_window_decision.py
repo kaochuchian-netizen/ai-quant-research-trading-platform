@@ -783,7 +783,9 @@ def evaluate_post_close(observed: dict[str, Any], setup: dict[str, Any]) -> dict
     )
     prediction_evaluation_v2 = evaluate_research_prediction_v2(
         prediction_v2,
-        {"open": actual_open, "high": actual_high, "low": actual_low, "close": actual_close},
+        {"open": actual_open, "high": actual_high, "low": actual_low, "close": actual_close,
+         "first_observation_timestamp": f"{str(setup.get('trading_date') or observed.get('trading_date') or '')}T09:00:00+08:00",
+         "outcome_data_cutoff": str(observed.get("market_data_as_of") or observed.get("generated_at") or "") or None},
         reviewed_at=str(observed.get("market_data_as_of") or observed.get("generated_at") or "") or None,
     )
     verification_v2 = verification_record(prediction_v2, prediction_evaluation_v2)

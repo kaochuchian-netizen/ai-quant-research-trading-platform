@@ -25,11 +25,14 @@ def fixture() -> tuple[dict, dict]:
         "earnings": {"latest_earnings": {"actual_eps": 1.0, "reported_date": "2026-08-01"}},
         "material_news": {"items": []},
     }
-    context = {
-        "spy": {"change_pct": 0.02, "timestamp": "2026-08-07T08:00:00-04:00"},
-        "qqq": {"change_pct": 0.01, "timestamp": "2026-08-07T08:00:00-04:00"},
-        "soxx": {"change_pct": 1.55, "timestamp": "2026-08-07T08:00:00-04:00"},
-    }
+    changes = {"SPY": .02, "QQQ": .01, "SOXX": 1.55, "DIA": 0., "^VIX": 0.}
+    context = {"items": {symbol: {
+        "change_pct": change, "last_price": 100 + change, "previous_close": 100,
+        "source_timestamp": "2026-08-07T08:00:00-04:00", "ok": True,
+        "premarket": {"change_pct": change, "timestamp": "2026-08-07T08:00:00-04:00", "source": "yfinance", "freshness": "fresh", "availability": "available"},
+    } for symbol, change in changes.items()}, "market_environment_score": 50,
+    "market_regime": "neutral", "risk_environment": "normal",
+    "source_timestamp": "2026-08-07T08:00:00-04:00"}
     return research, context
 
 
@@ -38,7 +41,7 @@ def main() -> int:
     research, context = fixture(); observed = "2026-08-07T20:00:00+08:00"
     first = build_bundle("NVDA", research, context, observed)
     second = build_bundle("NVDA", research, context, observed)
-    changed_context = json.loads(json.dumps(context)); changed_context["soxx"]["change_pct"] = -1.2
+    changed_context = json.loads(json.dumps(context)); changed_context["items"]["SOXX"]["change_pct"] = -1.2; changed_context["items"]["SOXX"]["premarket"]["change_pct"] = -1.2
     changed = build_bundle("NVDA", research, changed_context, observed)
     with tempfile.TemporaryDirectory(prefix="ai201_replay_") as tmp:
         root = Path(tmp); folder = root / "us/us_pre_market_2000/2026-08-07"; folder.mkdir(parents=True)

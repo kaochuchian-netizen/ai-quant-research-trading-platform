@@ -13,6 +13,9 @@ import math
 from datetime import date, datetime
 from typing import Any
 
+from app.market.instrument_master import instrument_metadata
+from app.runtime.intelligence_quality import completeness_v2, intelligence_health, semantic_degradation, validate_no_lookahead_v2
+
 SCHEMA_VERSION = "tw_production_intelligence_v2"
 PREDICTION_METHOD = "tw_ohlcv_range_direction_v2"
 TECHNICAL_METHOD = "tw_daily_ohlcv_features_v2"
@@ -25,19 +28,6 @@ FAILURE_REASONS = {
     "SESSION_NOT_AVAILABLE", "NOT_APPLICABLE", "ADMISSION_REJECTED",
     "NORMALIZATION_FAILED", "NO_MATERIAL_EVENT", "NO_RELIABLE_NEWS", "UNKNOWN",
 }
-
-INSTRUMENTS: dict[str, dict[str, Any]] = {
-    "2330": {"kind": "company", "sector": "半導體", "industry": "晶圓代工", "peer": "半導體大型股", "adr": "TSM"},
-    "2337": {"kind": "company", "sector": "半導體", "industry": "記憶體", "peer": "記憶體", "adr": None},
-    "2353": {"kind": "company", "sector": "電子", "industry": "電腦及週邊", "peer": "PC／伺服器", "adr": None},
-    "6873": {"kind": "company", "sector": "電子", "industry": "半導體設備", "peer": "半導體供應鏈", "adr": None},
-    "2305": {"kind": "company", "sector": "電子", "industry": "通訊網路", "peer": "網通", "adr": None},
-    "4743": {"kind": "company", "sector": "生技", "industry": "生技醫療", "peer": "生技", "adr": None},
-    "1409": {"kind": "company", "sector": "傳產", "industry": "紡織", "peer": "紡織", "adr": None},
-    "00878": {"kind": "etf", "sector": "高股息", "industry": "ETF", "peer": "台股高股息ETF", "adr": None},
-    "009816": {"kind": "etf", "sector": "市值型", "industry": "ETF", "peer": "台股市值型ETF", "adr": None},
-}
-
 
 def _number(value: Any) -> float | None:
     if value is None or isinstance(value, bool):
@@ -56,16 +46,18 @@ def _hash(value: Any, prefix: str) -> str:
 
 def instrument_context(symbol: str) -> dict[str, Any]:
     symbol = str(symbol)
-    value = dict(INSTRUMENTS.get(symbol) or {
-        "kind": "company", "sector": "未分類", "industry": "未分類", "peer": "未分類", "adr": None,
-    })
-    value.update({
-        "symbol": symbol,
-        "fundamentals_applicability": "not_applicable" if value["kind"] == "etf" else "applicable",
-        "company_events_applicability": "not_applicable" if value["kind"] == "etf" else "applicable",
-        "adr_applicability": "applicable" if value.get("adr") else "not_applicable",
-    })
-    return value
+    row = instrument_metadata("TW", symbol)
+    return {
+        **row,
+        "kind": row.get("instrument_type") or "unknown",
+        "sector": row.get("sector") or "未分類",
+        "industry": row.get("industry") or "未分類",
+        "peer": row.get("peer_group") or "未分類",
+        "adr": row.get("adr_symbol"),
+        "fundamentals_applicability": str(row.get("fundamentals_applicability") or "NOT_APPLICABLE").lower(),
+        "company_events_applicability": str(row.get("company_events_applicability") or "NOT_APPLICABLE").lower(),
+        "adr_applicability": str(row.get("adr_applicability") or "NOT_APPLICABLE").lower(),
+    }
 
 
 def technical_evidence(card: dict[str, Any]) -> dict[str, Any]:
@@ -105,7 +97,7 @@ def effective_coverage(card: dict[str, Any]) -> dict[str, Any]:
         "market_price_history": {"status": "available" if tech["history_bars"] else "missing", "weight": .25, "reason_code": tech["reason_code"]},
         "technical": {"status": tech["status"], "weight": .20, "reason_code": tech["reason_code"]},
         "market_regime": {"status": "available" if card.get("market_context") or card.get("overnight_context") else "missing", "weight": .10, "reason_code": None if card.get("market_context") or card.get("overnight_context") else "NO_SOURCE_CONFIGURED"},
-        "sector_peer": {"status": "available" if instrument["sector"] != "未分類" else "missing", "weight": .10, "reason_code": None if instrument["sector"] != "未分類" else "SYMBOL_MAPPING_FAILED"},
+        "sector_peer": {"status": "available" if instrument.get("sector") not in {None, "未分類"} else "missing", "weight": .10, "reason_code": None if instrument.get("sector") not in {None, "未分類"} else "SYMBOL_MAPPING_FAILED"},
         "fundamentals": {"status": "not_applicable" if instrument["kind"] == "etf" else "available" if card.get("fundamental_context") or card.get("fundamental_summary") else "missing", "weight": .10, "reason_code": "NOT_APPLICABLE" if instrument["kind"] == "etf" else None if card.get("fundamental_context") or card.get("fundamental_summary") else "NO_SOURCE_CONFIGURED"},
         "official_events": {"status": "not_applicable" if instrument["kind"] == "etf" else "available" if card.get("official_events") else "missing", "weight": .10, "reason_code": "NOT_APPLICABLE" if instrument["kind"] == "etf" else None if card.get("official_events") else "NO_MATERIAL_EVENT"},
         "news": {"status": "available" if usable_news else "partial" if raw_news else "missing", "weight": .10, "reason_code": None if usable_news else "NO_RELIABLE_NEWS"},
@@ -160,10 +152,14 @@ def build_prediction_snapshot(card: dict[str, Any], *, effective_date: str | Non
     evidence_identity = _hash({"symbol": symbol, "technical": tech, "date": effective_date}, "twev_")
     hypothesis = {"direction": direction, "trigger": "下一交易時段價格與量價證據確認" if available else "補足最低行情證據", "invalidation": "實際方向與預測相反或價格超出預測區間" if available else "不適用"}
     hypothesis_identity = _hash({"symbol": symbol, "hypothesis": hypothesis, "evidence": evidence_identity}, "twhyp_")
+    generated = generated_at or card.get("generated_at")
+    source_timestamp = (card.get("technical_data") or {}).get("source_timestamp") or generated
+    if isinstance(source_timestamp, str) and len(source_timestamp) == 10:
+        source_timestamp = source_timestamp + "T13:30:00+08:00"
     core = {
         "schema_version": "tw_prediction_snapshot_v2", "market": "TW", "symbol": symbol,
         "window": "pre_open_0700", "effective_trading_date": effective_date or card.get("trading_date"),
-        "generated_at": generated_at or card.get("generated_at"), "method_version": PREDICTION_METHOD,
+        "generated_at": generated, "method_version": PREDICTION_METHOD,
         "prediction_status": "evaluable" if available else "insufficient_data",
         "direction_forecast": direction, "range_forecast": {"low": low, "high": high, "interval_width": None if low is None or high is None else round(high - low, 4), "method": "latest_close_plus_minus_atr14"},
         "regime_forecast": regime, "setup_forecast": {"class": "not_estimated", "probability": None, "reason": "no validated probability model"},
@@ -171,7 +167,12 @@ def build_prediction_snapshot(card: dict[str, Any], *, effective_date: str | Non
         "reason_code": reason, "research_identity": research_identity, "evidence_identity": evidence_identity,
         "hypothesis": hypothesis, "hypothesis_identity": hypothesis_identity,
         "decision_linkage": {"action": card.get("action"), "eligibility": card.get("entry_readiness"), "no_trade": bool(card.get("no_trade") or card.get("entry_readiness") == "no_trade"), "decision_ownership_preserved": True},
-        "no_lookahead": {"prediction_timestamp": generated_at or card.get("generated_at"), "outcome_timestamp": None, "status": "pre_outcome"},
+        "no_lookahead": {
+            "schema_version": "no_lookahead_v2", "prediction_generated_at": generated,
+            "prediction_data_cutoff": generated, "last_input_market_timestamp": source_timestamp,
+            "first_outcome_observation_timestamp": None, "outcome_data_cutoff": None,
+            "review_generated_at": None, "status": "pre_outcome",
+        },
     }
     core["prediction_identity"] = _hash(core, "twpred_")
     return core
@@ -200,6 +201,13 @@ def evaluate_prediction(snapshot: dict[str, Any], actual: dict[str, Any], *, rev
     no_trade_classification = None
     if decision.get("no_trade"):
         no_trade_classification = "inconclusive" if not evaluable else "risk_appropriate_abstention" if direction_result == "miss" else "correctly_avoided"
+    timing = dict(snapshot.get("no_lookahead") or {})
+    timing.update({
+        "first_outcome_observation_timestamp": actual.get("first_observation_timestamp"),
+        "outcome_data_cutoff": actual.get("outcome_data_cutoff") or reviewed_at,
+        "review_generated_at": reviewed_at,
+    })
+    no_lookahead = validate_no_lookahead_v2(timing)
     core = {
         "schema_version": "tw_prediction_evaluation_v2", "prediction_identity": snapshot.get("prediction_identity"),
         "symbol": snapshot.get("symbol"), "evaluation_status": "evaluated" if evaluable else result,
@@ -210,7 +218,8 @@ def evaluate_prediction(snapshot: dict[str, Any], actual: dict[str, Any], *, rev
         "confidence_bucket": _confidence_bucket(snapshot.get("confidence")),
         "no_trade": bool(decision.get("no_trade")), "no_trade_classification": no_trade_classification,
         "actual": {"open": actual_open, "high": actual_high, "low": actual_low, "close": actual_close},
-        "reviewed_at": reviewed_at, "no_lookahead_status": "pass" if snapshot.get("generated_at") and reviewed_at and str(snapshot.get("generated_at")) <= str(reviewed_at) else "not_verifiable",
+        "reviewed_at": reviewed_at, "no_lookahead_v2": {**timing, **no_lookahead},
+        "no_lookahead_status": "pass" if no_lookahead["status"] == "PASS" else "not_verifiable",
     }
     core["review_identity"] = _hash(core, "twreview_")
     return core
@@ -270,12 +279,36 @@ def source_health(cards: list[dict[str, Any]]) -> dict[str, Any]:
     total = len(cards)
     tech = [technical_evidence(card) for card in cards]
     coverage = [effective_coverage(card) for card in cards]
+    full = sum(item["analysis_eligible"] for item in tech)
+    quote_available = sum(any(_number(card.get(key)) is not None for key in ("current_price", "session_open", "session_high", "session_low")) for card in cards)
+    history_valid = sum(bool(((card.get("technical_data") or {}).get("history_admission") or {}).get("admission_success")) for card in cards)
+    completeness = completeness_v2(
+        market_data="COMPLETE" if quote_available == total and total else "PARTIAL",
+        technical="COMPLETE" if full == total and total else "PARTIAL" if full else "MISSING",
+        research="COMPLETE" if all(not item["missing"] for item in coverage) else "PARTIAL",
+        decision_input="SUFFICIENT", prediction_input="SUFFICIENT" if any(item["history_bars"] >= MIN_PREDICTION_BARS for item in tech) else "INSUFFICIENT",
+        research_score=round(sum(item["score"] for item in coverage) / total, 2) if total else 0,
+        missing_categories=sorted({key for item in coverage for key in item["missing"]}),
+    )
+    degradation = semantic_degradation(
+        quote_total=total, quote_available=quote_available,
+        history_claimed_valid=history_valid, technical_executable=full,
+        completeness=completeness,
+    )
     return {
         "schema_version": "tw_source_health_summary_v1", "symbol_count": total,
         "sources": source_inventory(),
         "category_health": {
-            "historical": {"usable_symbols": sum(item["history_bars"] > 0 for item in tech), "full_symbols": sum(item["analysis_eligible"] for item in tech), "failure_reason": "INSUFFICIENT_LOOKBACK" if any(not item["analysis_eligible"] for item in tech) else None},
+            "historical": {"usable_symbols": sum(item["history_bars"] > 0 for item in tech), "admitted_symbols": history_valid, "full_symbols": full, "failure_reason": "INSUFFICIENT_LOOKBACK" if any(not item["analysis_eligible"] for item in tech) else None},
             "news": {"usable_symbols": sum("news" in item["available"] for item in coverage), "partial_symbols": sum("news" in item["partial"] for item in coverage), "failure_reason": "NO_RELIABLE_NEWS" if not any("news" in item["available"] for item in coverage) else None},
         },
+        "completeness_v2": completeness,
+        "semantic_degradation": degradation,
+        "intelligence_health": intelligence_health(
+            runtime_status="SUCCESS", data_quality_status="DEGRADED" if degradation["status"] == "DEGRADED" else "HEALTHY",
+            research_status=completeness["research_evidence_completeness"],
+            prediction_status="AVAILABLE" if completeness["prediction_input_completeness"] == "SUFFICIENT" else "DEGRADED",
+            decision_status="AVAILABLE", degradation=degradation,
+        ),
         "public_summary": "來源健康摘要僅顯示可用證據與原因碼，不包含憑證或原始除錯資訊。",
     }

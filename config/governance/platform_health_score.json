@@ -1,6 +1,6 @@
 {
   "schema_version": "platform_health_score_v1",
-  "measured_at": "2026-08-11T00:00:00+08:00",
+  "measured_at": "2026-08-12T00:00:00+08:00",
   "current_phase_id": "phase_1",
   "overall_score": 70.2,
   "overall_target": 85,
@@ -42,7 +42,7 @@
       "name": "Data Truthfulness",
       "score": 76,
       "previous_score": 78,
-      "implemented_score": 89,
+      "implemented_score": 92,
       "verified_score": 76,
       "residual_limitation": "The 2026-07-29 TW 07:00 Google Sheets 503 prevented a canonical batch; bounded fallback is implemented but naturally unverified.",
       "description": "Observed, stale, unavailable and inferred data are not conflated.",
@@ -51,7 +51,7 @@
       "target": 90,
       "trend": "declining",
       "weight": 0.1,
-      "evidence": "AI-DEV-202 records the observed 19-bar stale-history root cause, separates partial news metadata from usable directional evidence, and adds explicit source reason codes; natural fallback behavior is not yet verified."
+      "evidence": "AI-DEV-203 deterministically rejects stale/short/invalid/future history across all TW providers, normalizes the actual US provider shape, and separates scoped completeness from runtime success. Verified score remains unchanged pending natural US/TW lifecycles."
     },
     {
       "id": "evidence_traceability",
@@ -117,7 +117,7 @@
       "id": "regression_risk",
       "name": "Regression Risk",
       "score": 78,
-      "implemented_score": 87,
+      "implemented_score": 91,
       "verified_score": 78,
       "description": "Higher score means lower residual risk across protected contracts.",
       "measurement": "Required branch, seven-window, archive, landing and post-merge gates.",
@@ -125,14 +125,14 @@
       "target": 90,
       "trend": "declining",
       "weight": 0.1,
-      "evidence": "AI-DEV-202 adds semantic sufficient-OHLCV, fallback, ETF applicability, no-lookahead, no-trade evaluation, identity and immutable 8/11 replay gates; verified risk remains unchanged pending natural evidence."
+      "evidence": "AI-DEV-203 adds production-shape parity, unified admission, taxonomy, semantic-degradation and timezone-aware no-lookahead negative gates. Verified risk remains unchanged pending natural evidence."
     },
     {
       "id": "technical_debt",
       "name": "Technical Debt",
       "score": 61,
       "previous_score": 58,
-      "implemented_score": 75,
+      "implemented_score": 80,
       "verified_score": 61,
       "residual_limitation": "Legacy V4 count projections remain for backward-compatible secondary metrics.",
       "description": "Higher score means lower debt and fewer duplicated contracts or legacy fallbacks.",
@@ -141,7 +141,7 @@
       "target": 80,
       "trend": "stable",
       "weight": 0.1,
-      "evidence": "AI-DEV-202 reuses the existing technical/RRE/lifecycle builders, adds one pure canonical V2 contract and preserves legacy trade prediction fields for compatibility rather than duplicating strategy logic."
+      "evidence": "AI-DEV-203 removes task-local TW taxonomy truth and raw-provider coupling through versioned canonical instrument, market-context, admission and intelligence-health contracts."
     },
     {
       "id": "phase_completion",

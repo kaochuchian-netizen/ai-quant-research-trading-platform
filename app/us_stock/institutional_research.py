@@ -16,6 +16,8 @@ from app.us_stock.research_intelligence_v2 import (
     normalize_news,
     validate_projection,
 )
+from app.us_stock.market_context_contract import canonical_ticker, normalize_us_market_context
+from app.runtime.intelligence_quality import completeness_v2, intelligence_health, semantic_degradation
 
 SCHEMA_VERSION = "us_institutional_research_bundle_v1"
 BOUNDARY = {"consumer": "existing_decision_engine", "mode": "read_only_context",
@@ -112,8 +114,9 @@ def _freshness(value: Any, observed_at: Any = None) -> str:
 def provider_snapshot(research: dict[str, Any], market_context: dict[str, Any]) -> list[dict[str, Any]]:
     # A configured IR URL is registry metadata, not proof that an IR collector
     # connected successfully.  Only adapters with observed data become AVAILABLE.
+    canonical_market = normalize_us_market_context(market_context)
     observed = {"sec_edgar": bool((research.get("sec") or {}).get("ok")),
-                "yfinance": bool((research.get("fundamentals") or {}).get("metrics")) or bool(market_context)}
+                "yfinance": bool((research.get("fundamentals") or {}).get("metrics")) or canonical_market["normalization_status"] in {"VALID", "PARTIAL"}}
     rows = []
     for configured in PROVIDERS:
         row, success = dict(configured), observed.get(configured["provider_id"])
@@ -183,12 +186,14 @@ def canonical_evidence(symbol: str, research: dict[str, Any], market_context: di
     for news in [x for x in (research.get("material_news") or {}).get("items", []) if isinstance(x, dict)]:
         provenance, official = news.get("provenance") or {}, bool(news.get("official_source"))
         rows.append(evidence_record(symbol, "company_ir" if official else "yfinance", "A" if official else "C", str(news.get("english_headline") or "Material event metadata"), str(news.get("chinese_summary") or news.get("investment_reading") or ""), observed_at, str(news.get("event_type") or "news"), published_at=provenance.get("published_at"), direction=news.get("direction"), materiality=str(news.get("materiality") or "medium"), relevance=str(news.get("relevance") or "medium"), confidence=.9 if official else .68, official=official, reference=provenance.get("source_reference")))
+    canonical_market = normalize_us_market_context(market_context)
     for ticker in ("SPY", "QQQ", "SOXX"):
-        value = market_context.get(ticker.lower()) or market_context.get(ticker) or {}
-        change = value.get("premarket_change_pct") if value.get("premarket_change_pct") is not None else value.get("change_pct")
+        value = canonical_ticker(canonical_market, ticker)
+        change = value.get("change_pct")
         if isinstance(change, (int, float)):
-            market_evidence = evidence_record(symbol, "yfinance", "B", f"{ticker} market context", f"{ticker} change reference {change}", observed_at, "sector" if ticker == "SOXX" else "market_context", published_at=value.get("timestamp") or value.get("source_timestamp"), direction="bullish" if change > 0 else "bearish" if change < 0 else "neutral", confidence=.82, reference=ticker)
+            market_evidence = evidence_record(symbol, "yfinance", "B", f"{ticker} market context", f"{ticker} change reference {change}", observed_at, "sector" if ticker == "SOXX" else "market_context", published_at=value.get("timestamp"), direction="bullish" if change > 0 else "bearish" if change < 0 else "neutral", confidence=.82, reference=ticker)
             market_evidence["observed_change_pct"] = round(float(change), 6)
+            market_evidence["provenance"]["canonical_market_context"] = canonical_market["schema_version"]
             rows.append(market_evidence)
     return deduplicate(rows)
 
@@ -263,9 +268,30 @@ def build_bundle(symbol: str, research: dict[str, Any], market_context: dict[str
     evidence = canonical_evidence(symbol, research, market_context, observed_at)
     coverage, conflict = analyze_coverage(evidence, knowledge, providers), analyze_conflict(evidence)
     synthesis = synthesize(evidence, coverage, conflict)
+    canonical_market = normalize_us_market_context(market_context)
+    research_complete = "COMPLETE" if not coverage["coverage_gap"] else "PARTIAL"
+    completeness = completeness_v2(
+        market_data="COMPLETE" if canonical_market["normalization_status"] == "VALID" else "PARTIAL",
+        technical="PARTIAL", research=research_complete,
+        decision_input="SUFFICIENT", prediction_input="SUFFICIENT",
+        research_score=coverage["score"], missing_categories=coverage["coverage_gap"],
+    )
+    degradation = semantic_degradation(
+        provider_market_values=canonical_market["normalization_status"] == "VALID",
+        research_market_available=any(x.get("source_reference") in {"SPY", "QQQ", "SOXX"} for x in evidence),
+        completeness=completeness,
+    )
     bundle = {"schema_version": SCHEMA_VERSION, "market": "US", "symbol": symbol.upper(),
               "research_effective_at": observed_at, "provider_registry_version": "us_research_provider_registry_v1",
               "providers": providers, "knowledge": knowledge, "evidence": evidence,
+              "canonical_market_context_v2": canonical_market,
+              "completeness_v2": completeness,
+              "semantic_degradation": degradation,
+              "intelligence_health": intelligence_health(
+                  runtime_status="SUCCESS", data_quality_status="HEALTHY" if canonical_market["normalization_status"] == "VALID" else "DEGRADED",
+                  research_status=research_complete, prediction_status="AVAILABLE",
+                  decision_status="READ_ONLY_CONSUMER", degradation=degradation,
+              ),
               "coverage": coverage, "conflict": conflict, "synthesis": synthesis,
               "decision_context_export": {"research_score": synthesis["research_score"], "research_stance": synthesis["research_stance"], "confidence": synthesis["research_confidence"], "coverage_gap": coverage["coverage_gap"], "conflict_level": conflict["level"], "evidence_ids": [x["evidence_id"] for x in evidence if x["counted_in_synthesis"]], "trade_action": None},
               "decision_engine_boundary": BOUNDARY,
