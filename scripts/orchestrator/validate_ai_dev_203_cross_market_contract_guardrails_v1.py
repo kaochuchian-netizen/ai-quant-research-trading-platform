@@ -40,6 +40,15 @@ def production_us_context() -> dict:
     }
 
 
+def production_shape_fixture() -> dict:
+    return {
+        "fixture_class": "PRODUCTION_SHAPE_FIXTURE",
+        "raw_schema_identity": "yfinance_us_context_items_v1",
+        "raw_schema_version": 1,
+        "payload": production_us_context(),
+    }
+
+
 def history(periods: int, *, end: str = "2026-08-11") -> pd.DataFrame:
     close = pd.Series([100 + index * .2 for index in range(periods)], dtype=float)
     return pd.DataFrame({
@@ -56,7 +65,8 @@ def check(name: str, condition: bool, failures: list[str]) -> None:
 
 def main() -> int:
     failures: list[str] = []
-    raw = production_us_context()
+    fixture = production_shape_fixture()
+    raw = fixture["payload"]
     canonical = normalize_us_market_context(raw)
     legacy = normalize_us_market_context({"spy": {"change_pct": .1}, "qqq": {}, "soxx": {}})
     research = {"sec": {"ok": False}, "official_sources": {}, "fundamentals": {}, "earnings": {}, "material_news": {"items": []}}
@@ -70,11 +80,11 @@ def main() -> int:
     check("us_context_provenance", all((item.get("provenance") or {}).get("canonical_market_context") == "us_market_context_v2" for item in bundle["evidence"] if item.get("source_reference") in {"SPY", "QQQ", "SOXX"}), failures)
 
     short = validate_history_candidate(history(19, end="2026-07-24"), source="existing_historical_csv", target_date="2026-08-11")
-    valid = validate_history_candidate(history(60), source="shioaji_kbars", target_date="2026-08-11")
-    provider_short = validate_history_candidate(history(19), source="shioaji_kbars", target_date="2026-08-11")
-    bad_geometry_frame = history(60); bad_geometry_frame.loc[3, "high"] = bad_geometry_frame.loc[3, "low"] - 1
+    valid = validate_history_candidate(history(60, end="2026-08-10"), source="shioaji_kbars", target_date="2026-08-11")
+    provider_short = validate_history_candidate(history(19, end="2026-08-10"), source="shioaji_kbars", target_date="2026-08-11")
+    bad_geometry_frame = history(60, end="2026-08-10"); bad_geometry_frame.loc[3, "high"] = bad_geometry_frame.loc[3, "low"] - 1
     bad_geometry = validate_history_candidate(bad_geometry_frame, source="yfinance:2330.TW", target_date="2026-08-11")
-    duplicate_frame = pd.concat([history(60), history(60).tail(1)], ignore_index=True)
+    duplicate_frame = pd.concat([history(60, end="2026-08-10"), history(60, end="2026-08-10").tail(1)], ignore_index=True)
     duplicate = validate_history_candidate(duplicate_frame, source="existing_historical_csv", target_date="2026-08-11")
     future = validate_history_candidate(history(60, end="2026-08-12"), source="yfinance:2330.TW", target_date="2026-08-11")
     check("tw_stale_19_rejected", not short["admission_success"] and {"STALE", "INSUFFICIENT_LOOKBACK"}.issubset(short["reason_codes"]), failures)
@@ -124,12 +134,14 @@ def main() -> int:
     check("market_consumer_degradation", "PROVIDER_DATA_CONSUMER_DISCONNECTED" in disconnected["reason_codes"], failures)
     check("runtime_intelligence_separate", health["runtime_status"] == "SUCCESS" and health["intelligence_status"] == "DEGRADED" and not health["runtime_success_is_intelligence_success"], failures)
     check("failure_taxonomy", {"SCHEMA_MISMATCH", "STALE", "INSUFFICIENT_LOOKBACK", "INVALID_GEOMETRY", "FUTURE_DATA", "CONSUMER_DISCONNECTED"}.issubset(FAILURE_REASONS), failures)
-    check("fixture_evidence_level", "PRODUCTION_SHAPE_FIXTURE" == "PRODUCTION_SHAPE_FIXTURE", failures)
+    check("fixture_evidence_level", fixture.get("fixture_class") == "PRODUCTION_SHAPE_FIXTURE", failures)
+    check("fixture_schema_identity", fixture.get("raw_schema_identity") == "yfinance_us_context_items_v1" and fixture.get("raw_schema_version") == 1, failures)
+    check("fixture_raw_provider_shape", isinstance((fixture.get("payload") or {}).get("items"), dict) and {"SPY", "QQQ", "SOXX"}.issubset(fixture["payload"]["items"]), failures)
 
     result = {
         "validator": "validate_ai_dev_203_cross_market_contract_guardrails_v1",
         "task_id": "AI-DEV-203", "status": "PASS" if not failures else "FAIL",
-        "evidence_level": "PRODUCTION_SHAPE_FIXTURE", "checks": 34,
+        "evidence_level": "PRODUCTION_SHAPE_FIXTURE", "checks": 36,
         "failures": failures,
         "acceptance": {
             "us_market_context": canonical, "legacy_shape": legacy,
