@@ -377,6 +377,14 @@ def build_tw_daily_research(
         supporting = _labels(reasoning["supporting_evidence_ids"], bundle["evidence"])
         opposing = _labels(reasoning["opposing_evidence_ids"], bundle["evidence"])
         contextual = _labels(reasoning.get("contextual_evidence_ids") or [], bundle["evidence"])
+        evidence_by_id = {item["evidence_id"]: item for item in bundle["evidence"]}
+        neutral_research_ids = [
+            evidence_id for evidence_id in reasoning.get("neutral_evidence_ids") or []
+            if evidence_id in evidence_by_id
+            and evidence_by_id[evidence_id].get("research_role") == "substantive"
+            and evidence_by_id[evidence_id].get("evidence_class") == "news"
+        ]
+        neutral_research = _labels(neutral_research_ids, bundle["evidence"])
         missing = _missing(card, reasoning)
         company = bundle["knowledge"].get("dimensions") or {}
         context = [
@@ -384,23 +392,26 @@ def build_tw_daily_research(
             *company.get("long_term_drivers", [])[:2],
         ]
         action = _text(decision.get("decision_category_label") or card.get("action"), "觀察候選")
+        neutral_clause = f"；另有非方向性研究證據：{neutral_research[0]}" if neutral_research else ""
         if supporting and opposing:
-            summary = f"{symbol} {_name(card)}同時有正反證據；{supporting[0]}，但{opposing[0]}，因此維持「{action}」。"
+            summary = f"{symbol} {_name(card)}同時有正反證據；{supporting[0]}，但{opposing[0]}{neutral_clause}，因此維持「{action}」。"
         elif supporting:
             limit = f"；但仍缺少{'、'.join(missing[:2])}" if missing else ""
-            summary = f"{symbol} {_name(card)}的主要支持為{supporting[0]}{limit}，目前維持「{action}」。"
+            summary = f"{symbol} {_name(card)}的主要支持為{supporting[0]}{neutral_clause}{limit}，目前維持「{action}」。"
         elif opposing:
-            summary = f"{symbol} {_name(card)}受{opposing[0]}限制，且需確認{'、'.join(missing[:2]) or '後續證據'}，目前維持「{action}」。"
+            summary = f"{symbol} {_name(card)}受{opposing[0]}限制{neutral_clause}，且需確認{'、'.join(missing[:2]) or '後續證據'}，目前維持「{action}」。"
+        elif neutral_research:
+            summary = f"{symbol} {_name(card)}已取得非方向性研究證據：{neutral_research[0]}；目前仍不足以形成偏多或偏空結論，維持「{action}」。"
         else:
             summary = f"{symbol} {_name(card)}目前沒有足以形成方向結論的證據；長期脈絡為{'、'.join(context[:2]) or '尚未建檔'}，先維持「{action}」。"
         substantive_count = len(reasoning.get("substantive_evidence_ids") or [])
         qualified = reasoning["conclusion"] in {"bullish", "bearish", "mixed"} and substantive_count > 0 and float(reasoning["confidence"]["score"]) >= 50
-        news_rendered = sum(item.startswith("新聞｜") for item in supporting + opposing)
+        news_rendered = sum(item.startswith("新聞｜") for item in supporting + opposing) + (1 if neutral_research else 0)
         notes.append({
             "symbol": symbol, "name": _name(card), "generated_by": "research_reasoning_engine_v1",
             "research_summary": summary, "conclusion": reasoning["conclusion"],
             "supporting": supporting, "opposing": opposing, "missing": missing,
-            "contextual_evidence": contextual,
+            "contextual_evidence": contextual, "neutral_research_evidence": neutral_research,
             "why": reasoning.get("why") or [], "why_not": reasoning.get("why_not") or [],
             "unknown": missing, "counter_argument": reasoning["counter_argument"],
             "company_context": context, "knowledge_status": bundle["knowledge"]["status"],
@@ -441,9 +452,7 @@ def build_tw_daily_research(
         "best_research_status": "QUALIFIED" if strongest else "NO_QUALIFIED_RESEARCH",
         "relative_evidence_candidate": f"{relative['symbol']} {relative['name']}" if relative else None,
         "largest_research_risk": f"{risk['symbol']} {risk['name']}｜缺口：{'、'.join(risk['missing'][:3]) or '無'}" if risk else "尚無研究風險",
-        "next_question": (
-            strongest["hypothesis"]["expected_trigger"] if strongest else "等待下一批次研究證據"
-        ),
+        "next_question": strongest["hypothesis"]["expected_trigger"] if strongest else "等待下一批次研究證據",
     }
     result = {
         "schema_version": "tw_daily_research_reasoning_v1", "market": "TW", "window": window,
@@ -485,7 +494,7 @@ def validate_tw_daily_research(value: dict[str, Any], expected_symbols: set[str]
         errors.append("legacy_research_note")
     for row in notes:
         symbol = row.get("symbol")
-        for key in ("supporting", "opposing", "missing", "unknown", "reasoning_chain"):
+        for key in ("supporting", "opposing", "missing", "unknown", "reasoning_chain", "neutral_research_evidence"):
             if not isinstance(row.get(key), list):
                 errors.append(f"{symbol}:{key}")
         hypothesis = row.get("hypothesis") or {}
