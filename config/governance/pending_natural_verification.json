@@ -8,6 +8,15 @@
   },
   "records": [
     {
+      "task_id": "AI-DEV-206",
+      "state": "PENDING",
+      "registered_at": "2026-08-12",
+      "owner": "Cross-Market Intelligence Governance Owner",
+      "required_windows": ["US us_pre_market_2000", "US us_intraday_2300", "US us_post_close_review_0630", "TW pre_open_0700", "TW intraday_1305", "TW pre_close_1335", "TW post_close_1500"],
+      "acceptance": "Natural TW and US lifecycles preserve the canonical distinction NOT_EVALUATED -> applicability NOT_EVALUATED, NOT_APPLICABLE -> OUT_OF_SCOPE, and applicable denominator > 0 -> APPLICABLE without changing readiness, prediction health or Decision ownership semantics.",
+      "monitoring": "Confirm US research-only historical/technical/prediction/outcome/decision dimensions remain NOT_EVALUATED with applicability NOT_EVALUATED, TW applicable dimensions remain APPLICABLE, Operations and channels do not reinterpret NOT_EVALUATED as out-of-scope or unavailable, and no strategy/action behavior changes."
+    },
+    {
       "task_id": "AI-DEV-205",
       "state": "PENDING",
       "registered_at": "2026-08-12",
