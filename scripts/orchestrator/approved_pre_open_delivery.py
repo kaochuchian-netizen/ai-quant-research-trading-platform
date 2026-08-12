@@ -32,6 +32,7 @@ from app.dashboard.dashboard_url_registry import get_delivery_dashboard_url, get
 from app.dashboard.market_dashboard_alias import payload_hash  # noqa: E402
 from app.dashboard.window_snapshot_archive import resolve_snapshots, write_snapshot  # noqa: E402
 from app.dashboard.public_latest_sync import synchronize_admitted_latest, write_sync_artifact  # noqa: E402
+from app.dashboard.visual_evidence_archive import capture_published_snapshot_non_blocking  # noqa: E402
 from app.reports.delivery_provenance import build_delivery_provenance, write_delivery_provenance  # noqa: E402
 from app.reports.report_content_contract import build_report_content_artifact  # noqa: E402
 from app.reports.window_context import get_window_context  # noqa: E402
@@ -1116,6 +1117,15 @@ def main() -> int:
             REPO_ROOT / "artifacts/runtime/public_latest_sync" / f"tw_{args.window}_latest.json",
             public_latest_sync,
         )
+    visual_evidence = capture_published_snapshot_non_blocking(
+        market="TW",
+        window=str(archive_write.get("window") or args.window),
+        archive_write=archive_write,
+        public_sync=public_latest_sync,
+        static_root=Path(args.dashboard_publish_dir),
+        snapshot_archive_root=WINDOW_SNAPSHOT_ARCHIVE,
+        capture_origin="manual_rerun" if args.manual_rerun else "scheduled",
+    )
     sync_stage_ok = public_latest_sync.get("status") == "verified" or (args.manual_rerun and archive_write.get("written") is True)
     record_stage_result(stage_timing_path, "archive_build", status="completed" if sync_stage_ok else "failed", error_category=None if sync_stage_ok else "route_build_failure")
     record_stage_result(stage_timing_path, "publish", status="completed" if sync_stage_ok else "failed", error_category=None if sync_stage_ok else "public_verification_failure")
@@ -1233,6 +1243,7 @@ def main() -> int:
         "post_run_artifact_wiring": post_run_artifacts,
         "archive_write": archive_write,
         "public_latest_sync": public_latest_sync,
+        "visual_evidence": visual_evidence,
         "line_delivery": line,
         "line_delivery_status": line.get("send_status"),
         "line_delivery_reason": line.get("reason"),

@@ -1,0 +1,568 @@
+"""Read-only browser capture and immutable Visual Evidence Archive.
+
+Visual evidence is a downstream QA projection of an admitted window snapshot.
+It never feeds research, prediction, Decision, delivery, or trading ownership.
+"""
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import shutil
+import tempfile
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Callable
+from zoneinfo import ZoneInfo
+
+from app.dashboard.dashboard_url_registry import get_window_archive_path
+from app.dashboard.market_dashboard_alias import snapshot_parity_contract
+from app.dashboard.window_snapshot_archive import MARKET_WINDOWS, admission_errors, resolve_snapshots
+
+SCHEMA_VERSION = "visual_evidence_manifest_v1"
+INDEX_SCHEMA_VERSION = "visual_evidence_index_v1"
+REVIEW_SCHEMA_VERSION = "visual_evidence_daily_review_v1"
+VIEWPORT = {"width": 1440, "height": 1200}
+DEFAULT_TIMEOUT_MS = 45_000
+REPO_ROOT = Path(__file__).resolve().parents[2]
+USER_BROWSER_LIB_ROOT = Path.home() / ".cache/stock-ai-playwright-libs/root"
+DEFAULT_VISUAL_ROOT = Path(
+    os.environ.get("STOCK_AI_VISUAL_EVIDENCE_ROOT", REPO_ROOT / "artifacts/archive/visual_evidence")
+)
+
+
+def _now() -> str:
+    return datetime.now(ZoneInfo("Asia/Taipei")).replace(microsecond=0).isoformat()
+
+
+def _stable_json(value: Any) -> str:
+    return json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _atomic_json(path: Path, value: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + f".tmp-{os.getpid()}")
+    temporary.write_text(_stable_json(value), encoding="utf-8")
+    temporary.replace(path)
+
+
+def _relative(path: Path, root: Path) -> str:
+    try:
+        return str(path.resolve().relative_to(root.resolve()))
+    except ValueError:
+        return str(path.resolve())
+
+
+def _capture_id(identity: dict[str, Any]) -> str:
+    raw = json.dumps(identity, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def _expected_identity(snapshot: dict[str, Any]) -> dict[str, Any]:
+    parity = snapshot_parity_contract(snapshot) or {}
+    return {
+        "market": parity.get("market"),
+        "window": parity.get("active_window"),
+        "effective_trading_date": parity.get("effective_trading_date"),
+        "snapshot_id": parity.get("snapshot_id"),
+        "revision": int(parity.get("revision") or 0),
+        "payload_hash": parity.get("payload_hash"),
+    }
+
+
+def _normalize_observed_identity(value: dict[str, Any]) -> dict[str, Any]:
+    normalized = {
+        "market": value.get("market"),
+        "window": value.get("window"),
+        "effective_trading_date": value.get("effectiveTradingDate") or value.get("effective_trading_date"),
+        "snapshot_id": value.get("snapshotId") or value.get("snapshot_id"),
+        "revision": value.get("revision"),
+        "payload_hash": value.get("payloadHash") or value.get("payload_hash"),
+    }
+    try:
+        normalized["revision"] = int(normalized["revision"])
+    except (TypeError, ValueError):
+        pass
+    return normalized
+
+
+def _identity_mismatches(expected: dict[str, Any], observed: dict[str, Any]) -> list[str]:
+    return [key for key, expected_value in expected.items() if observed.get(key) != expected_value]
+
+
+def _browser_render(
+    source: Path,
+    screenshot: Path,
+    *,
+    timeout_ms: int,
+) -> dict[str, Any]:
+    """Render the final route with a real headless Chromium browser."""
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError as exc:  # pragma: no cover - environment failure
+        raise RuntimeError("BROWSER_START_FAILED:playwright_not_installed") from exc
+
+    browser_env = dict(os.environ)
+    user_library_paths = [
+        USER_BROWSER_LIB_ROOT / "usr/lib/x86_64-linux-gnu",
+        USER_BROWSER_LIB_ROOT / "lib/x86_64-linux-gnu",
+    ]
+    available_library_paths = [str(path) for path in user_library_paths if path.is_dir()]
+    previous_skip_validation = os.environ.get("PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS")
+    if available_library_paths:
+        existing = browser_env.get("LD_LIBRARY_PATH")
+        browser_env["LD_LIBRARY_PATH"] = ":".join(available_library_paths + ([existing] if existing else []))
+        # Playwright's driver validates only the system linker cache. The
+        # repo-user bundle is verified by the actual browser launch instead.
+        os.environ["PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS"] = "1"
+    try:
+        with sync_playwright() as playwright:
+            try:
+                browser = playwright.chromium.launch(
+                    headless=True,
+                    args=["--disable-dev-shm-usage"],
+                    env=browser_env,
+                )
+            except Exception as exc:  # pragma: no cover - environment failure
+                raise RuntimeError("BROWSER_START_FAILED") from exc
+            try:
+                page = browser.new_page(viewport=VIEWPORT)
+                response = page.goto(source.resolve().as_uri(), wait_until="networkidle", timeout=timeout_ms)
+                if response is not None and not response.ok:
+                    raise RuntimeError(f"PAGE_HTTP_ERROR:{response.status}")
+                page.wait_for_selector("body[data-snapshot-id]", state="attached", timeout=timeout_ms)
+                page.emulate_media(media="screen")
+                identity = page.locator("body").evaluate("element => ({...element.dataset})")
+                rendered_html = page.content()
+                visible_text = page.locator("body").inner_text()
+                page.screenshot(path=str(screenshot), full_page=True)
+                return {
+                    "html": rendered_html,
+                    "text": visible_text,
+                    "identity": _normalize_observed_identity(identity),
+                }
+            except RuntimeError:
+                raise
+            except Exception as exc:  # pragma: no cover - browser-specific failure
+                name = exc.__class__.__name__.lower()
+                reason = "PAGE_RENDER_TIMEOUT" if "timeout" in name or "timeout" in str(exc).lower() else "HTML_CAPTURE_FAILED"
+                raise RuntimeError(reason) from exc
+            finally:
+                browser.close()
+    finally:
+        if previous_skip_validation is None:
+            os.environ.pop("PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS", None)
+        else:
+            os.environ["PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS"] = previous_skip_validation
+
+
+def _load_index(root: Path) -> dict[str, Any]:
+    path = root / "index.json"
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        value = {}
+    records = value.get("records") if isinstance(value.get("records"), list) else []
+    return {"schema_version": INDEX_SCHEMA_VERSION, "records": records}
+
+
+def _update_index(root: Path, record: dict[str, Any]) -> dict[str, Any]:
+    index = _load_index(root)
+    records = [item for item in index["records"] if item.get("visual_evidence_id") != record["visual_evidence_id"]]
+    records.append(record)
+    records.sort(
+        key=lambda item: (
+            str(item.get("effective_trading_date") or ""),
+            str(item.get("market") or ""),
+            str(item.get("window") or ""),
+            int(item.get("revision") or 0),
+            str(item.get("capture_status") or ""),
+            str(item.get("visual_evidence_id") or ""),
+        )
+    )
+    index["records"] = records
+    _atomic_json(root / "index.json", index)
+    return index
+
+
+def _failure_reason(exc: Exception) -> str:
+    message = str(exc)
+    for code in (
+        "ROUTE_NOT_FOUND",
+        "PAGE_HTTP_ERROR",
+        "PAGE_RENDER_TIMEOUT",
+        "BROWSER_START_FAILED",
+        "SCREENSHOT_WRITE_FAILED",
+        "HTML_CAPTURE_FAILED",
+        "MANIFEST_WRITE_FAILED",
+        "IDENTITY_MISMATCH",
+        "IDENTITY_CONFLICT",
+    ):
+        if message.startswith(code):
+            return code
+    return "HTML_CAPTURE_FAILED"
+
+
+def _record_failure(
+    root: Path,
+    *,
+    identity: dict[str, Any],
+    dashboard_path: Path,
+    visual_evidence_id: str,
+    reason: str,
+    capture_origin: str,
+    started_at: str,
+    observed_identity: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    completed_at = _now()
+    failure_dir = (
+        root
+        / str(identity["effective_trading_date"])
+        / str(identity["market"])
+        / str(identity["window"])
+        / "failures"
+    )
+    manifest_path = failure_dir / f"revision_{int(identity['revision']):03d}_{visual_evidence_id[:12]}.json"
+    manifest = {
+        "schema_version": SCHEMA_VERSION,
+        "visual_evidence_id": visual_evidence_id,
+        **identity,
+        "dashboard_route": get_window_archive_path(str(identity["market"]), str(identity["window"])),
+        "dashboard_source_path": str(dashboard_path),
+        "capture_origin": capture_origin,
+        "capture": {
+            "status": "FAILED",
+            "reason_code": reason,
+            "started_at": started_at,
+            "completed_at": completed_at,
+            "renderer": "playwright-chromium",
+            "viewport": VIEWPORT,
+            "full_page": True,
+        },
+        "observed_identity": observed_identity,
+        "files": {},
+    }
+    _atomic_json(manifest_path, manifest)
+    _update_index(
+        root,
+        {
+            "visual_evidence_id": visual_evidence_id,
+            "effective_trading_date": identity["effective_trading_date"],
+            "market": identity["market"],
+            "window": identity["window"],
+            "revision": identity["revision"],
+            "capture_status": "FAILED",
+            "reason_code": reason,
+            "manifest_path": _relative(manifest_path, root),
+            "dashboard_route": manifest["dashboard_route"],
+            "source_snapshot_id": identity["snapshot_id"],
+            "created_at": completed_at,
+        },
+    )
+    try:
+        review = build_daily_review_bundle(root, str(identity["effective_trading_date"]))
+    except Exception as exc:  # failure evidence remains durable even if aggregation fails
+        review = {"status": "FAILED", "reason_code": "MANIFEST_WRITE_FAILED", "error_type": exc.__class__.__name__}
+    return {
+        "status": "FAILED",
+        "reason_code": reason,
+        "manifest_path": str(manifest_path),
+        "visual_evidence_id": visual_evidence_id,
+        "daily_review": review,
+    }
+
+
+def capture_snapshot_visual_evidence(
+    snapshot: dict[str, Any],
+    dashboard_path: Path,
+    *,
+    output_root: Path = DEFAULT_VISUAL_ROOT,
+    capture_origin: str = "scheduled",
+    timeout_ms: int = DEFAULT_TIMEOUT_MS,
+    renderer: Callable[..., dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Capture one admitted immutable snapshot without mutating its source."""
+    if admission_errors(snapshot):
+        return {"status": "SKIPPED_INELIGIBLE", "reason_code": "BATCH_NOT_ADMITTED", "files_written": False}
+    identity = _expected_identity(snapshot)
+    visual_evidence_id = _capture_id(identity)
+    target = (
+        output_root
+        / str(identity["effective_trading_date"])
+        / str(identity["market"])
+        / str(identity["window"])
+        / f"revision_{int(identity['revision']):03d}"
+    )
+    manifest_path = target / "manifest.json"
+    if manifest_path.is_file():
+        try:
+            existing = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            existing = {}
+        if existing.get("visual_evidence_id") == visual_evidence_id and existing.get("capture", {}).get("status") == "SUCCESS":
+            files = existing.get("files") if isinstance(existing.get("files"), dict) else {}
+            completed_at = str(existing.get("capture", {}).get("completed_at") or _now())
+            record = {
+                "visual_evidence_id": visual_evidence_id,
+                "effective_trading_date": identity["effective_trading_date"],
+                "market": identity["market"],
+                "window": identity["window"],
+                "revision": identity["revision"],
+                "capture_status": "SUCCESS",
+                "reason_code": None,
+                "manifest_path": _relative(manifest_path, output_root),
+                "screenshot_path": _relative(target / "screenshot_full.png", output_root),
+                "rendered_text_path": _relative(target / "rendered_text.md", output_root),
+                "dashboard_route": existing.get("dashboard_route"),
+                "source_snapshot_id": identity["snapshot_id"],
+                "capture_hash": hashlib.sha256(_stable_json(files).encode("utf-8")).hexdigest(),
+                "screenshot_hash": (files.get("screenshot") or {}).get("sha256"),
+                "rendered_text_hash": (files.get("text") or {}).get("sha256"),
+                "created_at": completed_at,
+            }
+            _update_index(output_root, record)
+            review = build_daily_review_bundle(output_root, str(identity["effective_trading_date"]))
+            return {
+                "status": "SUCCESS",
+                "reason_code": None,
+                "duplicate_suppressed": True,
+                "manifest_path": str(manifest_path),
+                "visual_evidence_id": visual_evidence_id,
+                "daily_review": review,
+            }
+        return _record_failure(
+            output_root,
+            identity=identity,
+            dashboard_path=dashboard_path,
+            visual_evidence_id=visual_evidence_id,
+            reason="IDENTITY_CONFLICT",
+            capture_origin=capture_origin,
+            started_at=_now(),
+        )
+    if not dashboard_path.is_file():
+        return _record_failure(
+            output_root,
+            identity=identity,
+            dashboard_path=dashboard_path,
+            visual_evidence_id=visual_evidence_id,
+            reason="ROUTE_NOT_FOUND",
+            capture_origin=capture_origin,
+            started_at=_now(),
+        )
+
+    started_at = _now()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    temporary = Path(tempfile.mkdtemp(prefix=f".{target.name}-", dir=str(target.parent)))
+    screenshot_path = temporary / "screenshot_full.png"
+    observed_identity: dict[str, Any] | None = None
+    try:
+        rendered = (renderer or _browser_render)(dashboard_path, screenshot_path, timeout_ms=timeout_ms)
+        observed_identity = rendered.get("identity") if isinstance(rendered.get("identity"), dict) else {}
+        mismatches = _identity_mismatches(identity, observed_identity)
+        if mismatches:
+            raise RuntimeError("IDENTITY_MISMATCH:" + ",".join(mismatches))
+        if not screenshot_path.is_file() or screenshot_path.stat().st_size == 0:
+            raise RuntimeError("SCREENSHOT_WRITE_FAILED")
+        html_path = temporary / "rendered_page.html"
+        text_path = temporary / "rendered_text.md"
+        canonical_path = temporary / "canonical_reference.json"
+        html_path.write_text(str(rendered.get("html") or ""), encoding="utf-8")
+        visible_text = str(rendered.get("text") or "").strip()
+        text_path.write_text(f"# Rendered Dashboard Text\n\n{visible_text}\n", encoding="utf-8")
+        canonical_reference = {
+            "schema_version": "visual_evidence_canonical_reference_v1",
+            "market": identity["market"],
+            "window": identity["window"],
+            "effective_trading_date": identity["effective_trading_date"],
+            "snapshot_id": identity["snapshot_id"],
+            "revision": identity["revision"],
+            "payload_hash": identity["payload_hash"],
+            "archive_path": snapshot.get("archive_path"),
+            "source_artifact_path": snapshot.get("source_artifact_path"),
+        }
+        canonical_path.write_text(_stable_json(canonical_reference), encoding="utf-8")
+        file_map = {
+            "screenshot": screenshot_path,
+            "html": html_path,
+            "text": text_path,
+            "canonical": canonical_path,
+        }
+        completed_at = _now()
+        manifest = {
+            "schema_version": SCHEMA_VERSION,
+            "visual_evidence_id": visual_evidence_id,
+            **identity,
+            "batch_id": snapshot.get("run_id"),
+            "generated_at": snapshot.get("generated_at"),
+            "dashboard_route": get_window_archive_path(str(identity["market"]), str(identity["window"])),
+            "dashboard_source_path": str(dashboard_path),
+            "capture_origin": capture_origin,
+            "capture": {
+                "status": "SUCCESS",
+                "reason_code": None,
+                "started_at": started_at,
+                "completed_at": completed_at,
+                "renderer": "playwright-chromium",
+                "viewport": VIEWPORT,
+                "full_page": True,
+            },
+            "observed_identity": observed_identity,
+            "files": {
+                key: {"path": path.name, "sha256": _sha256(path), "size_bytes": path.stat().st_size}
+                for key, path in file_map.items()
+            },
+        }
+        manifest["screenshot_hash"] = manifest["files"]["screenshot"]["sha256"]
+        manifest["rendered_text_hash"] = manifest["files"]["text"]["sha256"]
+        manifest["capture_hash"] = hashlib.sha256(_stable_json(manifest["files"]).encode("utf-8")).hexdigest()
+        (temporary / "manifest.json").write_text(_stable_json(manifest), encoding="utf-8")
+        temporary.replace(target)
+        record = {
+            "visual_evidence_id": visual_evidence_id,
+            "effective_trading_date": identity["effective_trading_date"],
+            "market": identity["market"],
+            "window": identity["window"],
+            "revision": identity["revision"],
+            "capture_status": "SUCCESS",
+            "reason_code": None,
+            "manifest_path": _relative(manifest_path, output_root),
+            "screenshot_path": _relative(target / "screenshot_full.png", output_root),
+            "rendered_text_path": _relative(target / "rendered_text.md", output_root),
+            "dashboard_route": manifest["dashboard_route"],
+            "source_snapshot_id": identity["snapshot_id"],
+            "capture_hash": manifest["capture_hash"],
+            "screenshot_hash": manifest["screenshot_hash"],
+            "rendered_text_hash": manifest["rendered_text_hash"],
+            "created_at": completed_at,
+        }
+        _update_index(output_root, record)
+        review = build_daily_review_bundle(output_root, str(identity["effective_trading_date"]))
+        return {
+            "status": "SUCCESS",
+            "reason_code": None,
+            "duplicate_suppressed": False,
+            "manifest_path": str(manifest_path),
+            "visual_evidence_id": visual_evidence_id,
+            "daily_review": review,
+        }
+    except Exception as exc:
+        shutil.rmtree(temporary, ignore_errors=True)
+        return _record_failure(
+            output_root,
+            identity=identity,
+            dashboard_path=dashboard_path,
+            visual_evidence_id=visual_evidence_id,
+            reason=_failure_reason(exc),
+            capture_origin=capture_origin,
+            started_at=started_at,
+            observed_identity=observed_identity,
+        )
+
+
+def build_daily_review_bundle(root: Path, effective_trading_date: str) -> dict[str, Any]:
+    """Build an incremental self-contained PM/ChatGPT review directory."""
+    index = _load_index(root)
+    day_records = [item for item in index["records"] if item.get("effective_trading_date") == effective_trading_date]
+    expected = [(market, window) for market, windows in MARKET_WINDOWS.items() for window in windows]
+    review_root = root / "daily_reviews" / effective_trading_date
+    review_root.mkdir(parents=True, exist_ok=True)
+    windows: list[dict[str, Any]] = []
+    for market, window in expected:
+        candidates = [
+            item for item in day_records
+            if item.get("market") == market and item.get("window") == window and item.get("capture_status") == "SUCCESS"
+        ]
+        latest = max(candidates, key=lambda item: (int(item.get("revision") or 0), str(item.get("created_at") or "")), default=None)
+        failures = [
+            item for item in day_records
+            if item.get("market") == market and item.get("window") == window and item.get("capture_status") == "FAILED"
+        ]
+        if latest:
+            source = (root / str(latest["manifest_path"])).parent
+            destination = review_root / market / window
+            destination.mkdir(parents=True, exist_ok=True)
+            for name in ("screenshot_full.png", "rendered_page.html", "rendered_text.md", "manifest.json", "canonical_reference.json"):
+                shutil.copy2(source / name, destination / name)
+            status = "SUCCESS"
+            revision = int(latest["revision"])
+        elif failures:
+            status = "FAILED"
+            revision = None
+            latest_attempt_revision = max(int(item.get("revision") or 0) for item in failures)
+        else:
+            status = "PENDING"
+            revision = None
+            latest_attempt_revision = None
+        if latest:
+            latest_attempt_revision = int(latest["revision"])
+        windows.append({
+            "market": market,
+            "window": window,
+            "status": status,
+            "latest_valid_revision": revision,
+            "latest_attempt_revision": latest_attempt_revision,
+        })
+    manifest = {
+        "schema_version": REVIEW_SCHEMA_VERSION,
+        "effective_trading_date": effective_trading_date,
+        "expected_window_count": len(expected),
+        "available_window_count": len([item for item in windows if item["status"] == "SUCCESS"]),
+        "failed_window_count": len([item for item in windows if item["status"] == "FAILED"]),
+        "missing_window_count": len([item for item in windows if item["status"] == "PENDING"]),
+        "windows": windows,
+    }
+    _atomic_json(review_root / "review_manifest.json", manifest)
+    lines = [f"# {effective_trading_date} Visual Evidence Review", ""]
+    for market in MARKET_WINDOWS:
+        lines.extend([f"## {market}", ""])
+        for item in [row for row in windows if row["market"] == market]:
+            suffix = f" revision {item['latest_valid_revision']}" if item["latest_valid_revision"] else ""
+            lines.append(f"- {item['window']}: {item['status']}{suffix}")
+        lines.append("")
+    (review_root / "review_summary.md").write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return {"status": "BUILT", "review_root": str(review_root), **{key: manifest[key] for key in ("available_window_count", "failed_window_count", "missing_window_count")}}
+
+
+def capture_published_snapshot_non_blocking(
+    *,
+    market: str,
+    window: str,
+    archive_write: dict[str, Any],
+    public_sync: dict[str, Any],
+    static_root: Path,
+    snapshot_archive_root: Path,
+    output_root: Path = DEFAULT_VISUAL_ROOT,
+    capture_origin: str = "scheduled",
+) -> dict[str, Any]:
+    """Production-safe wrapper: every visual failure is returned, never raised."""
+    try:
+        if archive_write.get("written") is not True:
+            return {"status": "SKIPPED_INELIGIBLE", "reason_code": "BATCH_NOT_ADMITTED"}
+        canonical_market = str(archive_write.get("market") or market).upper()
+        canonical_window = str(archive_write.get("window") or window)
+        publish_result = archive_write.get("publish_result") if isinstance(archive_write.get("publish_result"), dict) else {}
+        manual_ready = bool(archive_write.get("routes_rebuilt") and publish_result.get("latest_route_updated") is True)
+        if public_sync.get("status") != "verified" and not manual_ready:
+            return {"status": "SKIPPED_INELIGIBLE", "reason_code": "DASHBOARD_NOT_READY"}
+        snapshot = resolve_snapshots(snapshot_archive_root, canonical_market, canonical_window).latest
+        if not snapshot or snapshot.get("snapshot_id") != archive_write.get("snapshot_id"):
+            return {"status": "FAILED", "reason_code": "IDENTITY_MISMATCH", "production_batch_continues": True}
+        dashboard_path = static_root / get_window_archive_path(canonical_market, canonical_window).lstrip("/")
+        result = capture_snapshot_visual_evidence(
+            snapshot,
+            dashboard_path,
+            output_root=output_root,
+            capture_origin=capture_origin,
+        )
+        result["production_batch_continues"] = True
+        return result
+    except Exception as exc:  # pragma: no cover - final isolation boundary
+        return {
+            "status": "FAILED",
+            "reason_code": _failure_reason(exc),
+            "production_batch_continues": True,
+        }

@@ -8,6 +8,15 @@
   },
   "records": [
     {
+      "task_id": "AI-DEV-208",
+      "state": "PENDING",
+      "registered_at": "2026-08-12",
+      "owner": "Cross-Market Visual QA Owner",
+      "required_windows": ["TW pre_open_0700", "TW intraday_1305", "TW pre_close_1335", "TW post_close_1500", "US us_pre_market_2000", "US us_intraday_2300", "US us_post_close_review_0630"],
+      "acceptance": "Eligible admitted TW/US batches capture the browser-rendered archive route into immutable screenshot/HTML/text/manifest evidence with identity parity, revision preservation and an incrementally complete daily review bundle; capture failure remains non-blocking.",
+      "monitoring": "Inspect the next seven-window lifecycle for automatic capture status, route/snapshot identity, screenshot fidelity, manifest hashes, daily review completeness, failure isolation and absence of Decision/delivery side effects."
+    },
+    {
       "task_id": "AI-DEV-207",
       "state": "PENDING",
       "registered_at": "2026-08-12",
