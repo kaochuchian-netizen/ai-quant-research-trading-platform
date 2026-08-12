@@ -14,6 +14,7 @@ from datetime import date, datetime
 from typing import Any
 
 from app.market.instrument_master import instrument_metadata
+from app.reports.decision_input_contract import tw_decision_required_inputs
 from app.runtime.intelligence_quality import (
     completeness_v2, intelligence_health, intelligence_readiness_v1,
     resolve_outcome_timestamp, semantic_degradation, validate_no_lookahead_v2,
@@ -119,6 +120,27 @@ def effective_coverage(card: dict[str, Any]) -> dict[str, Any]:
         "missing": [key for key, value in categories.items() if value["status"] in {"missing", "failed", "stale"}],
         "not_applicable": [key for key, value in categories.items() if value["status"] == "not_applicable"],
         "policy": "category_weighted_usefulness_v2; not_applicable excluded; duplicates do not add coverage",
+    }
+
+
+def research_readiness(card: dict[str, Any], coverage: dict[str, Any]) -> dict[str, Any]:
+    """Separate numeric breadth from minimally required usable categories."""
+    required = ("market_price_history", "technical")
+    categories = coverage.get("categories") if isinstance(coverage.get("categories"), dict) else {}
+    missing_required = [key for key in required if (categories.get(key) or {}).get("status") != "available"]
+    optional_gaps = [key for key in coverage.get("missing", []) if key not in required]
+    score_ready = float(coverage.get("score") or 0) >= MIN_FULL_RESEARCH_COVERAGE_PCT
+    return {
+        "schema_version": "tw_research_readiness_v1",
+        "instrument_type": instrument_context(str(card.get("symbol") or card.get("stock_id") or "")).get("kind"),
+        "coverage_score": coverage.get("score"),
+        "coverage_score_threshold": MIN_FULL_RESEARCH_COVERAGE_PCT,
+        "required_categories": list(required),
+        "missing_required_categories": missing_required,
+        "optional_category_gaps": optional_gaps,
+        "required_category_ready": not missing_required,
+        "ready": score_ready and not missing_required,
+        "method": "coverage_score_and_required_categories_v1",
     }
 
 
@@ -295,21 +317,20 @@ def source_health(cards: list[dict[str, Any]]) -> dict[str, Any]:
     history_valid = sum(bool(((card.get("technical_data") or {}).get("history_admission") or {}).get("admission_success")) for card in cards)
     baseline_snapshots = [build_prediction_snapshot(card, effective_date=str(card.get("trading_date") or ""), generated_at=card.get("generated_at")) for card in cards]
     baseline_ready = sum(item.get("prediction_status") == "evaluable" for item in baseline_snapshots)
-    research_ready_flags = [item["score"] >= MIN_FULL_RESEARCH_COVERAGE_PCT for item in coverage]
+    research_contracts = [research_readiness(card, coverage[index]) for index, card in enumerate(cards)]
+    research_ready_flags = [item["ready"] for item in research_contracts]
     research_ready = sum(research_ready_flags)
     full_prediction_ready = sum(
         baseline_snapshots[index].get("prediction_status") == "evaluable"
         and tech[index]["analysis_eligible"] and research_ready_flags[index]
         for index in range(total)
     )
-    decision_requirements = [{
-        "symbol": str(card.get("symbol") or card.get("stock_id") or ""),
-        "required_inputs": {
-            "market_data": any(_number(card.get(key)) is not None for key in ("current_price", "session_open", "session_high", "session_low")),
-            "technical_evidence": tech[index]["analysis_eligible"],
-            "research_evidence": research_ready_flags[index],
-        },
-    } for index, card in enumerate(cards)]
+    decision_requirements = [tw_decision_required_inputs(
+        symbol=str(card.get("symbol") or card.get("stock_id") or ""),
+        market_data=any(_number(card.get(key)) is not None for key in ("current_price", "session_open", "session_high", "session_low")),
+        technical_evidence=tech[index]["analysis_eligible"],
+        research_evidence=research_ready_flags[index],
+    ) for index, card in enumerate(cards)]
     readiness = intelligence_readiness_v1(
         runtime_status="SUCCESS", total_symbols=total,
         market_ready=quote_available, history_ready=history_valid,
@@ -346,6 +367,7 @@ def source_health(cards: list[dict[str, Any]]) -> dict[str, Any]:
             "historical": {"usable_symbols": sum(item["history_bars"] > 0 for item in tech), "admitted_symbols": history_valid, "full_symbols": full, "failure_reason": "INSUFFICIENT_LOOKBACK" if any(not item["analysis_eligible"] for item in tech) else None},
             "news": {"usable_symbols": sum("news" in item["available"] for item in coverage), "partial_symbols": sum("news" in item["partial"] for item in coverage), "failure_reason": "NO_RELIABLE_NEWS" if not any("news" in item["available"] for item in coverage) else None},
         },
+        "research_readiness": research_contracts,
         "completeness_v2": completeness,
         "intelligence_readiness_v1": readiness,
         "semantic_degradation": degradation,

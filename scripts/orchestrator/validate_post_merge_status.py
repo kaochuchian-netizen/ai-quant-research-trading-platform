@@ -26,6 +26,9 @@ import sys
 from pathlib import Path
 from typing import Any
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from app.runtime.validator_registry import execute_validator_gate
+
 try:
     from .inspect_ai_platform_status import build_report as build_platform_status_report
 except ImportError:  # Direct script execution keeps the sibling directory on sys.path.
@@ -353,6 +356,15 @@ def main() -> int:
         platform_status,
         task_branch_prefix=args.task_branch_prefix,
     )
+    registry_gate = execute_validator_gate(
+        "post_merge", caller_validator_id="post_merge_status", root=repo_root,
+    )
+    report["registry_gate_execution"] = registry_gate
+    if registry_gate.get("status") != "PASS":
+        report["ok"] = False
+        report.setdefault("errors", []).extend(
+            f"registry gate: {reason}" for reason in registry_gate.get("errors", [])
+        )
     json.dump(report, sys.stdout, ensure_ascii=False, indent=2 if args.pretty else None)
     sys.stdout.write("\n")
     return 0 if report["ok"] else 2
