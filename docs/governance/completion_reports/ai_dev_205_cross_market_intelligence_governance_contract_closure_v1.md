@@ -3,7 +3,7 @@ Task ID: AI-DEV-205
 
 ## Implementation
 
-Starting main `27e5c04d6cdb95b758a39eb14663bf3e12ec9a48`; branch `ai-dev/205-cross-market-governance-contract-closure-v1`. Implementation commit, PR, CI and merge SHA are recorded in the final repository report after merge. The change makes the validator registry executable policy, introduces per-dimension applicability denominators, derives legacy intelligence health from canonical readiness, exports Decision-required inputs from the Decision Layer, and separates research required-category readiness from optional gaps.
+Starting main `27e5c04d6cdb95b758a39eb14663bf3e12ec9a48`; branch `ai-dev/205-cross-market-governance-contract-closure-v1`; implementation commit `ebe60e9453590983d0cb8441ef7b26da8ceb23fb`; PR [#249](https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/pull/249). CI and merge SHA are recorded in the final repository report after merge. The change makes the validator registry executable policy, introduces per-dimension applicability denominators, derives legacy intelligence health from canonical readiness, exports Decision-required inputs from the Decision Layer, and separates research required-category readiness from optional gaps.
 
 ## User-visible Outcome
 
