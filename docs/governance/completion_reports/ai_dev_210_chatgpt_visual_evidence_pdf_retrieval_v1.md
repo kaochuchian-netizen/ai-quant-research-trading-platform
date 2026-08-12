@@ -7,7 +7,10 @@ Status: `IMPLEMENTED_DETERMINISTIC_QA_PASS_PENDING_NATURAL_VERIFICATION`
 - Starting main: `45eca6f6e98181cca7e016d526ecdd38af1327c6`
 - Feature branch: `ai-dev/210-chatgpt-visual-evidence-pdf-retrieval-v1`
 - Requested Issue: #262; GitHub CLI returned `Could not resolve`, so no Issue state is fabricated.
-- Commits / PR / CI / merge: reconciled in the governed final handoff.
+- Implementation commit: `e6a0c81` (`AI-DEV-210 add visual evidence PDF retrieval`)
+- PR: [#262](https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/pull/262)
+- Initial CI run: `31608190714`, PASS (the final report-metadata commit triggers the final required rerun)
+- Merge/current main: populated by GitHub merge; exact final identity is reported in the governed final handoff.
 
 ## PDF architecture
 
@@ -43,7 +46,7 @@ Canonical status: `DIRECT_CHATGPT_TRANSPORT_PENDING_EXTERNAL_CAPABILITY`. No una
 
 The dedicated ACTIVE leaf validator exercises real Chromium PDF generation for TW and US, validates `%PDF`/EOF/page structure, all hashes, same-revision identity, immutable revisions, daily latest revision, PDF degradation isolation, legacy compatibility, selector export, deterministic allowlisted ZIP, traversal/absolute/symlink/secret/DB/source/log rejection, read-only archive behavior, temporary-root cleanup, seven-window registry reuse, AI-DEV-208 semantics and AI-DEV-209 regression.
 
-Final command results, executable registry counts, PR/CI and post-merge identities are reconciled in the final Codex report.
+Dedicated validator: PASS, 19/19 semantic checks, real Chromium exercised. Executable branch registry: PASS; 23 validators selected, 22 leaf validators executed and passed, one branch orchestrator recursion-guarded, zero failures, zero unexplained skips. Final CI and post-merge identities are reconciled in the final Codex report.
 
 ## Storage impact
 
