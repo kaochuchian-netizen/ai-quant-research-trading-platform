@@ -3,7 +3,7 @@ Task ID: AI-DEV-207
 
 ## Implementation
 
-Starting main `35be204592e22fed2962e6ab9fe6fc027be22df1`; branch `ai-dev/207-tw-research-evidence-coverage-v1`. Implementation commits, PR, GitHub Actions run and merge/current-main identity are recorded in the final repository handoff after the normal branch gate, PR and merge workflow. The implementation adds a canonical per-symbol evidence funnel, separates substantive research from market/technical context, quality-gates Best Research, and derives tomorrow wording from existing Decision presentation categories.
+Starting main `35be204592e22fed2962e6ab9fe6fc027be22df1`; branch `ai-dev/207-tw-research-evidence-coverage-v1`; implementation commit `9df052c84da9bc2d949711a9e31e5d7db0670b57`; PR [#252](https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/pull/252). Initial GitHub Actions run `31569317367` passed; the final documentation-only identity commit and resulting CI/merge SHA are recorded in the final repository handoff. The implementation adds a canonical per-symbol evidence funnel, separates substantive research from market/technical context, quality-gates Best Research, and derives tomorrow wording from existing Decision presentation categories.
 
 ## Root-Cause Audit
 
@@ -39,7 +39,7 @@ Official company, MOPS, TWSE, TPEx and IR sources retain tier 1 priority. Recogn
 
 Dedicated deterministic Cases A–J PASS: true no-news, filtered-news reasons, official admission, admitted-to-RRE-to-render traceability, dedup, stale rejection, market-only non-directionality, no-qualified Best Research, qualified Best Research, and NO_TRADE-versus-OBSERVE wording. Mutation of Best Research to qualified without a qualified note is rejected by the canonical validator. AI-DEV-198/199/201/202/203/204/205 passed. AI-DEV-200 was legitimately strengthened to require ADR evidence in the contextual partition rather than the substantive supporting partition and then passed.
 
-The AI-DEV-207 validator is ACTIVE, leaf, required by branch and post-merge gates. Exact registry selected/executed counts, complete regression commands and CI/post-merge results are recorded in the final repository handoff.
+The AI-DEV-207 validator is ACTIVE, leaf, required by branch and post-merge gates. The committed branch gate selected 20 entries, executed all 19 required leaves, recursion-guarded only its own orchestrator and reported 0 failures. GitHub Actions run `31569317367` passed the same executable gate. Final post-merge results are recorded in the repository handoff.
 
 ## Changed Files
 
