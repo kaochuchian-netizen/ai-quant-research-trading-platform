@@ -8,7 +8,8 @@ Status: `IMPLEMENTED_DETERMINISTIC_QA_PASS_PENDING_NATURAL_VERIFICATION`
 - Branch: `ai-dev/209-qualified-news-rre-rendering-hardening-v2`
 - Issue: [#263](https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/issues/263)
 - Implementation commit: `4bd2499` (full SHA recorded by Git/GitHub)
-- PR / CI / merge: reconciled in the governed final handoff after GitHub gates complete.
+- PR: `#264`
+- CI / merge: reconciled in the governed final handoff after GitHub gates complete.
 
 ## Root-cause audit
 
