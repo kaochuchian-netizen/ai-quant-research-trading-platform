@@ -8,10 +8,13 @@ IMPLEMENTED_DETERMINISTIC_QA_PASS_PENDING_NATURAL_VERIFICATION
 
 - Starting main: `c82e208e3223745ad93eaaf5b59a24414b62b984`
 - Feature branch: `ai-dev/208-visual-evidence-archive-v1`
-- Implementation commits: `9b486aa0a6ddd961ab3aa30c988f0d727a1f97b9`, `a42bd021ef811a9af73f2647fb565e8c1cb91c09`
+- Implementation commits: `9b486aa0a6ddd961ab3aa30c988f0d727a1f97b9`, `a42bd021ef811a9af73f2647fb565e8c1cb91c09`, `b099a54ca929c5f9122494489f9cc606efbc90b3`
 - PR: [#256](https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/pull/256)
-- Initial GitHub Actions: run `31578415542` PASS, including Chromium installation and real-browser registry execution
-- Merge main: pending final CI/merge; value is not fabricated before merge
+- Final AI-DEV-208 V1 GitHub Actions: run `31578542230` PASS, including Chromium installation and real-browser registry execution
+- V1 merge/current main before Hardening V2: `70c817eb479334d56b9917765d1dd762488302ad`
+- Hardening V2 issue: [#257](https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/issues/257)
+- Hardening V2 branch: `ai-dev/208-visual-evidence-hardening-v2`
+- Hardening V2 PR / CI / merge: pending until the governed workflow creates those immutable values; they are not fabricated pre-merge
 - Production pipeline executed: false
 
 ## Architecture
@@ -74,6 +77,10 @@ The immutable root is `artifacts/archive/visual_evidence/<date>/<market>/<window
 
 `index.json` provides deterministic cross-date lookup. `daily_reviews/<date>` incrementally aggregates the latest valid revision for each of seven windows and marks unavailable windows `PENDING` or `FAILED`; it never fabricates missing captures. The directory is self-contained for PM upload or later ChatGPT review.
 
+Hardening V2 separates the latest usable evidence from the latest capture attempt. Each window records `latest_valid_revision`, `latest_attempt_revision`, and `latest_attempt_status`. A later failed attempt with an older valid revision is `DEGRADED`, not silently `SUCCESS`; the valid revision remains available for review while failed/degraded counts and the PM-facing summary expose current attempt truthfully.
+
+Hardening V2 also makes production-wrapper pre-browser `IDENTITY_MISMATCH` durable. The sanitized failure manifest records requested/archive identity and safely resolved observed identity, the deterministic index records the failed attempt, and the daily review reflects it. It remains invalid visual evidence and `production_batch_continues=true` preserves batch availability.
+
 ## Deterministic Fixture Coverage
 
 The dedicated registered validator exercises a real headless browser against isolated local HTML and covers:
@@ -84,12 +91,16 @@ The dedicated registered validator exercises a real headless browser against iso
 - non-empty PNG signature, final DOM HTML and visible text
 - manifest hashes and canonical source immutability
 - same-day revisions 1/2 and latest-review selection
+- `revision_001 SUCCESS → revision_002 FAILED` with valid revision 1 preserved and latest attempt 2 reported `DEGRADED`
+- archive-write snapshot A versus resolved latest snapshot B with durable `IDENTITY_MISMATCH` manifest/index/review evidence
 - truthful pending/failed windows
 - duplicate suppression
 - isolated temporary output and cleanup
 - all seven canonical windows
 
 Initial GCP deterministic result: 24 semantic checks PASS; real-browser rendering exercised; temporary archive removed; no network dependency during capture. AI-DEV-207, window snapshot archive, admission/public parity, notification provenance, cross-feature and production landing regressions also PASS. The committed executable branch registry selected 21 validators, executed and passed 20 leaf validators, failed 0, skipped only the branch orchestrator through the deterministic recursion guard, and reported no unexplained skips.
+
+Hardening V2 deterministic result: all original 24 checks plus the two Issue #257 remediation cases PASS (26/26); real-browser rendering remains exercised. AI-DEV-207, window snapshot archive, admission/public parity, notification provenance, cross-feature, production landing and source-inventory regressions remain PASS.
 
 Final command results are recorded after branch and post-merge registry execution.
 

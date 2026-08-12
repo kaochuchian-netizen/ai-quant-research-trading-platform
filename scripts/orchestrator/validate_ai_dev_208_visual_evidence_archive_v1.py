@@ -106,7 +106,7 @@ def main() -> int:
         checks["case_b_us_capture_success"] = us_result.get("status") == "SUCCESS"
         if not checks["case_a_tw_capture_success"] or not checks["case_b_us_capture_success"]:
             payload = {
-                "schema_version": "ai_dev_208_visual_evidence_validation_v1",
+                "schema_version": "ai_dev_208_visual_evidence_validation_v2",
                 "task_id": "AI-DEV-208",
                 "ok": False,
                 "errors": [name for name, passed in checks.items() if not passed],
@@ -191,6 +191,79 @@ def main() -> int:
             for item in review_manifest["windows"] if item["status"] == "FAILED"
         )
 
+        h2_success_write = _put(snapshot_root, "TW", "post_close_1500", day, "TW-H2-SUCCESS")
+        h2_success_snapshot = resolve_snapshots(snapshot_root, "TW", "post_close_1500").latest or {}
+        h2_success_route = _write_route(dashboard_root, h2_success_snapshot, "TW H2 Valid Revision")
+        h2_success = capture_snapshot_visual_evidence(h2_success_snapshot, h2_success_route, output_root=visual_root)
+        h2_failed_write = _put(snapshot_root, "TW", "post_close_1500", day, "TW-H2-FAILED")
+        h2_failed_snapshot = resolve_snapshots(snapshot_root, "TW", "post_close_1500").latest or {}
+        _write_route(dashboard_root, h2_failed_snapshot, "TW H2 Failed Revision")
+        with patch("app.dashboard.visual_evidence_archive._browser_render", side_effect=RuntimeError("PAGE_RENDER_TIMEOUT")):
+            h2_failed = capture_published_snapshot_non_blocking(
+                market="TW",
+                window="post_close_1500",
+                archive_write=h2_failed_write,
+                public_sync={"status": "verified"},
+                static_root=dashboard_root,
+                snapshot_archive_root=snapshot_root,
+                output_root=visual_root,
+            )
+        h2_review = build_daily_review_bundle(visual_root, day)
+        h2_review_manifest = json.loads((visual_root / "daily_reviews" / day / "review_manifest.json").read_text(encoding="utf-8"))
+        h2_window = next(
+            item for item in h2_review_manifest["windows"]
+            if item["market"] == "TW" and item["window"] == "post_close_1500"
+        )
+        review_summary = (visual_root / "daily_reviews" / day / "review_summary.md").read_text(encoding="utf-8")
+        checks["h2_latest_failed_attempt_is_degraded"] = (
+            h2_success.get("status") == "SUCCESS"
+            and h2_failed.get("status") == "FAILED"
+            and h2_window["latest_valid_revision"] == 1
+            and h2_window["latest_attempt_revision"] == 2
+            and h2_window["latest_attempt_status"] == "FAILED"
+            and h2_window["status"] == "DEGRADED"
+            and h2_review["degraded_window_count"] == 1
+            and "post_close_1500: DEGRADED revision 1" in review_summary
+        )
+
+        mismatch_a = _put(snapshot_root, "US", "us_intraday_2300", day, "US-H2-A")
+        mismatch_b = _put(snapshot_root, "US", "us_intraday_2300", day, "US-H2-B")
+        mismatch_b_snapshot = resolve_snapshots(snapshot_root, "US", "us_intraday_2300").latest or {}
+        _write_route(dashboard_root, mismatch_b_snapshot, "US H2 Latest Route")
+        durable_mismatch = capture_published_snapshot_non_blocking(
+            market="US",
+            window="us_intraday_2300",
+            archive_write=mismatch_a,
+            public_sync={"status": "verified"},
+            static_root=dashboard_root,
+            snapshot_archive_root=snapshot_root,
+            output_root=visual_root,
+        )
+        durable_manifest_path = Path(str(durable_mismatch.get("manifest_path") or ""))
+        durable_manifest = json.loads(durable_manifest_path.read_text(encoding="utf-8")) if durable_manifest_path.is_file() else {}
+        durable_index = json.loads((visual_root / "index.json").read_text(encoding="utf-8"))
+        durable_review_manifest = json.loads((visual_root / "daily_reviews" / day / "review_manifest.json").read_text(encoding="utf-8"))
+        durable_window = next(
+            item for item in durable_review_manifest["windows"]
+            if item["market"] == "US" and item["window"] == "us_intraday_2300"
+        )
+        checks["h2_prebrowser_identity_mismatch_is_durable"] = (
+            durable_mismatch.get("status") == "FAILED"
+            and durable_mismatch.get("reason_code") == "IDENTITY_MISMATCH"
+            and durable_mismatch.get("production_batch_continues") is True
+            and durable_manifest_path.is_file()
+            and durable_manifest.get("requested_identity", {}).get("snapshot_id") == mismatch_a["snapshot_id"]
+            and durable_manifest.get("observed_identity", {}).get("snapshot_id") == mismatch_b["snapshot_id"]
+            and any(
+                record.get("visual_evidence_id") == durable_mismatch.get("visual_evidence_id")
+                and record.get("capture_status") == "FAILED"
+                for record in durable_index["records"]
+            )
+            and durable_window["status"] == "FAILED"
+            and durable_window["latest_attempt_revision"] == int(mismatch_a["revision"])
+            and durable_window["latest_attempt_status"] == "FAILED"
+        )
+
         manifest_hash_before = _hash(revision_2)
         index_before = json.loads((visual_root / "index.json").read_text(encoding="utf-8"))
         duplicate = capture_snapshot_visual_evidence(tw_2, tw_route_2, output_root=visual_root, capture_origin="manual_rerun")
@@ -228,6 +301,8 @@ def main() -> int:
             "us": us_result,
             "identity_mismatch": mismatch,
             "failure_isolation": failed,
+            "h2_latest_failed_attempt": {"capture": h2_failed, "review": h2_window},
+            "h2_durable_identity_mismatch": {"capture": durable_mismatch, "review": durable_window},
             "daily_review": review_manifest,
             "archive_index_records": len(index_after["records"]),
             "fixture_revision_bundle_bytes": sum(path.stat().st_size for path in revision_2.parent.iterdir() if path.is_file()),
@@ -236,7 +311,7 @@ def main() -> int:
     checks["temporary_root_removed"] = not Path(raw).exists()
     errors = [name for name, passed in checks.items() if not passed]
     payload = {
-        "schema_version": "ai_dev_208_visual_evidence_validation_v1",
+        "schema_version": "ai_dev_208_visual_evidence_validation_v2",
         "task_id": "AI-DEV-208",
         "ok": not errors,
         "errors": errors,

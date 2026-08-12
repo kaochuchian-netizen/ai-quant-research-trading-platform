@@ -218,6 +218,15 @@ def _record_failure(
     started_at: str,
     observed_identity: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    # A failed attempt is its own immutable QA event.  It must not share the
+    # successful capture identity, otherwise a later successful retry would
+    # replace the failed index record and erase latest-attempt history.
+    visual_evidence_id = _capture_id({
+        **identity,
+        "capture_status": "FAILED",
+        "reason_code": reason,
+        "started_at": started_at,
+    })
     completed_at = _now()
     failure_dir = (
         root
@@ -234,6 +243,7 @@ def _record_failure(
         "dashboard_route": get_window_archive_path(str(identity["market"]), str(identity["window"])),
         "dashboard_source_path": str(dashboard_path),
         "capture_origin": capture_origin,
+        "requested_identity": identity,
         "capture": {
             "status": "FAILED",
             "reason_code": reason,
@@ -481,37 +491,46 @@ def build_daily_review_bundle(root: Path, effective_trading_date: str) -> dict[s
             item for item in day_records
             if item.get("market") == market and item.get("window") == window and item.get("capture_status") == "FAILED"
         ]
+        attempts = candidates + failures
+        latest_attempt = max(
+            attempts,
+            key=lambda item: (int(item.get("revision") or 0), str(item.get("created_at") or "")),
+            default=None,
+        )
         if latest:
             source = (root / str(latest["manifest_path"])).parent
             destination = review_root / market / window
             destination.mkdir(parents=True, exist_ok=True)
             for name in ("screenshot_full.png", "rendered_page.html", "rendered_text.md", "manifest.json", "canonical_reference.json"):
                 shutil.copy2(source / name, destination / name)
-            status = "SUCCESS"
             revision = int(latest["revision"])
-        elif failures:
-            status = "FAILED"
+        else:
             revision = None
-            latest_attempt_revision = max(int(item.get("revision") or 0) for item in failures)
+        latest_attempt_revision = int(latest_attempt["revision"]) if latest_attempt else None
+        latest_attempt_status = str(latest_attempt["capture_status"]) if latest_attempt else None
+        if latest_attempt_status == "SUCCESS":
+            status = "SUCCESS"
+        elif latest_attempt_status == "FAILED" and latest:
+            status = "DEGRADED"
+        elif latest_attempt_status == "FAILED":
+            status = "FAILED"
         else:
             status = "PENDING"
-            revision = None
-            latest_attempt_revision = None
-        if latest:
-            latest_attempt_revision = int(latest["revision"])
         windows.append({
             "market": market,
             "window": window,
             "status": status,
             "latest_valid_revision": revision,
             "latest_attempt_revision": latest_attempt_revision,
+            "latest_attempt_status": latest_attempt_status,
         })
     manifest = {
         "schema_version": REVIEW_SCHEMA_VERSION,
         "effective_trading_date": effective_trading_date,
         "expected_window_count": len(expected),
-        "available_window_count": len([item for item in windows if item["status"] == "SUCCESS"]),
+        "available_window_count": len([item for item in windows if item["status"] in {"SUCCESS", "DEGRADED"}]),
         "failed_window_count": len([item for item in windows if item["status"] == "FAILED"]),
+        "degraded_window_count": len([item for item in windows if item["status"] == "DEGRADED"]),
         "missing_window_count": len([item for item in windows if item["status"] == "PENDING"]),
         "windows": windows,
     }
@@ -524,7 +543,14 @@ def build_daily_review_bundle(root: Path, effective_trading_date: str) -> dict[s
             lines.append(f"- {item['window']}: {item['status']}{suffix}")
         lines.append("")
     (review_root / "review_summary.md").write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
-    return {"status": "BUILT", "review_root": str(review_root), **{key: manifest[key] for key in ("available_window_count", "failed_window_count", "missing_window_count")}}
+    return {
+        "status": "BUILT",
+        "review_root": str(review_root),
+        **{
+            key: manifest[key]
+            for key in ("available_window_count", "failed_window_count", "degraded_window_count", "missing_window_count")
+        },
+    }
 
 
 def capture_published_snapshot_non_blocking(
@@ -550,7 +576,28 @@ def capture_published_snapshot_non_blocking(
             return {"status": "SKIPPED_INELIGIBLE", "reason_code": "DASHBOARD_NOT_READY"}
         snapshot = resolve_snapshots(snapshot_archive_root, canonical_market, canonical_window).latest
         if not snapshot or snapshot.get("snapshot_id") != archive_write.get("snapshot_id"):
-            return {"status": "FAILED", "reason_code": "IDENTITY_MISMATCH", "production_batch_continues": True}
+            identity = {
+                "market": canonical_market,
+                "window": canonical_window,
+                "effective_trading_date": archive_write.get("effective_trading_date"),
+                "snapshot_id": archive_write.get("snapshot_id"),
+                "revision": int(archive_write.get("revision") or 0),
+                "payload_hash": archive_write.get("payload_hash"),
+            }
+            visual_evidence_id = _capture_id(identity)
+            dashboard_path = static_root / get_window_archive_path(canonical_market, canonical_window).lstrip("/")
+            result = _record_failure(
+                output_root,
+                identity=identity,
+                dashboard_path=dashboard_path,
+                visual_evidence_id=visual_evidence_id,
+                reason="IDENTITY_MISMATCH",
+                capture_origin=capture_origin,
+                started_at=_now(),
+                observed_identity=_expected_identity(snapshot) if snapshot else None,
+            )
+            result["production_batch_continues"] = True
+            return result
         dashboard_path = static_root / get_window_archive_path(canonical_market, canonical_window).lstrip("/")
         result = capture_snapshot_visual_evidence(
             snapshot,
