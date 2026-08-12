@@ -171,7 +171,6 @@ def _card_evidence(card: dict[str, Any], market_time: str) -> list[dict[str, Any
         ))
 
     news = card.get("news_evidence") if isinstance(card.get("news_evidence"), dict) else {}
-    news_direction = _direction(card.get("news_direction"))
     news_conf = news.get("confidence") if isinstance(news.get("confidence"), dict) else {}
     admitted_news = [item for item in (news.get("evidence") or []) if isinstance(item, dict)]
     for item in admitted_news[:3]:
@@ -179,8 +178,6 @@ def _card_evidence(card: dict[str, Any], market_time: str) -> list[dict[str, Any
         if not headline:
             continue
         direction = _direction(item.get("direction"))
-        if direction == "unavailable":
-            direction = news_direction
         coverage = _freshness_status(item.get("published_at"), market_time)
         rows.append(_record(
             market_time=market_time, symbol=symbol, evidence_class="news",
@@ -274,10 +271,20 @@ def _news_diagnostics(card: dict[str, Any], bundle: dict[str, Any], *, rendered_
     stages = dict(source.get("stages") or {})
     admitted_count = len([item for item in news.get("evidence") or [] if isinstance(item, dict)])
     upstream_stages = ("DISCOVERED", "RETRIEVED", "NORMALIZED", "SYMBOL_ATTRIBUTED", "RELEVANT", "MATERIAL", "QUALITY_QUALIFIED", "FRESH", "DEDUPLICATED", "ADMITTED")
+    inferred_stages = []
     for name in upstream_stages:
-        # Compatibility-projected admitted evidence necessarily passed the
-        # canonical upstream gates even if an older payload predates funnel V1.
-        stages.setdefault(name, admitted_count)
+        if name not in stages:
+            stages[name] = admitted_count
+            inferred_stages.append(name)
+    source_semantics = source.get("count_semantics")
+    if source_semantics:
+        count_semantics = str(source_semantics)
+    elif source.get("stages"):
+        count_semantics = "EXACT_LEGACY_V1"
+    else:
+        count_semantics = "COMPATIBILITY_LOWER_BOUND"
+    if inferred_stages and source.get("stages"):
+        count_semantics = "PARTIAL_COMPATIBILITY_LOWER_BOUND"
     used = sum(item.get("evidence_class") == "news" and item.get("evidence_id") in set(bundle["reasoning"].get("substantive_evidence_ids") or []) for item in bundle["evidence"])
     stages["RRE_USED"] = used
     stages["RENDERED"] = min(rendered_count, used)
@@ -287,7 +294,14 @@ def _news_diagnostics(card: dict[str, Any], bundle: dict[str, Any], *, rendered_
     if used > stages["RENDERED"]:
         rejection_reasons["RENDERER_NOT_SELECTED"] = used - stages["RENDERED"]
     absence = "NEWS_SELECTED_AND_RENDERED" if stages["RENDERED"] else "NEWS_ADMITTED_NOT_SELECTED" if stages.get("ADMITTED", 0) else "NEWS_DISCOVERED_BUT_FILTERED" if stages.get("DISCOVERED", 0) else "NO_RELEVANT_NEWS_DISCOVERED"
-    return {"schema_version": "tw_research_evidence_funnel_v1", "stages": stages, "rejection_reasons": rejection_reasons, "absence_state": absence}
+    return {
+        "schema_version": "tw_research_evidence_funnel_v1",
+        "count_semantics": count_semantics,
+        "inferred_stages": inferred_stages,
+        "stages": stages,
+        "rejection_reasons": rejection_reasons,
+        "absence_state": absence,
+    }
 
 
 def _hypothesis_state(window: str, card: dict[str, Any]) -> dict[str, Any]:
@@ -491,6 +505,11 @@ def validate_tw_daily_research(value: dict[str, Any], expected_symbols: set[str]
             errors.append(f"{symbol}:news_funnel_counts")
         elif any(stages[left] < stages[right] for left, right in zip(ordered, ordered[1:])):
             errors.append(f"{symbol}:news_funnel_non_monotonic")
+        semantics = diagnostic.get("count_semantics")
+        if semantics not in {"EXACT", "EXACT_LEGACY_V1", "COMPATIBILITY_LOWER_BOUND", "PARTIAL_COMPATIBILITY_LOWER_BOUND"}:
+            errors.append(f"{symbol}:news_funnel_count_semantics")
+        if semantics in {"COMPATIBILITY_LOWER_BOUND", "PARTIAL_COMPATIBILITY_LOWER_BOUND"} and not diagnostic.get("inferred_stages"):
+            errors.append(f"{symbol}:news_funnel_inference_provenance")
     if value.get("research_first_pipeline") is not True or value.get("decision_is_read_only_consumer") is not True:
         errors.append("production_pipeline_order")
     if value.get("model_boundary") != MODEL_BOUNDARY:
