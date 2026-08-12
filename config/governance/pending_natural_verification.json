@@ -8,6 +8,15 @@
   },
   "records": [
     {
+      "task_id": "AI-DEV-210",
+      "state": "PENDING",
+      "registered_at": "2026-08-12",
+      "owner": "Cross-Market Visual QA and Retrieval Owner",
+      "required_windows": ["TW pre_open_0700", "TW intraday_1305", "TW pre_close_1335", "TW post_close_1500", "US us_pre_market_2000", "US us_intraday_2300", "US us_post_close_review_0630"],
+      "acceptance": "A post-merge eligible natural batch automatically produces a same-page Chromium dashboard_full.pdf with manifest/index/daily-review identity and hash parity; an allowlisted selector export preserves the archived hash while direct ChatGPT transport remains explicitly dependent on an approved external capability.",
+      "monitoring": "Inspect automatic PDF creation without rerun, PDF manifest/hash/identity, immutable revision, latest-valid/latest-attempt semantics, safe selector export hash parity, daily bundle allowlist and production-batch failure isolation across the seven-window lifecycle."
+    },
+    {
       "task_id": "AI-DEV-209",
       "state": "PENDING",
       "registered_at": "2026-08-12",
