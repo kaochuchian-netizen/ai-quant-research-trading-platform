@@ -19,7 +19,7 @@
       "target": 85,
       "trend": "improving",
       "weight": 0.1,
-      "evidence": "AI-DEV-202 deterministically repairs TW historical fallback, evidence consumption and independent no-trade prediction review. Verified score remains unchanged pending a natural four-window lifecycle."
+      "evidence": "AI-DEV-207 deterministically separates contextual market/technical observations from substantive research direction, quality-gates Best Research and makes no-news/filter/use/render states explicit. Verified score remains unchanged pending a post-merge natural TW lifecycle."
     },
     {
       "id": "decision_explainability",
@@ -35,7 +35,7 @@
       "target": 88,
       "trend": "improving",
       "weight": 0.1,
-      "evidence": "AI-DEV-201 deterministically explains supporting, opposing and missing US evidence, decomposed market/sector context, triggers, invalidation, counterargument and window-specific hypothesis changes; natural verification is pending."
+      "evidence": "AI-DEV-207 adds concise TW source/time evidence labels, explicit contextual evidence and semantically distinct NO_TRADE versus OBSERVE tomorrow wording without changing Decision ownership; natural verification is pending."
     },
     {
       "id": "data_truthfulness",
@@ -67,7 +67,7 @@
       "target": 90,
       "trend": "improving",
       "weight": 0.1,
-      "evidence": "AI-DEV-202 links TW feature method/period/source, evidence identity, hypothesis identity, prediction identity and review identity through an append-safe verification record."
+      "evidence": "AI-DEV-207 adds a canonical per-symbol news evidence funnel from discovery through rendering, deterministic rejection reasons and admitted-to-RRE-to-render traceability. Verified score remains unchanged pending natural source evidence."
     },
     {
       "id": "cross_window_continuity",

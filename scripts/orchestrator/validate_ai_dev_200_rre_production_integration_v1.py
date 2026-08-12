@@ -109,8 +109,10 @@ def validate() -> dict:
         if op_tw.get("research_reasoning_identity") != tw.get("research_reasoning_identity"):
             errors.append(f"{window}:operations_identity")
         notes_by_symbol = {note["symbol"]: note for note in notes}
-        if "2330" in notes_by_symbol and not any("ADR" in item and "7.64" in item for item in notes_by_symbol["2330"]["supporting"]):
-            errors.append(f"{window}:2330_adr_reasoning")
+        if "2330" in notes_by_symbol:
+            adr_context = notes_by_symbol["2330"].get("contextual_evidence") or []
+            if not any("ADR" in item and "7.64" in item for item in adr_context):
+                errors.append(f"{window}:2330_adr_context")
         if "4743" in notes_by_symbol:
             note = notes_by_symbol["4743"]
             if not any("新聞" in item and "新藥" in item for item in note["supporting"]):

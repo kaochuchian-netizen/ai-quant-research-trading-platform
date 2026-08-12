@@ -9,8 +9,10 @@ REQUIRED_CLASSES = ("market", "technical", "fundamental", "news", "sector")
 def build_reasoning(market: str, symbol: str, evidence: list[dict[str, Any]], knowledge: dict[str, Any]) -> dict[str, Any]:
     counted = [x for x in evidence if x.get("counted_in_reasoning") and x["symbol_or_scope"] in {symbol.upper(), "MARKET"}]
     usable = [x for x in counted if x.get("coverage_status") == "AVAILABLE"]
-    supporting = [x for x in usable if x["direction"] == "bullish"]
-    opposing = [x for x in usable if x["direction"] == "bearish"]
+    substantive = [x for x in usable if x.get("research_role", "substantive") == "substantive"]
+    contextual = [x for x in usable if x.get("research_role") == "contextual"]
+    supporting = [x for x in substantive if x["direction"] == "bullish"]
+    opposing = [x for x in substantive if x["direction"] == "bearish"]
     neutral = [x for x in counted if x not in supporting and x not in opposing]
     present = {x["evidence_class"] for x in counted if x["coverage_status"] == "AVAILABLE"}
     missing = [name for name in REQUIRED_CLASSES if name not in present]
@@ -43,6 +45,8 @@ def build_reasoning(market: str, symbol: str, evidence: list[dict[str, Any]], kn
         "supporting_evidence_ids": [x["evidence_id"] for x in supporting],
         "opposing_evidence_ids": [x["evidence_id"] for x in opposing],
         "neutral_evidence_ids": [x["evidence_id"] for x in neutral],
+        "contextual_evidence_ids": [x["evidence_id"] for x in contextual],
+        "substantive_evidence_ids": [x["evidence_id"] for x in substantive],
         "missing_evidence": missing, "reasoning_chain": chains,
         "conflict": {"level": conflict, "method": "explicit_directional_conflict_no_averaging"},
         "confidence": {"score": score, "components": {"evidence": evidence_quality, "coverage": coverage_score, "knowledge": knowledge_score, "conflict": conflict_score, "freshness": fresh_score}, "cap_reasons": caps},

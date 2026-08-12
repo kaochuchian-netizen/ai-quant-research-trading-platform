@@ -115,6 +115,7 @@ def _record(
     published_at: Any = None,
     reference: Any = None,
     materiality: str = "medium",
+    research_role: str = "substantive",
 ) -> dict[str, Any]:
     return {
         "market": "TW", "symbol": symbol, "evidence_class": evidence_class,
@@ -123,6 +124,7 @@ def _record(
         "observed_at": market_time, "freshness": "fresh" if coverage == "AVAILABLE" else "unknown",
         "reliability": reliability, "confidence": confidence, "coverage_status": coverage,
         "summary": summary, "direction": direction, "materiality": materiality,
+        "research_role": research_role,
     }
 
 
@@ -152,6 +154,7 @@ def _card_evidence(card: dict[str, Any], market_time: str) -> list[dict[str, Any
         coverage="AVAILABLE" if technical_ok else "PARTIAL" if int(bars or 0) > 0 else "MISSING",
         confidence=.8 if technical_ok else .2, reliability=.85,
         published_at=technical.get("source_timestamp"),
+        research_role="contextual",
     ))
 
     adr = card.get("adr_context")
@@ -164,6 +167,7 @@ def _card_evidence(card: dict[str, Any], market_time: str) -> list[dict[str, Any
             source="canonical_adr", summary=f"{adr_name} 隔夜{adr_direction} {abs(change):.2f}%，提供隔夜方向參考" if change is not None else f"{adr_name} 隔夜方向資料已取得",
             direction="bullish" if change is not None and change > 0 else "bearish" if change is not None and change < 0 else "neutral",
             confidence=.82, reliability=.85,
+            research_role="contextual",
         ))
 
     news = card.get("news_evidence") if isinstance(card.get("news_evidence"), dict) else {}
@@ -202,6 +206,7 @@ def _card_evidence(card: dict[str, Any], market_time: str) -> list[dict[str, Any
                 market_time=market_time, symbol=symbol, evidence_class=evidence_class,
                 source=source, summary=_text(value) or json.dumps(value, ensure_ascii=False, sort_keys=True),
                 direction=_direction(direction_value), confidence=.65, reliability=.72,
+                research_role="substantive" if evidence_class in {"fundamental", "event"} else "contextual",
             ))
 
     volume = card.get("volume_ratio")
@@ -212,6 +217,7 @@ def _card_evidence(card: dict[str, Any], market_time: str) -> list[dict[str, Any
             source="canonical_intraday_volume", summary=f"盤中量能倍率 {ratio:.2f} 倍" if ratio is not None else "盤中量能已取得",
             direction="bullish" if ratio is not None and ratio >= 1 else "neutral",
             confidence=.8, reliability=.88,
+            research_role="contextual",
         ))
     price = card.get("current_price") or card.get("observed_price")
     if price is not None:
@@ -224,12 +230,14 @@ def _card_evidence(card: dict[str, Any], market_time: str) -> list[dict[str, Any
             source="canonical_observed_quote",
             summary=(f"盤中價格 {price}，較開盤{change_pct:+.2f}%（高 {card.get('session_high')}／低 {card.get('session_low')}）" if change_pct is not None else f"盤中價格證據 {price} 已取得；缺少開盤價，暫不推導方向"),
             direction=price_direction if change_pct is not None else "unavailable", confidence=.9, reliability=.95,
+            research_role="contextual",
         ))
     context = instrument_context(symbol)
     rows.append(_record(
         market_time=market_time, symbol=symbol, evidence_class="sector", source="canonical_tw_instrument_map_v2",
         summary=f"{context['sector']}｜{context['industry']}｜同儕 {context['peer']}", direction="neutral",
         coverage="AVAILABLE" if context["sector"] != "未分類" else "MISSING", confidence=.75, reliability=.9,
+        research_role="contextual",
     ))
     return rows
 
@@ -246,10 +254,40 @@ def _missing(card: dict[str, Any], reasoning: dict[str, Any]) -> list[str]:
 
 def _labels(ids: list[str], evidence: list[dict[str, Any]]) -> list[str]:
     by_id = {item["evidence_id"]: item for item in evidence}
-    return [
-        f"{CLASS_LABELS.get(by_id[item]['evidence_class'], by_id[item]['evidence_class'])}｜{by_id[item]['summary']}"
-        for item in ids if item in by_id
-    ]
+    labels = []
+    for evidence_id in ids:
+        if evidence_id not in by_id:
+            continue
+        item = by_id[evidence_id]
+        prefix = CLASS_LABELS.get(item["evidence_class"], item["evidence_class"])
+        provenance = ""
+        if item["evidence_class"] in {"news", "event", "fundamental", "corporate"}:
+            published = str(item.get("published_at") or item.get("observed_at") or "")[:16]
+            provenance = f"（{item.get('source_name') or '來源未標示'}{f'｜{published}' if published else ''}）"
+        labels.append(f"{prefix}｜{item['summary']}{provenance}")
+    return labels
+
+
+def _news_diagnostics(card: dict[str, Any], bundle: dict[str, Any], *, rendered_count: int) -> dict[str, Any]:
+    news = card.get("news_evidence") if isinstance(card.get("news_evidence"), dict) else {}
+    source = news.get("evidence_funnel") if isinstance(news.get("evidence_funnel"), dict) else {}
+    stages = dict(source.get("stages") or {})
+    admitted_count = len([item for item in news.get("evidence") or [] if isinstance(item, dict)])
+    upstream_stages = ("DISCOVERED", "RETRIEVED", "NORMALIZED", "SYMBOL_ATTRIBUTED", "RELEVANT", "MATERIAL", "QUALITY_QUALIFIED", "FRESH", "DEDUPLICATED", "ADMITTED")
+    for name in upstream_stages:
+        # Compatibility-projected admitted evidence necessarily passed the
+        # canonical upstream gates even if an older payload predates funnel V1.
+        stages.setdefault(name, admitted_count)
+    used = sum(item.get("evidence_class") == "news" and item.get("evidence_id") in set(bundle["reasoning"].get("substantive_evidence_ids") or []) for item in bundle["evidence"])
+    stages["RRE_USED"] = used
+    stages["RENDERED"] = min(rendered_count, used)
+    rejection_reasons = dict(source.get("rejection_reasons") or {})
+    if stages.get("ADMITTED", 0) > used:
+        rejection_reasons["RRE_NOT_SELECTED"] = stages["ADMITTED"] - used
+    if used > stages["RENDERED"]:
+        rejection_reasons["RENDERER_NOT_SELECTED"] = used - stages["RENDERED"]
+    absence = "NEWS_SELECTED_AND_RENDERED" if stages["RENDERED"] else "NEWS_ADMITTED_NOT_SELECTED" if stages.get("ADMITTED", 0) else "NEWS_DISCOVERED_BUT_FILTERED" if stages.get("DISCOVERED", 0) else "NO_RELEVANT_NEWS_DISCOVERED"
+    return {"schema_version": "tw_research_evidence_funnel_v1", "stages": stages, "rejection_reasons": rejection_reasons, "absence_state": absence}
 
 
 def _hypothesis_state(window: str, card: dict[str, Any]) -> dict[str, Any]:
@@ -324,6 +362,7 @@ def build_tw_daily_research(
         reasoning = bundle["reasoning"]
         supporting = _labels(reasoning["supporting_evidence_ids"], bundle["evidence"])
         opposing = _labels(reasoning["opposing_evidence_ids"], bundle["evidence"])
+        contextual = _labels(reasoning.get("contextual_evidence_ids") or [], bundle["evidence"])
         missing = _missing(card, reasoning)
         company = bundle["knowledge"].get("dimensions") or {}
         context = [
@@ -340,10 +379,14 @@ def build_tw_daily_research(
             summary = f"{symbol} {_name(card)}受{opposing[0]}限制，且需確認{'、'.join(missing[:2]) or '後續證據'}，目前維持「{action}」。"
         else:
             summary = f"{symbol} {_name(card)}目前沒有足以形成方向結論的證據；長期脈絡為{'、'.join(context[:2]) or '尚未建檔'}，先維持「{action}」。"
+        substantive_count = len(reasoning.get("substantive_evidence_ids") or [])
+        qualified = reasoning["conclusion"] in {"bullish", "bearish", "mixed"} and substantive_count > 0 and float(reasoning["confidence"]["score"]) >= 50
+        news_rendered = sum(item.startswith("新聞｜") for item in supporting + opposing)
         notes.append({
             "symbol": symbol, "name": _name(card), "generated_by": "research_reasoning_engine_v1",
             "research_summary": summary, "conclusion": reasoning["conclusion"],
             "supporting": supporting, "opposing": opposing, "missing": missing,
+            "contextual_evidence": contextual,
             "why": reasoning.get("why") or [], "why_not": reasoning.get("why_not") or [],
             "unknown": missing, "counter_argument": reasoning["counter_argument"],
             "company_context": context, "knowledge_status": bundle["knowledge"]["status"],
@@ -357,9 +400,13 @@ def build_tw_daily_research(
             "prediction_snapshot_v2": card.get("prediction_snapshot_v2"),
             "decision_category": decision.get("decision_category"),
             "decision_category_label": action, "decision_modified": False,
+            "research_quality": {"qualified": qualified, "substantive_evidence_count": substantive_count, "minimum_confidence": 50, "reason_codes": [] if qualified else ["INSUFFICIENT_SUBSTANTIVE_RESEARCH"]},
+            "research_evidence_observability": {"news": _news_diagnostics(card, bundle, rendered_count=news_rendered)},
         })
     notes.sort(key=lambda row: (-float(row["confidence_reasoning"]["score"]), row["symbol"]))
-    strongest = notes[0] if notes else None
+    qualified_notes = [row for row in notes if row["research_quality"]["qualified"]]
+    strongest = qualified_notes[0] if qualified_notes else None
+    relative = notes[0] if notes else None
     risk = max(notes, key=lambda row: (len(row["opposing"]), len(row["missing"]), row["symbol"])) if notes else None
     positive = sum(row["conclusion"] == "bullish" for row in notes)
     negative = sum(row["conclusion"] == "bearish" for row in notes)
@@ -376,7 +423,9 @@ def build_tw_daily_research(
     )
     brief = {
         "label": WINDOW_LABELS[window], "market_narrative": narrative,
-        "best_research": f"{strongest['symbol']} {strongest['name']}｜{strongest['research_summary']}" if strongest else "尚無研究筆記",
+        "best_research": f"{strongest['symbol']} {strongest['name']}｜{strongest['research_summary']}" if strongest else "本批次無符合研究品質門檻的標的",
+        "best_research_status": "QUALIFIED" if strongest else "NO_QUALIFIED_RESEARCH",
+        "relative_evidence_candidate": f"{relative['symbol']} {relative['name']}" if relative else None,
         "largest_research_risk": f"{risk['symbol']} {risk['name']}｜缺口：{'、'.join(risk['missing'][:3]) or '無'}" if risk else "尚無研究風險",
         "next_question": (
             strongest["hypothesis"]["expected_trigger"] if strongest else "等待下一批次研究證據"
@@ -390,6 +439,11 @@ def build_tw_daily_research(
             "source_payload_hash": payload.get("source_payload_hash"),
         },
         "research_notes": notes, "morning_or_window_brief": brief,
+        "research_evidence_observability": {
+            "schema_version": "tw_research_evidence_observability_v1",
+            "market": "TW", "window": window,
+            "symbols": {row["symbol"]: row["research_evidence_observability"] for row in notes},
+        },
         "rre_projection": rre, "research_reasoning_identity": rre["research_reasoning_identity"],
         "research_first_pipeline": True, "decision_is_read_only_consumer": True,
         "model_boundary": MODEL_BOUNDARY,
@@ -427,6 +481,16 @@ def validate_tw_daily_research(value: dict[str, Any], expected_symbols: set[str]
             errors.append(f"{symbol}:counter_argument")
         if row.get("decision_modified") is not False:
             errors.append(f"{symbol}:decision_boundary")
+        quality = row.get("research_quality") or {}
+        if row.get("conclusion") in {"bullish", "bearish", "mixed"} and not quality.get("substantive_evidence_count"):
+            errors.append(f"{symbol}:direction_without_substantive_evidence")
+        diagnostic = ((row.get("research_evidence_observability") or {}).get("news") or {})
+        stages = diagnostic.get("stages") or {}
+        ordered = ("DISCOVERED", "RETRIEVED", "NORMALIZED", "SYMBOL_ATTRIBUTED", "RELEVANT", "MATERIAL", "QUALITY_QUALIFIED", "FRESH", "DEDUPLICATED", "ADMITTED", "RRE_USED", "RENDERED")
+        if any(not isinstance(stages.get(stage), int) or stages.get(stage, -1) < 0 for stage in ordered):
+            errors.append(f"{symbol}:news_funnel_counts")
+        elif any(stages[left] < stages[right] for left, right in zip(ordered, ordered[1:])):
+            errors.append(f"{symbol}:news_funnel_non_monotonic")
     if value.get("research_first_pipeline") is not True or value.get("decision_is_read_only_consumer") is not True:
         errors.append("production_pipeline_order")
     if value.get("model_boundary") != MODEL_BOUNDARY:
@@ -434,4 +498,12 @@ def validate_tw_daily_research(value: dict[str, Any], expected_symbols: set[str]
     brief = value.get("morning_or_window_brief") or {}
     if not all(brief.get(key) for key in ("market_narrative", "best_research", "largest_research_risk", "next_question")):
         errors.append("brief_incomplete")
+    qualified_notes = [row for row in notes if (row.get("research_quality") or {}).get("qualified")]
+    if brief.get("best_research_status") == "QUALIFIED" and not qualified_notes:
+        errors.append("best_research_without_qualified_candidate")
+    if qualified_notes and brief.get("best_research_status") != "QUALIFIED":
+        errors.append("qualified_candidate_not_presented")
+    observability = value.get("research_evidence_observability") or {}
+    if set((observability.get("symbols") or {}).keys()) != expected_symbols:
+        errors.append("research_observability_symbol_partition")
     return sorted(set(errors))

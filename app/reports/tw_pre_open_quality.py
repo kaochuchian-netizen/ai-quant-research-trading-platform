@@ -86,9 +86,9 @@ def _news_items(value: Any) -> list[dict[str, Any]]:
     if isinstance(value, list):
         return [item for item in value if isinstance(item, dict)]
     if isinstance(value, dict):
-        nested = value.get("items") or value.get("articles") or value.get("news")
-        if isinstance(nested, list):
-            return [item for item in nested if isinstance(item, dict)]
+        for key in ("items", "articles", "news"):
+            if key in value and isinstance(value.get(key), list):
+                return [item for item in value[key] if isinstance(item, dict)]
         return [value]
     return []
 
@@ -106,33 +106,79 @@ def _source_tier(item: dict[str, Any]) -> int:
 
 def news_contract(raw_news: Any, *, generated_at: str | None = None) -> dict[str, Any]:
     admitted = []
+    raw_items = _news_items(raw_news)
+    rejection_reasons: dict[str, int] = {}
+    def reject(code: str) -> None:
+        rejection_reasons[code] = rejection_reasons.get(code, 0) + 1
     reference = _parse_time(generated_at)
-    for item in _news_items(raw_news):
+    normalized_count = 0
+    attributed_count = 0
+    relevant_count = 0
+    material_count = 0
+    quality_count = 0
+    fresh_count = 0
+    for item in raw_items:
         headline = item.get("headline") or item.get("title")
         publisher = item.get("publisher") or item.get("source")
         published = item.get("published_at") or item.get("published") or item.get("timestamp") or item.get("date")
         source_url = item.get("source_url") or item.get("url") or item.get("link") or item.get("source_id")
         if not all(_present(value) for value in (headline, publisher, published, source_url)):
+            reject("INSUFFICIENT_PROVENANCE")
             continue
+        normalized_count += 1
+        symbol_attributed = item.get("symbol_attributed", True) is not False
+        if not symbol_attributed:
+            reject("SYMBOL_ATTRIBUTION_FAILED")
+            continue
+        attributed_count += 1
+        relevance = str(item.get("relevance") or "medium").lower()
+        if relevance not in {"medium", "high", "critical"}:
+            reject("LOW_RELEVANCE")
+            continue
+        relevant_count += 1
+        materiality = str(item.get("materiality") or "medium").lower()
+        if materiality not in {"medium", "high", "critical"}:
+            reject("LOW_MATERIALITY")
+            continue
+        material_count += 1
         tier = _source_tier(item)
+        if tier > 3:
+            reject("LOW_SOURCE_QUALITY")
+            continue
+        quality_count += 1
         published_time = _parse_time(published)
         age_hours = None if not reference or not published_time else max(0.0, (reference - published_time).total_seconds() / 3600)
         freshness = "fresh" if age_hours is not None and age_hours <= NEWS_LOOKBACK_HOURS else "stale" if age_hours is not None else "unknown"
+        if freshness == "stale":
+            reject("STALE")
+            continue
+        if freshness != "fresh":
+            reject("OUTSIDE_WINDOW")
+            continue
+        fresh_count += 1
+        direction = str(item.get("direction") or "unavailable").lower()
+        if direction not in {"bullish", "neutral", "bearish"}:
+            reject("UNSAFE_TO_CITE")
+            continue
         admitted.append({
             "headline": str(headline), "publisher": str(publisher), "published_at": str(published),
             "source_url": str(source_url), "source_tier": tier,
             "source_quality": {1: "high", 2: "medium_high", 3: "medium", 4: "low"}[tier],
-            "direction": str(item.get("direction") or "unavailable"),
-            "relevance": str(item.get("relevance") or "medium"),
-            "materiality": str(item.get("materiality") or "medium"),
+            "direction": direction,
+            "relevance": relevance,
+            "materiality": materiality,
             "official_source": tier == 1,
             "dedupe_key": str(item.get("dedupe_key") or source_url),
             "freshness": freshness, "age_hours": None if age_hours is None else round(age_hours, 2),
         })
+    before_dedupe = len(admitted)
     unique = {item["dedupe_key"]: item for item in admitted}
     admitted = list(unique.values())
+    duplicate_count = before_dedupe - len(admitted)
+    if duplicate_count:
+        rejection_reasons["DUPLICATE"] = duplicate_count
     admitted.sort(key=lambda item: (item["source_tier"], item["freshness"] == "stale", item["published_at"], item["headline"]))
-    usable = [item for item in admitted if item["freshness"] != "stale" and item["direction"] in {"bullish", "neutral", "bearish"}]
+    usable = list(admitted)
     primary = usable[0] if usable else None
     quality = primary["source_quality"] if primary else "not_applicable"
     if primary:
@@ -145,19 +191,40 @@ def news_contract(raw_news: Any, *, generated_at: str | None = None) -> dict[str
     else:
         confidence = {"score": None, "level": "not_applicable", "components": {}, "reason_codes": ["NO_ADMITTED_NEWS_EVIDENCE"]}
     supplied_retrieval = raw_news.get("retrieval") if isinstance(raw_news, dict) and isinstance(raw_news.get("retrieval"), dict) else {}
-    failure = str(supplied_retrieval.get("failure_reason") or ("NO_RESULT" if not _present(raw_news) else "LOW_QUALITY_ONLY"))
+    failure = str(supplied_retrieval.get("failure_reason") or ("NO_RESULT" if not raw_items else "FILTERED"))
     attempted = list(supplied_retrieval.get("sources_attempted") or ["UNSPECIFIED_UPSTREAM"])
     configured_failed = list(supplied_retrieval.get("sources_failed") or [])
     succeeded = list(supplied_retrieval.get("sources_succeeded") or [])
+    discovered = max(len(raw_items), int(supplied_retrieval.get("result_count_discovered") or supplied_retrieval.get("result_count_raw") or 0))
+    retrieved = len(raw_items)
+    funnel = {
+        "schema_version": "tw_research_evidence_funnel_v1",
+        "stages": {
+            "DISCOVERED": discovered, "RETRIEVED": retrieved,
+            "NORMALIZED": normalized_count, "SYMBOL_ATTRIBUTED": attributed_count,
+            "RELEVANT": relevant_count, "MATERIAL": material_count,
+            "QUALITY_QUALIFIED": quality_count, "FRESH": fresh_count,
+            "DEDUPLICATED": len(admitted), "ADMITTED": len(usable),
+            "RRE_USED": 0, "RENDERED": 0,
+        },
+        "rejection_reasons": dict(sorted(rejection_reasons.items())),
+    }
+    absence_state = (
+        "NEWS_SELECTED_AND_RENDERED" if supplied_retrieval.get("rendered_count") else
+        "NEWS_ADMITTED_NOT_SELECTED" if usable else
+        "NEWS_DISCOVERED_BUT_FILTERED" if discovered else
+        "NO_RELEVANT_NEWS_DISCOVERED"
+    )
     return {
         "status": "available" if primary else "partial" if admitted else "unavailable", "evidence": admitted, "primary_evidence": primary,
         "source_quality": quality, "confidence": confidence,
+        "evidence_funnel": funnel, "absence_state": absence_state,
         "retrieval": {
             "lookback_hours": int(supplied_retrieval.get("lookback_hours") or NEWS_LOOKBACK_HOURS), "sources_attempted": attempted,
             "sources_succeeded": succeeded,
             "sources_failed": configured_failed,
             "query_started_at": supplied_retrieval.get("query_started_at") or generated_at, "query_completed_at": supplied_retrieval.get("query_completed_at") or generated_at,
-            "result_count_raw": len(_news_items(raw_news)), "result_count_deduped": len(admitted), "result_count_admitted": len(usable),
+            "result_count_raw": len(raw_items), "result_count_deduped": len(admitted), "result_count_admitted": len(usable),
             "failure_reason": None if usable else "OUTSIDE_LOOKBACK" if admitted and all(item["freshness"] == "stale" for item in admitted) else "NO_RELIABLE_NEWS" if admitted else failure,
         },
     }

@@ -74,7 +74,10 @@ def normalize_evidence(item: dict[str, Any], *, market: str | None = None) -> di
         "summary": str(item.get("summary") or item.get("headline") or "").strip(),
         "direction": direction, "materiality": str(item.get("materiality") or "medium").lower(),
         "duplicate_of": item.get("duplicate_of"),
+        "research_role": str(item.get("research_role") or "substantive").lower(),
     }
+    if normalized["research_role"] not in {"substantive", "contextual"}:
+        raise ValueError("research_role must be substantive or contextual")
     if not normalized["summary"]:
         raise ValueError("summary is required")
     normalized["evidence_id"] = str(item.get("evidence_id") or "rre_" + _hash(normalized)[:20])
