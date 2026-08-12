@@ -42,7 +42,7 @@
       "name": "Data Truthfulness",
       "score": 76,
       "previous_score": 78,
-      "implemented_score": 94,
+      "implemented_score": 96,
       "verified_score": 76,
       "residual_limitation": "The 2026-07-29 TW 07:00 Google Sheets 503 prevented a canonical batch; bounded fallback is implemented but naturally unverified.",
       "description": "Observed, stale, unavailable and inferred data are not conflated.",
@@ -51,14 +51,14 @@
       "target": 90,
       "trend": "declining",
       "weight": 0.1,
-      "evidence": "AI-DEV-204 deterministically separates baseline/full prediction and Decision readiness, replaces optimistic universe promotion with ready/total ratios, makes TW freshness trading-session-aware, and preserves actual outcome timestamp provenance. Verified score remains unchanged pending natural US/TW lifecycles."
+      "evidence": "AI-DEV-205 closes the remaining deterministic readiness contradictions: every dimension now owns its applicability denominator, research-only prediction is NOT_EVALUATED rather than AVAILABLE, and Decision readiness uses a Decision Layer export. Verified score remains unchanged pending natural US/TW lifecycles."
     },
     {
       "id": "evidence_traceability",
       "name": "Evidence Traceability",
       "score": 80,
       "previous_score": 78,
-      "implemented_score": 94,
+      "implemented_score": 97,
       "verified_score": 80,
       "residual_limitation": "AI-DEV-197 institutional evidence is deterministically implemented but not naturally verified; historical immutable snapshots remain unchanged.",
       "description": "Decisions retain source, time, snapshot, revision and payload identity.",
@@ -125,14 +125,14 @@
       "target": 90,
       "trend": "declining",
       "weight": 0.1,
-      "evidence": "AI-DEV-204 adds A–S semantic acceptance, mutation tests for false readiness/future data/schema drift, and an authoritative fail-closed validator lifecycle registry. Verified risk remains unchanged pending natural evidence."
+      "evidence": "AI-DEV-205 turns the validator registry from lifecycle metadata into executable branch/post-merge policy with deterministic selection, fail-closed leaf execution, semantic-result checks, recursion protection and selected/executed closure. Verified risk remains unchanged pending natural evidence."
     },
     {
       "id": "technical_debt",
       "name": "Technical Debt",
       "score": 61,
       "previous_score": 58,
-      "implemented_score": 84,
+      "implemented_score": 88,
       "verified_score": 61,
       "residual_limitation": "Legacy V4 count projections remain for backward-compatible secondary metrics.",
       "description": "Higher score means lower debt and fewer duplicated contracts or legacy fallbacks.",
@@ -141,7 +141,7 @@
       "target": 80,
       "trend": "stable",
       "weight": 0.1,
-      "evidence": "AI-DEV-204 centralizes cross-market readiness aggregation, formal-universe metadata coverage and validator lifecycle; it also repairs the active AI-DEV-193 compatibility entry point instead of ignoring API drift."
+      "evidence": "AI-DEV-205 centralizes executable registry policy, per-dimension applicability, health/readiness consistency and Decision-required-input provenance instead of duplicating gate loops or consumer-specific readiness patches."
     },
     {
       "id": "phase_completion",

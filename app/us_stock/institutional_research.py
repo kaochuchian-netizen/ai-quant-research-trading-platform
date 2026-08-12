@@ -225,10 +225,18 @@ def analyze_coverage(evidence: list[dict[str, Any]], knowledge: dict[str, Any], 
                  "etf": any(x.get("source_reference") in {"SPY", "QQQ", "SOXX"} for x in counted),
                  "options": False, "analyst": False, "insider": False}
     core = ("official", "fundamental", "macro", "sector", "news", "knowledge")
+    required = ("sector", "knowledge")
+    required_ready = sum(available[key] for key in required)
+    required_status = "COMPLETE" if required_ready == len(required) else "PARTIAL" if required_ready else "NONE"
+    optional_gaps = [key for key in COVERAGE_KEYS if key not in required and not available[key]]
     return {"score": round(sum(available.values()) / len(COVERAGE_KEYS) * 100, 2),
             "core_score": round(sum(available[x] for x in core) / len(core) * 100, 2),
             "categories": {k: "AVAILABLE" if v else "NOT_CONFIGURED" if k in {"macro", "options", "analyst", "insider"} else "MISSING" for k, v in available.items()},
             "coverage_gap": [x for x in COVERAGE_KEYS if not available[x]],
+            "required_categories": list(required),
+            "required_category_status": required_status,
+            "missing_required_categories": [key for key in required if not available[key]],
+            "optional_category_gaps": optional_gaps,
             "missing_sources": [x["provider_id"] for x in providers if x["availability"] in {"NOT_CONFIGURED", "NOT_LICENSED", "SOURCE_FAILED"}],
             "unlicensed_is_failure": False}
 
@@ -272,14 +280,25 @@ def build_bundle(symbol: str, research: dict[str, Any], market_context: dict[str
     coverage, conflict = analyze_coverage(evidence, knowledge, providers), analyze_conflict(evidence)
     synthesis = synthesize(evidence, coverage, conflict)
     canonical_market = normalize_us_market_context(market_context)
-    research_complete = "COMPLETE" if not coverage["coverage_gap"] else "PARTIAL"
+    research_complete = coverage["required_category_status"]
     market_ready = int(canonical_market["normalization_status"] == "VALID")
-    research_ready = int(float(coverage.get("score") or 0) >= 50.0)
+    research_ready = int(coverage["required_category_status"] == "COMPLETE")
     readiness = intelligence_readiness_v1(
         runtime_status="SUCCESS", total_symbols=1,
         market_ready=market_ready, history_ready=0, technical_ready=0,
         research_ready=research_ready, baseline_prediction_ready=0,
         full_prediction_ready=0, decision_required_inputs=[],
+        applicability={
+            "market_data": 1, "research_evidence": 1,
+            "historical_data": 0, "technical_evidence": 0,
+            "baseline_prediction": 0, "full_prediction": 0,
+            "outcome_evaluation": 0,
+        },
+        zero_statuses={
+            "historical_data": "NOT_EVALUATED", "technical_evidence": "NOT_EVALUATED",
+            "baseline_prediction": "NOT_EVALUATED", "full_prediction": "NOT_EVALUATED",
+            "outcome_evaluation": "NOT_EVALUATED",
+        },
         reasons={
             "historical_data": ["NOT_EVALUATED_IN_RESEARCH_BUNDLE"],
             "technical_evidence": ["NOT_EVALUATED_IN_RESEARCH_BUNDLE"],
@@ -289,7 +308,7 @@ def build_bundle(symbol: str, research: dict[str, Any], market_context: dict[str
     )
     completeness = completeness_v2(
         market_data="COMPLETE" if canonical_market["normalization_status"] == "VALID" else "PARTIAL",
-        technical="PARTIAL", research=research_complete,
+        technical="NOT_EVALUATED", research=research_complete,
         decision_input=readiness["decision_input"]["readiness"], prediction_input="NOT_EVALUATED",
         research_score=coverage["score"], missing_categories=coverage["coverage_gap"],
         readiness=readiness,
@@ -309,8 +328,8 @@ def build_bundle(symbol: str, research: dict[str, Any], market_context: dict[str
               "semantic_degradation": degradation,
               "intelligence_health": intelligence_health(
                   runtime_status="SUCCESS", data_quality_status="HEALTHY" if canonical_market["normalization_status"] == "VALID" else "DEGRADED",
-                  research_status=research_complete, prediction_status="AVAILABLE",
-                  decision_status="READ_ONLY_CONSUMER", degradation=degradation, readiness=readiness,
+                  research_status=research_complete, prediction_status="NOT_EVALUATED",
+                  decision_status="NOT_EVALUATED", degradation=degradation, readiness=readiness,
               ),
               "coverage": coverage, "conflict": conflict, "synthesis": synthesis,
               "decision_context_export": {"research_score": synthesis["research_score"], "research_stance": synthesis["research_stance"], "confidence": synthesis["research_confidence"], "coverage_gap": coverage["coverage_gap"], "conflict_level": conflict["level"], "evidence_ids": [x["evidence_id"] for x in evidence if x["counted_in_synthesis"]], "trade_action": None},

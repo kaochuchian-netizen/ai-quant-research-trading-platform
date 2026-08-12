@@ -8,8 +8,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Iterable
 
-READINESS_SCHEMA_VERSION = "intelligence_readiness_v1"
-READINESS_METHOD_VERSION = "coverage_denominator_policy_v1"
+READINESS_SCHEMA_VERSION = "intelligence_readiness_v2"
+READINESS_METHOD_VERSION = "per_dimension_applicability_policy_v2"
 
 FAILURE_REASONS = {
     "NO_SOURCE_CONFIGURED", "AUTH_UNAVAILABLE", "TIMEOUT", "UPSTREAM_ERROR",
@@ -25,13 +25,16 @@ def coverage_dimension(
     ready_symbols: int, total_applicable_symbols: int, *,
     reason_codes: Iterable[str] = (), method: str = READINESS_METHOD_VERSION,
     none_status: str = "NONE", complete_status: str = "COMPLETE",
+    zero_status: str = "NOT_APPLICABLE",
 ) -> dict[str, Any]:
     """Return denominator-preserving universe coverage without any()-promotion."""
     ready = max(0, int(ready_symbols))
     total = max(0, int(total_applicable_symbols))
     if ready > total:
         raise ValueError("ready_symbols cannot exceed total_applicable_symbols")
-    status = "NOT_APPLICABLE" if total == 0 else complete_status if ready == total else none_status if ready == 0 else "PARTIAL"
+    if zero_status not in {"NOT_APPLICABLE", "NOT_EVALUATED"}:
+        raise ValueError("zero_status must be NOT_APPLICABLE or NOT_EVALUATED")
+    status = zero_status if total == 0 else complete_status if ready == total else none_status if ready == 0 else "PARTIAL"
     return {
         "status": status,
         "ready_symbols": ready,
@@ -40,6 +43,7 @@ def coverage_dimension(
         "reason_codes": sorted(set(str(x) for x in reason_codes if x)),
         "method": method, "version": READINESS_SCHEMA_VERSION,
         "provenance": "canonical_symbol_readiness_aggregation",
+        "applicability": "OUT_OF_SCOPE" if total == 0 else "APPLICABLE",
     }
 
 
@@ -58,16 +62,23 @@ def decision_input_readiness(required_inputs_by_symbol: list[dict[str, Any]]) ->
         ready, len(applicable), reason_codes=[f"MISSING_{name.upper()}" for name in sorted(missing)],
         none_status="INSUFFICIENT", complete_status="SUFFICIENT",
         method="declared_decision_required_inputs_v1",
+        zero_status="NOT_EVALUATED",
     )
     if dimension["status"] == "PARTIAL":
         dimension["readiness"] = "PARTIAL"
     elif dimension["status"] == "SUFFICIENT":
         dimension["readiness"] = "SUFFICIENT"
-    elif dimension["status"] == "NOT_APPLICABLE":
+    elif dimension["status"] in {"NOT_APPLICABLE", "NOT_EVALUATED"}:
         dimension["readiness"] = "NOT_EVALUATED"
     else:
         dimension["readiness"] = "INSUFFICIENT"
     dimension["ownership"] = "health_semantics_only_decision_layer_unchanged"
+    contracts = sorted({
+        str((row.get("contract") or {}).get("contract_id"))
+        for row in applicable if isinstance(row.get("contract"), dict) and (row.get("contract") or {}).get("contract_id")
+    })
+    dimension["required_input_contract_ids"] = contracts
+    dimension["required_input_contract_provenance"] = "decision_layer_export" if contracts else "legacy_or_not_evaluated"
     return dimension
 
 
@@ -77,32 +88,45 @@ def intelligence_readiness_v1(
     baseline_prediction_ready: int, full_prediction_ready: int,
     decision_required_inputs: list[dict[str, Any]], outcome_evaluable: int = 0,
     reasons: dict[str, Iterable[str]] | None = None,
+    applicability: dict[str, int] | None = None,
+    zero_statuses: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """Build canonical readiness dimensions with explicit counts and methods."""
     reasons = reasons or {}
+    applicability = applicability or {}
+    zero_statuses = zero_statuses or {}
     total = max(0, int(total_symbols))
+    def applicable(name: str) -> int:
+        return max(0, int(applicability.get(name, total)))
+    def dimension(name: str, ready: int) -> dict[str, Any]:
+        return coverage_dimension(
+            ready, applicable(name), reason_codes=reasons.get(name, ()),
+            zero_status=zero_statuses.get(name, "NOT_APPLICABLE"),
+        )
     dimensions = {
-        "market_data": coverage_dimension(market_ready, total, reason_codes=reasons.get("market_data", ())),
-        "historical_data": coverage_dimension(history_ready, total, reason_codes=reasons.get("historical_data", ())),
-        "technical_evidence": coverage_dimension(technical_ready, total, reason_codes=reasons.get("technical_evidence", ())),
-        "research_evidence": coverage_dimension(research_ready, total, reason_codes=reasons.get("research_evidence", ())),
-        "baseline_prediction": coverage_dimension(baseline_prediction_ready, total, reason_codes=reasons.get("baseline_prediction", ())),
-        "full_prediction": coverage_dimension(full_prediction_ready, total, reason_codes=reasons.get("full_prediction", ())),
-        "outcome_evaluation": coverage_dimension(outcome_evaluable, total, reason_codes=reasons.get("outcome_evaluation", ())),
+        "market_data": dimension("market_data", market_ready),
+        "historical_data": dimension("historical_data", history_ready),
+        "technical_evidence": dimension("technical_evidence", technical_ready),
+        "research_evidence": dimension("research_evidence", research_ready),
+        "baseline_prediction": dimension("baseline_prediction", baseline_prediction_ready),
+        "full_prediction": dimension("full_prediction", full_prediction_ready),
+        "outcome_evaluation": dimension("outcome_evaluation", outcome_evaluable),
     }
     dimensions["baseline_prediction"]["readiness_class"] = (
         "BASELINE_EVALUABLE" if dimensions["baseline_prediction"]["status"] == "COMPLETE"
         else "DEGRADED_BASELINE" if dimensions["baseline_prediction"]["status"] == "PARTIAL"
+        else dimensions["baseline_prediction"]["status"] if dimensions["baseline_prediction"]["status"] in {"NOT_EVALUATED", "NOT_APPLICABLE"}
         else "INSUFFICIENT"
     )
     dimensions["full_prediction"]["readiness_class"] = (
         "FULL_READY" if dimensions["full_prediction"]["status"] == "COMPLETE"
         else "PARTIAL" if dimensions["full_prediction"]["status"] == "PARTIAL"
+        else dimensions["full_prediction"]["status"] if dimensions["full_prediction"]["status"] in {"NOT_EVALUATED", "NOT_APPLICABLE"}
         else "INSUFFICIENT"
     )
     dimensions["decision_input"] = decision_input_readiness(decision_required_inputs)
     intelligence_complete = all(
-        dimensions[name]["status"] in {"COMPLETE", "SUFFICIENT", "NOT_APPLICABLE"}
+        dimensions[name]["status"] in {"COMPLETE", "SUFFICIENT", "NOT_APPLICABLE", "NOT_EVALUATED"}
         for name in ("market_data", "historical_data", "technical_evidence", "research_evidence", "full_prediction", "decision_input")
     )
     return {
@@ -127,9 +151,17 @@ def validate_intelligence_readiness(readiness: dict[str, Any]) -> dict[str, Any]
         if not isinstance(ready, int) or not isinstance(total, int) or ready < 0 or total < 0 or ready > total:
             reasons.append(f"{name}:INVALID_COVERAGE")
             continue
-        expected = "NOT_APPLICABLE" if total == 0 else ("SUFFICIENT" if name == "decision_input" else "COMPLETE") if ready == total else ("INSUFFICIENT" if name == "decision_input" else "NONE") if ready == 0 else "PARTIAL"
-        if status != expected:
+        expected = ({"NOT_APPLICABLE", "NOT_EVALUATED"} if total == 0 else
+                    {"SUFFICIENT" if name == "decision_input" else "COMPLETE"} if ready == total else
+                    {"INSUFFICIENT" if name == "decision_input" else "NONE"} if ready == 0 else {"PARTIAL"})
+        if status not in expected:
             reasons.append(f"{name}:STATUS_COVERAGE_MISMATCH")
+        reason_codes = [str(code) for code in value.get("reason_codes", [])]
+        if total == 0 and any(
+            token in code for code in reason_codes
+            for token in ("INSUFFICIENT", "MISSING", "FAILED", "STALE", "ERROR")
+        ) and not all(code.startswith(("NOT_EVALUATED", "NOT_APPLICABLE")) for code in reason_codes):
+            reasons.append(f"{name}:OUT_OF_SCOPE_REASON_CONTRADICTION")
     baseline = readiness.get("baseline_prediction") or {}
     full = readiness.get("full_prediction") or {}
     if int(full.get("ready_symbols") or 0) > int(baseline.get("ready_symbols") or 0):
@@ -141,6 +173,38 @@ def validate_intelligence_readiness(readiness: dict[str, Any]) -> dict[str, Any]
     if readiness.get("runtime", {}).get("promotes_intelligence") is not False:
         reasons.append("RUNTIME_PROMOTES_INTELLIGENCE")
     return {"status": "FAIL" if reasons else "PASS", "reason_codes": reasons}
+
+
+def readiness_health_projection(readiness: dict[str, Any]) -> dict[str, str]:
+    """Project canonical readiness into legacy summary fields without contradiction."""
+    baseline = readiness.get("baseline_prediction") or {}
+    decision = readiness.get("decision_input") or {}
+    research = readiness.get("research_evidence") or {}
+    prediction_map = {
+        "COMPLETE": "AVAILABLE", "PARTIAL": "PARTIAL", "NONE": "INSUFFICIENT",
+        "NOT_APPLICABLE": "NOT_APPLICABLE", "NOT_EVALUATED": "NOT_EVALUATED",
+    }
+    return {
+        "prediction_status": prediction_map.get(str(baseline.get("status")), "NOT_EVALUATED"),
+        "decision_status": str(decision.get("readiness") or decision.get("status") or "NOT_EVALUATED"),
+        "research_status": str(research.get("status") or "NOT_EVALUATED"),
+    }
+
+
+def validate_health_readiness_consistency(health: dict[str, Any]) -> dict[str, Any]:
+    readiness = health.get("intelligence_readiness_v1")
+    if not isinstance(readiness, dict):
+        return {"status": "NOT_EVALUATED", "reason_codes": []}
+    expected = readiness_health_projection(readiness)
+    reasons = [
+        f"{field.upper()}_READINESS_CONTRADICTION"
+        for field, value in expected.items() if str(health.get(field)) != str(value)
+    ]
+    if health.get("runtime_success_is_intelligence_success") is not False:
+        reasons.append("RUNTIME_PROMOTES_INTELLIGENCE")
+    readiness_result = validate_intelligence_readiness(readiness)
+    reasons.extend(readiness_result.get("reason_codes", []))
+    return {"status": "FAIL" if reasons else "PASS", "reason_codes": sorted(set(reasons)), "expected": expected}
 
 
 def completeness_v2(*, market_data: str, technical: str, research: str,
@@ -248,15 +312,20 @@ def intelligence_health(*, runtime_status: str, data_quality_status: str,
                         decision_status: str, degradation: dict[str, Any],
                         readiness: dict[str, Any] | None = None) -> dict[str, Any]:
     intelligence_status = "DEGRADED" if degradation.get("status") == "DEGRADED" else (readiness or {}).get("overall_intelligence", {}).get("status", "HEALTHY")
-    return {
+    derived = readiness_health_projection(readiness) if isinstance(readiness, dict) else {
+        "research_status": research_status, "prediction_status": prediction_status, "decision_status": decision_status,
+    }
+    result = {
         "schema_version": "runtime_intelligence_health_v1",
         "runtime_status": runtime_status,
         "data_quality_status": data_quality_status,
-        "research_status": research_status,
-        "prediction_status": prediction_status,
-        "decision_status": decision_status,
+        "research_status": derived["research_status"],
+        "prediction_status": derived["prediction_status"],
+        "decision_status": derived["decision_status"],
         "intelligence_status": intelligence_status,
         "reason_codes": degradation.get("reason_codes") or [],
         "intelligence_readiness_v1": readiness,
         "runtime_success_is_intelligence_success": False,
     }
+    result["health_readiness_consistency"] = validate_health_readiness_consistency(result)
+    return result

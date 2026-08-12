@@ -19,6 +19,9 @@ import sys
 from pathlib import Path
 from typing import Any
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from app.runtime.validator_registry import execute_validator_gate
+
 
 DEFAULT_ALLOWED_PATHS = [
     "AGENTS.md",
@@ -82,6 +85,7 @@ DEFAULT_ALLOWED_PATHS = [
     "artifacts/archive/",
     "artifacts/audit/",
     "requirements.txt",
+    "requirements-validation.txt",
     "test_shioaji.py",
 ]
 
@@ -196,6 +200,12 @@ def main() -> int:
         for reason in source_inventory_result.get("reasons", []):
             reasons.append(str(reason))
 
+    registry_gate = execute_validator_gate(
+        "branch", caller_validator_id="branch_gate", root=repo_root,
+    )
+    if registry_gate.get("status") != "PASS":
+        reasons.extend(f"registry gate: {reason}" for reason in registry_gate.get("errors", []))
+
     result = {
         "ok": True,
         "passed": not reasons,
@@ -209,6 +219,7 @@ def main() -> int:
         "disallowed_files": disallowed_files,
         "forbidden_changes": forbidden_result,
         "source_inventory_audit": source_inventory_result,
+        "registry_gate_execution": registry_gate,
         "reasons": reasons,
         "side_effects": {
             "files_modified": False,

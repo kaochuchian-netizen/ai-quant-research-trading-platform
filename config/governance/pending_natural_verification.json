@@ -8,6 +8,15 @@
   },
   "records": [
     {
+      "task_id": "AI-DEV-205",
+      "state": "PENDING",
+      "registered_at": "2026-08-12",
+      "owner": "Cross-Market Intelligence Governance Owner",
+      "required_windows": ["US us_pre_market_2000", "US us_intraday_2300", "US us_post_close_review_0630", "TW pre_open_0700", "TW intraday_1305", "TW pre_close_1335", "TW post_close_1500"],
+      "acceptance": "Natural TW and US lifecycles demonstrate executable validator-policy parity, denominator-preserving applicability, truthful prediction health, Decision-owned readiness requirements and no Decision Layer ownership regression.",
+      "monitoring": "Confirm natural research-only bundles retain NOT_EVALUATED prediction/decision dimensions without degrading overall readiness, applicable missing dimensions still degrade, branch/post-merge registry execution remains closed over selected validators, and health/readiness states agree across Operations and channels."
+    },
+    {
       "task_id": "AI-DEV-204",
       "state": "PENDING",
       "registered_at": "2026-08-12",
