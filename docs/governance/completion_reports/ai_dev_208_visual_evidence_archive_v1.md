@@ -8,8 +8,10 @@ IMPLEMENTED_DETERMINISTIC_QA_PASS_PENDING_NATURAL_VERIFICATION
 
 - Starting main: `c82e208e3223745ad93eaaf5b59a24414b62b984`
 - Feature branch: `ai-dev/208-visual-evidence-archive-v1`
-- Implementation commit: `9b486aa` (`AI-DEV-208 add cross-market visual evidence archive`)
-- PR / CI / merge main: pending GitHub workflow; values are not fabricated before creation
+- Implementation commits: `9b486aa0a6ddd961ab3aa30c988f0d727a1f97b9`, `a42bd021ef811a9af73f2647fb565e8c1cb91c09`
+- PR: [#256](https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/pull/256)
+- Initial GitHub Actions: run `31578415542` PASS, including Chromium installation and real-browser registry execution
+- Merge main: pending final CI/merge; value is not fabricated before merge
 - Production pipeline executed: false
 
 ## Architecture
