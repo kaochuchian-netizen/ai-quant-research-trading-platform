@@ -3,6 +3,7 @@
 beautifulsoup4==4.14.3
 feedparser==6.0.12
 gspread==6.2.1
+google-genai==2.7.0
 numpy==2.2.6
 pandas==2.3.3
 python-dateutil==2.9.0.post0
