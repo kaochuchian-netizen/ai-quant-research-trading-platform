@@ -86,7 +86,7 @@ def main() -> int:
     broken = copy.deepcopy(cards[0]); broken["technical_data"]["analysis_eligible"] = False
     check("sufficient_empty_negative_detectable", technical_evidence(broken)["analysis_eligible"] is True, failures)
 
-    frame = pd.DataFrame({"Date": pd.date_range("2026-05-01", periods=60), "Open": range(2, 62), "High": range(3, 63), "Low": range(1, 61), "Close": range(2, 62), "Volume": [1000] * 60})
+    frame = pd.DataFrame({"Date": pd.bdate_range(end="2026-08-10", periods=60), "Open": range(2, 62), "High": range(3, 63), "Low": range(1, 61), "Close": range(2, 62), "Volume": [1000] * 60})
     downloaded, ticker, errors = fetch_yfinance_daily("2330", "2026-05-01", "2026-08-11", downloader=lambda *args, **kwargs: frame)
     check("safe_yfinance_fallback", ticker == "2330.TW" and len(downloaded) == 60 and not errors, failures)
 
@@ -128,7 +128,7 @@ def main() -> int:
     check("five_channel_prediction_identity", prediction_bundle_id in line_preview and prediction_bundle_id in dashboard_html and len(tw_bundle["prediction_identities"]) == 9, failures)
 
     direct = build_prediction_snapshot(cards[0], effective_date="2026-08-11", generated_at="2026-08-11T07:00:00+08:00")
-    reviewed = evaluate_prediction(direct, {"open": 80, "high": 82, "low": 79, "close": 81}, reviewed_at="2026-08-11T15:00:00+08:00")
+    reviewed = evaluate_prediction(direct, {"open": 80, "high": 82, "low": 79, "close": 81, "first_observation_timestamp": "2026-08-11T09:00:00+08:00", "outcome_data_cutoff": "2026-08-11T13:30:00+08:00"}, reviewed_at="2026-08-11T15:00:00+08:00")
     check("direct_no_trade_evaluable", reviewed["evaluation_status"] == "evaluated" and reviewed["no_trade"] is True, failures)
 
     result = {"validator": "validate_ai_dev_202_tw_production_intelligence_v1", "status": "PASS" if not failures else "FAIL", "checks": 18, "failures": failures, "replay": {"symbols": 9, "predictions": health["predictions"], "evaluated": health["evaluated"], "trades": 0, "no_trade": 9, "prediction_distribution": summary["prediction_evaluation_counts"], "research_summaries": len({note["research_summary"] for note in notes})}}

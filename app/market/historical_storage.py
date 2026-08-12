@@ -2,6 +2,8 @@ import os
 
 import pandas as pd
 
+from app.market.tw_history_admission import public_admission, validate_history_candidate
+
 
 DEFAULT_HISTORICAL_FOLDER = "data/historical"
 
@@ -10,7 +12,7 @@ def historical_csv_path(stock_id, folder=DEFAULT_HISTORICAL_FOLDER):
     return os.path.join(folder, f"{str(stock_id).zfill(4)}_daily.csv")
 
 
-def inspect_historical_csv(stock_id, folder=DEFAULT_HISTORICAL_FOLDER):
+def inspect_historical_csv(stock_id, folder=DEFAULT_HISTORICAL_FOLDER, *, target_date=None, minimum_bars=20):
     file_path = historical_csv_path(stock_id, folder=folder)
     result = {
         "stock_id": str(stock_id).zfill(4),
@@ -26,19 +28,19 @@ def inspect_historical_csv(stock_id, folder=DEFAULT_HISTORICAL_FOLDER):
         return result
 
     try:
-        df = pd.read_csv(file_path, usecols=["date"])
+        df = pd.read_csv(file_path)
     except Exception as exc:
         result["warning"] = f"historical_csv_unreadable:{exc.__class__.__name__}"
         return result
 
-    result["row_count"] = int(len(df))
-    if not df.empty and "date" in df.columns:
-        dates = pd.to_datetime(df["date"], errors="coerce").dropna()
-        if not dates.empty:
-            result["latest_date"] = dates.max().date().isoformat()
-    result["usable"] = result["row_count"] > 0 and result["latest_date"] is not None
+    target_date = target_date or pd.Timestamp.now().date()
+    admission = validate_history_candidate(df, source="existing_historical_csv", target_date=target_date, minimum_bars=minimum_bars)
+    result.update({
+        "row_count": admission["row_count"], "latest_date": admission["latest_date"],
+        "usable": admission["admission_success"], "admission": public_admission(admission),
+    })
     if not result["usable"]:
-        result["warning"] = "historical_csv_empty_or_missing_dates"
+        result["warning"] = (admission.get("reason_codes") or ["ADMISSION_REJECTED"])[0]
     return result
 
 

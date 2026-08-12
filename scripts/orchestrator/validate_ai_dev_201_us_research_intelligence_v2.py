@@ -44,11 +44,14 @@ def research_fixture(symbol: str, direction: str = "neutral", *, filing: dict | 
 
 
 def context(*, spy: float = 0.02, qqq: float = 0.01, soxx: float = 1.55) -> dict:
-    return {
-        "spy": {"change_pct": spy, "timestamp": "2026-08-07T08:00:00-04:00"},
-        "qqq": {"change_pct": qqq, "timestamp": "2026-08-07T08:00:00-04:00"},
-        "soxx": {"change_pct": soxx, "timestamp": "2026-08-07T08:00:00-04:00"},
-    }
+    changes = {"SPY": spy, "QQQ": qqq, "SOXX": soxx, "DIA": 0.0, "^VIX": 0.0}
+    return {"items": {symbol: {
+        "change_pct": change, "last_price": 100 + change, "previous_close": 100,
+        "source_timestamp": "2026-08-07T08:00:00-04:00", "ok": True,
+        "premarket": {"change_pct": change, "timestamp": "2026-08-07T08:00:00-04:00", "source": "yfinance", "freshness": "fresh", "availability": "available"},
+    } for symbol, change in changes.items()}, "market_environment_score": 50,
+    "market_regime": "neutral", "risk_environment": "normal",
+    "source_timestamp": "2026-08-07T08:00:00-04:00"}
 
 
 def card(symbol: str, bundle: dict, *, window: str) -> dict:

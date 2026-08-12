@@ -7,6 +7,7 @@ from app.market.shioaji_client import classify_shioaji_error, get_api
 from app.market.historical_price_loader import get_historical_prices
 from app.market.historical_normalizer import minute_to_daily
 from app.market.historical_storage import inspect_historical_csv, save_historical_to_csv
+from app.market.tw_history_admission import public_admission, validate_history_candidate
 
 
 MIN_TECHNICAL_BARS = 20
@@ -45,37 +46,34 @@ def fetch_yfinance_daily(stock_id, start_date, end_date, downloader=None):
                 "close": pd.to_numeric(frame[columns["close"]], errors="coerce"),
                 "volume": pd.to_numeric(frame[columns["volume"]], errors="coerce"),
             }).dropna(subset=["date", "open", "high", "low", "close"])
-            normalized = normalized[
-                (normalized[["open", "high", "low", "close"]] > 0).all(axis=1)
-                & (normalized["high"] >= normalized[["open", "close"]].max(axis=1))
-                & (normalized["low"] <= normalized[["open", "close"]].min(axis=1))
-                & (normalized["volume"].fillna(0) >= 0)
-            ]
-            normalized = normalized.sort_values("date").drop_duplicates("date", keep="last")
-            if len(normalized) >= MIN_TECHNICAL_BARS:
-                return normalized, ticker, failures
-            failures.append(f"{ticker}:insufficient:{len(normalized)}")
+            admission = validate_history_candidate(normalized, source=f"yfinance:{ticker}", target_date=end_date, minimum_bars=MIN_TECHNICAL_BARS)
+            if admission["admission_success"]:
+                return admission["normalized"], ticker, failures
+            failures.append(f"{ticker}:{admission['status']}:{admission['row_count']}")
         except Exception as exc:
             failures.append(f"{ticker}:{exc.__class__.__name__}")
     return pd.DataFrame(), None, failures
 
 
 def _fallback_history(stock_id, start_date, end_date, *, downloader=None):
-    existing = inspect_historical_csv(stock_id)
+    existing = inspect_historical_csv(stock_id, target_date=end_date, minimum_bars=MIN_TECHNICAL_BARS)
     bars_before = int(existing.get("row_count") or 0)
     frame, ticker, failures = fetch_yfinance_daily(stock_id, start_date, end_date, downloader=downloader)
     if not frame.empty:
+        admission = validate_history_candidate(frame, source=f"yfinance:{ticker}", target_date=end_date, minimum_bars=MIN_TECHNICAL_BARS)
         path = save_historical_to_csv(frame, stock_id)
         return {
             "usable": True, "source": "yfinance_tw_reference", "ticker": ticker,
             "csv_path": path, "latest_date": str(frame["date"].max()),
             "bars_before": bars_before, "bars_after": len(frame), "failures": failures,
+            "admission": public_admission(admission),
         }
     return {
         "usable": bool(existing.get("usable")), "source": "existing_historical_csv",
         "ticker": None, "csv_path": existing.get("csv_path"), "latest_date": existing.get("latest_date"),
         "bars_before": bars_before, "bars_after": bars_before, "failures": failures,
         "warning": existing.get("warning"),
+        "admission": existing.get("admission"),
     }
 
 
@@ -176,6 +174,7 @@ def main(raise_on_failure=False, stock_ids=None, universe_evidence=None, yfinanc
                     "fallback_source": csv_status["source"],
                     "bars_before": csv_status["bars_before"], "bars_after": csv_status["bars_after"],
                     "fallback_failures": csv_status.get("failures", []),
+                    "history_admission": csv_status.get("admission"),
                 }
             )
             if csv_status["usable"]:
@@ -203,13 +202,19 @@ def main(raise_on_failure=False, stock_ids=None, universe_evidence=None, yfinanc
             )
 
             daily_df = minute_to_daily(minute_df)
-            csv_path = save_historical_to_csv(daily_df, stock_id)
+            admission = validate_history_candidate(daily_df, source="shioaji_kbars", target_date=end_date, minimum_bars=MIN_TECHNICAL_BARS)
+            stock_status["fetch_success"] = True
+            stock_status["history_admission"] = public_admission(admission)
+            if not admission["admission_success"]:
+                raise ValueError(f"history_admission:{admission['status']}")
+            csv_path = save_historical_to_csv(admission["normalized"], stock_id)
             status["updated_count"] += 1
             stock_status.update(
                 {
                     "update_status": "updated_from_shioaji",
                     "csv_path": csv_path,
                     "latest_date": str(daily_df["date"].max()) if not daily_df.empty else None,
+                    "admission_success": True,
                 }
             )
 
@@ -227,6 +232,7 @@ def main(raise_on_failure=False, stock_ids=None, universe_evidence=None, yfinanc
                     "warning": classification, "fallback_source": csv_status["source"],
                     "bars_before": csv_status["bars_before"], "bars_after": csv_status["bars_after"],
                     "fallback_failures": csv_status.get("failures", []),
+                    "history_admission": csv_status.get("admission"),
                 }
             )
             status["failed_count"] += 1

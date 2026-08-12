@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 
 from app.us_stock.constants import DEFAULT_CURRENCY, DEFAULT_MARKET, US_BATCH_WINDOWS, US_SCORING_WEIGHTS
 from app.us_stock.live_data import YFinanceUSClient, analyze_history, clean_number, now_taipei
+from app.us_stock.market_context_contract import normalize_us_market_context
 from app.us_stock.research_intelligence import RESEARCH_FACTOR_VERSION, USResearchIntelligenceBuilder
 from app.us_stock.institutional_research import (
     BOUNDARY as INSTITUTIONAL_RESEARCH_BOUNDARY,
@@ -283,6 +284,7 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
     client = YFinanceUSClient()
     research_builder = USResearchIntelligenceBuilder()
     market_context = client.fetch_context()
+    canonical_market_context = normalize_us_market_context(market_context)
     cards = []
     items = []
     reviews = []
@@ -415,6 +417,7 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
         "session_context": context,
         "runtime_watchlist_validation": {"source_sheet": "工作表2", "enabled_stock_count": len(watchlist), "successfully_analyzed_count": success, "insufficient_data_count": insufficient, "invalid_row_count": 0, "private_values_printed": False},
         "market_context": market_context,
+        "canonical_market_context_v2": canonical_market_context,
         "premarket_market_context": premarket_context,
         "premarket_summary": premarket_summary,
         "premarket_contract": {
