@@ -8,6 +8,15 @@
   },
   "records": [
     {
+      "task_id": "AI-DEV-207",
+      "state": "PENDING",
+      "registered_at": "2026-08-12",
+      "owner": "TW Research Intelligence Quality Owner",
+      "required_windows": ["TW pre_open_0700", "TW intraday_1305", "TW pre_close_1335", "TW post_close_1500"],
+      "acceptance": "A post-merge natural TW lifecycle exposes truthful news funnel states and rejection causes, separates contextual market/technical evidence from substantive research direction, renders admitted high-quality evidence with provenance, quality-gates Best Research, and preserves Decision continuity.",
+      "monitoring": "Inspect discovered/retrieved/admitted/RRE-used/rendered news counts and reasons; confirm price alone does not create bullish/bearish research headlines, Best Research is qualified or explicitly absent, NO_TRADE says re-evaluate while OBSERVE continues observation, and Dashboard/Archive/previews/Operations share the canonical research identity without changing actions."
+    },
+    {
       "task_id": "AI-DEV-206",
       "state": "PENDING",
       "registered_at": "2026-08-12",

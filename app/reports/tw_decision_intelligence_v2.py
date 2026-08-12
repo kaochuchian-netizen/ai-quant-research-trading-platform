@@ -245,6 +245,8 @@ def _stock_intelligence(card: dict[str, Any], payload: dict[str, Any], window: s
         "coverage": coverage_score,
         "risk": max(0.0, 100 - risk_score),
     }
+    tomorrow_state = "REASSESS" if category == "AVOID_CANDIDATE" else "CONTINUE_OBSERVE" if category == "WATCH_CANDIDATE" else "PRIORITY_OBSERVE" if category in {"BUY_CANDIDATE", "HOLD_CANDIDATE"} else "REASSESS"
+    tomorrow_text = {"REASSESS": "明日重新評估", "CONTINUE_OBSERVE": "明日延續觀察", "PRIORITY_OBSERVE": "明日優先觀察"}[tomorrow_state]
     return {
         "symbol": _symbol(card), "name": _name(card), "decision_category": category,
         "decision_category_label": CATEGORY_LABELS[category],
@@ -257,7 +259,9 @@ def _stock_intelligence(card: dict[str, Any], payload: dict[str, Any], window: s
         "confidence": confidence,
         "confidence_explanation": {"components": components, "supporting": [strongest], "limiting": missing, "conflict": bool(direction == "neutral" and coverage["news"]["status"] == "AVAILABLE"), "model_score_recomputed": False},
         "invalid_conditions": _unique([card.get("invalidation_condition"), (_tactical(card).get("playbook") or {}).get("invalidation_condition"), card.get("stop_level")]) or ["依原 canonical plan 的失效條件"],
-        "tomorrow_watch": _text(card.get("next_session_action") or card.get("tomorrow_watch_status"), "下一批次觀察量價、風險與缺失證據是否改善"),
+        "tomorrow_watch": tomorrow_text,
+        "tomorrow_state": tomorrow_state,
+        "tomorrow_state_presentation_only": True,
         "coverage": coverage, "coverage_score": coverage_score,
         "opportunity_projection_score": opportunity_score, "research_projection_score": research_score, "risk_projection_score": risk_score,
         "projection_disclaimer": "排序僅供 PM 閱讀優先級，不修改既有策略排序。",

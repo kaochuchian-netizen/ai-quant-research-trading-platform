@@ -925,7 +925,16 @@ def _tw_rre_production_html(tw_v2: dict[str, Any]) -> str:
         )
         supporting = "；".join(note.get("supporting") or []) or "目前沒有足以支持方向的證據"
         opposing = "；".join(note.get("opposing") or []) or "目前沒有已確認的反向證據"
+        contextual = "；".join(note.get("contextual_evidence") or []) or "本批次沒有額外市場脈絡"
         missing_values = "、".join(note.get("missing") or []) or "無"
+        news_diag = ((note.get("research_evidence_observability") or {}).get("news") or {})
+        news_stages = news_diag.get("stages") or {}
+        news_state = {
+            "NO_RELEVANT_NEWS_DISCOVERED": "未發現相關新聞",
+            "NEWS_DISCOVERED_BUT_FILTERED": "已發現新聞，但未通過品質／重大性門檻",
+            "NEWS_ADMITTED_NOT_SELECTED": "已納入研究證據，但本次推理未選用",
+            "NEWS_SELECTED_AND_RENDERED": "已納入推理並呈現",
+        }.get(news_diag.get("absence_state"), news_diag.get("absence_state") or "新聞狀態未評估")
         context = "、".join(note.get("company_context") or []) or "長期公司脈絡尚未建檔"
         note_html.append(f"""
           <details class="decision-details research-note" data-symbol="{_escape(note.get('symbol'))}" data-generated-by="research_reasoning_engine_v1">
@@ -935,7 +944,10 @@ def _tw_rre_production_html(tw_v2: dict[str, Any]) -> str:
                   ('公司脈絡', context),
                   ('支持證據', supporting),
                   ('反對證據', opposing),
+                  ('市場／技術脈絡', contextual),
                   ('未知／缺口', missing_values),
+                  ('新聞狀態', news_state),
+                  ('新聞證據鏈', f"發現 {news_stages.get('DISCOVERED', 0)}｜納入 {news_stages.get('ADMITTED', 0)}｜推理 {news_stages.get('RRE_USED', 0)}｜呈現 {news_stages.get('RENDERED', 0)}"),
                   ('研究假設', hypothesis.get('statement')),
                   ('獨立預測快照', prediction_text),
                   ('預測識別碼', prediction.get('prediction_identity')),
