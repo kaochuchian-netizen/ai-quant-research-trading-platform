@@ -35,6 +35,11 @@ def coverage_dimension(
     if zero_status not in {"NOT_APPLICABLE", "NOT_EVALUATED"}:
         raise ValueError("zero_status must be NOT_APPLICABLE or NOT_EVALUATED")
     status = zero_status if total == 0 else complete_status if ready == total else none_status if ready == 0 else "PARTIAL"
+    applicability = (
+        "APPLICABLE" if total > 0 else
+        "NOT_EVALUATED" if status == "NOT_EVALUATED" else
+        "OUT_OF_SCOPE"
+    )
     return {
         "status": status,
         "ready_symbols": ready,
@@ -43,7 +48,7 @@ def coverage_dimension(
         "reason_codes": sorted(set(str(x) for x in reason_codes if x)),
         "method": method, "version": READINESS_SCHEMA_VERSION,
         "provenance": "canonical_symbol_readiness_aggregation",
-        "applicability": "OUT_OF_SCOPE" if total == 0 else "APPLICABLE",
+        "applicability": applicability,
     }
 
 
@@ -156,6 +161,13 @@ def validate_intelligence_readiness(readiness: dict[str, Any]) -> dict[str, Any]
                     {"INSUFFICIENT" if name == "decision_input" else "NONE"} if ready == 0 else {"PARTIAL"})
         if status not in expected:
             reasons.append(f"{name}:STATUS_COVERAGE_MISMATCH")
+        expected_applicability = (
+            "APPLICABLE" if total > 0 else
+            "NOT_EVALUATED" if status == "NOT_EVALUATED" else
+            "OUT_OF_SCOPE"
+        )
+        if value.get("applicability") != expected_applicability:
+            reasons.append(f"{name}:APPLICABILITY_STATUS_MISMATCH")
         reason_codes = [str(code) for code in value.get("reason_codes", [])]
         if total == 0 and any(
             token in code for code in reason_codes
