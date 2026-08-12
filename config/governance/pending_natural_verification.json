@@ -8,6 +8,15 @@
   },
   "records": [
     {
+      "task_id": "AI-DEV-209",
+      "state": "PENDING",
+      "registered_at": "2026-08-12",
+      "owner": "Cross-Market Research Intelligence Quality Owner",
+      "required_windows": ["TW pre_open_0700", "TW intraday_1305", "TW pre_close_1335", "TW post_close_1500", "US us_pre_market_2000", "US us_intraday_2300", "US us_post_close_review_0630"],
+      "acceptance": "Post-fix natural TW/US lifecycles expose exact discovery-to-render news funnels, distinguish retrieval/no-result/filter/stale/selection/render states, admit current qualified directionless evidence without directional invention, exclude stale evidence, and preserve Dashboard/LINE effective-coverage parity without changing Decision ownership.",
+      "monitoring": "Inspect exact provider counts and rejection reasons, official/SEC/IR/newsroom priority, admitted-to-RRE-to-rendered traceability, stale-only exclusion, current-news visibility, effective-coverage numerator/denominator parity and unchanged actions across the next complete seven-window lifecycle."
+    },
+    {
       "task_id": "AI-DEV-208",
       "state": "PENDING",
       "registered_at": "2026-08-12",

@@ -87,6 +87,7 @@ def _direction(value: Any) -> str:
     raw = str(value or "").lower().replace("-", "_")
     if raw in {"bullish", "positive", "up", "risk_on", "research_positive"}: return "bullish"
     if raw in {"bearish", "negative", "down", "risk_off", "research_risk"}: return "bearish"
+    if raw in {"", "unavailable", "not_evaluated", "unknown", "insufficient_data"}: return "unavailable"
     return "neutral"
 
 
@@ -336,7 +337,10 @@ def build_bundle(symbol: str, research: dict[str, Any], market_context: dict[str
               "decision_engine_boundary": BOUNDARY,
               "continuity": {"source_window": "us_pre_market_2000", "status": "originated"}}
     bundle["research_identity"] = "research_" + stable_hash(bundle)[:24]
-    bundle["news_intelligence_v2"] = normalize_news((research.get("material_news") or {}).get("items", []), observed_at)
+    material_news = research.get("material_news") or {}
+    bundle["news_intelligence_v2"] = normalize_news(
+        material_news.get("items", []), observed_at, material_news.get("evidence_funnel"),
+    )
     return attach_research_v2(bundle, observed_at)
 
 
@@ -367,8 +371,10 @@ def aggregate_bundles(cards: Iterable[dict[str, Any]]) -> dict[str, Any]:
     summary = {"schema_version": "us_institutional_research_summary_v1", "canonical_research_schema_version": "us_research_intelligence_v2", "bundle_count": len(bundles),
                "research_identities": {x["symbol"]: x["research_identity"] for x in bundles},
                "window_research_identities": {x["symbol"]: (x.get("research_intelligence_v2") or {}).get("window_research_identity") for x in bundles},
-               "average_coverage_score": round(sum(coverage) / len(coverage), 2) if coverage else 0.,
+               "average_coverage_score": round(sum(v2_coverage) / len(v2_coverage), 2) if v2_coverage else 0.,
+               "legacy_average_coverage_score_v1": round(sum(coverage) / len(coverage), 2) if coverage else 0.,
                "average_effective_coverage_score_v2": round(sum(v2_coverage) / len(v2_coverage), 2) if v2_coverage else 0.,
+               "coverage_contract": {"schema_version": "us_effective_research_coverage_v2", "denominator": "applicable_weighted_categories", "dashboard_field": "average_effective_coverage_score_v2", "line_field": "average_coverage_score", "parity_required": True},
                "average_deduplicated_event_count": round(sum(events) / len(events), 2) if events else 0.,
                "provider_availability_counts": dict(sorted(Counter(y["availability"] for x in bundles for y in x["providers"]).items())),
                "single_source_stance_symbols": sorted(x["symbol"] for x in bundles if x["synthesis"]["single_source_direct_stance"]),

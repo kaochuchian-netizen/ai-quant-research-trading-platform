@@ -1,0 +1,56 @@
+{
+  "schema_version": "ai_dev_209_natural_root_cause_audit_v1",
+  "audit_date": "2026-08-12",
+  "evidence_policy": "read_only_pre_fix_artifacts",
+  "tw": {
+    "window": "post_close_1500",
+    "source_snapshot": "artifacts/archive/window_snapshots/tw/post_close_1500/2026-08-12/revision-0001.json",
+    "symbols": 9,
+    "research_insufficient": 9,
+    "persisted_news_items_per_symbol": 5,
+    "persisted_news_item_total": 45,
+    "rre_directional_supporting_news": 0,
+    "rre_directional_opposing_news": 0,
+    "known_oldest_examples": {
+      "6873": "2026-02-10",
+      "1409": "2026-06-04",
+      "2305": "2026-06-15",
+      "2353": "2026-06-27"
+    },
+    "root_causes": [
+      "legacy card evidence bypassed current 72-hour admission in the compatibility RRE projection",
+      "compatibility lower-bound stages could show FRESH/ADMITTED despite stale published timestamps",
+      "only neutral/direction-unavailable substantive items remained, so the research quality gate correctly produced insufficient_evidence"
+    ],
+    "unrecoverable_historical_counts": ["source discovery", "HTTP retrieval failures", "parser rejects", "pre-card dedupe"]
+  },
+  "us": {
+    "window": "us_pre_market_2000",
+    "source_snapshot": "artifacts/archive/window_snapshots/us/us_pre_market_2000/2026-08-12/revision-0001.json",
+    "symbols": 6,
+    "persisted_normalized_news_items": 0,
+    "persisted_rre_news_items": 0,
+    "persisted_rendered_news_items": 0,
+    "root_causes": [
+      "ticker.news exceptions were swallowed into an indistinguishable empty list",
+      "the adapter parsed legacy top-level title/publisher/providerPublishTime fields",
+      "the installed provider returns current nested content.title/content.provider/content.pubDate/content.canonicalUrl payloads",
+      "no retrieval/parser/attribution diagnostics survived into the natural artifact"
+    ],
+    "controlled_read_only_probe": {
+      "scope": "current provider-shape confirmation; not post-fix natural verification",
+      "raw_items_each": 10,
+      "legacy_flat_parser_admitted_each": 0,
+      "new_parser_admitted": {"AAPL": 2, "AMD": 5, "GOOGL": 2, "META": 4, "NVDA": 4, "TSLA": 9},
+      "remaining_rejections": "SYMBOL_ATTRIBUTION_FAILED"
+    },
+    "unrecoverable_historical_counts": ["provider raw response count", "retrieval exceptions", "parser rejects", "symbol-attribution rejects"]
+  },
+  "coverage_parity": {
+    "us_natural_legacy_average": 50.0,
+    "us_natural_effective_average": 57.95,
+    "root_cause": "LINE used legacy ten-category average while per-card Research used effective weighted coverage V2"
+  },
+  "immutable_history_rewritten": false,
+  "natural_verification_claimed": false
+}

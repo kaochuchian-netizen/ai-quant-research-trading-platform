@@ -309,7 +309,7 @@ class USResearchIntelligenceBuilder:
                 return label
         return "other"
 
-    def material_news(self, symbol: str, news_items: list[dict[str, Any]]) -> dict[str, Any]:
+    def material_news(self, symbol: str, news_items: list[dict[str, Any]], diagnostics: dict[str, Any] | None = None) -> dict[str, Any]:
         seen = set()
         output = []
         for item in news_items[:6]:
@@ -333,10 +333,16 @@ class USResearchIntelligenceBuilder:
                 "vocabulary": vocabulary_for_event(event_type),
                 "investment_reading": item.get("investment_reading") or "新聞作為事件脈絡，不單獨決定評等。",
                 "official_source": bool(item.get("official_source")),
-                "source_tier": 1 if item.get("official_source") else 3,
-                "provenance": provenance("secondary_news", published_at=item.get("published_at"), reference=item.get("source"), quality="headline_only"),
+                "source_tier": int(item.get("source_tier") or (1 if item.get("official_source") else 3)),
+                "direction": item.get("direction") or "unavailable",
+                "direction_status": item.get("direction_status") or "NOT_EVALUATED",
+                "materiality": item.get("materiality") or "medium",
+                "relevance": item.get("relevance") or "medium",
+                "source_url": item.get("source_url"),
+                "publisher": item.get("publisher") or item.get("source"),
+                "provenance": provenance("company_official" if item.get("official_source") else "secondary_news", published_at=item.get("published_at"), reference=item.get("source_url") or item.get("source"), quality="headline_only"),
             })
-        return {"schema_version": "us_material_news_v1", "symbol": symbol, "items": output, "deduplicated_count": len(output), "missing_reason": None if output else "no_verified_material_news", "no_full_article_stored": True}
+        return {"schema_version": "us_material_news_v1", "symbol": symbol, "items": output, "deduplicated_count": len(output), "missing_reason": None if output else ((diagnostics or {}).get("absence_state") or "NO_RELEVANT_NEWS_DISCOVERED"), "evidence_funnel": diagnostics or {}, "no_full_article_stored": True}
 
     def research_factors(self, technical: dict[str, Any], market_context: dict[str, Any], fundamentals: dict[str, Any], earnings: dict[str, Any], sec: dict[str, Any], news: dict[str, Any]) -> dict[str, Any]:
         metrics = fundamentals.get("metrics", {})
@@ -373,12 +379,12 @@ class USResearchIntelligenceBuilder:
             rating, confidence = "research_neutral", max(30, min(70, research_score - missing_count * 2))
         return {"schema_version": "us_research_factors_v1", "research_factor_version": RESEARCH_FACTOR_VERSION, "research_weight_version": RESEARCH_WEIGHT_VERSION, "research_score": research_score, "research_rating": rating, "research_confidence": round(confidence, 1) if confidence is not None else None, "missing_factor_count": missing_count, "factors": factors, "research_rationale": "US-specific deterministic factors combine official SEC metadata, fundamentals references, earnings/guidance separation, news events, market context, technical state, volatility, and data completeness."}
 
-    def build_for_symbol(self, symbol: str, technical: dict[str, Any], market_context: dict[str, Any], news_items: list[dict[str, Any]]) -> dict[str, Any]:
+    def build_for_symbol(self, symbol: str, technical: dict[str, Any], market_context: dict[str, Any], news_items: list[dict[str, Any]], news_diagnostics: dict[str, Any] | None = None) -> dict[str, Any]:
         sec = self.sec_client.recent_filings(symbol)
         fundamentals = self.fundamentals(symbol)
         earnings = self.earnings(symbol)
         official = self.official_sources(symbol, sec)
-        news = self.material_news(symbol, news_items)
+        news = self.material_news(symbol, news_items, news_diagnostics)
         factors = self.research_factors(technical, market_context, fundamentals, earnings, sec, news)
         return {"schema_version": "us_research_intelligence_v1", "symbol": symbol, "source_taxonomy": SOURCE_TAXONOMY, "sec": sec, "fundamentals": fundamentals, "earnings": earnings, "official_sources": official, "material_news": news, "research_factors": factors, "provenance_required": True, "copyright_policy": "metadata_and_short_summaries_only_no_full_articles_or_filings"}
 

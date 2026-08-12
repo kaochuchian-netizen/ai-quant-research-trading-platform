@@ -225,6 +225,8 @@ def news_contract(raw_news: Any, *, generated_at: str | None = None) -> dict[str
     absence_state = (
         "NEWS_SELECTED_AND_RENDERED" if supplied_retrieval.get("rendered_count") else
         "NEWS_ADMITTED_NOT_SELECTED" if usable else
+        "NEWS_RETRIEVAL_FAILED" if failure in {"RETRIEVAL_FAILED", "TIMEOUT", "UPSTREAM_ERROR", "PARSER_ERROR"} else
+        "STALE_ONLY" if raw_items and rejection_reasons.get("STALE") == len(raw_items) else
         "NEWS_DISCOVERED_BUT_FILTERED" if discovered else
         "NO_RELEVANT_NEWS_DISCOVERED"
     )

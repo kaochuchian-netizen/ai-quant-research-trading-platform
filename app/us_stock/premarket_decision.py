@@ -113,7 +113,17 @@ def canonical_event_risk(research: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def separate_sec_news(research: dict[str, Any], news_items: list[dict[str, Any]]) -> tuple[dict[str, Any], dict[str, Any]]:
+NEWS_ABSENCE_LABELS = {
+    "NEWS_RETRIEVAL_FAILED": "新聞來源取得失敗",
+    "NO_RELEVANT_NEWS_DISCOVERED": "未發現相關即時新聞",
+    "NEWS_DISCOVERED_BUT_FILTERED": "已發現新聞，但未通過品質／關聯／時效門檻",
+    "NEWS_ADMITTED_NOT_SELECTED": "合格新聞已收錄，本摘要未選用",
+    "NEWS_SELECTED_NOT_RENDERED": "研究已選用，呈現層未選用",
+    "STALE_ONLY": "僅有過期新聞，不納入本批次研究",
+}
+
+
+def separate_sec_news(research: dict[str, Any], news_items: list[dict[str, Any]], diagnostics: dict[str, Any] | None = None) -> tuple[dict[str, Any], dict[str, Any]]:
     sec = research.get("sec") or {}
     filing = sec.get("recent_8k_items") or [sec.get("latest_quarterly_report"), sec.get("latest_annual_report")]
     filing = next((x for x in filing if isinstance(x, dict)), {})
@@ -124,17 +134,22 @@ def separate_sec_news(research: dict[str, Any], news_items: list[dict[str, Any]]
         "summary": filing.get("summary"), "source": filing.get("source") or sec.get("source") or "SEC EDGAR",
     }
     news = next((x for x in news_items if isinstance(x, dict) and x.get("english_headline")), {})
+    diagnostic = diagnostics or ((research.get("material_news") or {}).get("evidence_funnel") or {})
+    absence = str(diagnostic.get("absence_state") or "NO_RELEVANT_NEWS_DISCOVERED")
     news_evidence = {
         "availability": "available" if news else "unavailable",
         "headline": news.get("english_headline"), "publisher": news.get("source"),
         "published_at": news.get("published_at"), "direction": news.get("direction") or "unavailable",
         "relevance": news.get("relevance") or "unavailable", "confidence": news.get("confidence") or "unavailable",
         "strategy_impact": news.get("investment_reading") if news else "不納入本次盤前方向判斷",
+        "absence_state": "NEWS_SELECTED_AND_RENDERED" if news else absence,
+        "absence_label": None if news else NEWS_ABSENCE_LABELS.get(absence, "新聞證據狀態未明"),
+        "evidence_funnel": diagnostic,
     }
     return sec_evidence, news_evidence
 
 
-def build_premarket_card(card: dict[str, Any], quote: dict[str, Any], research: dict[str, Any], news_items: list[dict[str, Any]], market_context: dict[str, Any], reference: datetime | None = None) -> dict[str, Any]:
+def build_premarket_card(card: dict[str, Any], quote: dict[str, Any], research: dict[str, Any], news_items: list[dict[str, Any]], market_context: dict[str, Any], reference: datetime | None = None, news_diagnostics: dict[str, Any] | None = None) -> dict[str, Any]:
     tactical = card.get("daily_tactical_summary") or {}
     premarket = normalize_premarket_quote(quote, reference)
     confidence = _number(tactical.get("confidence")) or 0.0
@@ -155,7 +170,7 @@ def build_premarket_card(card: dict[str, Any], quote: dict[str, Any], research: 
     entry_ready = actionable
     top = actionable
     no_trade = not actionable and (rr is None or rr < MIN_REWARD_RISK or confidence < MIN_CONFIDENCE)
-    sec_evidence, news_evidence = separate_sec_news(research, news_items)
+    sec_evidence, news_evidence = separate_sec_news(research, news_items, news_diagnostics)
     market = normalize_market_context(market_context, reference)
     qqq_change = (market.get("qqq") or {}).get("change_pct")
     sector_change = (market.get("sector_proxy") or {}).get("change_pct")
