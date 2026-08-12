@@ -8,8 +8,8 @@ IMPLEMENTED_DETERMINISTIC_QA_PASS_PENDING_NATURAL_VERIFICATION
 
 - Starting main: `c82e208e3223745ad93eaaf5b59a24414b62b984`
 - Feature branch: `ai-dev/208-visual-evidence-archive-v1`
-- Implementation commits: pending final governed commit
-- PR / CI / merge main: pending branch gate and GitHub workflow
+- Implementation commit: `9b486aa` (`AI-DEV-208 add cross-market visual evidence archive`)
+- PR / CI / merge main: pending GitHub workflow; values are not fabricated before creation
 - Production pipeline executed: false
 
 ## Architecture
@@ -87,7 +87,7 @@ The dedicated registered validator exercises a real headless browser against iso
 - isolated temporary output and cleanup
 - all seven canonical windows
 
-Initial GCP deterministic result: 24 semantic checks PASS; real-browser rendering exercised; temporary archive removed; no network dependency during capture. AI-DEV-207, window snapshot archive, admission/public parity, notification provenance, cross-feature and production landing regressions also PASS. Final executable registry counts are recorded after the governed commit.
+Initial GCP deterministic result: 24 semantic checks PASS; real-browser rendering exercised; temporary archive removed; no network dependency during capture. AI-DEV-207, window snapshot archive, admission/public parity, notification provenance, cross-feature and production landing regressions also PASS. The committed executable branch registry selected 21 validators, executed and passed 20 leaf validators, failed 0, skipped only the branch orchestrator through the deterministic recursion guard, and reported no unexplained skips.
 
 Final command results are recorded after branch and post-merge registry execution.
 
