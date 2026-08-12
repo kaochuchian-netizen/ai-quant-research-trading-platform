@@ -19,7 +19,7 @@ from app.dashboard.dashboard_url_registry import get_window_archive_path
 from app.dashboard.market_dashboard_alias import snapshot_parity_contract
 from app.dashboard.window_snapshot_archive import MARKET_WINDOWS, admission_errors, resolve_snapshots
 
-SCHEMA_VERSION = "visual_evidence_manifest_v1"
+SCHEMA_VERSION = "visual_evidence_manifest_v2"
 INDEX_SCHEMA_VERSION = "visual_evidence_index_v1"
 REVIEW_SCHEMA_VERSION = "visual_evidence_daily_review_v1"
 VIEWPORT = {"width": 1440, "height": 1200}
@@ -97,6 +97,7 @@ def _identity_mismatches(expected: dict[str, Any], observed: dict[str, Any]) -> 
 def _browser_render(
     source: Path,
     screenshot: Path,
+    pdf: Path,
     *,
     timeout_ms: int,
 ) -> dict[str, Any]:
@@ -140,10 +141,24 @@ def _browser_render(
                 rendered_html = page.content()
                 visible_text = page.locator("body").inner_text()
                 page.screenshot(path=str(screenshot), full_page=True)
+                pdf_error = None
+                try:
+                    page.emulate_media(media="print")
+                    page.pdf(
+                        path=str(pdf),
+                        print_background=True,
+                        format="A4",
+                        prefer_css_page_size=True,
+                    )
+                    if not pdf.is_file() or pdf.stat().st_size == 0:
+                        pdf_error = "PDF_WRITE_FAILED"
+                except Exception:
+                    pdf_error = "PDF_RENDER_FAILED"
                 return {
                     "html": rendered_html,
                     "text": visible_text,
                     "identity": _normalize_observed_identity(identity),
+                    "pdf_error": pdf_error,
                 }
             except RuntimeError:
                 raise
@@ -201,6 +216,8 @@ def _failure_reason(exc: Exception) -> str:
         "MANIFEST_WRITE_FAILED",
         "IDENTITY_MISMATCH",
         "IDENTITY_CONFLICT",
+        "PDF_RENDER_FAILED",
+        "PDF_WRITE_FAILED",
     ):
         if message.startswith(code):
             return code
@@ -313,7 +330,7 @@ def capture_snapshot_visual_evidence(
             existing = json.loads(manifest_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             existing = {}
-        if existing.get("visual_evidence_id") == visual_evidence_id and existing.get("capture", {}).get("status") == "SUCCESS":
+        if existing.get("visual_evidence_id") == visual_evidence_id and existing.get("capture", {}).get("status") in {"SUCCESS", "DEGRADED"}:
             files = existing.get("files") if isinstance(existing.get("files"), dict) else {}
             completed_at = str(existing.get("capture", {}).get("completed_at") or _now())
             record = {
@@ -322,23 +339,25 @@ def capture_snapshot_visual_evidence(
                 "market": identity["market"],
                 "window": identity["window"],
                 "revision": identity["revision"],
-                "capture_status": "SUCCESS",
-                "reason_code": None,
+                "capture_status": existing["capture"]["status"],
+                "reason_code": existing["capture"].get("reason_code"),
                 "manifest_path": _relative(manifest_path, output_root),
                 "screenshot_path": _relative(target / "screenshot_full.png", output_root),
                 "rendered_text_path": _relative(target / "rendered_text.md", output_root),
+                "pdf_path": _relative(target / "dashboard_full.pdf", output_root) if (target / "dashboard_full.pdf").is_file() else None,
                 "dashboard_route": existing.get("dashboard_route"),
                 "source_snapshot_id": identity["snapshot_id"],
                 "capture_hash": hashlib.sha256(_stable_json(files).encode("utf-8")).hexdigest(),
                 "screenshot_hash": (files.get("screenshot") or {}).get("sha256"),
                 "rendered_text_hash": (files.get("text") or {}).get("sha256"),
+                "pdf_hash": (files.get("pdf") or {}).get("sha256"),
                 "created_at": completed_at,
             }
             _update_index(output_root, record)
             review = build_daily_review_bundle(output_root, str(identity["effective_trading_date"]))
             return {
-                "status": "SUCCESS",
-                "reason_code": None,
+                "status": existing["capture"]["status"],
+                "reason_code": existing["capture"].get("reason_code"),
                 "duplicate_suppressed": True,
                 "manifest_path": str(manifest_path),
                 "visual_evidence_id": visual_evidence_id,
@@ -368,9 +387,10 @@ def capture_snapshot_visual_evidence(
     target.parent.mkdir(parents=True, exist_ok=True)
     temporary = Path(tempfile.mkdtemp(prefix=f".{target.name}-", dir=str(target.parent)))
     screenshot_path = temporary / "screenshot_full.png"
+    pdf_path = temporary / "dashboard_full.pdf"
     observed_identity: dict[str, Any] | None = None
     try:
-        rendered = (renderer or _browser_render)(dashboard_path, screenshot_path, timeout_ms=timeout_ms)
+        rendered = (renderer or _browser_render)(dashboard_path, screenshot_path, pdf_path, timeout_ms=timeout_ms)
         observed_identity = rendered.get("identity") if isinstance(rendered.get("identity"), dict) else {}
         mismatches = _identity_mismatches(identity, observed_identity)
         if mismatches:
@@ -401,6 +421,13 @@ def capture_snapshot_visual_evidence(
             "text": text_path,
             "canonical": canonical_path,
         }
+        pdf_error = str(rendered.get("pdf_error") or "") or None
+        if not pdf_error:
+            if not pdf_path.is_file() or pdf_path.stat().st_size == 0:
+                pdf_error = "PDF_WRITE_FAILED"
+            else:
+                file_map["pdf"] = pdf_path
+        capture_status = "DEGRADED" if pdf_error else "SUCCESS"
         completed_at = _now()
         manifest = {
             "schema_version": SCHEMA_VERSION,
@@ -412,13 +439,22 @@ def capture_snapshot_visual_evidence(
             "dashboard_source_path": str(dashboard_path),
             "capture_origin": capture_origin,
             "capture": {
-                "status": "SUCCESS",
-                "reason_code": None,
+                "status": capture_status,
+                "reason_code": pdf_error,
                 "started_at": started_at,
                 "completed_at": completed_at,
                 "renderer": "playwright-chromium",
                 "viewport": VIEWPORT,
                 "full_page": True,
+                "pdf": {
+                    "required": True,
+                    "renderer": "playwright-chromium-page-pdf",
+                    "print_background": True,
+                    "format": "A4",
+                    "identity_source": "same_browser_page_and_dom",
+                    "status": "FAILED" if pdf_error else "SUCCESS",
+                    "reason_code": pdf_error,
+                },
             },
             "observed_identity": observed_identity,
             "files": {
@@ -428,6 +464,7 @@ def capture_snapshot_visual_evidence(
         }
         manifest["screenshot_hash"] = manifest["files"]["screenshot"]["sha256"]
         manifest["rendered_text_hash"] = manifest["files"]["text"]["sha256"]
+        manifest["pdf_hash"] = (manifest["files"].get("pdf") or {}).get("sha256")
         manifest["capture_hash"] = hashlib.sha256(_stable_json(manifest["files"]).encode("utf-8")).hexdigest()
         (temporary / "manifest.json").write_text(_stable_json(manifest), encoding="utf-8")
         temporary.replace(target)
@@ -437,23 +474,25 @@ def capture_snapshot_visual_evidence(
             "market": identity["market"],
             "window": identity["window"],
             "revision": identity["revision"],
-            "capture_status": "SUCCESS",
-            "reason_code": None,
+            "capture_status": capture_status,
+            "reason_code": pdf_error,
             "manifest_path": _relative(manifest_path, output_root),
             "screenshot_path": _relative(target / "screenshot_full.png", output_root),
             "rendered_text_path": _relative(target / "rendered_text.md", output_root),
+            "pdf_path": _relative(target / "dashboard_full.pdf", output_root) if not pdf_error else None,
             "dashboard_route": manifest["dashboard_route"],
             "source_snapshot_id": identity["snapshot_id"],
             "capture_hash": manifest["capture_hash"],
             "screenshot_hash": manifest["screenshot_hash"],
             "rendered_text_hash": manifest["rendered_text_hash"],
+            "pdf_hash": manifest["pdf_hash"],
             "created_at": completed_at,
         }
         _update_index(output_root, record)
         review = build_daily_review_bundle(output_root, str(identity["effective_trading_date"]))
         return {
-            "status": "SUCCESS",
-            "reason_code": None,
+            "status": capture_status,
+            "reason_code": pdf_error,
             "duplicate_suppressed": False,
             "manifest_path": str(manifest_path),
             "visual_evidence_id": visual_evidence_id,
@@ -489,7 +528,7 @@ def build_daily_review_bundle(root: Path, effective_trading_date: str) -> dict[s
         latest = max(candidates, key=lambda item: (int(item.get("revision") or 0), str(item.get("created_at") or "")), default=None)
         failures = [
             item for item in day_records
-            if item.get("market") == market and item.get("window") == window and item.get("capture_status") == "FAILED"
+            if item.get("market") == market and item.get("window") == window and item.get("capture_status") in {"DEGRADED", "FAILED"}
         ]
         attempts = candidates + failures
         latest_attempt = max(
@@ -501,8 +540,14 @@ def build_daily_review_bundle(root: Path, effective_trading_date: str) -> dict[s
             source = (root / str(latest["manifest_path"])).parent
             destination = review_root / market / window
             destination.mkdir(parents=True, exist_ok=True)
-            for name in ("screenshot_full.png", "rendered_page.html", "rendered_text.md", "manifest.json", "canonical_reference.json"):
-                shutil.copy2(source / name, destination / name)
+            review_files = ("dashboard_full.pdf", "screenshot_full.png", "rendered_page.html", "rendered_text.md", "manifest.json", "canonical_reference.json")
+            # Avoid a stale PDF surviving when a later legacy-compatible valid
+            # revision does not contain PDF evidence.
+            for name in review_files:
+                (destination / name).unlink(missing_ok=True)
+            for name in review_files:
+                if (source / name).is_file():
+                    shutil.copy2(source / name, destination / name)
             revision = int(latest["revision"])
         else:
             revision = None
@@ -510,7 +555,9 @@ def build_daily_review_bundle(root: Path, effective_trading_date: str) -> dict[s
         latest_attempt_status = str(latest_attempt["capture_status"]) if latest_attempt else None
         if latest_attempt_status == "SUCCESS":
             status = "SUCCESS"
-        elif latest_attempt_status == "FAILED" and latest:
+        elif latest_attempt_status in {"DEGRADED", "FAILED"} and latest:
+            status = "DEGRADED"
+        elif latest_attempt_status == "DEGRADED":
             status = "DEGRADED"
         elif latest_attempt_status == "FAILED":
             status = "FAILED"
