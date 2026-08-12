@@ -12,6 +12,7 @@ from validate_ai_dev_task_package_v2 import validate as validate_task
 from validate_completion_report import validate as validate_completion
 from validate_phase_registry import validate as validate_phases
 from validate_platform_health_score import validate as validate_health
+from validate_validator_registry import validate_validator_registry
 
 ROOT = Path(__file__).resolve().parents[2]
 DOCS = ROOT / "docs/governance"
@@ -36,10 +37,12 @@ def run() -> dict:
     phases = validate_phases(CONFIG / "platform_phase_status.json")
     health = validate_health(CONFIG / "platform_health_score.json")
     pending = inspect_pending(CONFIG / "pending_natural_verification.json", __import__("datetime").date(2026, 7, 28))
+    validator_registry = validate_validator_registry()
     checks["phase_registry"] = phases["ok"]
     checks["health_score"] = health["ok"]
     checks["pending_registry"] = pending["ok"] and pending["pending_is_not_failure"]
-    details.update({"phase": phases, "health": health, "pending": pending})
+    checks["validator_registry"] = validator_registry["status"] == "PASS"
+    details.update({"phase": phases, "health": health, "pending": pending, "validator_registry": validator_registry})
     with tempfile.TemporaryDirectory(prefix="ai-dev-000-governance-") as raw:
         temp = Path(raw)
         bad_task = temp / "bad_task.md"; bad_task.write_text("# Task\nTask ID: wrong\n## Scope\nOnly scope.\n", encoding="utf-8")

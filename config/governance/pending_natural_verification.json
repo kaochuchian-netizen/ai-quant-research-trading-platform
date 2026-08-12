@@ -8,6 +8,15 @@
   },
   "records": [
     {
+      "task_id": "AI-DEV-204",
+      "state": "PENDING",
+      "registered_at": "2026-08-12",
+      "owner": "Cross-Market Intelligence Quality Owner",
+      "required_windows": ["US us_pre_market_2000", "US us_intraday_2300", "US us_post_close_review_0630", "TW pre_open_0700", "TW intraday_1305", "TW pre_close_1335", "TW post_close_1500"],
+      "acceptance": "Natural TW and US lifecycles demonstrate denominator-preserving intelligence readiness, baseline/full prediction separation, session-aware freshness, timestamp provenance, expected-versus-structural degradation semantics and runtime/intelligence separation without Decision Layer ownership changes.",
+      "monitoring": "Inspect per-layer ready/total ratios, Decision required-input readiness, actual-evidence timestamp method, formal instrument coverage, optional source gaps, consumer disconnect severity, Operations health and channel identity across one complete TW and one complete US lifecycle."
+    },
+    {
       "task_id": "AI-DEV-203",
       "state": "PENDING",
       "registered_at": "2026-08-12",

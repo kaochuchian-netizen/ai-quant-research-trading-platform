@@ -14,13 +14,17 @@ from datetime import date, datetime
 from typing import Any
 
 from app.market.instrument_master import instrument_metadata
-from app.runtime.intelligence_quality import completeness_v2, intelligence_health, semantic_degradation, validate_no_lookahead_v2
+from app.runtime.intelligence_quality import (
+    completeness_v2, intelligence_health, intelligence_readiness_v1,
+    resolve_outcome_timestamp, semantic_degradation, validate_no_lookahead_v2,
+)
 
 SCHEMA_VERSION = "tw_production_intelligence_v2"
 PREDICTION_METHOD = "tw_ohlcv_range_direction_v2"
 TECHNICAL_METHOD = "tw_daily_ohlcv_features_v2"
 MIN_PREDICTION_BARS = 10
 FULL_TECHNICAL_BARS = 20
+MIN_FULL_RESEARCH_COVERAGE_PCT = 50.0
 
 FAILURE_REASONS = {
     "NO_SOURCE_CONFIGURED", "AUTH_UNAVAILABLE", "TIMEOUT", "UPSTREAM_ERROR",
@@ -202,10 +206,17 @@ def evaluate_prediction(snapshot: dict[str, Any], actual: dict[str, Any], *, rev
     if decision.get("no_trade"):
         no_trade_classification = "inconclusive" if not evaluable else "risk_appropriate_abstention" if direction_result == "miss" else "correctly_avoided"
     timing = dict(snapshot.get("no_lookahead") or {})
+    outcome_time = resolve_outcome_timestamp(
+        actual, session_fallback=actual.get("session_fallback_timestamp"),
+    )
     timing.update({
-        "first_outcome_observation_timestamp": actual.get("first_observation_timestamp"),
+        "first_outcome_observation_timestamp": outcome_time["timestamp"],
+        "timestamp_method": outcome_time["timestamp_method"],
+        "timestamp_reason_code": outcome_time["reason_code"],
         "outcome_data_cutoff": actual.get("outcome_data_cutoff") or reviewed_at,
         "review_generated_at": reviewed_at,
+        "prediction_effective_trading_date": snapshot.get("effective_trading_date"),
+        "outcome_effective_trading_date": actual.get("effective_trading_date") or snapshot.get("effective_trading_date"),
     })
     no_lookahead = validate_no_lookahead_v2(timing)
     core = {
@@ -282,13 +293,46 @@ def source_health(cards: list[dict[str, Any]]) -> dict[str, Any]:
     full = sum(item["analysis_eligible"] for item in tech)
     quote_available = sum(any(_number(card.get(key)) is not None for key in ("current_price", "session_open", "session_high", "session_low")) for card in cards)
     history_valid = sum(bool(((card.get("technical_data") or {}).get("history_admission") or {}).get("admission_success")) for card in cards)
+    baseline_snapshots = [build_prediction_snapshot(card, effective_date=str(card.get("trading_date") or ""), generated_at=card.get("generated_at")) for card in cards]
+    baseline_ready = sum(item.get("prediction_status") == "evaluable" for item in baseline_snapshots)
+    research_ready_flags = [item["score"] >= MIN_FULL_RESEARCH_COVERAGE_PCT for item in coverage]
+    research_ready = sum(research_ready_flags)
+    full_prediction_ready = sum(
+        baseline_snapshots[index].get("prediction_status") == "evaluable"
+        and tech[index]["analysis_eligible"] and research_ready_flags[index]
+        for index in range(total)
+    )
+    decision_requirements = [{
+        "symbol": str(card.get("symbol") or card.get("stock_id") or ""),
+        "required_inputs": {
+            "market_data": any(_number(card.get(key)) is not None for key in ("current_price", "session_open", "session_high", "session_low")),
+            "technical_evidence": tech[index]["analysis_eligible"],
+            "research_evidence": research_ready_flags[index],
+        },
+    } for index, card in enumerate(cards)]
+    readiness = intelligence_readiness_v1(
+        runtime_status="SUCCESS", total_symbols=total,
+        market_ready=quote_available, history_ready=history_valid,
+        technical_ready=full, research_ready=research_ready,
+        baseline_prediction_ready=baseline_ready,
+        full_prediction_ready=full_prediction_ready,
+        decision_required_inputs=decision_requirements,
+        reasons={
+            "technical_evidence": ["INSUFFICIENT_LOOKBACK"] if full < total else [],
+            "research_evidence": ["RESEARCH_COVERAGE_BELOW_FULL_READINESS_THRESHOLD"] if research_ready < total else [],
+            "full_prediction": ["FULL_PREDICTION_REQUIREMENTS_MISSING"] if full_prediction_ready < total else [],
+        },
+    )
+    decision_status = readiness["decision_input"]["readiness"]
+    baseline_status = readiness["baseline_prediction"]["status"]
     completeness = completeness_v2(
         market_data="COMPLETE" if quote_available == total and total else "PARTIAL",
         technical="COMPLETE" if full == total and total else "PARTIAL" if full else "MISSING",
-        research="COMPLETE" if all(not item["missing"] for item in coverage) else "PARTIAL",
-        decision_input="SUFFICIENT", prediction_input="SUFFICIENT" if any(item["history_bars"] >= MIN_PREDICTION_BARS for item in tech) else "INSUFFICIENT",
+        research=readiness["research_evidence"]["status"],
+        decision_input=decision_status, prediction_input=baseline_status,
         research_score=round(sum(item["score"] for item in coverage) / total, 2) if total else 0,
         missing_categories=sorted({key for item in coverage for key in item["missing"]}),
+        readiness=readiness,
     )
     degradation = semantic_degradation(
         quote_total=total, quote_available=quote_available,
@@ -303,12 +347,13 @@ def source_health(cards: list[dict[str, Any]]) -> dict[str, Any]:
             "news": {"usable_symbols": sum("news" in item["available"] for item in coverage), "partial_symbols": sum("news" in item["partial"] for item in coverage), "failure_reason": "NO_RELIABLE_NEWS" if not any("news" in item["available"] for item in coverage) else None},
         },
         "completeness_v2": completeness,
+        "intelligence_readiness_v1": readiness,
         "semantic_degradation": degradation,
         "intelligence_health": intelligence_health(
             runtime_status="SUCCESS", data_quality_status="DEGRADED" if degradation["status"] == "DEGRADED" else "HEALTHY",
             research_status=completeness["research_evidence_completeness"],
-            prediction_status="AVAILABLE" if completeness["prediction_input_completeness"] == "SUFFICIENT" else "DEGRADED",
-            decision_status="AVAILABLE", degradation=degradation,
+            prediction_status=readiness["baseline_prediction"]["readiness_class"],
+            decision_status=decision_status, degradation=degradation, readiness=readiness,
         ),
         "public_summary": "來源健康摘要僅顯示可用證據與原因碼，不包含憑證或原始除錯資訊。",
     }

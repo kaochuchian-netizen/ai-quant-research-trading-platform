@@ -17,7 +17,10 @@ from app.us_stock.research_intelligence_v2 import (
     validate_projection,
 )
 from app.us_stock.market_context_contract import canonical_ticker, normalize_us_market_context
-from app.runtime.intelligence_quality import completeness_v2, intelligence_health, semantic_degradation
+from app.runtime.intelligence_quality import (
+    completeness_v2, intelligence_health, intelligence_readiness_v1,
+    semantic_degradation,
+)
 
 SCHEMA_VERSION = "us_institutional_research_bundle_v1"
 BOUNDARY = {"consumer": "existing_decision_engine", "mode": "read_only_context",
@@ -270,15 +273,31 @@ def build_bundle(symbol: str, research: dict[str, Any], market_context: dict[str
     synthesis = synthesize(evidence, coverage, conflict)
     canonical_market = normalize_us_market_context(market_context)
     research_complete = "COMPLETE" if not coverage["coverage_gap"] else "PARTIAL"
+    market_ready = int(canonical_market["normalization_status"] == "VALID")
+    research_ready = int(float(coverage.get("score") or 0) >= 50.0)
+    readiness = intelligence_readiness_v1(
+        runtime_status="SUCCESS", total_symbols=1,
+        market_ready=market_ready, history_ready=0, technical_ready=0,
+        research_ready=research_ready, baseline_prediction_ready=0,
+        full_prediction_ready=0, decision_required_inputs=[],
+        reasons={
+            "historical_data": ["NOT_EVALUATED_IN_RESEARCH_BUNDLE"],
+            "technical_evidence": ["NOT_EVALUATED_IN_RESEARCH_BUNDLE"],
+            "baseline_prediction": ["NOT_EVALUATED_IN_RESEARCH_BUNDLE"],
+            "full_prediction": ["NOT_EVALUATED_IN_RESEARCH_BUNDLE"],
+        },
+    )
     completeness = completeness_v2(
         market_data="COMPLETE" if canonical_market["normalization_status"] == "VALID" else "PARTIAL",
         technical="PARTIAL", research=research_complete,
-        decision_input="SUFFICIENT", prediction_input="SUFFICIENT",
+        decision_input=readiness["decision_input"]["readiness"], prediction_input="NOT_EVALUATED",
         research_score=coverage["score"], missing_categories=coverage["coverage_gap"],
+        readiness=readiness,
     )
     degradation = semantic_degradation(
         provider_market_values=canonical_market["normalization_status"] == "VALID",
         research_market_available=any(x.get("source_reference") in {"SPY", "QQQ", "SOXX"} for x in evidence),
+        expected_source_gaps=coverage["coverage_gap"],
         completeness=completeness,
     )
     bundle = {"schema_version": SCHEMA_VERSION, "market": "US", "symbol": symbol.upper(),
@@ -286,11 +305,12 @@ def build_bundle(symbol: str, research: dict[str, Any], market_context: dict[str
               "providers": providers, "knowledge": knowledge, "evidence": evidence,
               "canonical_market_context_v2": canonical_market,
               "completeness_v2": completeness,
+              "intelligence_readiness_v1": readiness,
               "semantic_degradation": degradation,
               "intelligence_health": intelligence_health(
                   runtime_status="SUCCESS", data_quality_status="HEALTHY" if canonical_market["normalization_status"] == "VALID" else "DEGRADED",
                   research_status=research_complete, prediction_status="AVAILABLE",
-                  decision_status="READ_ONLY_CONSUMER", degradation=degradation,
+                  decision_status="READ_ONLY_CONSUMER", degradation=degradation, readiness=readiness,
               ),
               "coverage": coverage, "conflict": conflict, "synthesis": synthesis,
               "decision_context_export": {"research_score": synthesis["research_score"], "research_stance": synthesis["research_stance"], "confidence": synthesis["research_confidence"], "coverage_gap": coverage["coverage_gap"], "conflict_level": conflict["level"], "evidence_ids": [x["evidence_id"] for x in evidence if x["counted_in_synthesis"]], "trade_action": None},
