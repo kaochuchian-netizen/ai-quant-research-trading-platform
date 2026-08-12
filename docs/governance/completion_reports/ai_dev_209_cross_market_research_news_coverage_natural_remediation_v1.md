@@ -7,7 +7,10 @@ Status: `IMPLEMENTED_DETERMINISTIC_QA_PASS_PENDING_NATURAL_VERIFICATION`
 - Starting main: `0de572c62adccb9201f477e53604bb229fb8f18c`
 - Feature branch: `ai-dev/209-cross-market-research-news-coverage-remediation-v1`
 - Issue: #260
-- Implementation commits / PR / merge / CI: recorded in the final Codex handoff after governed completion.
+- Implementation commit: `42f4a9f` (report reconciliation commit follows)
+- PR: #261
+- Pre-PR branch gate: PASS — 22 selected, 21 leaves executed/passed, 1 recursion guard, 0 failed, 0 unexplained skips
+- Merge / CI: pending at report reconciliation time; final identities are recorded in the Codex handoff.
 
 ## Root causes
 
@@ -28,6 +31,18 @@ Exact pre-fix evidence and `UNKNOWN_NOT_PERSISTED` boundaries are recorded in `d
 ## Deterministic acceptance
 
 The dedicated AI-DEV-209 validator covers nested provider admission, no-result, retrieval failure, attribution filtering, stale-only exclusion, admitted→RRE→render traceability, directionless evidence safety, TW official current evidence, TW stale compatibility exclusion, coverage parity, LINE parity and absence-state partitioning. It is registered ACTIVE/leaf and required in branch and post-merge gates.
+
+Validation commands completed before PR:
+
+- `./venv/bin/python -m py_compile <all changed Python modules>` — PASS
+- `./venv/bin/python scripts/orchestrator/validate_ai_dev_209_cross_market_research_news_coverage_v1.py --pretty` — PASS (15/15)
+- `./venv/bin/python scripts/orchestrator/validate_ai_dev_207_tw_research_evidence_coverage_news_visibility_v1.py --pretty` — PASS
+- `./venv/bin/python scripts/orchestrator/validate_ai_dev_201_us_research_intelligence_v2.py --pretty` — PASS
+- `./venv/bin/python scripts/orchestrator/validate_ai_dev_202_tw_production_intelligence_v1.py --pretty` — PASS (18 checks)
+- `./venv/bin/python scripts/orchestrator/validate_ai_dev_208_visual_evidence_archive_v1.py --pretty` — PASS
+- `./venv/bin/python scripts/orchestrator/audit_source_inventory_registry.py --pretty` — PASS
+- `./venv/bin/python scripts/orchestrator/validate_ai_branch.py --base main --head HEAD --pretty` — PASS
+- `git diff --check main...HEAD` — PASS
 
 ## Safety
 
