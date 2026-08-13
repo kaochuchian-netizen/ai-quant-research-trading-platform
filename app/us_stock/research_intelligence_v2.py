@@ -92,13 +92,17 @@ def _event_family(item: dict[str, Any] | None) -> str:
         return "insufficient"
     event = _text(item.get("event_type") or "news").lower()
     corpus = _text(f"{item.get('headline')} {item.get('summary')}").lower()
-    if any(token in corpus or token in event for token in ("partners with", "partnership", "contract", "agreement")):
+    if any(token in corpus for token in ("joint venture", " jv ", "venture launches", "establish jv")):
+        return "joint_venture"
+    if any(token in corpus for token in ("customer base", "customer concentration", "revenue concentration", "inside its customer")):
+        return "customer_concentration"
+    if any(token in corpus or token in event for token in ("partners with", "partnership", "teams up", "contract", "agreement")):
         return "contract_partnership"
     rules = (
         ("earnings_guidance", ("earnings", "guidance", "revenue", "eps", "outlook")),
         ("regulatory_legal", ("regulat", "lawsuit", "legal", "court", "antitrust", "investigation")),
-        ("product_demand", ("product", "launch", "demand", "delivery", "pricing", "customer")),
-        ("capex_supply_chain", ("capex", "supply", "factory", "foundry", "manufactur", "infrastructure")),
+        ("capex_supply_chain", ("capex", "supply", "supplier", "capacity", "equipment", "factory", "foundry", "manufactur", "infrastructure")),
+        ("product_demand", ("product", "launch", "demand", "delivery", "pricing", "orders", "wait time")),
         ("contract_partnership", ("contract", "partnership", "customer", "award", "agreement")),
         ("management_capital", ("management", "ceo", "buyback", "dividend", "capital allocation")),
         ("filing_disclosure", ("filing", "8-k", "10-q", "10-k", "disclosure")),
@@ -131,8 +135,10 @@ def build_event_narrative(symbol: str, item: dict[str, Any] | None, stance: str)
     contracts = {
         "earnings_guidance": ("財報／指引命題", "後續官方財報、指引或共識修正確認營收、獲利與展望", "公司下修指引、實際結果不及事件命題或官方數據否定改善", "財報品質、指引可信度與預期落差", "財報優於預期可能來自一次性項目，指引也未必轉化為可持續成長；仍須檢驗毛利率與現金流品質。", "earnings_to_sustainable_growth", "one_off_and_quality_risk"),
         "regulatory_legal": ("監管／法律命題", "主管機關、法院或公司正式文件確認事件範圍與財務影響", "正式裁定、和解條件或公司揭露否定原先事件解讀", "裁決、罰款、營運限制與時程不確定性", "監管結果、補救條件與訴訟曝險仍不確定，執法範圍與時程可能削弱事件解讀。", "regulatory_outcome_to_economic_effect", "remedy_timing_and_litigation"),
+        "customer_concentration": ("客戶集中／需求命題", "客戶資本支出、訂單續約與公司揭露確認需求分散度及營收耐久性", "主要客戶削減資本支出、訂單轉向自研或議價能力惡化", "客戶集中、營收依賴與議價能力", "需求可能集中於少數大型客戶；客戶資本支出耐久性、訂單持續性與自研替代，可能使目前需求無法轉為可持續營收。", "customer_demand_to_durable_revenue", "customer_concentration_and_capex_durability"),
         "product_demand": ("產品／需求命題", "公司揭露、訂單、交付或客戶資料確認需求與定價影響", "需求、交付、價格或客戶採用數據未能支持該產品事件", "產品執行、需求持續性與價格壓力", "等待時間或定價訊號也可能源自供應限制、生產排程或促銷效果，新品熱度未必轉化為持續銷售。", "product_signal_to_sustained_demand", "supply_schedule_and_channel_distortion"),
-        "capex_supply_chain": ("資本支出／供應鏈命題", "公司或供應鏈官方資料確認產能、資本支出與供應節點", "產能延遲、成本超支、供應受阻或客戶需求未實現", "建置執行、供應瓶頸與資本效率", "產能或資本支出訊號可能已提前反映；利用率、建置時程與供應商瓶頸仍可能阻礙需求轉為營收。", "capacity_signal_to_realized_output", "utilization_timing_and_supplier_dependency"),
+        "capex_supply_chain": ("資本支出／供應鏈命題", "公司或供應鏈官方資料確認產能、資本支出與供應節點", "產能延遲、成本超支、供應受阻或客戶需求未實現", "建置執行、供應瓶頸與資本效率", "產能或資本支出訊號可能已提前反映；利用率、設備交期、建置時程與供應商執行仍可能阻礙需求轉為營收。", "capacity_signal_to_realized_output", "utilization_timing_and_supplier_dependency"),
+        "joint_venture": ("合資／商業化命題", "合資公司揭露產能爬坡、客戶採用、利用率與商業條件", "合資時程延遲、產能利用不足、資本支出超支或需求未實現", "合資商業化、產能爬坡、利用率與資本效率", "合資成立不等於經濟效益已實現；商業化時程、產能利用率、資本支出執行、客戶需求與利潤分配仍待驗證。", "joint_venture_to_commercialized_capacity", "commercialization_utilization_and_capex_execution"),
         "contract_partnership": ("合約／合作命題", "正式合約、客戶公告或營收認列資訊確認規模與時程", "合作取消、條件縮減或無法轉化為可驗證營收", "交易條件、履約與客戶集中風險", "合作公告不等於營收實現；商業規模、訂單持續性、合約條件與執行依賴仍待驗證。", "announcement_to_revenue_conversion", "commercial_scale_and_execution"),
         "management_capital": ("管理／資本配置命題", "董事會或公司正式揭露確認規模、資金來源與執行進度", "管理層變更或資本配置未依公告執行並削弱原命題", "治理、執行紀律與資本機會成本", "管理或資本配置承諾可能未依公告規模執行，且機會成本可能高於預期效益。", "capital_commitment_to_execution", "governance_and_opportunity_cost"),
         "filing_disclosure": ("官方申報命題", "後續正式申報或公司說明確認關鍵事實與財務影響", "修正申報、官方澄清或後續文件否定關鍵事實", "申報內容完整性與未揭露後續影響", "正式申報可能只是歷史或程序性揭露，未必具有新增經濟重要性；仍須驗證增量影響。", "filing_fact_to_incremental_thesis", "economic_materiality"),
