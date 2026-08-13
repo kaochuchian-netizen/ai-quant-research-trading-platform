@@ -42,6 +42,7 @@ from app.reports.presentation_normalization import (
 )
 from app.us_stock.watchlist import normalize_us_watchlist_rows
 from app.us_stock.runtime_provenance import ADMITTED_PROVENANCE, RuntimeProvenance, provenance_admission
+from app.us_stock.research_presentation import research_review_lines
 from app.runtime.operations_provenance import build_operations_provenance, write_operations_provenance
 from scripts.orchestrator.notify_stage_report import build_message, load_env_file, load_mail_config, send_message
 
@@ -277,11 +278,13 @@ def _research_preview_lines(card: dict[str, Any]) -> list[str]:
         hypothesis = v2.get("hypothesis") if isinstance(v2.get("hypothesis"), dict) else {}
         effective = v2.get("effective_coverage") if isinstance(v2.get("effective_coverage"), dict) else {}
         hypothesis_state = {"confirmed": "研究假設確認", "invalidated": "研究假設失效", "unchanged": "研究假設未改變"}.get(str(hypothesis.get("state") or ""), localize_enum(hypothesis.get("state")))
-        return [
+        lines = [
             f"機構研究：{localize_enum(v2.get('research_stance'))}｜研究分數 {v2.get('research_score') if v2.get('research_score') is not None else '證據不足'}（非交易分數）｜信心 {v2.get('research_confidence')}",
             f"研究更新：{hypothesis_state}｜有效覆蓋 {effective.get('score', 0)}%｜{(v2.get('window_update') or {}).get('explanation') or '尚無本視窗新增證據'}",
             f"研究 Identity：{v2.get('window_research_identity') or bundle.get('research_identity') or '尚未取得'}｜Origin {bundle.get('research_identity') or '尚未取得'}",
         ]
+        lines.extend(research_review_lines(card))
+        return lines
     return [
         f"機構研究：{localize_enum(synthesis.get('research_stance'))}｜研究分數 {synthesis.get('research_score')}（非交易分數）｜信心 {synthesis.get('research_confidence')}",
         f"研究覆蓋 {coverage.get('score', 0)}%｜衝突 {conflict.get('level') or 'LOW'}｜Identity {bundle.get('research_identity') or '尚未取得'}",
@@ -303,7 +306,6 @@ def _compact_us_email_block(card: dict[str, Any], window: str) -> str:
         eligibility = card.get("eligibility") or {}
         plan = card.get("trade_plan") or {}
         event = card.get("event_risk") or {}
-        news = card.get("news_evidence") or {}
         sec = card.get("sec_evidence") or {}
         state = "主要交易機會" if eligibility.get("top_opportunity") else "僅觀察" if eligibility.get("watch_only") else "暫不交易"
         gap = f"{float(pre['gap_pct']):+.2f}%" if isinstance(pre.get("gap_pct"), (int, float)) else "尚未取得"
@@ -318,10 +320,7 @@ def _compact_us_email_block(card: dict[str, Any], window: str) -> str:
         else:
             lines.append(f"觀察區間 {plan.get('observation_zone') or '尚未取得'}｜正式 Entry / Stop / Target：不建立")
             lines.append(f"重新評估：{plan.get('reassessment_condition') or '等待條件完整'}")
-        lines.extend([
-            f"SEC：{sec.get('form') or '尚未取得'}｜{sec.get('filing_date') or '日期尚未取得'}",
-            f"即時新聞：{news.get('headline') or news.get('absence_label') or '未發現相關即時新聞'}｜來源 {news.get('publisher') or '無'}",
-        ])
+        lines.append(f"SEC：{sec.get('form') or '尚未取得'}｜{sec.get('filing_date') or '日期尚未取得'}")
         lines.extend(_research_preview_lines(card))
         return "\n".join(lines)
     if window == "us_intraday_2300":
@@ -351,8 +350,6 @@ def _compact_us_email_block(card: dict[str, Any], window: str) -> str:
         review = card.get("review") if isinstance(card.get("review"), dict) else {}
         source_plan = card.get("source_trade_plan") if isinstance(card.get("source_trade_plan"), dict) else {}
         sec = source_plan.get("sec_evidence") if isinstance(source_plan.get("sec_evidence"), dict) else {}
-        news = source_plan.get("news_evidence") if isinstance(source_plan.get("news_evidence"), dict) else {}
-        news_text = news.get("headline") if news.get("availability") == "available" and news.get("headline") else news.get("absence_label") or "未發現相關即時新聞；不以 SEC filing 代替新聞"
         actual_available = all(review.get(key) is not None for key in ("actual_high", "actual_low", "actual_close"))
         lines = [
             f"{symbol} {name}",
@@ -362,7 +359,6 @@ def _compact_us_email_block(card: dict[str, Any], window: str) -> str:
             f"實際最高／最低：{safe_public_text(review.get('actual_high'))} / {safe_public_text(review.get('actual_low'))}",
             f"最大有利／不利變動：{safe_public_text(review.get('mfe'), missing='待補證據')} / {safe_public_text(review.get('mae'), missing='待補證據')}",
             f"SEC：{sec.get('form') or '尚未取得'}｜{sec.get('filing_date') or '日期尚未取得'}",
-            f"即時新聞：{news_text}",
             f"隔夜事件更新：{safe_public_text(risk)}",
             f"下一交易日：{safe_public_text(review.get('next_session_action'), missing='補足行情時序證據後再判定。').replace('setup', '策略')}",
         ]

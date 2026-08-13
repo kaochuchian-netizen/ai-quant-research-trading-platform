@@ -22,8 +22,8 @@
       "registered_at": "2026-08-12",
       "owner": "Cross-Market Research Intelligence Quality Owner",
       "required_windows": ["TW pre_open_0700", "TW intraday_1305", "TW pre_close_1335", "TW post_close_1500", "US us_pre_market_2000", "US us_intraday_2300", "US us_post_close_review_0630"],
-      "acceptance": "Post-H2 natural TW/US lifecycles expose exact discovery-to-render news funnels; qualified current company news advances through bounded RRE selection and rendering with headline/source/time provenance; directionless evidence remains non-directional; stale evidence remains excluded; per-symbol hypothesis/risk narratives differ with evidence; coverage parity and Decision ownership remain unchanged.",
-      "monitoring": "Inspect exact provider counts and reason codes, official/SEC/IR/newsroom priority, admitted-to-RRE-to-rendered traceability and selection-limit reasons, stale-only exclusion, current-news provenance, symbol-specific hypothesis/trigger/invalidation/main-risk text, effective-coverage parity and unchanged actions across the next complete seven-window lifecycle."
+      "acceptance": "Post-H3 natural TW/US lifecycles expose exact discovery-to-render news funnels; qualified current company news advances through bounded RRE selection and remains user-visible with headline/source/time provenance in Dashboard, Email, rendered text and PDF; directionless evidence remains non-directional; stale evidence remains excluded; per-symbol hypothesis/risk narratives differ with evidence; coverage parity and Decision ownership remain unchanged.",
+      "monitoring": "Inspect exact provider counts and reason codes, official/SEC/IR/newsroom priority, admitted-to-RRE-to-rendered traceability and selection-limit reasons, stale-only exclusion, canonical current-news parity without legacy 20:00 absence overrides, symbol-specific hypothesis/trigger/invalidation/main-risk text in the natural 06:30 Dashboard/Email/Visual Evidence PDF, effective-coverage parity and unchanged actions across the next complete seven-window lifecycle."
     },
     {
       "task_id": "AI-DEV-208",
