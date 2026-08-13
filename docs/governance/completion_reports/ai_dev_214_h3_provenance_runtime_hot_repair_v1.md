@@ -11,8 +11,10 @@ IMPLEMENTED_DETERMINISTIC_QA_PASS_PENDING_CONTROLLED_RECOVERY
 - Starting main: `7577aee3dac72b9aecdf9509b9a7d17909f5519b`
 - Feature branch: `ai-dev/214-h3-provenance-runtime-hotfix`
 - Implementation commit: `bb018c9bfdc669973644eaebd7465102af6137b7`
+- Governance/report commits: `59002cac424309148eb853d1b7bb36a3490381fe`, `ec2c5a19733f612a81f08207e17ee4fd5a6515e7`
 - Pull request: `#278`
-- CI and merge/current main are recorded after governed completion.
+- GitHub Actions: `31716132845` — PASS
+- Merge/current main: `f5050d4b5b0e5cde1d6db5db2fd5427eda694cb5`
 
 ## Root Cause
 
@@ -32,7 +34,7 @@ The AI-DEV-213 incident chain is: cron/process PASS → qualified attributed new
 
 ## Quality Gate
 
-The dedicated validator covers `material_news()`, `build_for_symbol()`, nested provenance continuity, source identity, input mutation isolation, finalized projection validation, three executable mutation failures and a module-scoped undefined-name gate. The executable branch registry selected 30 required validators, executed 29 leaves, recursion-guarded only the branch orchestrator, passed all 29 leaves, and reported zero failures or unexplained skips.
+The dedicated validator covers `material_news()`, `build_for_symbol()`, nested provenance continuity, source identity, input mutation isolation, finalized projection validation, three executable mutation failures and a module-scoped undefined-name gate. Both branch and post-merge executable registries selected 30 required validators, executed 29 leaves, recursion-guarded only their orchestrator, passed all 29 leaves, and reported zero failures or unexplained skips. GitHub Actions run `31716132845` passed.
 
 ## QA Gap Closure
 
@@ -40,7 +42,7 @@ Old H3 QA passed because it bypassed the production-shaped Research builder path
 
 ## Regression
 
-AI-DEV-212 H3/H2/V1, AI-DEV-209 core/H2/H3, AI-DEV-210, AI-DEV-211, AI-DEV-207, AI-DEV-202, canonical US Research, TW RRE/Decision, seven-window cross-feature, admission/public parity, notification provenance, landing integrity, source inventory, governance, compilation, scoped Pyflakes F821, diff checks and executable branch registry pass. Post-merge registry is run after merge.
+AI-DEV-212 H3/H2/V1, AI-DEV-209 core/H2/H3, AI-DEV-210, AI-DEV-211, AI-DEV-207, AI-DEV-202, canonical US Research, TW RRE/Decision, seven-window cross-feature, admission/public parity, notification provenance, landing integrity, source inventory, governance, compilation, scoped Pyflakes F821, diff checks, executable branch registry, post-merge registry and platform inspector pass.
 
 ## Production Usability
 
