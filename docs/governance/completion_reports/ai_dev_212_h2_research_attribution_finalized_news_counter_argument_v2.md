@@ -8,7 +8,10 @@ Status: `IMPLEMENTED_DETERMINISTIC_QA_PASS_PENDING_CONTROLLED_VERIFICATION`
 
 - Starting main: `7f38122d60a32be74557d6f3780a028207375508`
 - Branch: `ai-dev/212-h2-research-attribution-finalized-news-counter-v2`
-- Implementation commits / PR / CI / merge main: recorded in the final post-merge handoff.
+- Implementation commit: `f717913006df81b07959f3bf3c83c3369260d693`.
+- PR: [#274](https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/pull/274), merged.
+- CI: GitHub Actions run `31667469493`, `validate-ai-branch` PASS in 2m19s.
+- Merge/current main after implementation: `c8b42a03e874ea5d4c58e3b92aa8209ee0f2c25c`.
 - Starting main/origin-main: `0/0`; open PRs: `0`.
 - Existing runtime/generated state: 189 entries including ignored artifacts, fingerprint `7791c3df0265f082f4069fe258aadf1dd7157ceb0d8d63ba2379605bb78b2f08`; preserved and not staged.
 
@@ -56,9 +59,11 @@ Six-symbol replay confirms AAPL deal execution, NVDA partnership-to-revenue conv
 
 ## Deterministic QA
 
-The dedicated ACTIVE leaf validator covers cases A–W, including precision/recall, dual-truth mutations, stale-state invariants, event-specific anti-template checks, market-only direction, directionless 0/0 contribution, six-symbol replay, real-Chromium CJK PNG/PDF, coverage projection parity, Decision safety and AI-DEV-211 transport regression.
+The dedicated ACTIVE leaf validator covers cases A–W, including precision/recall, dual-truth mutations, stale-state invariants, event-specific anti-template checks, market-only direction, directionless 0/0 contribution, six-symbol replay, real-Chromium CJK PNG/PDF, coverage projection parity, Decision safety and AI-DEV-211 transport regression. All 23 checks pass.
 
-Existing AI-DEV-212 and AI-DEV-209 H3 validators pass after the contract change. Full registry, CI and post-merge execution counts are recorded in the final handoff.
+Existing AI-DEV-212 and AI-DEV-209 H3 validators pass after the contract change. The branch executable registry selected 28 validators, executed 27 leaves, recursion-guarded only the branch orchestrator, passed 27, failed 0 and had 0 unexplained skips. The post-merge registry produced the same 28/27/1/0 closure with only the post-merge orchestrator recursion-guarded.
+
+Post-merge status: PASS (`main_sync_ok`, `branch_cleanup_ok`, `inspector_ok` and `worktree_governance_safe` all true). Local main and `origin/main` are 0/0; open PRs are 0; unknown dirty paths and blocking task residue are 0. All 189 known runtime/generated paths remain preserved and unstaged.
 
 ## CJK and Decision safety
 
