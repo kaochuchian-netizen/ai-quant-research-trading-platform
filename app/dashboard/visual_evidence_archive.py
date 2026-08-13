@@ -138,7 +138,16 @@ def _browser_render(
                 page.wait_for_selector("body[data-snapshot-id]", state="attached", timeout=timeout_ms)
                 page.emulate_media(media="screen")
                 identity = page.locator("body").evaluate("element => ({...element.dataset})")
+                # Preserve the published DOM snapshot as-is, then expand only
+                # allowlisted PM-facing research details in the in-memory page
+                # used for review text, screenshot and PDF evidence.
                 rendered_html = page.content()
+                expanded_details = page.locator('details[data-visual-review-expand="true"]')
+                expanded_details_count = expanded_details.count()
+                if expanded_details_count:
+                    expanded_details.evaluate_all(
+                        "elements => elements.forEach(element => { element.open = true; })"
+                    )
                 visible_text = page.locator("body").inner_text()
                 page.screenshot(path=str(screenshot), full_page=True)
                 pdf_error = None
@@ -159,6 +168,12 @@ def _browser_render(
                     "text": visible_text,
                     "identity": _normalize_observed_identity(identity),
                     "pdf_error": pdf_error,
+                    "review_details": {
+                        "selector": 'details[data-visual-review-expand="true"]',
+                        "expanded_count": expanded_details_count,
+                        "mode": "ALLOWLISTED_PM_RESEARCH_DETAILS",
+                        "published_dom_modified": False,
+                    },
                 }
             except RuntimeError:
                 raise
@@ -446,6 +461,12 @@ def capture_snapshot_visual_evidence(
                 "renderer": "playwright-chromium",
                 "viewport": VIEWPORT,
                 "full_page": True,
+                "review_details": rendered.get("review_details") or {
+                    "selector": 'details[data-visual-review-expand="true"]',
+                    "expanded_count": 0,
+                    "mode": "ALLOWLISTED_PM_RESEARCH_DETAILS",
+                    "published_dom_modified": False,
+                },
                 "pdf": {
                     "required": True,
                     "renderer": "playwright-chromium-page-pdf",
