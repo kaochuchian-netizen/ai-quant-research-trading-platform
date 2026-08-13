@@ -8,10 +8,10 @@ IMPLEMENTED_DETERMINISTIC_QA_PASS_PENDING_CONTROLLED_VERIFICATION
 
 - Starting main: `74866ae6bd815d173b94db6990a6b06a458d9edb`
 - Feature branch: `ai-dev/212-h3-semantic-integrity-closure-v3`
-- Implementation commit(s): recorded in final handoff
-- Pull request: recorded in final handoff
-- CI: recorded in final handoff
-- Merge/current main: recorded in final handoff
+- Implementation commit: `80ad889238680dac1c9f830f05fed1fa7176a7b3`
+- Pull request: `#276`
+- Initial implementation CI: GitHub Actions `31683687686` — PASS
+- Merge/current main: assigned by GitHub after the final required CI; recorded in the post-merge handoff
 
 ## Confirmed Root Causes
 
@@ -32,6 +32,8 @@ IMPLEMENTED_DETERMINISTIC_QA_PASS_PENDING_CONTROLLED_VERIFICATION
 ## Deterministic QA
 
 The dedicated ACTIVE leaf validator covers TSLA macro reaction, SPCX roundup, comparative SpaceX references, GOOGL primary events, NVDA/Verizon and TSM/ASML recall, NVDA concentration reasoning, TSM JV/supplier reasoning, finalized attribution, all absence states, mutation rejection, surface parity, manual-date provenance and Decision safety.
+
+The executable branch registry selected 29 required validators, executed 28 leaves, recursion-guarded only the branch orchestrator, and reported 28 passed leaves, zero failures and zero unexplained skips.
 
 ## Safety
 
