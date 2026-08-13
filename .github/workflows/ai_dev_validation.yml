@@ -29,6 +29,9 @@ jobs:
       - name: Install deterministic Chromium runtime
         run: python3 -m playwright install --with-deps chromium
 
+      - name: Install governed Traditional Chinese capture font
+        run: python3 scripts/orchestrator/install_visual_evidence_cjk_font.py --pretty
+
       - name: Compile orchestrator scripts
         run: |
           python3 -m py_compile \

@@ -82,3 +82,30 @@ Revert the AI-DEV-201 implementation commit. No schema migration, scheduler chan
 ## Natural verification
 
 Status remains `IMPLEMENTED_PENDING_NATURAL_VERIFICATION` until one complete natural US 20:00 → 23:00 → 06:30 lifecycle demonstrates source truthfulness, research differentiation, SEC/news behavior, broad/sector divergence, meaningful hypothesis evolution, no-trade learning and five-channel identity parity without Decision Layer ownership regression.
+# AI-DEV-212 semantic integrity addendum
+
+Company Research direction follows `research_direction_ownership_v1`:
+
+- official/company-specific filings, earnings, guidance, fundamentals and
+  qualified substantive company events may establish direction when their own
+  direction is safely evaluated;
+- SPY/QQQ/SOXX, sector, ETF, price, volume, technical and ADR observations are
+  `contextual_confirmation_only` and cannot create company direction;
+- qualified directionless news remains selected/rendered with contribution
+  `bullish=0, bearish=0`;
+- absent company-direction evidence resolves to `insufficient_evidence` and an
+  unavailable expected direction, without creating a Decision state.
+
+Narratives use `deterministic_company_event_narrative_v1`. The primary company
+event is assigned to an evidence family (earnings/guidance, regulatory/legal,
+product/demand, capex/supply-chain, contract/partnership,
+management/capital-allocation, filing/disclosure, or material company news).
+Hypothesis, confirmation, invalidation and risk cite the actual headline and
+family. Price confirmation is secondary.
+
+Yahoo entity attribution uses `us_entity_attribution_v2`. Explicit provider
+related-ticker metadata is accepted; an unambiguous title entity is accepted;
+summary-only co-mentions and competing primary-title entities are rejected with
+machine-readable provenance. All user-visible current-news surfaces consume the
+post-selection finalized funnel; compatibility fields are projections, not an
+independent truth.

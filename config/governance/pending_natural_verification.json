@@ -1,12 +1,21 @@
 {
   "schema_version": "pending_natural_verification_v1",
-  "updated_at": "2026-08-12T00:00:00+08:00",
+  "updated_at": "2026-08-13T00:00:00+08:00",
   "sla": {
     "minimum_trading_days": 2,
     "maximum_trading_days": 5,
     "legacy_import_policy": "SLA starts at registry adoption for pre-existing pending tasks."
   },
   "records": [
+    {
+      "task_id": "AI-DEV-212",
+      "state": "PENDING",
+      "registered_at": "2026-08-13",
+      "owner": "Cross-Market Research Semantic and Visual QA Owner",
+      "required_windows": ["TW four formal windows", "US us_pre_market_2000", "US us_intraday_2300", "US us_post_close_review_0630"],
+      "acceptance": "Post-merge natural TW/US lifecycles preserve company-direction ownership, reject false entity attribution, render evidence-family-specific narratives from one finalized news funnel, and produce readable Traditional Chinese screenshot/PDF evidence without changing Decision or trading behavior.",
+      "monitoring": "Inspect company-direction evidence IDs versus contextual SPY/QQQ/SOXX IDs, entity-attribution provenance, hypothesis/trigger/invalidation/risk differentiation, card/institutional/Email/rendered-text funnel parity, CJK glyph diagnostics and actual PM readability, coverage parity and unchanged Decision outputs."
+    },
     {
       "task_id": "AI-DEV-211",
       "state": "PENDING",

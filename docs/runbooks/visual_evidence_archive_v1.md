@@ -57,6 +57,23 @@ python3 scripts/orchestrator/build_visual_review_bundle.py \
 
 Python dependency: `playwright==1.54.0`.
 
+## Governed Traditional Chinese font runtime
+
+Visual Evidence requires real Traditional Chinese glyph coverage, not merely
+Unicode text in the DOM. Install the pinned SIL-OFL Noto runtime in user scope:
+
+```bash
+python3 scripts/orchestrator/install_visual_evidence_cjk_font.py --pretty
+```
+
+The installer verifies the pinned SHA-256 and writes only below
+`~/.cache/stock-ai-fonts/noto-cjk-tc`. Capture passes its private fontconfig to
+Chromium; it does not alter system packages or published HTML. Before writing
+PNG/PDF, Chromium renders twelve representative CJK glyphs and requires both a
+loaded `Noto Sans CJK TC` face and distinct pixel signatures. A missing font or
+tofu-style repeated glyphs fail the Visual Evidence attempt with
+`CJK_FONT_UNAVAILABLE`; the production market batch remains independent.
+
 One-time repo-user browser install on a new host:
 
 ```bash

@@ -26,6 +26,9 @@ VIEWPORT = {"width": 1440, "height": 1200}
 DEFAULT_TIMEOUT_MS = 45_000
 REPO_ROOT = Path(__file__).resolve().parents[2]
 USER_BROWSER_LIB_ROOT = Path.home() / ".cache/stock-ai-playwright-libs/root"
+USER_CJK_FONT_ROOT = Path.home() / ".cache/stock-ai-fonts/noto-cjk-tc"
+USER_CJK_FONT_CONFIG = USER_CJK_FONT_ROOT / "fonts.conf"
+CJK_PROBE_TEXT = "研究證據假設風險台灣美股"
 DEFAULT_VISUAL_ROOT = Path(
     os.environ.get("STOCK_AI_VISUAL_EVIDENCE_ROOT", REPO_ROOT / "artifacts/archive/visual_evidence")
 )
@@ -120,6 +123,9 @@ def _browser_render(
         # Playwright's driver validates only the system linker cache. The
         # repo-user bundle is verified by the actual browser launch instead.
         os.environ["PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS"] = "1"
+    if USER_CJK_FONT_CONFIG.is_file():
+        browser_env["FONTCONFIG_FILE"] = str(USER_CJK_FONT_CONFIG)
+        browser_env["FONTCONFIG_PATH"] = str(USER_CJK_FONT_ROOT)
     try:
         with sync_playwright() as playwright:
             try:
@@ -137,6 +143,33 @@ def _browser_render(
                     raise RuntimeError(f"PAGE_HTTP_ERROR:{response.status}")
                 page.wait_for_selector("body[data-snapshot-id]", state="attached", timeout=timeout_ms)
                 page.emulate_media(media="screen")
+                font_diagnostics = page.evaluate(
+                    """probe => {
+                      const family = 'Noto Sans CJK TC';
+                      const loaded = document.fonts.check(`24px "${family}"`, probe);
+                      const signatures = [...probe].map(ch => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 64; canvas.height = 64;
+                        const ctx = canvas.getContext('2d');
+                        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 64, 64);
+                        ctx.fillStyle = '#000'; ctx.font = `32px "${family}"`; ctx.fillText(ch, 8, 42);
+                        const data = ctx.getImageData(0, 0, 64, 64).data;
+                        let ink = 0, hash = 2166136261;
+                        for (let i = 0; i < data.length; i += 4) {
+                          if (data[i] < 245 || data[i+1] < 245 || data[i+2] < 245) ink++;
+                          hash ^= data[i]; hash = Math.imul(hash, 16777619);
+                        }
+                        return `${ink}:${hash >>> 0}`;
+                      });
+                      return {contract_version: 'cjk_visual_glyph_gate_v1', family, probe,
+                        font_loaded: loaded, glyph_count: signatures.length,
+                        unique_glyph_signatures: new Set(signatures).size,
+                        glyph_signatures: signatures};
+                    }""",
+                    CJK_PROBE_TEXT,
+                )
+                if not font_diagnostics.get("font_loaded") or int(font_diagnostics.get("unique_glyph_signatures") or 0) < 6:
+                    raise RuntimeError("CJK_FONT_UNAVAILABLE")
                 identity = page.locator("body").evaluate("element => ({...element.dataset})")
                 # Preserve the published DOM snapshot as-is, then expand only
                 # allowlisted PM-facing research details in the in-memory page
@@ -168,6 +201,7 @@ def _browser_render(
                     "text": visible_text,
                     "identity": _normalize_observed_identity(identity),
                     "pdf_error": pdf_error,
+                    "font_diagnostics": font_diagnostics,
                     "review_details": {
                         "selector": 'details[data-visual-review-expand="true"]',
                         "expanded_count": expanded_details_count,
@@ -233,6 +267,7 @@ def _failure_reason(exc: Exception) -> str:
         "IDENTITY_CONFLICT",
         "PDF_RENDER_FAILED",
         "PDF_WRITE_FAILED",
+        "CJK_FONT_UNAVAILABLE",
     ):
         if message.startswith(code):
             return code
@@ -461,6 +496,10 @@ def capture_snapshot_visual_evidence(
                 "renderer": "playwright-chromium",
                 "viewport": VIEWPORT,
                 "full_page": True,
+                "font_diagnostics": rendered.get("font_diagnostics") or {
+                    "contract_version": "cjk_visual_glyph_gate_v1",
+                    "status": "NOT_EVALUATED_BY_COMPATIBILITY_RENDERER",
+                },
                 "review_details": rendered.get("review_details") or {
                     "selector": 'details[data-visual-review-expand="true"]',
                     "expanded_count": 0,

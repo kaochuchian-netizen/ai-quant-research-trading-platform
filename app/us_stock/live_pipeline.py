@@ -336,7 +336,13 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
         card["institutional_research"] = institutional_research
         card["research_identity"] = institutional_research["research_identity"]
         if window == "us_pre_market_2000":
-            card = build_premarket_card(card, result.quote, research, result.news, market_context, reference, result.news_diagnostics)
+            # The compatibility card is projected only after bounded RRE
+            # selection.  It may not retain provider-stage RRE/rendered zeros.
+            card = build_premarket_card(card, result.quote, research, result.news, market_context, reference, finalized_funnel)
+            card["news_evidence"]["finalized_projection"] = True
+            card["news_evidence"]["canonical_funnel_identity"] = (
+                (institutional_research.get("research_intelligence_v2") or {}).get("window_research_identity")
+            )
         if window == "us_intraday_2300":
             tactical = strategies.get(DAILY_TACTICAL, {}) if isinstance(strategies, dict) else {}
             source_plan = resolve_source_trade_plan(WINDOW_ARCHIVE_DIR, context["session_date"], symbol)

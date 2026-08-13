@@ -133,18 +133,23 @@ def separate_sec_news(research: dict[str, Any], news_items: list[dict[str, Any]]
         "item": filing.get("item") or filing.get("category"), "materiality": filing.get("materiality") or "unclassified",
         "summary": filing.get("summary"), "source": filing.get("source") or sec.get("source") or "SEC EDGAR",
     }
-    news = next((x for x in news_items if isinstance(x, dict) and x.get("english_headline")), {})
+    institutional = research.get("institutional_research") if isinstance(research.get("institutional_research"), dict) else {}
+    canonical_news = institutional.get("news_intelligence_v2") if isinstance(institutional.get("news_intelligence_v2"), dict) else {}
+    selected = next((x for x in canonical_news.get("selected_items", []) if isinstance(x, dict) and x.get("selected_for_rre") and x.get("rendered")), {})
+    news = selected or next((x for x in news_items if isinstance(x, dict) and x.get("english_headline")), {})
     diagnostic = diagnostics or ((research.get("material_news") or {}).get("evidence_funnel") or {})
     absence = str(diagnostic.get("absence_state") or "NO_RELEVANT_NEWS_DISCOVERED")
     news_evidence = {
         "availability": "available" if news else "unavailable",
-        "headline": news.get("english_headline"), "publisher": news.get("source"),
+        "headline": news.get("headline") or news.get("english_headline"), "publisher": news.get("publisher") or news.get("source"),
         "published_at": news.get("published_at"), "direction": news.get("direction") or "unavailable",
         "relevance": news.get("relevance") or "unavailable", "confidence": news.get("confidence") or "unavailable",
         "strategy_impact": news.get("investment_reading") if news else "不納入本次盤前方向判斷",
         "absence_state": "NEWS_SELECTED_AND_RENDERED" if news else absence,
         "absence_label": None if news else NEWS_ABSENCE_LABELS.get(absence, "新聞證據狀態未明"),
         "evidence_funnel": diagnostic,
+        "finalized_projection": bool(canonical_news),
+        "compatibility_source": "institutional_research.news_intelligence_v2" if canonical_news else "provider_compatibility",
     }
     return sec_evidence, news_evidence
 
