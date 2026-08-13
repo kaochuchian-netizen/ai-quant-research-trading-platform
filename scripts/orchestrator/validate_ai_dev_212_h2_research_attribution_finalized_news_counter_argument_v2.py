@@ -65,6 +65,21 @@ def selected_item(news_id: str, headline: str) -> dict:
         "source_class": "recognized_financial_media", "source_reference": f"https://example.test/{news_id}",
         "freshness": "current", "direction": "unavailable", "direction_status": "NOT_EVALUATED",
         "selection_status": "SELECTED_AND_RENDERED", "selected_for_rre": True, "rendered": True,
+        "entity_attribution": {
+            "contract_version": "us_entity_subject_resolution_v4",
+            "classification": "PRIMARY_SUBJECT",
+            "attribution_class": "PRIMARY_SUBJECT",
+            "reason": "FIXTURE_PRIMARY_SUBJECT",
+            "attribution_reason": "FIXTURE_PRIMARY_SUBJECT",
+            "target_symbol": "FIXTURE",
+            "target_entity": "Fixture Company",
+            "headline_subject": "Fixture Company",
+            "competing_entities": [],
+            "relationship_type": None,
+            "framing_class": "PRIMARY_COMPANY_EVENT",
+            "confidence": "high",
+            "status": "ACCEPTED",
+        },
     }
 
 
@@ -166,7 +181,7 @@ def validate() -> dict:
     checks["case_u_coverage_and_news_projection_parity"] = (
         not validate_news_surface_parity(applied, [production_card["bilingual_news_snippet"]])
         and production_card["research_sections"]["material_news"]["canonical_news_id"] == "news-a"
-        and production_research["material_news"]["compatibility_source"] == "finalized_current_news_projection_v2"
+        and production_research["material_news"]["compatibility_source"] == "finalized_current_news_projection_v3"
     )
     checks["case_v_decision_ownership_unchanged"] = base212["checks"].get("case_8_decision_boundary_unchanged") is True
     ai211 = validate_ai211()

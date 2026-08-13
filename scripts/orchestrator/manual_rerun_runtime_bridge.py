@@ -193,6 +193,17 @@ def _execute_and_release(response: dict[str, Any]) -> dict[str, Any]:
                 ACTIVE_JOB_ID = None
 
 
+def manual_date_provenance(requested_effective_date: str, latest: dict[str, Any] | None) -> dict[str, Any]:
+    """Distinguish the request seed date from the archive-resolved identity."""
+    resolved = str(latest.get("effective_trading_date")) if latest else None
+    return {
+        "requested_effective_date": requested_effective_date,
+        "resolved_effective_trading_date": resolved,
+        "effective_trading_date": resolved,
+        "effective_date_contract": "effective_trading_date_is_resolved_canonical_archive_date",
+    }
+
+
 def execute_manual_backend(response: dict[str, Any]) -> dict[str, Any]:
     window = str(response["window"])
     contract = ALLOWED_WINDOWS[window]
@@ -206,10 +217,10 @@ def execute_manual_backend(response: dict[str, Any]) -> dict[str, Any]:
     before_snapshot = selected.latest
     before_hashes = _route_hashes(market, window)
     market_date = reference.date().isoformat() if market == "TW" else reference.astimezone(ZoneInfo("America/New_York")).date().isoformat()
-    effective_date = str(selected.latest.get("effective_trading_date")) if selected.latest else market_date
+    requested_effective_date = str(selected.latest.get("effective_trading_date")) if selected.latest else market_date
     command = list(contract["backend_command"])
     if market == "TW":
-        command.extend(["--effective-trading-date", effective_date])
+        command.extend(["--effective-trading-date", requested_effective_date])
     else:
         command.extend(["--as-of", reference.isoformat()])
     running_state = lifecycle_status(base, "running", started_at=started_at, message="正在建立 Runtime 並更新 Archive。")
@@ -235,14 +246,15 @@ def execute_manual_backend(response: dict[str, Any]) -> dict[str, Any]:
     after_hashes = _route_hashes(market, window)
     latest_url = f"/stock-ai-dashboard/dashboard/archive/{market.lower()}/{window}/latest/index.html"
     market_url = f"/stock-ai-dashboard/dashboard/{market.lower()}/index.html"
+    date_provenance = manual_date_provenance(requested_effective_date, latest if success else None)
     audit = {
-        "schema_version": "manual_rerun_runtime_bridge_audit_v2",
+        "schema_version": "manual_rerun_runtime_bridge_audit_v3",
         "task_id": "AI-DEV-179",
         "job_id": response.get("job_id"),
         "requested_window": window,
         "executed_window": window,
         "market": market,
-        "effective_trading_date": effective_date,
+        **date_provenance,
         "mode": ALLOWED_MODE,
         "status": "completed" if success else "failed",
         "pipeline_status": "completed" if success else "failed",

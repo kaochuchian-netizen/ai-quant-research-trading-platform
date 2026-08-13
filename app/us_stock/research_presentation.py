@@ -51,7 +51,7 @@ def _normalize_selected(item: dict[str, Any]) -> dict[str, Any]:
         ),
         "freshness": item.get("freshness"),
         "source_reference": item.get("source_reference"),
-        "entity_attribution": item.get("entity_attribution"),
+        "entity_attribution": dict(item.get("entity_attribution")) if isinstance(item.get("entity_attribution"), dict) else None,
     }
 
 
@@ -108,7 +108,7 @@ def finalized_current_news_projection(bundle: dict[str, Any]) -> dict[str, Any]:
     else:
         compact = label
     return {
-        "schema_version": "finalized_current_news_projection_v2",
+        "schema_version": "finalized_current_news_projection_v3",
         "state": state,
         "reason_code": absence,
         "state_label": label,
@@ -124,7 +124,7 @@ def finalized_current_news_projection(bundle: dict[str, Any]) -> dict[str, Any]:
 
 def current_news_presentation(card: dict[str, Any]) -> dict[str, Any]:
     """Compatibility entry point; it never recomputes from provider inputs."""
-    existing = card.get("finalized_current_news_projection_v2")
+    existing = card.get("finalized_current_news_projection_v3") or card.get("finalized_current_news_projection_v2")
     if isinstance(existing, dict):
         return existing
     return finalized_current_news_projection(_bundle(card))
@@ -145,7 +145,7 @@ def compatibility_news_snippet(projection: dict[str, Any]) -> dict[str, Any]:
         "canonical_news_id": primary.get("news_id"),
         "canonical_news_state": projection.get("state"),
         "absence_label": None if primary else projection.get("state_label"),
-        "compatibility_source": "finalized_current_news_projection_v2",
+        "compatibility_source": "finalized_current_news_projection_v3",
     }
 
 
@@ -160,7 +160,7 @@ def compatibility_material_news(projection: dict[str, Any]) -> dict[str, Any]:
         "evidence_funnel": projection.get("funnel") or {},
         "canonical_news_state": projection.get("state"),
         "canonical_news_id": ((projection.get("primary_item") or {}).get("news_id")),
-        "compatibility_source": "finalized_current_news_projection_v2",
+        "compatibility_source": "finalized_current_news_projection_v3",
     }
 
 
@@ -170,8 +170,10 @@ def apply_finalized_news_surfaces(
     """Connect production card/research compatibility fields to one projection."""
     projection = finalized_current_news_projection(bundle)
     material = compatibility_material_news(projection)
+    research["finalized_current_news_projection_v3"] = projection
     research["finalized_current_news_projection_v2"] = projection
     research["material_news"] = material
+    card["finalized_current_news_projection_v3"] = projection
     card["finalized_current_news_projection_v2"] = projection
     card["bilingual_news_snippet"] = compatibility_news_snippet(projection)
     sections = card.setdefault("research_sections", {})
@@ -188,8 +190,10 @@ def validate_finalized_news_projection(value: dict[str, Any]) -> list[str]:
     reasons = funnel.get("rejection_reasons") if isinstance(funnel.get("rejection_reasons"), dict) else {}
     state = value.get("state")
     primary = value.get("primary_item") if isinstance(value.get("primary_item"), dict) else None
-    if value.get("schema_version") != "finalized_current_news_projection_v2":
+    if value.get("schema_version") != "finalized_current_news_projection_v3":
         errors.append("schema")
+    if any(not isinstance(item.get("entity_attribution"), dict) for item in selected):
+        errors.append("selected_attribution_missing")
     if value.get("selected_count") != len(selected):
         errors.append("selected_count")
     if bool(selected) != bool(primary):
@@ -210,7 +214,7 @@ def validate_news_surface_parity(projection: dict[str, Any], surfaces: list[dict
     errors = validate_finalized_news_projection(projection)
     canonical_id = ((projection.get("primary_item") or {}).get("news_id"))
     for index, surface in enumerate(surfaces):
-        if surface.get("compatibility_source") != "finalized_current_news_projection_v2":
+        if surface.get("compatibility_source") != "finalized_current_news_projection_v3":
             errors.append(f"surface_{index}:source")
         if surface.get("canonical_news_state") != projection.get("state"):
             errors.append(f"surface_{index}:state")

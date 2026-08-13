@@ -33,13 +33,20 @@ KNOWN_US_ENTITIES = {
 }
 
 MARKET_ROUNDUP_MARKERS = (
-    "stocks in focus", "names to watch", "market roundup", "markets move",
-    "s&p", "nasdaq", "dow jones", "after cpi", "ahead of cpi", "fed decision",
+    "stocks in focus", "names to watch", "stocks to watch", "on watch",
+    "market roundup", "markets move", "market movers", "top stocks",
+    "in focus", "these stocks", "s&p", "nasdaq", "dow jones",
+)
+MACRO_REACTION_MARKERS = (
+    "cpi", "inflation", "fed", "rate hike", "rate cut", "interest rates",
+    "payrolls", "jobs report", "treasury yields", "market selloff", "market rally",
 )
 MATERIAL_RELATIONSHIP_MARKERS = (
     "partners with", "partnership", "teams up", "collaboration", "agreement",
     "contract", "supplier", "customer", "capacity", "supply deal", "joint venture",
+    "acquires", "acquisition", "invests in", "investment",
 )
+TICKER_STOPWORDS = {"AI", "CPI", "ETF", "CEO", "CFO", "IPO", "US", "USA"}
 
 
 def _alias_matches(text: str, aliases: Iterable[str]) -> list[str]:
@@ -47,6 +54,23 @@ def _alias_matches(text: str, aliases: Iterable[str]) -> list[str]:
         alias for alias in aliases
         if re.search(rf"(?<![a-z0-9]){re.escape(alias)}(?![a-z0-9])", text)
     ]
+
+
+def _headline_tickers(title: str) -> set[str]:
+    """Extract explicit ticker-like tokens without depending on the watchlist."""
+    return {
+        value for value in re.findall(r"(?<![A-Za-z0-9])([A-Z]{2,5})(?![A-Za-z0-9])", title)
+        if value not in TICKER_STOPWORDS
+    }
+
+
+def _comparative_reference(title_lower: str, aliases: Iterable[str]) -> bool:
+    target = "(?:" + "|".join(re.escape(value) for value in aliases) + ")"
+    patterns = (
+        rf"\b(?:chase|chases|follow|follows|copy|copies)\b.+\b{target}\b.+\b(?:playbook|model|strategy)\b",
+        rf"\b(?:like|versus|vs\.?|compared with|compared to)\b.+\b{target}\b",
+    )
+    return any(re.search(pattern, title_lower) for pattern in patterns)
 
 
 def _entity_attribution(item: dict[str, Any], *, symbol: str, title: str, summary: str) -> dict[str, Any]:
@@ -65,50 +89,66 @@ def _entity_attribution(item: dict[str, Any], *, symbol: str, title: str, summar
     related = {str(value).upper() for value in related if value}
     title_matches = _alias_matches(title_lower, aliases)
     summary_matches = _alias_matches(summary_lower, aliases)
-    competing: list[str] = []
+    competing: set[str] = set()
     matched_entities: list[str] = [target] if title_matches else []
     for ticker, entity_aliases in KNOWN_US_ENTITIES.items():
         if ticker == target:
             continue
         if _alias_matches(title_lower, entity_aliases):
-            competing.append(ticker)
+            competing.add(ticker)
+            matched_entities.append(ticker)
+    title_tickers = _headline_tickers(title)
+    for ticker in title_tickers | related:
+        if ticker != target:
+            competing.add(ticker)
             matched_entities.append(ticker)
     roundup = any(marker in title_lower for marker in MARKET_ROUNDUP_MARKERS)
+    macro_reaction = any(marker in title_lower for marker in MACRO_REACTION_MARKERS)
+    comparative = bool(title_matches) and _comparative_reference(title_lower, aliases)
     relationship = next((marker for marker in MATERIAL_RELATIONSHIP_MARKERS if marker in title_lower), None)
     multi_ticker = len(related) >= 3 or len(competing) >= 2
-    if roundup or (multi_ticker and not relationship):
-        accepted, attribution_class = False, "MARKET_ROUNDUP"
+    if comparative:
+        accepted, attribution_class, framing_class = False, "COMPARATIVE_REFERENCE", "COMPARATIVE_REFERENCE"
+        reason, method = "COMPARATIVE_REFERENCE_NOT_COMPANY_EVENT", "headline_comparative_subject_structure"
+        primary_subject, relationship_type = None, None
+    elif roundup or (multi_ticker and not relationship):
+        accepted, attribution_class, framing_class = False, "MARKET_ROUNDUP", "MULTI_TICKER_ROUNDUP"
         reason, method = "MARKET_ROUNDUP_NOT_COMPANY_EVIDENCE", "market_or_multi_ticker_frame"
         primary_subject, relationship_type = "market_or_multi_entity", None
+    elif macro_reaction and (competing or len(related) > 1):
+        accepted, attribution_class, framing_class = False, "CONTEXTUAL_MENTION", "MARKET_MACRO_REACTION"
+        reason, method = "MARKET_MACRO_REACTION_NOT_COMPANY_EVENT", "macro_multi_company_reaction_frame"
+        primary_subject, relationship_type = "market_macro", None
     elif title_matches and competing and relationship:
-        accepted, attribution_class = True, "MATERIAL_CO_SUBJECT"
+        accepted, attribution_class, framing_class = True, "MATERIAL_CO_SUBJECT", "MATERIAL_RELATIONSHIP_EVENT"
         reason, method = "MATERIAL_RELATIONSHIP_CO_SUBJECT", "title_relationship_structure"
         primary_subject, relationship_type = target, relationship.replace(" ", "_")
     elif title_matches and not competing:
-        accepted, attribution_class = True, "PRIMARY_SUBJECT"
+        accepted, attribution_class, framing_class = True, "PRIMARY_SUBJECT", "PRIMARY_COMPANY_EVENT"
         reason, method = "PRIMARY_SUBJECT_TITLE_MATCH", "explicit_title_entity_match"
         primary_subject, relationship_type = target, None
     elif target in related and len(related) <= 2:
-        accepted, attribution_class = True, "MATERIAL_CO_SUBJECT"
+        accepted, attribution_class, framing_class = True, "MATERIAL_CO_SUBJECT", "MATERIAL_RELATIONSHIP_EVENT"
         reason, method = "PROVIDER_RELATED_TICKER", "bounded_provider_relationship_metadata"
         primary_subject, relationship_type = target, "provider_related_ticker"
     elif title_matches and competing:
-        accepted, attribution_class = False, "AMBIGUOUS"
+        accepted, attribution_class, framing_class = False, "AMBIGUOUS", "AMBIGUOUS_SUBJECT"
         reason, method = "AMBIGUOUS_PRIMARY_SUBJECT", "competing_title_entities_without_relationship"
         primary_subject, relationship_type = None, None
     elif summary_matches:
-        accepted, attribution_class = False, "CONTEXTUAL_MENTION"
+        accepted, attribution_class, framing_class = False, "CONTEXTUAL_MENTION", "CONTEXTUAL_MENTION"
         reason, method = "WEAK_CONTEXTUAL_COMENTION", "summary_only_entity_match"
         primary_subject, relationship_type = None, None
     else:
-        accepted, attribution_class = False, "REJECTED"
+        accepted, attribution_class, framing_class = False, "REJECTED", "NO_TARGET_RELATIONSHIP"
         reason, method = "SYMBOL_ATTRIBUTION_FAILED", "no_entity_evidence"
         primary_subject, relationship_type = None, None
     return {
         "accepted": accepted, "reason_code": reason, "method": method,
         "target_symbol": target, "matched_aliases": sorted(set(title_matches + summary_matches)),
         "provider_related_tickers": sorted(related), "competing_primary_symbols": sorted(competing),
-        "contract_version": "us_entity_attribution_v3",
+        "competing_entities": sorted(competing),
+        "contract_version": "us_entity_subject_resolution_v4",
         "attribution_class": attribution_class,
         "attribution_reason": reason,
         "matched_entities": sorted(set(matched_entities)),
@@ -116,8 +156,42 @@ def _entity_attribution(item: dict[str, Any], *, symbol: str, title: str, summar
         "related_ticker_metadata": sorted(related),
         "primary_subject": primary_subject,
         "relationship_type": relationship_type,
+        "framing_class": framing_class,
+        "headline_subject": primary_subject,
+        "target_entity": target,
         "quality": "high" if attribution_class == "PRIMARY_SUBJECT" else "medium" if accepted else "rejected",
+        "classification": attribution_class,
+        "reason": reason,
+        "confidence": "high" if attribution_class == "PRIMARY_SUBJECT" else "medium" if accepted else "rejected",
+        "status": "ACCEPTED" if accepted else "REJECTED",
     }
+
+
+def validate_entity_attribution_contract(value: dict[str, Any]) -> list[str]:
+    """Fail closed on internally contradictory subject-resolution provenance."""
+    errors: list[str] = []
+    required = (
+        "classification", "reason", "target_symbol", "target_entity", "headline_subject",
+        "competing_entities", "relationship_type", "framing_class", "confidence", "status",
+    )
+    errors.extend(f"missing:{field}" for field in required if field not in value)
+    framing = value.get("framing_class")
+    classification = value.get("classification") or value.get("attribution_class")
+    accepted = value.get("accepted") is True or value.get("status") == "ACCEPTED"
+    non_company_frames = {
+        "MULTI_COMPANY_EVENT", "MULTI_TICKER_ROUNDUP", "MARKET_MACRO_REACTION",
+        "SECTOR_ROUNDUP", "COMPARATIVE_REFERENCE", "CONTEXTUAL_MENTION",
+        "AMBIGUOUS_SUBJECT", "NO_TARGET_RELATIONSHIP",
+    }
+    if framing in non_company_frames and (accepted or classification == "PRIMARY_SUBJECT"):
+        errors.append("non_company_frame_promoted_to_company_evidence")
+    if classification == "PRIMARY_SUBJECT" and framing != "PRIMARY_COMPANY_EVENT":
+        errors.append("primary_subject_frame_mismatch")
+    if classification == "MATERIAL_CO_SUBJECT" and framing != "MATERIAL_RELATIONSHIP_EVENT":
+        errors.append("material_relationship_frame_mismatch")
+    if accepted and not value.get("reason"):
+        errors.append("accepted_without_reason")
+    return sorted(set(errors))
 
 
 def parse_time(value: Any) -> datetime | None:
