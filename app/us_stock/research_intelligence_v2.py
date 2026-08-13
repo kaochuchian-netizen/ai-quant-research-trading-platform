@@ -92,6 +92,8 @@ def _event_family(item: dict[str, Any] | None) -> str:
         return "insufficient"
     event = _text(item.get("event_type") or "news").lower()
     corpus = _text(f"{item.get('headline')} {item.get('summary')}").lower()
+    if any(token in corpus or token in event for token in ("partners with", "partnership", "contract", "agreement")):
+        return "contract_partnership"
     rules = (
         ("earnings_guidance", ("earnings", "guidance", "revenue", "eps", "outlook")),
         ("regulatory_legal", ("regulat", "lawsuit", "legal", "court", "antitrust", "investigation")),
@@ -116,28 +118,38 @@ def build_event_narrative(symbol: str, item: dict[str, Any] | None, stance: str)
             "trigger": f"等待 {symbol} 的官方揭露、財報／指引或可驗證重大公司事件，再建立方向假設。",
             "invalidation": f"目前沒有方向假設可供失效；新增證據須先通過公司歸屬、時效與來源品質門檻。",
             "primary_risk": f"{symbol} 的主要研究風險是公司特定資訊不足，市場背景可能被誤讀為公司方向。",
+            "counter_argument": f"目前沒有足夠 {symbol} 公司特定反證；主要不確定性是尚無可驗證事件可檢驗命題。",
+            "research_boundary_note": "市場與類股背景只能作為情境確認，不單獨建立公司研究方向。",
+            "mechanism": "insufficient_company_specific_evidence",
+            "uncertainty_family": "evidence_availability",
+            "evidence_reference": None,
         }
     headline = _text(item.get("headline") or "未命名公司事件")
     publisher = _text(item.get("publisher") or item.get("provider") or item.get("source_class") or "來源未標示")
     family = _event_family(item)
     direction_text = {"bullish": "支持", "bearish": "反對"}.get(stance, "尚未建立方向")
     contracts = {
-        "earnings_guidance": ("財報／指引命題", "後續官方財報、指引或共識修正確認營收、獲利與展望", "公司下修指引、實際結果不及事件命題或官方數據否定改善", "財報品質、指引可信度與預期落差"),
-        "regulatory_legal": ("監管／法律命題", "主管機關、法院或公司正式文件確認事件範圍與財務影響", "正式裁定、和解條件或公司揭露否定原先事件解讀", "裁決、罰款、營運限制與時程不確定性"),
-        "product_demand": ("產品／需求命題", "公司揭露、訂單、交付或客戶資料確認需求與定價影響", "需求、交付、價格或客戶採用數據未能支持該產品事件", "產品執行、需求持續性與價格壓力"),
-        "capex_supply_chain": ("資本支出／供應鏈命題", "公司或供應鏈官方資料確認產能、資本支出與供應節點", "產能延遲、成本超支、供應受阻或客戶需求未實現", "建置執行、供應瓶頸與資本效率"),
-        "contract_partnership": ("合約／合作命題", "正式合約、客戶公告或營收認列資訊確認規模與時程", "合作取消、條件縮減或無法轉化為可驗證營收", "交易條件、履約與客戶集中風險"),
-        "management_capital": ("管理／資本配置命題", "董事會或公司正式揭露確認規模、資金來源與執行進度", "管理層變更或資本配置未依公告執行並削弱原命題", "治理、執行紀律與資本機會成本"),
-        "filing_disclosure": ("官方申報命題", "後續正式申報或公司說明確認關鍵事實與財務影響", "修正申報、官方澄清或後續文件否定關鍵事實", "申報內容完整性與未揭露後續影響"),
-        "material_company_news": ("重大公司新聞命題", "公司或其他高品質來源確認事件主體、影響與持續性", "官方澄清、事件撤回或後續可靠證據否定事件影響", "事件歸屬、來源確認與實際財務影響"),
+        "earnings_guidance": ("財報／指引命題", "後續官方財報、指引或共識修正確認營收、獲利與展望", "公司下修指引、實際結果不及事件命題或官方數據否定改善", "財報品質、指引可信度與預期落差", "財報優於預期可能來自一次性項目，指引也未必轉化為可持續成長；仍須檢驗毛利率與現金流品質。", "earnings_to_sustainable_growth", "one_off_and_quality_risk"),
+        "regulatory_legal": ("監管／法律命題", "主管機關、法院或公司正式文件確認事件範圍與財務影響", "正式裁定、和解條件或公司揭露否定原先事件解讀", "裁決、罰款、營運限制與時程不確定性", "監管結果、補救條件與訴訟曝險仍不確定，執法範圍與時程可能削弱事件解讀。", "regulatory_outcome_to_economic_effect", "remedy_timing_and_litigation"),
+        "product_demand": ("產品／需求命題", "公司揭露、訂單、交付或客戶資料確認需求與定價影響", "需求、交付、價格或客戶採用數據未能支持該產品事件", "產品執行、需求持續性與價格壓力", "等待時間或定價訊號也可能源自供應限制、生產排程或促銷效果，新品熱度未必轉化為持續銷售。", "product_signal_to_sustained_demand", "supply_schedule_and_channel_distortion"),
+        "capex_supply_chain": ("資本支出／供應鏈命題", "公司或供應鏈官方資料確認產能、資本支出與供應節點", "產能延遲、成本超支、供應受阻或客戶需求未實現", "建置執行、供應瓶頸與資本效率", "產能或資本支出訊號可能已提前反映；利用率、建置時程與供應商瓶頸仍可能阻礙需求轉為營收。", "capacity_signal_to_realized_output", "utilization_timing_and_supplier_dependency"),
+        "contract_partnership": ("合約／合作命題", "正式合約、客戶公告或營收認列資訊確認規模與時程", "合作取消、條件縮減或無法轉化為可驗證營收", "交易條件、履約與客戶集中風險", "合作公告不等於營收實現；商業規模、訂單持續性、合約條件與執行依賴仍待驗證。", "announcement_to_revenue_conversion", "commercial_scale_and_execution"),
+        "management_capital": ("管理／資本配置命題", "董事會或公司正式揭露確認規模、資金來源與執行進度", "管理層變更或資本配置未依公告執行並削弱原命題", "治理、執行紀律與資本機會成本", "管理或資本配置承諾可能未依公告規模執行，且機會成本可能高於預期效益。", "capital_commitment_to_execution", "governance_and_opportunity_cost"),
+        "filing_disclosure": ("官方申報命題", "後續正式申報或公司說明確認關鍵事實與財務影響", "修正申報、官方澄清或後續文件否定關鍵事實", "申報內容完整性與未揭露後續影響", "正式申報可能只是歷史或程序性揭露，未必具有新增經濟重要性；仍須驗證增量影響。", "filing_fact_to_incremental_thesis", "economic_materiality"),
+        "material_company_news": ("重大公司新聞命題", "公司或其他高品質來源確認事件主體、影響與持續性", "官方澄清、事件撤回或後續可靠證據否定事件影響", "事件歸屬、來源確認與實際財務影響", "事件的重要性與持續性仍不確定，若缺少公司或主要來源確認，二手報導可能高估實際影響。", "reported_event_to_persistent_impact", "persistence_and_primary_confirmation"),
     }
-    label, trigger, invalidation, risk = contracts[family]
+    label, trigger, invalidation, risk, counter, mechanism, uncertainty = contracts[family]
     return {
         "event_family": family,
         "statement": f"{symbol} 的{label}正在檢驗「{headline}」；目前公司方向{direction_text}，來源為 {publisher}。",
         "trigger": f"確認條件（{headline}）：{trigger}；價格／相對強弱僅作次級確認。",
         "invalidation": f"失效條件：{invalidation}，則「{headline}」命題失效。",
         "primary_risk": f"{symbol} 的「{headline}」事件特定風險為{risk}；證據來源 {publisher}。",
+        "counter_argument": f"反方檢驗（{headline}）：{counter}",
+        "research_boundary_note": "市場與類股背景只能作為情境確認，不單獨建立公司研究方向。",
+        "mechanism": mechanism,
+        "uncertainty_family": uncertainty,
+        "evidence_reference": item.get("news_id") or item.get("evidence_id") or item.get("source_reference"),
     }
 
 
@@ -227,6 +239,11 @@ def normalize_news(items: Iterable[dict[str, Any]], observed_at: str, diagnostic
             "freshness": freshness, "age_hours": None if age_hours is None else round(age_hours, 3),
             "duplicate_of": None, "counted": False, "eligible_for_rre": freshness == "current",
             "selection_status": "PENDING", "selection_reason": None,
+            "entity_attribution": raw.get("entity_attribution") if isinstance(raw.get("entity_attribution"), dict) else None,
+            "english_headline": raw.get("english_headline") or raw.get("headline"),
+            "chinese_translation": raw.get("chinese_translation"),
+            "chinese_summary": raw.get("chinese_summary"),
+            "investment_reading": raw.get("investment_reading"),
         }
         candidates.append(item)
 
@@ -277,7 +294,7 @@ def normalize_news(items: Iterable[dict[str, Any]], observed_at: str, diagnostic
         "items": candidates, "selected_items": selected,
         "deduplicated_count": sum(x["counted"] for x in candidates),
         "selected_count": len(selected), "selection_limit": NEWS_SELECTION_LIMIT,
-        "selection_method": "official_materiality_relevance_freshness_event_uniqueness_v1",
+        "selection_method": "official_materiality_relevance_freshness_event_uniqueness_v2",
         "missing_reason": None if selected else "NO_CURRENT_QUALIFIED_NEWS_SELECTED",
         "fabricated": False, "directional_contribution": {"bullish": 0, "bearish": 0},
         "evidence_funnel": funnel,
@@ -400,8 +417,12 @@ def build_initial_projection(bundle: dict[str, Any], *, observed_at: str) -> dic
         "expected_direction": stance if stance in {"bullish", "bearish"} else "unavailable",
         "trigger": narrative["trigger"],
         "invalidation": narrative["invalidation"],
-        "counter_argument": "公司特定證據可能與市場／類股背景背離；背景證據不擁有公司研究方向。",
-        "state": "created", "method": "deterministic_company_event_narrative_v1",
+        "counter_argument": narrative["counter_argument"],
+        "research_boundary_note": narrative["research_boundary_note"],
+        "mechanism": narrative["mechanism"],
+        "uncertainty_family": narrative["uncertainty_family"],
+        "evidence_reference": narrative["evidence_reference"],
+        "state": "created", "method": "deterministic_company_event_narrative_v2",
         "event_family": narrative["event_family"],
     }
     brief = (
@@ -440,6 +461,7 @@ def build_initial_projection(bundle: dict[str, Any], *, observed_at: str) -> dic
         "market_sector_context": regime, "hypothesis": hypothesis,
         "selected_news_evidence": selected_news,
         "primary_risk": narrative["primary_risk"],
+        "research_boundary_note": narrative["research_boundary_note"],
         "evidence_ownership": {
             "schema_version": EVIDENCE_OWNERSHIP_VERSION,
             "direction_establishing_ids": [x["evidence_id"] for x in directional_company[:6]],

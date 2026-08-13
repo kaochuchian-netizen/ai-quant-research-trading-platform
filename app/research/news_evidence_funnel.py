@@ -20,17 +20,42 @@ US_ENTITY_ALIASES = {
     "AAPL": ("aapl", "apple"), "AMD": ("amd", "advanced micro devices"),
     "GOOGL": ("googl", "google", "alphabet"), "META": ("meta", "facebook"),
     "NVDA": ("nvda", "nvidia"), "TSLA": ("tsla", "tesla"),
+    "TSM": ("tsm", "tsmc", "taiwan semiconductor"),
+    "SPCX": ("spcx", "space x", "spacex"),
 }
 KNOWN_US_ENTITIES = {
     "AAPL": ("aapl", "apple"), "AMD": ("amd", "advanced micro devices"),
     "GOOGL": ("googl", "goog", "google", "alphabet"), "META": ("meta", "facebook"),
     "NVDA": ("nvda", "nvidia"), "TSLA": ("tsla", "tesla"),
-    "ABT": ("abt", "abbott", "abbott laboratories"), "TSM": ("tsm", "taiwan semiconductor"),
+    "ABT": ("abt", "abbott", "abbott laboratories"),
+    "TSM": ("tsm", "tsmc", "taiwan semiconductor"),
+    "ASML": ("asml",), "VZ": ("verizon",), "LMT": ("lockheed", "lockheed martin"),
 }
+
+MARKET_ROUNDUP_MARKERS = (
+    "stocks in focus", "names to watch", "market roundup", "markets move",
+    "s&p", "nasdaq", "dow jones", "after cpi", "ahead of cpi", "fed decision",
+)
+MATERIAL_RELATIONSHIP_MARKERS = (
+    "partners with", "partnership", "teams up", "collaboration", "agreement",
+    "contract", "supplier", "customer", "capacity", "supply deal", "joint venture",
+)
+
+
+def _alias_matches(text: str, aliases: Iterable[str]) -> list[str]:
+    return [
+        alias for alias in aliases
+        if re.search(rf"(?<![a-z0-9]){re.escape(alias)}(?![a-z0-9])", text)
+    ]
 
 
 def _entity_attribution(item: dict[str, Any], *, symbol: str, title: str, summary: str) -> dict[str, Any]:
-    """Require primary-subject evidence, not a weak body-text co-mention."""
+    """Classify company attribution without promoting roundup/co-mention noise.
+
+    V3 deliberately separates provider association from editorial subject
+    ownership.  A ticker in ``relatedTickers`` or a multi-name headline is not
+    sufficient to make the target company the primary subject.
+    """
     target = symbol.upper()
     aliases = US_ENTITY_ALIASES.get(target, (target.lower(),))
     title_lower, summary_lower = title.lower(), summary.lower()
@@ -38,29 +63,60 @@ def _entity_attribution(item: dict[str, Any], *, symbol: str, title: str, summar
     if isinstance(related, str):
         related = [related]
     related = {str(value).upper() for value in related if value}
-    title_matches = [alias for alias in aliases if re.search(rf"(?<![a-z0-9]){re.escape(alias)}(?![a-z0-9])", title_lower)]
-    summary_matches = [alias for alias in aliases if re.search(rf"(?<![a-z0-9]){re.escape(alias)}(?![a-z0-9])", summary_lower)]
-    competing = []
+    title_matches = _alias_matches(title_lower, aliases)
+    summary_matches = _alias_matches(summary_lower, aliases)
+    competing: list[str] = []
+    matched_entities: list[str] = [target] if title_matches else []
     for ticker, entity_aliases in KNOWN_US_ENTITIES.items():
         if ticker == target:
             continue
-        if any(re.search(rf"(?<![a-z0-9]){re.escape(alias)}(?![a-z0-9])", title_lower) for alias in entity_aliases):
+        if _alias_matches(title_lower, entity_aliases):
             competing.append(ticker)
-    if target in related:
-        accepted, reason, method = True, "PROVIDER_RELATED_TICKER", "provider_relationship_metadata"
+            matched_entities.append(ticker)
+    roundup = any(marker in title_lower for marker in MARKET_ROUNDUP_MARKERS)
+    relationship = next((marker for marker in MATERIAL_RELATIONSHIP_MARKERS if marker in title_lower), None)
+    multi_ticker = len(related) >= 3 or len(competing) >= 2
+    if roundup or (multi_ticker and not relationship):
+        accepted, attribution_class = False, "MARKET_ROUNDUP"
+        reason, method = "MARKET_ROUNDUP_NOT_COMPANY_EVIDENCE", "market_or_multi_ticker_frame"
+        primary_subject, relationship_type = "market_or_multi_entity", None
+    elif title_matches and competing and relationship:
+        accepted, attribution_class = True, "MATERIAL_CO_SUBJECT"
+        reason, method = "MATERIAL_RELATIONSHIP_CO_SUBJECT", "title_relationship_structure"
+        primary_subject, relationship_type = target, relationship.replace(" ", "_")
     elif title_matches and not competing:
-        accepted, reason, method = True, "PRIMARY_SUBJECT_TITLE_MATCH", "explicit_title_entity_match"
+        accepted, attribution_class = True, "PRIMARY_SUBJECT"
+        reason, method = "PRIMARY_SUBJECT_TITLE_MATCH", "explicit_title_entity_match"
+        primary_subject, relationship_type = target, None
+    elif target in related and len(related) <= 2:
+        accepted, attribution_class = True, "MATERIAL_CO_SUBJECT"
+        reason, method = "PROVIDER_RELATED_TICKER", "bounded_provider_relationship_metadata"
+        primary_subject, relationship_type = target, "provider_related_ticker"
     elif title_matches and competing:
-        accepted, reason, method = False, "AMBIGUOUS_PRIMARY_SUBJECT", "competing_title_entities_without_relationship"
+        accepted, attribution_class = False, "AMBIGUOUS"
+        reason, method = "AMBIGUOUS_PRIMARY_SUBJECT", "competing_title_entities_without_relationship"
+        primary_subject, relationship_type = None, None
     elif summary_matches:
-        accepted, reason, method = False, "WEAK_CONTEXTUAL_COMENTION", "summary_only_entity_match"
+        accepted, attribution_class = False, "CONTEXTUAL_MENTION"
+        reason, method = "WEAK_CONTEXTUAL_COMENTION", "summary_only_entity_match"
+        primary_subject, relationship_type = None, None
     else:
-        accepted, reason, method = False, "SYMBOL_ATTRIBUTION_FAILED", "no_entity_evidence"
+        accepted, attribution_class = False, "REJECTED"
+        reason, method = "SYMBOL_ATTRIBUTION_FAILED", "no_entity_evidence"
+        primary_subject, relationship_type = None, None
     return {
         "accepted": accepted, "reason_code": reason, "method": method,
         "target_symbol": target, "matched_aliases": sorted(set(title_matches + summary_matches)),
         "provider_related_tickers": sorted(related), "competing_primary_symbols": sorted(competing),
-        "contract_version": "us_entity_attribution_v2",
+        "contract_version": "us_entity_attribution_v3",
+        "attribution_class": attribution_class,
+        "attribution_reason": reason,
+        "matched_entities": sorted(set(matched_entities)),
+        "competing_entities": sorted(competing),
+        "related_ticker_metadata": sorted(related),
+        "primary_subject": primary_subject,
+        "relationship_type": relationship_type,
+        "quality": "high" if attribution_class == "PRIMARY_SUBJECT" else "medium" if accepted else "rejected",
     }
 
 

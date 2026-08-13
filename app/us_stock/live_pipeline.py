@@ -25,6 +25,9 @@ from app.us_stock.research_intelligence_v2 import (
     prediction_evaluation,
     stable_hash as research_v2_hash,
 )
+from app.us_stock.research_presentation import (
+    apply_finalized_news_surfaces,
+)
 from app.strategy.dual_strategy import DAILY_TACTICAL, RESEARCH_POSITION, US_TACTICAL_FACTOR_VERSION, build_dual_strategies
 from app.reports.canonical_outcomes import aggregate_us_post_close_review, build_structured_review_cards
 from app.us_stock.intraday_observed import (
@@ -335,6 +338,7 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
         research["institutional_research"] = institutional_research
         card["institutional_research"] = institutional_research
         card["research_identity"] = institutional_research["research_identity"]
+        finalized_news = apply_finalized_news_surfaces(card, research, institutional_research)
         if window == "us_pre_market_2000":
             # The compatibility card is projected only after bounded RRE
             # selection.  It may not retain provider-stage RRE/rendered zeros.

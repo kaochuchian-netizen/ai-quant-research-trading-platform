@@ -41,3 +41,13 @@ Canonical schema and method versions participate in identities/provenance. A pro
 ## Natural verification
 
 After merge, observe one complete US 20:00→23:00→06:30 chain and one TW 07:00→13:05→13:35→15:00 chain. Confirm real provider context survives normalization, stale/short history is degraded, adequate history reaches technical evidence, completeness labels remain scoped, timing stays no-lookahead-safe, and Operations separates runtime from intelligence health.
+
+## AI-DEV-212 H2 research-news truth contract
+
+`us_entity_attribution_v3` distinguishes `PRIMARY_SUBJECT`, `MATERIAL_CO_SUBJECT`, `CONTEXTUAL_MENTION`, `MARKET_ROUNDUP`, `AMBIGUOUS`, and `REJECTED`. A title ticker or provider association alone does not establish company subject ownership. Macro/index/multi-ticker roundups are contextual; explicit product events remain primary, while deterministic partnership, customer, supplier and capacity relationships may remain material co-subject evidence. Each result retains matched and competing entities, provider relationship metadata, primary subject, relationship type, reason and quality.
+
+`finalized_current_news_projection_v2` is the only user-visible current-news source after RRE selection. Dashboard, institutional research, material-news compatibility fields, bilingual snippet, Email and rendered evidence may project from it but may not reorder or independently choose provider inputs. Compatibility surfaces record `compatibility_source = finalized_current_news_projection_v2`; state or primary-identity disagreement is a validation failure.
+
+Absence states preserve operational meaning: retrieval failure, no relevant news, discovered-but-filtered, stale-only, admitted-not-selected and selected-not-rendered are distinct. `STALE_ONLY` requires an actual stale rejection and cannot be inferred merely from zero attributed or fresh items.
+
+Research boundary text and company/event counter arguments are separate. The boundary states that market/sector context cannot own company direction. Counter arguments test the evidence mechanism—earnings quality, regulatory remedies, demand/supply alternatives, contract-to-revenue conversion, capacity utilization, filing materiality or event persistence—and retain event family, mechanism, uncertainty family and evidence reference. These fields remain research-only and cannot modify Decision, action, eligibility, ranking, scoring or trading execution.
