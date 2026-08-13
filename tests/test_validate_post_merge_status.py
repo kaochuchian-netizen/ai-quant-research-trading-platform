@@ -49,13 +49,14 @@ class PostMergeDirtyClassificationTests(unittest.TestCase):
         entries = [
             "M artifacts/runtime/formal_prediction_runtime_latest.json",
             "?? artifacts/runtime/delivery_provenance/tw_intraday_1305_email_latest.json",
+            "?? artifacts/runtime/manual_rerun/manual_rerun_manual-d1ce592d91f9b066.json",
             " M templates/multi_market_dashboard_v2/dashboard/archive/tw/intraday_1305/latest/index.html",
         ]
         result = summarize_post_merge_status(platform(status=entries))
         self.assertTrue(result["ok"])
         self.assertFalse(result["worktree_clean"])
         self.assertTrue(result["worktree_governance_safe"])
-        self.assertEqual(len(result["preserved_runtime_artifacts"]), 3)
+        self.assertEqual(len(result["preserved_runtime_artifacts"]), 4)
         self.assertTrue(result["warnings"])
 
     def test_modified_task_source_fails(self) -> None:

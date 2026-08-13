@@ -72,6 +72,7 @@ PRESERVED_PATH_PATTERNS = tuple(
         rf"artifacts/runtime/public_latest_sync/(?:tw_(?:{'|'.join(TW_WINDOWS)})|us_(?:{'|'.join(US_WINDOWS)}))_latest\.json",
         rf"artifacts/runtime/stage_timing/(?:tw_(?:{'|'.join(TW_WINDOWS)})|us_(?:{'|'.join(US_WINDOWS)}))_latest\.json",
         rf"artifacts/runtime/tw_window_decision/(?:{'|'.join(TW_WINDOWS)})_latest\.json",
+        r"artifacts/runtime/manual_rerun/manual_rerun_manual-[0-9a-f]{16}\.json",
         rf"templates/multi_market_dashboard_v2/dashboard/archive/(?:tw/(?:{'|'.join(TW_WINDOWS)})|us/(?:{'|'.join(US_WINDOWS)}))/(?:latest|previous)/index\.html",
         r"artifacts/archive/visual_evidence/index\.json",
         rf"artifacts/archive/visual_evidence/\d{{4}}-\d{{2}}-\d{{2}}/(?:TW/(?:{'|'.join(TW_WINDOWS)})|US/(?:{'|'.join(US_WINDOWS)}))/(?:revision_\d{{3}}/(?:dashboard_full\.pdf|screenshot_full\.png|rendered_page\.html|rendered_text\.md|manifest\.json|canonical_reference\.json)|failures/revision_\d{{3}}_[0-9a-f]{{12}}\.json)",
