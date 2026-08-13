@@ -16,6 +16,8 @@ from app.research.news_evidence_funnel import (
     normalize_yfinance_news,
     validate_entity_attribution_contract,
 )
+from app.us_stock.research_intelligence import USResearchIntelligenceBuilder
+from app.us_stock.research_intelligence_v2 import normalize_news
 from app.us_stock.research_intelligence_v2 import build_event_narrative
 from app.us_stock.research_presentation import (
     compatibility_news_snippet,
@@ -26,6 +28,77 @@ from app.us_stock.research_presentation import (
 from scripts.orchestrator.manual_rerun_runtime_bridge import manual_date_provenance
 
 OBSERVED = "2026-08-13T12:00:00Z"
+
+
+class _FixtureSECClient:
+    def recent_filings(self, symbol: str) -> dict:
+        return {
+            "ok": True, "symbol": symbol, "cik": "0001652044", "filings": [],
+            "latest_annual_report": None, "latest_quarterly_report": None,
+            "recent_8k_items": [], "provenance": {"source_reference": "fixture-sec"},
+        }
+
+
+class _ProductionShapedBuilder(USResearchIntelligenceBuilder):
+    """Network-free builder exercising the production build_for_symbol path."""
+
+    def fundamentals(self, symbol: str) -> dict:
+        return {"schema_version": "us_fundamentals_v1", "symbol": symbol, "metrics": {}}
+
+    def earnings(self, symbol: str) -> dict:
+        return {
+            "schema_version": "us_earnings_guidance_v1", "symbol": symbol,
+            "latest_earnings": {}, "company_guidance": {"available": False},
+        }
+
+
+def production_builder_path_checks() -> tuple[dict[str, bool], dict[str, object]]:
+    """Exercise normalized news through material_news, builder, RRE and finalization."""
+    qualified, diagnostics = attributed(
+        "GOOGL", raw("Google launches Pixel 11 with Gemini AI features", ["GOOGL"]),
+    )
+    source = qualified[0]
+    source_snapshot = json.loads(json.dumps(source))
+    builder = _ProductionShapedBuilder(sec_client=_FixtureSECClient())
+
+    material = builder.material_news("GOOGL", qualified, diagnostics)
+    isolation_material = builder.material_news("GOOGL", qualified, diagnostics)
+    built = builder.build_for_symbol(
+        "GOOGL", {"technical_score": 50, "volatility_state": "normal"},
+        {"market_environment_score": 50}, qualified, diagnostics,
+    )
+    built_item = built["material_news"]["items"][0]
+    normalized = normalize_news(built["material_news"]["items"], OBSERVED, diagnostics)
+    projection = finalized_current_news_projection({
+        "news_intelligence_v2": normalized,
+        "research_intelligence_v2": {"selected_news_evidence": normalized["selected_items"]},
+    })
+    projected_item = projection["selected_items"][0]
+    isolation_material["items"][0]["entity_attribution"]["matched_entities"].append("MUTATION_SENTINEL")
+
+    expected_attribution = source_snapshot["entity_attribution"]
+    checks = {
+        "production_material_news_runtime": len(material["items"]) == 1,
+        "production_build_for_symbol_runtime": built["schema_version"] == "us_research_intelligence_v1",
+        "production_attribution_retained": material["items"][0]["entity_attribution"] == expected_attribution,
+        "production_nested_provenance_retained": (
+            projected_item["entity_attribution"].get("contract_version") == "us_entity_subject_resolution_v4"
+            and projected_item["entity_attribution"].get("attribution_reason")
+            == expected_attribution.get("attribution_reason")
+        ),
+        "production_source_identity_retained": (
+            projected_item.get("source_reference") == source_snapshot.get("source_url")
+            and projected_item.get("headline") == source_snapshot.get("english_headline")
+        ),
+        "production_input_mutation_isolated": source == source_snapshot,
+        "production_finalized_projection_valid": not validate_finalized_news_projection(projection),
+    }
+    return checks, {
+        "source": source_snapshot,
+        "material_news": material,
+        "builder_schema": built.get("schema_version"),
+        "finalized_projection": projection,
+    }
 
 
 def raw(title: str, related: list[str] | None = None, *, published: str = "2026-08-13T11:00:00Z") -> dict:
@@ -142,11 +215,14 @@ def validate() -> dict:
         "requested_effective_date": "2026-08-12", "resolved_effective_trading_date": "2026-08-13",
         "effective_trading_date": "2026-08-13", "effective_date_contract": "effective_trading_date_is_resolved_canonical_archive_date"}
     checks["decision_boundary_unchanged"] = all(item.get("direction", "unavailable") == "unavailable" for item in projection["selected_items"])
+    builder_checks, builder_details = production_builder_path_checks()
+    checks.update(builder_checks)
     details.update({"attribution": {"tsla": tsla_d, "roundup": roundup_d, "comparison": comparison_d,
         "googl": googl[0]["entity_attribution"], "nvda": nvda[0]["entity_attribution"], "tsm": tsm[0]["entity_attribution"]},
         "narratives": {"nvda": nvda_n, "tsm_jv": tsm_jv, "tsm_asml": tsm_asml},
-        "finalized_projection": projection, "manual_date_provenance": dates})
-    return {"task_id": "AI-DEV-212-H3", "contract_version": "ai_dev_212_h3_v3",
+        "finalized_projection": projection, "manual_date_provenance": dates,
+        "production_builder_path": builder_details})
+    return {"task_id": "AI-DEV-212-H3", "contract_version": "ai_dev_212_h3_v3_runtime_hardened",
         "ok": all(checks.values()), "checks": checks, "details": details,
         "errors": [name for name, passed in checks.items() if not passed],
         "safety": {"production_pipeline": False, "notifications": False, "trading": False,
