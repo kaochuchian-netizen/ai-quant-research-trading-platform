@@ -21,6 +21,47 @@ US_ENTITY_ALIASES = {
     "GOOGL": ("googl", "google", "alphabet"), "META": ("meta", "facebook"),
     "NVDA": ("nvda", "nvidia"), "TSLA": ("tsla", "tesla"),
 }
+KNOWN_US_ENTITIES = {
+    "AAPL": ("aapl", "apple"), "AMD": ("amd", "advanced micro devices"),
+    "GOOGL": ("googl", "goog", "google", "alphabet"), "META": ("meta", "facebook"),
+    "NVDA": ("nvda", "nvidia"), "TSLA": ("tsla", "tesla"),
+    "ABT": ("abt", "abbott", "abbott laboratories"), "TSM": ("tsm", "taiwan semiconductor"),
+}
+
+
+def _entity_attribution(item: dict[str, Any], *, symbol: str, title: str, summary: str) -> dict[str, Any]:
+    """Require primary-subject evidence, not a weak body-text co-mention."""
+    target = symbol.upper()
+    aliases = US_ENTITY_ALIASES.get(target, (target.lower(),))
+    title_lower, summary_lower = title.lower(), summary.lower()
+    related = item.get("relatedTickers") or item.get("related_tickers") or item.get("symbols") or []
+    if isinstance(related, str):
+        related = [related]
+    related = {str(value).upper() for value in related if value}
+    title_matches = [alias for alias in aliases if re.search(rf"(?<![a-z0-9]){re.escape(alias)}(?![a-z0-9])", title_lower)]
+    summary_matches = [alias for alias in aliases if re.search(rf"(?<![a-z0-9]){re.escape(alias)}(?![a-z0-9])", summary_lower)]
+    competing = []
+    for ticker, entity_aliases in KNOWN_US_ENTITIES.items():
+        if ticker == target:
+            continue
+        if any(re.search(rf"(?<![a-z0-9]){re.escape(alias)}(?![a-z0-9])", title_lower) for alias in entity_aliases):
+            competing.append(ticker)
+    if target in related:
+        accepted, reason, method = True, "PROVIDER_RELATED_TICKER", "provider_relationship_metadata"
+    elif title_matches and not competing:
+        accepted, reason, method = True, "PRIMARY_SUBJECT_TITLE_MATCH", "explicit_title_entity_match"
+    elif title_matches and competing:
+        accepted, reason, method = False, "AMBIGUOUS_PRIMARY_SUBJECT", "competing_title_entities_without_relationship"
+    elif summary_matches:
+        accepted, reason, method = False, "WEAK_CONTEXTUAL_COMENTION", "summary_only_entity_match"
+    else:
+        accepted, reason, method = False, "SYMBOL_ATTRIBUTION_FAILED", "no_entity_evidence"
+    return {
+        "accepted": accepted, "reason_code": reason, "method": method,
+        "target_symbol": target, "matched_aliases": sorted(set(title_matches + summary_matches)),
+        "provider_related_tickers": sorted(related), "competing_primary_symbols": sorted(competing),
+        "contract_version": "us_entity_attribution_v2",
+    }
 
 
 def parse_time(value: Any) -> datetime | None:
@@ -66,7 +107,6 @@ def normalize_yfinance_news(
     def reject(code: str) -> None:
         reasons[code] = reasons.get(code, 0) + 1
 
-    aliases = US_ENTITY_ALIASES.get(symbol.upper(), (symbol.lower(),))
     for value in raw:
         if not isinstance(value, dict):
             reject("PARSER_ERROR")
@@ -82,9 +122,9 @@ def normalize_yfinance_news(
             continue
         counts["NORMALIZED"] += 1
         summary = re.sub(r"<[^>]+>", " ", str(item.get("summary") or item.get("description") or ""))
-        corpus = f"{title} {summary}".lower()
-        if not any(re.search(rf"(?<![a-z0-9]){re.escape(alias)}(?![a-z0-9])", corpus) for alias in aliases):
-            reject("SYMBOL_ATTRIBUTION_FAILED")
+        attribution = _entity_attribution(item, symbol=symbol, title=title, summary=summary)
+        if not attribution["accepted"]:
+            reject(str(attribution["reason_code"]))
             continue
         counts["SYMBOL_ATTRIBUTED"] += 1
         # Yahoo Finance is contextual Tier 3. Official/IR evidence remains a
@@ -121,6 +161,7 @@ def normalize_yfinance_news(
             "symbol_attributed": True, "relevance": "medium",
             "materiality": "medium", "freshness": "fresh",
             "direction": "unavailable", "direction_status": "NOT_EVALUATED",
+            "entity_attribution": attribution,
             "dedupe_key": source_url,
         })
     unique: dict[str, dict[str, Any]] = {}

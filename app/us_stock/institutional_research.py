@@ -164,6 +164,9 @@ def evidence_record(symbol: str, provider: str, tier: str, headline: str, summar
             "decision_context": "research_context_only_no_trade_action",
             "provenance": {"provider": provider, "source_reference": reference, "published_at": published_at, "observed_at": observed_at}}
     item["evidence_nature"] = "primary_source_fact" if official else "normalized_source_reference"
+    contextual = canonical_event_type in {"market_context", "sector", "technical", "price", "volume", "adr", "etf"}
+    item["direction_ownership"] = "contextual_confirmation_only" if contextual else "company_substantive"
+    item["direction_ownership_version"] = "research_direction_ownership_v1"
     item["fact"] = {"headline": headline, "summary": summary, "published_at": published_at, "source_reference": reference}
     item["interpretation"] = {"direction": item["direction"], "materiality": materiality, "time_horizon": item["time_horizon"], "method": "deterministic_normalization_v2"}
     item["evidence_id"] = "ev_" + stable_hash(item)[:20]
@@ -189,7 +192,9 @@ def canonical_evidence(symbol: str, research: dict[str, Any], market_context: di
         rows.append(evidence_record(symbol, "yfinance", "B", "Latest earnings reference available", "Actual fields available; official confirmation remains explicit", observed_at, "earnings", published_at=latest.get("reported_date"), materiality="high", confidence=.76, reference="earnings.latest_earnings"))
     for news in [x for x in (research.get("material_news") or {}).get("items", []) if isinstance(x, dict)]:
         provenance, official = news.get("provenance") or {}, bool(news.get("official_source"))
-        rows.append(evidence_record(symbol, "company_ir" if official else "yfinance", "A" if official else "C", str(news.get("english_headline") or "Material event metadata"), str(news.get("chinese_summary") or news.get("investment_reading") or ""), observed_at, str(news.get("event_type") or "news"), published_at=provenance.get("published_at"), direction=news.get("direction"), materiality=str(news.get("materiality") or "medium"), relevance=str(news.get("relevance") or "medium"), confidence=.9 if official else .68, official=official, reference=provenance.get("source_reference")))
+        row = evidence_record(symbol, "company_ir" if official else "yfinance", "A" if official else "C", str(news.get("english_headline") or "Material event metadata"), str(news.get("chinese_summary") or news.get("investment_reading") or ""), observed_at, str(news.get("event_type") or "news"), published_at=provenance.get("published_at"), direction=news.get("direction"), materiality=str(news.get("materiality") or "medium"), relevance=str(news.get("relevance") or "medium"), confidence=.9 if official else .68, official=official, reference=provenance.get("source_reference"))
+        row["entity_attribution"] = json.loads(json.dumps(news.get("entity_attribution") or {}))
+        rows.append(row)
     canonical_market = normalize_us_market_context(market_context)
     for ticker in ("SPY", "QQQ", "SOXX"):
         value = canonical_ticker(canonical_market, ticker)
@@ -244,7 +249,8 @@ def analyze_coverage(evidence: list[dict[str, Any]], knowledge: dict[str, Any], 
 
 def analyze_conflict(evidence: list[dict[str, Any]]) -> dict[str, Any]:
     counted = [x for x in evidence if x["counted_in_synthesis"]]
-    bullish, bearish = [x for x in counted if x["direction"] == "bullish"], [x for x in counted if x["direction"] == "bearish"]
+    owns = lambda x: x.get("direction_ownership") == "company_substantive"
+    bullish, bearish = [x for x in counted if x["direction"] == "bullish" and owns(x)], [x for x in counted if x["direction"] == "bearish" and owns(x)]
     material = lambda items: any(x["materiality"] in {"high", "critical"} and x["quality_score"] >= 78 for x in items)
     level = "HIGH" if bullish and bearish and material(bullish) and material(bearish) else "MEDIUM" if bullish and bearish else "LOW"
     return {"level": level, "bullish_evidence_ids": [x["evidence_id"] for x in bullish], "bearish_evidence_ids": [x["evidence_id"] for x in bearish], "method": "material_directional_conflict_not_arithmetic_average"}
@@ -252,13 +258,15 @@ def analyze_conflict(evidence: list[dict[str, Any]]) -> dict[str, Any]:
 
 def synthesize(evidence: list[dict[str, Any]], coverage: dict[str, Any], conflict: dict[str, Any]) -> dict[str, Any]:
     counted = [x for x in evidence if x["counted_in_synthesis"]]
-    supporting, contradicting = [x for x in counted if x["direction"] == "bullish"], [x for x in counted if x["direction"] == "bearish"]
+    direction_owners = [x for x in counted if x.get("direction_ownership") == "company_substantive"]
+    contextual = [x for x in counted if x.get("direction_ownership") == "contextual_confirmation_only"]
+    supporting, contradicting = [x for x in direction_owners if x["direction"] == "bullish"], [x for x in direction_owners if x["direction"] == "bearish"]
     values = []
-    for item in counted:
+    for item in direction_owners:
         sign = 1 if item["direction"] == "bullish" else -1 if item["direction"] == "bearish" else 0
         values.append(sign * item["quality_score"] * item["confidence"] * {"low": .5, "medium": .75, "high": 1., "critical": 1.2}.get(item["materiality"], .5))
     score = round(max(0., min(100., 50 + sum(values) / max(1, len(values)) / 2)), 2)
-    high_enough = any(x["quality_score"] >= 65 for x in counted)
+    high_enough = any(x["quality_score"] >= 65 for x in direction_owners)
     stance = "mixed" if high_enough and supporting and contradicting else "bullish" if high_enough and supporting else "bearish" if high_enough and contradicting else "insufficient_evidence"
     sources = sorted({source for item in counted for source in (item.get("cross_source_confirmations") or [item["provider"]])})
     caps = list(coverage["coverage_gap"])
@@ -272,6 +280,7 @@ def synthesize(evidence: list[dict[str, Any]], coverage: dict[str, Any], conflic
             "stale_evidence": [x["evidence_id"] for x in counted if x["freshness"] == "stale"],
             "coverage_gap": coverage["coverage_gap"], "confidence_cap_reason": sorted(set(caps)),
             "single_source_direct_stance": stance in {"bullish", "bearish"} and len(sources) <= 1,
+            "direction_ownership": {"schema_version": "research_direction_ownership_v1", "company_directional_evidence_ids": [x["evidence_id"] for x in supporting + contradicting], "contextual_evidence_ids": [x["evidence_id"] for x in contextual], "market_context_can_establish_company_direction": False},
             "research_score_is_trade_score": False}
 
 

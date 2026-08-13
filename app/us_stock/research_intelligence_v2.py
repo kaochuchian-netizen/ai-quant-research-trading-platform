@@ -45,6 +45,8 @@ BOUNDARY = {
     "auto_learning": False,
 }
 NEWS_SELECTION_LIMIT = 2
+CONTEXTUAL_EVENT_TYPES = {"market_context", "sector", "technical", "price", "volume", "adr", "etf"}
+EVIDENCE_OWNERSHIP_VERSION = "research_direction_ownership_v1"
 
 
 def stable_hash(value: Any) -> str:
@@ -72,6 +74,71 @@ def _direction(value: Any) -> str:
     if raw in {"neutral", "mixed", "flat"}:
         return "neutral"
     return "unavailable"
+
+
+def evidence_owns_company_direction(item: dict[str, Any]) -> bool:
+    """Only substantive company evidence may establish company direction."""
+    if item.get("direction_ownership") == "company_substantive":
+        return True
+    if item.get("direction_ownership") == "contextual_confirmation_only":
+        return False
+    return str(item.get("event_type") or "") not in CONTEXTUAL_EVENT_TYPES and bool(
+        item.get("official_confirmation") or item.get("source_reference") not in {"SPY", "QQQ", "SOXX"}
+    )
+
+
+def _event_family(item: dict[str, Any] | None) -> str:
+    if not item:
+        return "insufficient"
+    event = _text(item.get("event_type") or "news").lower()
+    corpus = _text(f"{item.get('headline')} {item.get('summary')}").lower()
+    rules = (
+        ("earnings_guidance", ("earnings", "guidance", "revenue", "eps", "outlook")),
+        ("regulatory_legal", ("regulat", "lawsuit", "legal", "court", "antitrust", "investigation")),
+        ("product_demand", ("product", "launch", "demand", "delivery", "pricing", "customer")),
+        ("capex_supply_chain", ("capex", "supply", "factory", "foundry", "manufactur", "infrastructure")),
+        ("contract_partnership", ("contract", "partnership", "customer", "award", "agreement")),
+        ("management_capital", ("management", "ceo", "buyback", "dividend", "capital allocation")),
+        ("filing_disclosure", ("filing", "8-k", "10-q", "10-k", "disclosure")),
+    )
+    for family, tokens in rules:
+        if event in tokens or any(token in corpus or token in event for token in tokens):
+            return family
+    return "material_company_news" if item else "insufficient"
+
+
+def build_event_narrative(symbol: str, item: dict[str, Any] | None, stance: str) -> dict[str, Any]:
+    """Create deterministic event-family reasoning tied to actual evidence."""
+    if not item:
+        return {
+            "event_family": "insufficient",
+            "statement": f"{symbol} 目前沒有足以建立公司方向的實質證據；市場／類股訊號僅作背景。",
+            "trigger": f"等待 {symbol} 的官方揭露、財報／指引或可驗證重大公司事件，再建立方向假設。",
+            "invalidation": f"目前沒有方向假設可供失效；新增證據須先通過公司歸屬、時效與來源品質門檻。",
+            "primary_risk": f"{symbol} 的主要研究風險是公司特定資訊不足，市場背景可能被誤讀為公司方向。",
+        }
+    headline = _text(item.get("headline") or "未命名公司事件")
+    publisher = _text(item.get("publisher") or item.get("provider") or item.get("source_class") or "來源未標示")
+    family = _event_family(item)
+    direction_text = {"bullish": "支持", "bearish": "反對"}.get(stance, "尚未建立方向")
+    contracts = {
+        "earnings_guidance": ("財報／指引命題", "後續官方財報、指引或共識修正確認營收、獲利與展望", "公司下修指引、實際結果不及事件命題或官方數據否定改善", "財報品質、指引可信度與預期落差"),
+        "regulatory_legal": ("監管／法律命題", "主管機關、法院或公司正式文件確認事件範圍與財務影響", "正式裁定、和解條件或公司揭露否定原先事件解讀", "裁決、罰款、營運限制與時程不確定性"),
+        "product_demand": ("產品／需求命題", "公司揭露、訂單、交付或客戶資料確認需求與定價影響", "需求、交付、價格或客戶採用數據未能支持該產品事件", "產品執行、需求持續性與價格壓力"),
+        "capex_supply_chain": ("資本支出／供應鏈命題", "公司或供應鏈官方資料確認產能、資本支出與供應節點", "產能延遲、成本超支、供應受阻或客戶需求未實現", "建置執行、供應瓶頸與資本效率"),
+        "contract_partnership": ("合約／合作命題", "正式合約、客戶公告或營收認列資訊確認規模與時程", "合作取消、條件縮減或無法轉化為可驗證營收", "交易條件、履約與客戶集中風險"),
+        "management_capital": ("管理／資本配置命題", "董事會或公司正式揭露確認規模、資金來源與執行進度", "管理層變更或資本配置未依公告執行並削弱原命題", "治理、執行紀律與資本機會成本"),
+        "filing_disclosure": ("官方申報命題", "後續正式申報或公司說明確認關鍵事實與財務影響", "修正申報、官方澄清或後續文件否定關鍵事實", "申報內容完整性與未揭露後續影響"),
+        "material_company_news": ("重大公司新聞命題", "公司或其他高品質來源確認事件主體、影響與持續性", "官方澄清、事件撤回或後續可靠證據否定事件影響", "事件歸屬、來源確認與實際財務影響"),
+    }
+    label, trigger, invalidation, risk = contracts[family]
+    return {
+        "event_family": family,
+        "statement": f"{symbol} 的{label}正在檢驗「{headline}」；目前公司方向{direction_text}，來源為 {publisher}。",
+        "trigger": f"確認條件（{headline}）：{trigger}；價格／相對強弱僅作次級確認。",
+        "invalidation": f"失效條件：{invalidation}，則「{headline}」命題失效。",
+        "primary_risk": f"{symbol} 的「{headline}」事件特定風險為{risk}；證據來源 {publisher}。",
+    }
 
 
 def classify_sec_filing(filing: dict[str, Any]) -> dict[str, Any]:
@@ -286,9 +353,9 @@ def _regime_context(bundle: dict[str, Any]) -> dict[str, Any]:
 
 def _role_lists(bundle: dict[str, Any]) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     counted = [x for x in bundle.get("evidence", []) if x.get("counted_in_synthesis")]
-    supporting = [x for x in counted if _direction(x.get("direction")) == "bullish"]
-    opposing = [x for x in counted if _direction(x.get("direction")) == "bearish"]
-    neutral = [x for x in counted if _direction(x.get("direction")) not in {"bullish", "bearish"}]
+    supporting = [x for x in counted if _direction(x.get("direction")) == "bullish" and evidence_owns_company_direction(x)]
+    opposing = [x for x in counted if _direction(x.get("direction")) == "bearish" and evidence_owns_company_direction(x)]
+    neutral = [x for x in counted if x not in supporting and x not in opposing]
     order = lambda x: (x.get("quality_score") or 0, x.get("confidence") or 0)
     specific_order = lambda x: (
         x.get("event_type") not in {"market_context", "sector"},
@@ -323,36 +390,19 @@ def build_initial_projection(bundle: dict[str, Any], *, observed_at: str) -> dic
         item for item in ((bundle.get("news_intelligence_v2") or {}).get("selected_items") or [])
         if isinstance(item, dict) and item.get("selected_for_rre")
     ]
-    primary_news = selected_news[0] if selected_news else None
+    directional_company = supporting + opposing
+    neutral_company = [item for item in neutral if evidence_owns_company_direction(item)]
+    primary_company = directional_company[0] if directional_company else (selected_news[0] if selected_news else neutral_company[0] if neutral_company else None)
     symbol = str(bundle.get("symbol") or "US symbol")
-    if primary_news:
-        headline = _text(primary_news.get("headline"))
-        publisher = _text(primary_news.get("publisher") or primary_news.get("source_class"))
-        published = _text(primary_news.get("published_at"))
-        news_context = f"{headline}（{publisher}｜{published}）"
-        event_type = _text(primary_news.get("event_type") or "news")
-        thesis_suffix = f"；當前個股事件脈絡：{news_context}。此項為非方向性證據，不單獨改變研究方向。"
-        trigger = f"持續追蹤 {symbol} 的 {event_type} 事件是否獲官方確認，並觀察其後量價／相對強弱是否形成與原假設一致的可驗證反應。"
-        invalidation = f"若官方澄清或後續高品質證據否定「{headline}」所代表的事件脈絡，或量價形成與原研究方向相反的持續走勢，則假設失效。"
-        primary_risk = f"{symbol} 主要事件風險：{headline}；來源 {publisher}，目前方向未評估，需等待官方或後續高品質證據確認。"
-    else:
-        thesis_suffix = ""
-        trigger = f"{symbol} 尚無可選用的個股事件觸發；僅在量價與相對強弱形成可驗證延續時更新研究假設。"
-        invalidation = f"{symbol} 若出現高品質反向事件，或量價形成與研究方向相反的持續走勢，則假設失效。"
-        primary_risk = f"{symbol} 缺少可選用的當期個股事件證據；主要風險是以共享市場脈絡代替公司特定資訊。"
-    base_statement = {
-        "bullish": "高品質支持證據目前多於反對證據，後續需由量價與相對強弱確認。",
-        "bearish": "高品質反對證據目前多於支持證據，後續需觀察跌勢與風險是否延續。",
-        "mixed": "支持與反對證據並存，需等待價格與新事件化解衝突。",
-        "insufficient_evidence": "現有研究證據不足以建立方向性結論，保留可驗證的觀察假設。",
-    }[stance]
+    narrative = build_event_narrative(symbol, primary_company, stance)
     hypothesis = {
-        "statement": base_statement + thesis_suffix,
+        "statement": narrative["statement"],
         "expected_direction": stance if stance in {"bullish", "bearish"} else "unavailable",
-        "trigger": trigger,
-        "invalidation": invalidation,
-        "counter_argument": "市場／類股脈絡可能與個股證據背離；缺失來源可能改變目前結論。",
-        "state": "created", "method": "deterministic_evidence_balance_v2",
+        "trigger": narrative["trigger"],
+        "invalidation": narrative["invalidation"],
+        "counter_argument": "公司特定證據可能與市場／類股背景背離；背景證據不擁有公司研究方向。",
+        "state": "created", "method": "deterministic_company_event_narrative_v1",
+        "event_family": narrative["event_family"],
     }
     brief = (
         f"研究立場為 {stance}；{len(supporting)} 項支持、{len(opposing)} 項反對。"
@@ -389,7 +439,14 @@ def build_initial_projection(bundle: dict[str, Any], *, observed_at: str) -> dic
         "missing_evidence": missing, "effective_coverage": coverage,
         "market_sector_context": regime, "hypothesis": hypothesis,
         "selected_news_evidence": selected_news,
-        "primary_risk": primary_risk,
+        "primary_risk": narrative["primary_risk"],
+        "evidence_ownership": {
+            "schema_version": EVIDENCE_OWNERSHIP_VERSION,
+            "direction_establishing_ids": [x["evidence_id"] for x in directional_company[:6]],
+            "contextual_confirmation_ids": [x["evidence_id"] for x in neutral if str(x.get("event_type")) in CONTEXTUAL_EVENT_TYPES][:6],
+            "market_context_can_establish_company_direction": False,
+            "directionless_news_contribution": {"bullish": 0, "bearish": 0},
+        },
         "context_contracts": context_contracts,
         "window_update": {"state": "created", "new_evidence": [], "explanation": "20:00 建立初始研究假設。"},
         "decision_context_export": {"trade_action": None, "eligibility": None, "ranking": None},
