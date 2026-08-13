@@ -9,7 +9,7 @@
   "records": [
     {
       "task_id": "AI-DEV-211",
-      "state": "PENDING_EXTERNAL_CAPABILITY",
+      "state": "PENDING",
       "registered_at": "2026-08-13",
       "owner": "Visual Evidence Transport Governance Owner",
       "required_windows": ["TW four formal windows", "US three formal windows"],
