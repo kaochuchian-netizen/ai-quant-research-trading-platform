@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 import time
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
@@ -340,7 +341,7 @@ class USResearchIntelligenceBuilder:
                 "relevance": item.get("relevance") or "medium",
                 "source_url": item.get("source_url"),
                 "publisher": item.get("publisher") or item.get("source"),
-                "entity_attribution": json.loads(json.dumps(item.get("entity_attribution"))) if isinstance(item.get("entity_attribution"), dict) else None,
+                "entity_attribution": deepcopy(item.get("entity_attribution")) if isinstance(item.get("entity_attribution"), dict) else None,
                 "provenance": provenance("company_official" if item.get("official_source") else "secondary_news", published_at=item.get("published_at"), reference=item.get("source_url") or item.get("source"), quality="headline_only"),
             })
         return {"schema_version": "us_material_news_v1", "symbol": symbol, "items": output, "deduplicated_count": len(output), "missing_reason": None if output else ((diagnostics or {}).get("absence_state") or "NO_RELEVANT_NEWS_DISCOVERED"), "evidence_funnel": diagnostics or {}, "no_full_article_stored": True}
