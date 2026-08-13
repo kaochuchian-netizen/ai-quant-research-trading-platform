@@ -11,6 +11,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from app.us_stock.three_window_lifecycle import canonical_direction
+from app.us_stock.research_presentation import finalized_current_news_projection
 
 NEW_YORK = ZoneInfo("America/New_York")
 MIN_CONFIDENCE = 35.0
@@ -135,10 +136,12 @@ def separate_sec_news(research: dict[str, Any], news_items: list[dict[str, Any]]
     }
     institutional = research.get("institutional_research") if isinstance(research.get("institutional_research"), dict) else {}
     canonical_news = institutional.get("news_intelligence_v2") if isinstance(institutional.get("news_intelligence_v2"), dict) else {}
-    selected = next((x for x in canonical_news.get("selected_items", []) if isinstance(x, dict) and x.get("selected_for_rre") and x.get("rendered")), {})
-    news = selected or next((x for x in news_items if isinstance(x, dict) and x.get("english_headline")), {})
-    diagnostic = diagnostics or ((research.get("material_news") or {}).get("evidence_funnel") or {})
-    absence = str(diagnostic.get("absence_state") or "NO_RELEVANT_NEWS_DISCOVERED")
+    finalized = finalized_current_news_projection(institutional) if canonical_news else {}
+    news = finalized.get("primary_item") if isinstance(finalized.get("primary_item"), dict) else {}
+    if not canonical_news:
+        news = next((x for x in news_items if isinstance(x, dict) and x.get("english_headline")), {})
+    diagnostic = finalized.get("funnel") if finalized else diagnostics or ((research.get("material_news") or {}).get("evidence_funnel") or {})
+    absence = str((finalized or {}).get("reason_code") or diagnostic.get("absence_state") or "NO_RELEVANT_NEWS_DISCOVERED")
     news_evidence = {
         "availability": "available" if news else "unavailable",
         "headline": news.get("headline") or news.get("english_headline"), "publisher": news.get("publisher") or news.get("source"),
@@ -146,10 +149,12 @@ def separate_sec_news(research: dict[str, Any], news_items: list[dict[str, Any]]
         "relevance": news.get("relevance") or "unavailable", "confidence": news.get("confidence") or "unavailable",
         "strategy_impact": news.get("investment_reading") if news else "不納入本次盤前方向判斷",
         "absence_state": "NEWS_SELECTED_AND_RENDERED" if news else absence,
-        "absence_label": None if news else NEWS_ABSENCE_LABELS.get(absence, "新聞證據狀態未明"),
+        "absence_label": None if news else (finalized.get("state_label") if finalized else NEWS_ABSENCE_LABELS.get(absence, "新聞證據狀態未明")),
         "evidence_funnel": diagnostic,
         "finalized_projection": bool(canonical_news),
-        "compatibility_source": "institutional_research.news_intelligence_v2" if canonical_news else "provider_compatibility",
+        "canonical_news_id": news.get("news_id"),
+        "canonical_news_state": finalized.get("state") if finalized else None,
+        "compatibility_source": "finalized_current_news_projection_v2" if canonical_news else "provider_compatibility",
     }
     return sec_evidence, news_evidence
 
