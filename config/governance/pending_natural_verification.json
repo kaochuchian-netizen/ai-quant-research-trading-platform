@@ -8,6 +8,15 @@
   },
   "records": [
     {
+      "task_id": "AI-DEV-211",
+      "state": "PENDING",
+      "registered_at": "2026-08-13",
+      "owner": "Visual Evidence Transport Governance Owner",
+      "required_windows": ["TW four formal windows", "US three formal windows"],
+      "acceptance": "A future approved authenticated ChatGPT-compatible connector consumes one opaque selector-resolved outbox reference, verifies envelope/artifact identity and hash, and delivers the compact review bundle without public exposure, arbitrary paths, secrets, archive mutation or production-batch coupling.",
+      "monitoring": "Until an approved connector capability exists, verify review_bundle/outbox determinism and preserve DIRECT_CHATGPT_TRANSPORT_PENDING_EXTERNAL_CAPABILITY; do not represent GCP filesystem or local export paths as direct ChatGPT access."
+    },
+    {
       "task_id": "AI-DEV-210",
       "state": "PENDING",
       "registered_at": "2026-08-12",
