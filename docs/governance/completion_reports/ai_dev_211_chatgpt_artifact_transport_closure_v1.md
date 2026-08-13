@@ -7,7 +7,10 @@ Status: `IMPLEMENTED_DETERMINISTIC_QA_PASS_TRANSPORT_READY_PENDING_EXTERNAL_CONN
 - Starting main: `412eef712d21794171b0bd8ffb0f1d746a71d597`
 - Branch: `ai-dev/211-chatgpt-artifact-transport-closure-v1`
 - Issue: [#268](https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/issues/268)
-- Implementation commit / PR / CI / merge: recorded in the final governed handoff.
+- Implementation commits: `22534c95b4ca47fafdcbaf4914114ac119881558`, `7cf9116f19df68ccea462724c70917ef5a82b167` (plus this report-evidence commit).
+- PR: [#269](https://github.com/kaochuchian-netizen/ai-quant-research-trading-platform/pull/269)
+- CI: GitHub Actions run `31659118324` PASS after the pending-registry lifecycle state was aligned with the existing governance enum; the external connector boundary remains recorded independently.
+- Merge/current main: recorded in the final post-merge handoff because it does not exist before this report is committed.
 - Starting workspace: main/origin-main `0/0`; approved runtime/generated artifacts preserved; unknown dirty paths zero.
 
 ## Capability audit
