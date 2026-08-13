@@ -11,7 +11,8 @@ IMPLEMENTED_DETERMINISTIC_QA_PASS_PENDING_CONTROLLED_RECOVERY
 - Starting main: `7577aee3dac72b9aecdf9509b9a7d17909f5519b`
 - Feature branch: `ai-dev/214-h3-provenance-runtime-hotfix`
 - Implementation commit: `bb018c9bfdc669973644eaebd7465102af6137b7`
-- Pull request, CI and merge/current main are recorded after governed completion.
+- Pull request: `#278`
+- CI and merge/current main are recorded after governed completion.
 
 ## Root Cause
 
