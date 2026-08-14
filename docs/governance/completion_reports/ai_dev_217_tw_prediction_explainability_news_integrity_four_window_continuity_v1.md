@@ -4,8 +4,11 @@
 
 - Starting main: `4525b035a5912ff58f4b73ac1a2795498cb50ffb`
 - Branch: `ai-dev/217-tw-prediction-news-continuity-v1`
-- Implementation commits: recorded in the final governance reconciliation after merge
-- PR / CI / merge main: recorded in the final governance reconciliation after merge
+- Implementation commit: `96be0945e95ff7cbebf352581b4d29139fc8c6f4`
+- Implementation PR: `#282`
+- CI: run `31819132828` — PASS (`validate-ai-branch`, 2m26s)
+- Implementation merge main: `6fcfd67047c55870b25a1bed1a4e5d5ebc3bb849`
+- Governance reconciliation: performed in a report-only follow-up PR after the implementation merge
 
 ## Root-cause audit
 
@@ -64,7 +67,19 @@ Dedicated fixture result: all checks PASS. Generated visual evidence lived only 
 - AI-DEV-207: PASS
 - Changed Python compile: PASS
 - `git diff --check`: PASS
-- Full executable registry / CI / post-merge registry: recorded after workflow completion
+- Full branch registry: PASS — 32 selected, 31 required leaves executed and passed, 1 branch-gate recursion guard, 0 failures, 0 unexplained skips
+- GitHub Actions: PASS — run `31819132828`
+- Initial post-merge registry on `6fcfd67047c55870b25a1bed1a4e5d5ebc3bb849`: PASS — 32 selected, 31 required leaves executed and passed, 1 post-merge recursion guard, 0 failures, 0 unexplained skips
+- Platform inspector: PASS — `ok=true`, main/origin ahead/behind `0/0`
+- Workspace governance: PASS — source of truth GitHub, formal workspace `stock-ai-gcp`, secret pattern hits `0`
+
+## Infrastructure recovery note
+
+During the final branch gate, public SSH admission saturated. Evidence showed `default-allow-ssh` exposed TCP/22 to `0.0.0.0/0`, repeated hostile invalid-user/pre-auth traffic, effective `MaxStartups 10:30:100` and `LoginGraceTime 120`. Both direct and IAP SSH remained unable to obtain a banner after the source range was narrowed and a full grace-period drain.
+
+The authorized recovery therefore used one GCE reset, only after daemon-level recovery proved insufficient. The existing startup metadata restored the unchanged packaged `ssh.service`; no service definition was edited. Post-recovery evidence showed `ssh.service active`, successful config validation, listener readiness and three consecutive normal public-key logins. The firewall remains restricted to the authorized workstation `/32` and the GCP IAP range rather than returning to public TCP/22 exposure.
+
+Repository integrity after recovery: feature branch and `96be0945e95ff7cbebf352581b4d29139fc8c6f4` were unchanged; preserved runtime/generated artifacts remained unstaged and were not cleaned.
 
 ## Safety
 
@@ -78,6 +93,9 @@ Dedicated fixture result: all checks PASS. Generated visual evidence lived only 
 - Secrets accessed or changed: **false**
 - Production DB written: **false**
 - Immutable archive rewritten: **false**
+- Production pipeline or controlled rerun executed: **false**
+- SSH daemon/service definitions changed: **false**
+- VM reset: **one authorized infrastructure recovery reset after direct and IAP daemon admission remained unavailable**
 
 ## Verification status
 
