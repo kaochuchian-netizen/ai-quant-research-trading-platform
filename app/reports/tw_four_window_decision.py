@@ -21,6 +21,10 @@ from app.reports.presentation_normalization import (
     safe_public_text,
 )
 from app.reports.tw_pre_open_quality import data_gaps, public_reason, technical_contract
+from app.reports.tw_prediction_explainability import (
+    post_close_quality_review,
+    project_tw_prediction_card,
+)
 from app.research.tw_production_intelligence_v2 import (
     build_prediction_snapshot as build_research_prediction_v2,
     effective_coverage as effective_research_coverage_v2,
@@ -287,6 +291,7 @@ def upgrade_pre_open_card(card: dict[str, Any], tactical: dict[str, Any] | None,
     result["prediction_snapshot_v2"] = build_research_prediction_v2(
         result, effective_date=trading_date, generated_at=result.get("generated_at") or result.get("as_of"),
     )
+    result = project_tw_prediction_card(result, "pre_open_0700", strict=True)
     result["verification_record_v1"] = verification_record(result["prediction_snapshot_v2"])
     without_hash = dict(result)
     without_hash.pop("source_payload_hash", None)
@@ -374,6 +379,8 @@ def _prediction_result(setup: dict[str, Any], actual_low: float | None, actual_h
     if None in (predicted_low, predicted_high, actual_low, actual_high):
         return "not_applicable"
     assert predicted_low is not None and predicted_high is not None and actual_low is not None and actual_high is not None
+    if predicted_low > predicted_high:
+        raise ValueError("prediction_interval_reversed")
     if actual_low <= predicted_low <= actual_high and actual_low <= predicted_high <= actual_high:
         return "hit"
     if max(predicted_low, actual_low) <= min(predicted_high, actual_high):
@@ -780,6 +787,7 @@ def build_observed_card(
         "exit": event if canonical_action == "exit" or result.get("trade_outcome") in {"win", "loss"} else None,
         "identity_status": "bound_to_source_snapshot" if source_snapshot_id else "awaiting_snapshot_admission",
     }
+    result = project_tw_prediction_card(result, window, strict=True)
     without_hash = dict(result)
     result["source_payload_hash"] = stable_hash(without_hash)
     return result
@@ -967,6 +975,7 @@ def aggregate_cards(window: str, cards: list[dict[str, Any]]) -> dict[str, Any]:
             "completed_review_count": sum(trade_distribution[key] for key in TRADE_OUTCOMES if key not in {"open_at_close", "pending_evidence"}),
             "open_at_close_count": trade_distribution["open_at_close"],
             "pending_review_count": trade_distribution["pending_evidence"], "review_universe_count": len(cards),
+            "prediction_quality_review_v1": post_close_quality_review(cards),
         })
         if sum(prediction_distribution.values()) != len(cards):
             raise ValueError("prediction_evaluation_partition_mismatch")

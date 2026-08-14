@@ -62,6 +62,7 @@ from app.reports.presentation_normalization import (
 from app.reports.canonical_outcomes import aggregate_us_post_close_review, normalize_review_card
 from app.reports.tw_pre_open_structured import aggregate as aggregate_tw_pre_open
 from app.reports.tw_pre_open_quality import data_gaps as canonical_pre_open_gaps, public_reason, public_reasons, technical_contract
+from app.reports.tw_prediction_explainability import project_tw_prediction_card
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PUBLIC_BASE_URL = "http://35.201.242.167/stock-ai-dashboard"
@@ -914,6 +915,41 @@ def _window_metric_grid(rows: list[tuple[str, Any]]) -> str:
     return '<div class="decision-plan">' + ''.join(_metric(label, value) for label, value in rows) + '</div>'
 
 
+def _tw_prediction_html(card: dict[str, Any], window: str) -> str:
+    projected = project_tw_prediction_card(card, window, strict=False)
+    prediction = projected["prediction_presentation_v1"]
+    levels = prediction["key_levels"]
+    scenario = prediction["scenario_switch"]
+    progress = prediction["intraday_prediction_status"]
+    today = prediction["today_range"]
+    confidence = prediction["confidence"]
+    direction_label = {
+        "bullish": "偏多", "bearish": "偏空", "neutral": "中性",
+        "range_bound": "區間", "insufficient_evidence": "證據不足",
+    }.get(prediction["direction"], prediction["direction"])
+    range_text = (
+        f"{safe_public_text(today.get('predicted_low'), missing='尚未建立')}–"
+        f"{safe_public_text(today.get('predicted_high'), missing='尚未建立')}"
+    )
+    confidence_text = "證據不足" if confidence["score"] is None else f"{confidence['score']:.0f}%｜{confidence['band']}"
+    research = prediction["research_view"]
+    tactical = prediction["daily_tactical"]
+    return f"""
+      <section class="decision-section tw-prediction-intelligence" data-section="prediction-intelligence" data-prediction-id="{_escape(prediction['prediction_id'])}" data-progress-status="{_escape(progress['status'])}">
+        <h4>今日短線預期</h4>
+        {_window_metric_grid([
+            ('方向 / 路徑', f"{direction_label}｜{prediction['expected_path']}"),
+            ('預測區間', range_text), ('信心', confidence_text),
+            ('支撐 / 壓力', f"{safe_public_text(levels.get('support_1'), missing='尚未建立')} / {safe_public_text(levels.get('resistance_1'), missing='尚未建立')}"),
+            ('轉強條件', scenario.get('bullish_trigger')), ('轉弱 / 失效', scenario.get('bearish_trigger')),
+            ('目前進度', f"{progress['status']}｜現價 {safe_public_text(progress.get('current_price'), missing='盤前尚無即時價')}"),
+            ('與上一時段相比', prediction.get('change_from_previous_window')),
+        ])}
+        <p class="decision-note">Research view（中長期）：{_escape(research.get('stance'))}｜Daily Tactical（今日）：{_escape(tactical.get('direction'))}｜正式交易計畫：{'是' if tactical.get('formal_trade_plan') else '否；研究型短線預期仍保留'}</p>
+      </section>
+    """
+
+
 def _tw_rre_production_html(tw_v2: dict[str, Any]) -> str:
     research = tw_v2.get("research_reasoning_projection") if isinstance(tw_v2.get("research_reasoning_projection"), dict) else {}
     if not research:
@@ -1161,6 +1197,7 @@ def _research_v3_text(presentation: dict[str, Any], key: str, fallback: str = "�
 
 def _tw_intraday_card(card: dict[str, Any]) -> str:
     card = normalize_lifecycle_card(card, "intraday_1305")
+    prediction_html = _tw_prediction_html(card, "intraday_1305")
     stock_id = card.get("symbol") or card.get("stock_id")
     stock_name = card.get("name") or card.get("stock_name")
     action = localize_tw_value(card.get("canonical_intraday_action"))
@@ -1168,6 +1205,7 @@ def _tw_intraday_card(card: dict[str, Any]) -> str:
         return f"""
         <article class="stock-card decision-card window-stock-card compact-no-trade-card" data-market="TW" data-card-type="window-intraday" data-report-type="intraday-change">
           <div class="decision-card__head"><div><div class="decision-card__market">TW｜13:05 盤中變化</div><h3>{_escape(stock_id)} {_escape(stock_name)}</h3></div><span class="decision-badge decision-badge--warn">無交易</span></div>
+          {prediction_html}
           <section class="decision-section"><h4>盤中決策</h4>{_window_metric_grid([('目前價格', safe_public_text(card.get('current_price'))), ('盤中高 / 低', f"{safe_public_text(card.get('session_high'))} / {safe_public_text(card.get('session_low'))}"), ('決策', '維持無交易'), ('原因', '07:00 未建立正式交易計畫')])}</section>
         </article>"""
     if card.get("plan_status") == "watch":
@@ -1176,11 +1214,13 @@ def _tw_intraday_card(card: dict[str, Any]) -> str:
         return f"""
         <article class="stock-card decision-card window-stock-card compact-watch-card" data-market="TW" data-card-type="window-intraday" data-report-type="intraday-change">
           <div class="decision-card__head"><div><div class="decision-card__market">TW｜13:05 盤中變化</div><h3>{_escape(stock_id)} {_escape(stock_name)}</h3></div><span class="decision-badge decision-badge--warn">觀察</span></div>
+          {prediction_html}
           <section class="decision-section"><h4>盤中觀察</h4>{_window_metric_grid([('目前價格', safe_public_text(card.get('current_price'))), ('行情證據時間', format_timestamp(card.get('market_data_as_of'), reference_value=card.get('fetched_at'))), ('Provider 更新時間', format_timestamp(card.get('fetched_at'))), ('交易所收盤時間', f"{card.get('trading_date')} 13:30 Asia/Taipei"), ('觀察區間', zone), ('正式交易計畫', '未建立'), ('等待事項', localize_tw_value(card.get('pre_entry_action'))), ('原因', safe_public_text(card.get('action_change_reason')))])}</section>
         </article>"""
     return f"""
     <article class="stock-card decision-card window-stock-card" data-market="TW" data-card-type="window-intraday" data-report-type="intraday-change">
       <div class="decision-card__head"><div><div class="decision-card__market">TW｜13:05 盤中變化</div><h3>{_escape(stock_id)} {_escape(stock_name)}</h3></div><span class="decision-badge decision-badge--ok">{_escape(action)}</span></div>
+      {prediction_html}
       <section class="decision-section" data-section="intraday-status"><h4>盤中觀察</h4>{_window_metric_grid([('目前價格', safe_public_text(card.get('current_price'))), ('行情證據時間', format_timestamp(card.get('market_data_as_of'), reference_value=card.get('fetched_at'))), ('Provider 更新時間', format_timestamp(card.get('fetched_at'))), ('交易所收盤時間', f"{card.get('trading_date')} 13:30 Asia/Taipei"), ('盤中高 / 低', f"{safe_public_text(card.get('session_high'), missing='不適用')} / {safe_public_text(card.get('session_low'), missing='不適用')}"), ('觸發狀態', localize_tw_value(card.get('trigger_status')))])}</section>
       <section class="decision-section" data-section="intraday-proximity"><h4>量價 / 目標 / 停損</h4>{_window_metric_grid([('成交量倍率', f"{float(card.get('volume_ratio')):.2f} 倍" if card.get('volume_ratio') is not None else '尚未取得'), ('量能基準', '近 20 個交易日日均量，依已經過交易時段比例折算'), ('量能狀態', localize_enum(card.get('volume_confirmation_state'))), ('目標 / 停損距離', f"{format_distance(card.get('distance_to_target_1_pct'), kind='target')}｜{format_distance(card.get('distance_to_stop_pct'), kind='stop')}"), ('盤中調整', action), ('調整原因', safe_public_text(card.get('action_change_reason')))])}</section>
     </article>
@@ -1189,12 +1229,14 @@ def _tw_intraday_card(card: dict[str, Any]) -> str:
 
 def _tw_pre_close_card(card: dict[str, Any]) -> str:
     card = normalize_lifecycle_card(card, "pre_close_1335")
+    prediction_html = _tw_prediction_html(card, "pre_close_1335")
     stock_id = card.get("symbol") or card.get("stock_id")
     stock_name = card.get("name") or card.get("stock_name")
     action = localize_tw_value(card.get("overnight_action"))
     return f"""
     <article class="stock-card decision-card window-stock-card" data-market="TW" data-card-type="window-snapshot" data-report-type="pre-close-snapshot">
       <div class="decision-card__head"><div><div class="decision-card__market">TW｜13:35 收盤快照</div><h3>{stock_id} {stock_name}</h3></div><span class="decision-badge decision-badge--warn">{_escape(action)}</span></div>
+      {prediction_html}
       <section class="decision-section" data-section="pre-close-summary"><h4>收盤前摘要</h4>{_window_metric_grid([('目前價格', safe_public_text(card.get('current_price'))), ('行情證據時間', format_timestamp(card.get('market_data_as_of'), reference_value=card.get('fetched_at'))), ('Provider 更新時間', format_timestamp(card.get('fetched_at'))), ('交易所收盤時間', f"{card.get('trading_date')} 13:30 Asia/Taipei"), ('觸發狀態', localize_tw_value(card.get('trigger_status'))), ('留倉決策', action)])}</section>
       <section class="decision-section" data-section="pre-close-risk"><h4>尾盤風險</h4>{_window_metric_grid([('風險狀態', localize_tw_value(card.get('risk_state'))), ('目標 / 停損距離', f"{format_distance(card.get('distance_to_target_1_pct'), kind='target')}｜{format_distance(card.get('distance_to_stop_pct'), kind='stop')}")])}</section>
       <section class="decision-section" data-section="next-watch"><h4>明日初步觀察</h4><p>{_escape(next_session_action(card))}</p></section>
@@ -1215,6 +1257,7 @@ def _review_result_text(tactical: dict[str, Any], review: dict[str, Any]) -> str
 
 def _tw_post_close_card(card: dict[str, Any]) -> str:
     card = normalize_lifecycle_card(card, "post_close_1500")
+    prediction_html = _tw_prediction_html(card, "post_close_1500")
     stock_id = card.get("symbol") or card.get("stock_id")
     stock_name = card.get("name") or card.get("stock_name")
     result = localize_tw_value(card.get("trade_outcome"))
@@ -1223,6 +1266,7 @@ def _tw_post_close_card(card: dict[str, Any]) -> str:
         return f"""
         <article class="stock-card decision-card window-stock-card compact-no-trade-card" data-market="TW" data-card-type="window-review" data-report-type="post-close-review">
           <div class="decision-card__head"><div><div class="decision-card__market">TW｜15:00 盤後檢討</div><h3>{stock_id} {stock_name}</h3></div><span class="decision-badge decision-badge--warn">無交易</span></div>
+          {prediction_html}
           <section class="decision-section"><h4>今日結果</h4>{_window_metric_grid([('預測區間', '不適用'), ('交易結果', '無交易'), ('明日行動', next_action_for_outcome('no_trade'))])}</section>
         </article>"""
     mfe = card.get("mfe") if isinstance(card.get("mfe"), dict) else {}
@@ -1238,6 +1282,7 @@ def _tw_post_close_card(card: dict[str, Any]) -> str:
     return f"""
     <article class="stock-card decision-card window-stock-card" data-market="TW" data-card-type="window-review" data-report-type="post-close-review">
       <div class="decision-card__head"><div><div class="decision-card__market">TW｜15:00 盤後檢討</div><h3>{stock_id} {stock_name}</h3></div><span class="decision-badge decision-badge--warn">{_escape(result)}</span></div>
+      {prediction_html}
       <section class="decision-section" data-section="prediction-review"><h4>預測與交易結果</h4>{_window_metric_grid([('預測區間', predicted_text), ('實際區間', actual_text), ('預測結果', prediction_result), ('判定原因', safe_public_text(explanation.get('reason'))), ('交易結果', trade_detail), ('明日行動', next_action_for_outcome(card.get('trade_outcome')))])}</section>
       <section class="decision-section compact-outcome-line" data-section="outcome-review"><h4>進場與邊界</h4>{_window_metric_grid([('是否進場', '已觸發' if card.get('entry_triggered') else '未觸發'), ('第一目標結果', '命中' if card.get('target_1_hit') else '未命中'), ('第二目標結果', '命中' if card.get('target_2_hit') else '未命中'), ('停損結果', '觸發' if card.get('stop_hit') else '未觸發')])}</section>
       <section class="decision-section" data-section="mfe-mae"><h4>交易歷程</h4>{_window_metric_grid([('最大有利變動', f"{float(mfe.get('pct')):+.2f}%" if isinstance(mfe.get('pct'), (int,float)) else '不適用'), ('最大不利變動', f"{float(mae.get('pct')):+.2f}%" if isinstance(mae.get('pct'), (int,float)) else '不適用'), ('基準', f"首次進場觸發價 {safe_public_text(mfe.get('reference_price'), missing='尚未取得')}"), ('行情解析度', '5 分鐘' if mfe.get('resolution') == 'minute_5' else '日內高低價'), ('今日決策歷程', timeline_text or '本批次尚未保存完整來源鏈'), ('行情證據時間', format_timestamp(card.get('market_data_as_of'), reference_value=card.get('fetched_at'))), ('Provider 更新時間', format_timestamp(card.get('fetched_at'))), ('交易所收盤時間', f"{card.get('trading_date')} 13:30 Asia/Taipei")])}</section>
@@ -1246,6 +1291,8 @@ def _tw_post_close_card(card: dict[str, Any]) -> str:
 
 
 def _tw_pre_open_structured_card(card: dict[str, Any]) -> str:
+    card = project_tw_prediction_card(card, "pre_open_0700", strict=False)
+    prediction_html = _tw_prediction_html(card, "pre_open_0700")
     symbol = card.get("symbol") or card.get("stock_id")
     name = card.get("name") or card.get("stock_name")
     availability = clean_text(card.get("availability_status"), missing="unavailable")
@@ -1286,6 +1333,7 @@ def _tw_pre_open_structured_card(card: dict[str, Any]) -> str:
       data-market="TW" data-window="pre_open_0700" data-symbol="{_escape(symbol)}"
       data-card-type="pre-open-decision-v4" data-availability="{_escape(availability)}">
       <div class="decision-card__head"><div><div class="decision-card__market">TW｜07:00 盤前決策</div><h3>{_escape(symbol)} {_escape(name)}</h3></div><span class="decision-badge decision-badge--ok">{_escape(action)}</span></div>
+      {prediction_html}
       <section class="decision-section" data-section="pre-open-action"><h4>今日行動</h4>{plan}</section>
       <section class="decision-section" data-section="pre-open-context"><h4>市場與隔夜脈絡</h4>{_window_metric_grid(context_metrics)}</section>
       <section class="decision-section news-decision-summary" data-section="news-summary"><h4>新聞決策摘要</h4>{_window_metric_grid([('新聞方向', news['direction']), ('新聞狀態', news['status']), ('主要原因', news['reason']), ('策略影響', news['strategy_impact']), ('來源品質', news['source_quality']), ('信心', news['confidence'])])}</section>
