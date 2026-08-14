@@ -14,6 +14,7 @@ from typing import Any, Iterable
 
 from .tw_pre_open_quality import public_reason
 from .tw_four_window_decision import PREDICTION_RESULTS, canonical_prediction_range_result
+from .tw_prediction_explainability import finalized_tw_news_projection
 from app.research.tw_daily_generator import (
     build_tw_daily_research,
     compact_research_lines,
@@ -137,6 +138,7 @@ def coverage_registry(card: dict[str, Any], payload: dict[str, Any], window: str
     technical = card.get("technical_data") if isinstance(card.get("technical_data"), dict) else {}
     market = payload.get("market_context") if isinstance(payload.get("market_context"), dict) else {}
     news = card.get("news_evidence") if isinstance(card.get("news_evidence"), dict) else {}
+    finalized_news = finalized_tw_news_projection(card)
     tactical = _tactical(card)
     gaps = " ".join(str(item).upper() for item in [*(card.get("data_gaps") or []), *(card.get("missing_fields") or [])])
     stale = "STALE" in gaps or _text(card.get("freshness_status") or card.get("source_freshness")).lower() == "stale"
@@ -150,7 +152,7 @@ def coverage_registry(card: dict[str, Any], payload: dict[str, Any], window: str
         "gap": (_is_available(card.get("gap_risk") or card.get("gap_state") or card.get("gap_pct")), "canonical_quote", card.get("gap_risk") or card.get("gap_state") or card.get("gap_pct")),
         "volume": (card.get("volume_ratio") is not None or _is_available(tactical.get("technical_factors", {}).get("volume_ma20") if isinstance(tactical.get("technical_factors"), dict) else None), "canonical_volume", card.get("volume_ratio") or (tactical.get("technical_factors") or {}).get("volume_ma20")),
         "event": (_text(card.get("event_risk")).lower() in {"low", "medium", "high"}, "canonical_event", card.get("event_risk")),
-        "news": (bool(news.get("primary_evidence") or news.get("admitted_evidence")), "canonical_news", news.get("primary_evidence") or news.get("admitted_evidence")),
+        "news": (finalized_news["selected_count"] > 0, "tw_finalized_news_projection_v1", finalized_news),
         "sector": (_is_available(card.get("sector_context") or card.get("sector") or market.get("sector_rotation")), "tw_sector_context", card.get("sector_context") or card.get("sector") or market.get("sector_rotation")),
         "etf": (_is_available(card.get("etf_context") or market.get("etf")) or etf_symbol, "tw_etf_context", card.get("etf_context") or market.get("etf") or ("self_etf" if etf_symbol else None)),
         "adr": (_is_available(card.get("adr_context")), "canonical_adr", card.get("adr_context")),
@@ -222,6 +224,7 @@ def _rank(rows: list[dict[str, Any]], score_key: str, rank_key: str, *, descendi
 
 def _stock_intelligence(card: dict[str, Any], payload: dict[str, Any], window: str) -> dict[str, Any]:
     coverage = coverage_registry(card, payload, window)
+    finalized_news = finalized_tw_news_projection(card)
     applicable = [item for item in coverage.values() if item["status"] != "NOT_APPLICABLE"]
     available = [item for item in applicable if item["status"] == "AVAILABLE"]
     coverage_score = round(len(available) / len(applicable) * 100, 1) if applicable else 0.0
@@ -264,6 +267,8 @@ def _stock_intelligence(card: dict[str, Any], payload: dict[str, Any], window: s
         "tomorrow_state": tomorrow_state,
         "tomorrow_state_presentation_only": True,
         "coverage": coverage, "coverage_score": coverage_score,
+        "prediction_presentation_v1": card.get("prediction_presentation_v1") if isinstance(card.get("prediction_presentation_v1"), dict) else {},
+        "finalized_tw_news_projection_v1": finalized_news,
         "opportunity_projection_score": opportunity_score, "research_projection_score": research_score, "risk_projection_score": risk_score,
         "projection_disclaimer": "排序僅供 PM 閱讀優先級，不修改既有策略排序。",
     }
@@ -410,9 +415,28 @@ def compact_tw_v2_lines(bundle: dict[str, Any]) -> list[str]:
     ranks = bundle.get("rankings") or {}
     research = bundle.get("research_reasoning_projection") if isinstance(bundle.get("research_reasoning_projection"), dict) else {}
     research_lines = compact_research_lines(research) if research else []
+    stocks = bundle.get("stock_intelligence") if isinstance(bundle.get("stock_intelligence"), list) else []
+    bearish = sorted(
+        (row for row in stocks if row.get("direction") == "bearish"),
+        key=lambda row: (-float(row.get("risk_score") or 0), str(row.get("symbol") or "")),
+    )
+    deviations = []
+    news_count = 0
+    for row in stocks:
+        presentation = row.get("prediction_presentation_v1") if isinstance(row.get("prediction_presentation_v1"), dict) else {}
+        progress = presentation.get("intraday_prediction_status") if isinstance(presentation.get("intraday_prediction_status"), dict) else {}
+        deviations.append((abs(float(progress.get("midpoint_deviation_pct") or 0)), str(row.get("symbol") or "")))
+        news_projection = row.get("finalized_tw_news_projection_v1") if isinstance(row.get("finalized_tw_news_projection_v1"), dict) else {}
+        news_count += int(news_projection.get("selected_count") or 0)
+    biggest = max(deviations, default=(0, "無"))
+    opportunity_symbols = "、".join((ranks.get("opportunity") or [])[:3]) or "無"
+    risk_symbol = str(bearish[0].get("symbol")) if bearish else "無"
+    brief = research.get("morning_or_window_brief") if isinstance(research.get("morning_or_window_brief"), dict) else {}
+    best_research = str(brief.get("best_research") or "本批次無符合研究品質門檻的標的")
+    intelligence_line = f"最佳研究：{best_research}｜方向機會：{opportunity_symbols}｜最強偏空風險：{risk_symbol}｜最大預測偏離：{biggest[1]} {biggest[0]:.1f}%｜有效新聞 {news_count}"
     return [
         research_lines[0] if research_lines else f"PM 摘要：{pm.get('one_line') or '尚未取得'}",
-        research_lines[1] if len(research_lines) > 1 else f"最大機會：{pm.get('largest_opportunity') or '尚未取得'}",
+        intelligence_line,
         research_lines[2] if len(research_lines) > 2 else f"最大風險：{pm.get('largest_risk') or '尚未取得'}",
         f"優先追蹤：{'、'.join((ranks.get('opportunity') or [])[:3]) or '無'}｜決策 {bundle.get('decision_identity') or '尚未取得'}｜預測 {bundle.get('prediction_identity') or '尚未取得'}",
     ]

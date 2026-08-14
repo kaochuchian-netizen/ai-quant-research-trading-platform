@@ -206,6 +206,8 @@ def build_prediction_snapshot(card: dict[str, Any], *, effective_date: str | Non
 
 def evaluate_prediction(snapshot: dict[str, Any], actual: dict[str, Any], *, reviewed_at: str | None = None) -> dict[str, Any]:
     low = _number((snapshot.get("range_forecast") or {}).get("low")); high = _number((snapshot.get("range_forecast") or {}).get("high"))
+    if low is not None and high is not None and low > high:
+        raise ValueError("prediction_interval_reversed")
     actual_open, actual_high = _number(actual.get("open")), _number(actual.get("high"))
     actual_low, actual_close = _number(actual.get("low")), _number(actual.get("close"))
     complete = None not in (actual_open, actual_high, actual_low, actual_close)

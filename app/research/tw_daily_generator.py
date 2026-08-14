@@ -12,6 +12,8 @@ from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from typing import Any
 
+from app.reports.tw_prediction_explainability import finalized_tw_news_projection
+
 from app.research.tw_production_intelligence_v2 import effective_coverage, instrument_context, technical_evidence
 
 from .projection import MODEL_BOUNDARY, build_research_reasoning_projection
@@ -172,7 +174,8 @@ def _card_evidence(card: dict[str, Any], market_time: str) -> list[dict[str, Any
 
     news = card.get("news_evidence") if isinstance(card.get("news_evidence"), dict) else {}
     news_conf = news.get("confidence") if isinstance(news.get("confidence"), dict) else {}
-    admitted_news = [item for item in (news.get("evidence") or []) if isinstance(item, dict)]
+    finalized_news = finalized_tw_news_projection(card)
+    admitted_news = [*finalized_news["selected_items"], *finalized_news["context_items"]]
     for item in admitted_news[:3]:
         headline = _text(item.get("headline"))
         if not headline:
@@ -191,6 +194,7 @@ def _card_evidence(card: dict[str, Any], market_time: str) -> list[dict[str, Any
                 materiality=_text(item.get("materiality"), "medium"), research_role="contextual",
             ))
             continue
+        role = str(item.get("research_role") or "contextual")
         rows.append(_record(
             market_time=market_time, symbol=symbol, evidence_class="news",
             source=_text(item.get("publisher"), "canonical_news"),
@@ -199,6 +203,7 @@ def _card_evidence(card: dict[str, Any], market_time: str) -> list[dict[str, Any
             reliability=max(.3, min(1.0, float(item.get("source_tier") or 4) and (1.05 - float(item.get("source_tier") or 4) * .15))),
             published_at=item.get("published_at"), reference=item.get("source_url"),
             materiality=_text(item.get("materiality"), "medium"),
+            research_role=role,
         ))
 
     dimensions = (
@@ -391,7 +396,12 @@ def build_tw_daily_research(
 ) -> dict[str, Any]:
     if window not in WINDOWS:
         raise ValueError(f"unsupported TW research window: {window}")
+    # A projection must never mutate the admitted canonical cards. Repeated
+    # Dashboard builds must produce identical source/public hashes.
+    cards = [dict(card) for card in cards if isinstance(card, dict)]
     generated = _iso(payload.get("generated_at") or payload.get("effective_batch_time"), "2026-01-01T00:00:00+08:00")
+    for card in cards:
+        card["finalized_tw_news_projection_v1"] = finalized_tw_news_projection(card)
     evidence = {_symbol(card): _card_evidence(card, generated) for card in cards}
     triggers: dict[str, dict[str, str]] = {}
     for card in cards:
