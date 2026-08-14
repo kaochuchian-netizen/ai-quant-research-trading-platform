@@ -82,7 +82,7 @@ def production_builder_path_checks() -> tuple[dict[str, bool], dict[str, object]
         "production_build_for_symbol_runtime": built["schema_version"] == "us_research_intelligence_v1",
         "production_attribution_retained": material["items"][0]["entity_attribution"] == expected_attribution,
         "production_nested_provenance_retained": (
-            projected_item["entity_attribution"].get("contract_version") == "us_entity_subject_resolution_v4"
+            projected_item["entity_attribution"].get("contract_version") == "us_entity_subject_resolution_v5"
             and projected_item["entity_attribution"].get("attribution_reason")
             == expected_attribution.get("attribution_reason")
         ),
@@ -177,7 +177,7 @@ def validate() -> dict:
     projection = finalized_current_news_projection(bundle(selected("news-googl", "Google Pixel and Gemini", attr)))
     checks["case_j_finalized_attribution_present"] = (
         projection["schema_version"] == "finalized_current_news_projection_v3"
-        and projection["selected_items"][0]["entity_attribution"]["contract_version"] == "us_entity_subject_resolution_v4"
+        and projection["selected_items"][0]["entity_attribution"]["contract_version"] == "us_entity_subject_resolution_v5"
         and not validate_entity_attribution_contract(projection["selected_items"][0]["entity_attribution"]))
     filtered = finalized_current_news_projection(bundle(None, admitted=0, used=0, rendered=0,
         absence="NEWS_DISCOVERED_BUT_FILTERED", reasons={"MARKET_ROUNDUP_NOT_COMPANY_EVIDENCE": 1}))

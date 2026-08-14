@@ -30,21 +30,35 @@ KNOWN_US_ENTITIES = {
     "ABT": ("abt", "abbott", "abbott laboratories"),
     "TSM": ("tsm", "tsmc", "taiwan semiconductor"),
     "ASML": ("asml",), "VZ": ("verizon",), "LMT": ("lockheed", "lockheed martin"),
+    "MSFT": ("msft", "microsoft"), "AMZN": ("amzn", "amazon"),
+    "PLTR": ("pltr", "palantir"), "ASTS": ("asts", "ast spacemobile"),
+    "RKLB": ("rklb", "rocket lab"), "ANTHROPIC": ("anthropic",),
 }
 
 MARKET_ROUNDUP_MARKERS = (
     "stocks in focus", "names to watch", "stocks to watch", "on watch",
     "market roundup", "markets move", "market movers", "top stocks",
     "in focus", "these stocks", "s&p", "nasdaq", "dow jones",
+    "feature highlights", "featured stocks", "featured names", "top picks",
+    "investment ideas", "investor picks", "stocks include", "basket of stocks",
 )
 MACRO_REACTION_MARKERS = (
     "cpi", "inflation", "fed", "rate hike", "rate cut", "interest rates",
     "payrolls", "jobs report", "treasury yields", "market selloff", "market rally",
 )
-MATERIAL_RELATIONSHIP_MARKERS = (
-    "partners with", "partnership", "teams up", "collaboration", "agreement",
-    "contract", "supplier", "customer", "capacity", "supply deal", "joint venture",
-    "acquires", "acquisition", "invests in", "investment",
+MATERIAL_RELATIONSHIP_PATTERNS = (
+    (r"\bpartners? with\b|\bpartnership\b", "partnership"),
+    (r"\bteams? up with\b", "teams_up"),
+    (r"\bcollaborat(?:es?|ion)\b", "collaboration"),
+    (r"\b(?:signs?|signed) (?:an? )?(?:commercial )?agreement\b", "agreement"),
+    (r"\b(?:wins?|awards?|signs?) (?:an? )?contract\b|\bcontract with\b", "contract"),
+    (r"\bsuppl(?:y|ies|ier)\b", "supplier"),
+    (r"\bcustomer(?:s)?\b", "customer"),
+    (r"\bsupply deal\b", "supply_deal"),
+    (r"\bjoint venture\b|\bjv\b", "joint_venture"),
+    (r"\bacquires?\b|\bacquisition of\b", "acquisition"),
+    (r"\binvests? in\b|\bstrategic investment in\b|\bequity stake in\b|\bownership interest in\b", "strategic_investment"),
+    (r"\bcapacity (?:agreement|expansion|commitment|equipment|supply)\b", "capacity"),
 )
 TICKER_STOPWORDS = {"AI", "CPI", "ETF", "CEO", "CFO", "IPO", "US", "USA"}
 
@@ -64,11 +78,19 @@ def _headline_tickers(title: str) -> set[str]:
     }
 
 
+def _material_relationship(title_lower: str) -> str | None:
+    return next((name for pattern, name in MATERIAL_RELATIONSHIP_PATTERNS if re.search(pattern, title_lower)), None)
+
+
 def _comparative_reference(title_lower: str, aliases: Iterable[str]) -> bool:
     target = "(?:" + "|".join(re.escape(value) for value in aliases) + ")"
+    comparison = r"(?:above|over|top(?:s|ping|ped)?|surpass(?:es|ed)?|exceed(?:s|ed)?|more than|higher than)"
     patterns = (
         rf"\b(?:chase|chases|follow|follows|copy|copies)\b.+\b{target}\b.+\b(?:playbook|model|strategy)\b",
         rf"\b(?:like|versus|vs\.?|compared with|compared to)\b.+\b{target}\b",
+        rf"\b(?:valuation|worth|market value)\b.+\b{comparison}\b.+\b{target}\b",
+        rf"\b{comparison}\b.+\b{target}\b.+\b(?:valuation|worth|market value)\b",
+        rf"\b(?:benchmark(?:ed)?|comparison)\b.+\b(?:against|with|to)\b.+\b{target}\b",
     )
     return any(re.search(pattern, title_lower) for pattern in patterns)
 
@@ -105,7 +127,7 @@ def _entity_attribution(item: dict[str, Any], *, symbol: str, title: str, summar
     roundup = any(marker in title_lower for marker in MARKET_ROUNDUP_MARKERS)
     macro_reaction = any(marker in title_lower for marker in MACRO_REACTION_MARKERS)
     comparative = bool(title_matches) and _comparative_reference(title_lower, aliases)
-    relationship = next((marker for marker in MATERIAL_RELATIONSHIP_MARKERS if marker in title_lower), None)
+    relationship = _material_relationship(title_lower)
     multi_ticker = len(related) >= 3 or len(competing) >= 2
     if comparative:
         accepted, attribution_class, framing_class = False, "COMPARATIVE_REFERENCE", "COMPARATIVE_REFERENCE"
@@ -122,7 +144,7 @@ def _entity_attribution(item: dict[str, Any], *, symbol: str, title: str, summar
     elif title_matches and competing and relationship:
         accepted, attribution_class, framing_class = True, "MATERIAL_CO_SUBJECT", "MATERIAL_RELATIONSHIP_EVENT"
         reason, method = "MATERIAL_RELATIONSHIP_CO_SUBJECT", "title_relationship_structure"
-        primary_subject, relationship_type = target, relationship.replace(" ", "_")
+        primary_subject, relationship_type = target, relationship
     elif title_matches and not competing:
         accepted, attribution_class, framing_class = True, "PRIMARY_SUBJECT", "PRIMARY_COMPANY_EVENT"
         reason, method = "PRIMARY_SUBJECT_TITLE_MATCH", "explicit_title_entity_match"
@@ -148,7 +170,7 @@ def _entity_attribution(item: dict[str, Any], *, symbol: str, title: str, summar
         "target_symbol": target, "matched_aliases": sorted(set(title_matches + summary_matches)),
         "provider_related_tickers": sorted(related), "competing_primary_symbols": sorted(competing),
         "competing_entities": sorted(competing),
-        "contract_version": "us_entity_subject_resolution_v4",
+        "contract_version": "us_entity_subject_resolution_v5",
         "attribution_class": attribution_class,
         "attribution_reason": reason,
         "matched_entities": sorted(set(matched_entities)),
@@ -191,6 +213,20 @@ def validate_entity_attribution_contract(value: dict[str, Any]) -> list[str]:
         errors.append("material_relationship_frame_mismatch")
     if accepted and not value.get("reason"):
         errors.append("accepted_without_reason")
+    return sorted(set(errors))
+
+
+def validate_entity_attribution_semantics(
+    item: dict[str, Any], *, symbol: str, title: str, summary: str, attribution: dict[str, Any]
+) -> list[str]:
+    """Recompute subject resolution so internally consistent semantic mutations fail."""
+    expected = _entity_attribution(item, symbol=symbol, title=title, summary=summary)
+    fields = (
+        "accepted", "attribution_class", "reason_code", "framing_class",
+        "relationship_type", "primary_subject", "competing_entities",
+    )
+    errors = [f"semantic_mismatch:{field}" for field in fields if attribution.get(field) != expected.get(field)]
+    errors.extend(validate_entity_attribution_contract(attribution))
     return sorted(set(errors))
 
 
