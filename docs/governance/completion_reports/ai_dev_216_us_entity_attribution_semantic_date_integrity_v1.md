@@ -8,10 +8,10 @@
 
 - Starting main: `fc5d88ad4658829a689c17ff0071ca945d237e25`
 - Branch: `ai-dev/216-us-semantic-date-closure`
-- Implementation commit: `3200392`
+- Implementation commits: `3200392`, `3d7eb26`, `c7692d9`, `215836f`
 - Pull request: `#280`
-- CI: GitHub Actions run `31785439780` PASS
-- Merge/current main: pending post-merge reconciliation
+- CI: GitHub Actions runs `31785439780` and final `31785652135` PASS
+- Primary merge/current main before this governance reconciliation: `1f8cd268f312ebeadff7f26490666d5e2772a7ac`
 
 ## Root causes
 
