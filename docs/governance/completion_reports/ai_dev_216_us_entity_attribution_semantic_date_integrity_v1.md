@@ -9,7 +9,7 @@
 - Starting main: `fc5d88ad4658829a689c17ff0071ca945d237e25`
 - Branch: `ai-dev/216-us-semantic-date-closure`
 - Implementation commit: `3200392`
-- Pull request: pending
+- Pull request: `#280`
 - CI: pending
 - Merge/current main: pending post-merge reconciliation
 
@@ -63,7 +63,7 @@ It also executes the production-shaped `material_news()` → `build_for_symbol()
 
 ## Validation
 
-Final command matrix and registry selected/executed counts are populated by the PR and post-merge completion evidence. The dedicated AI-DEV-216, AI-DEV-214, hardened H3 and H2 gates pass before PR. Real Chromium CJK/PDF regression completed through H2 without renderer changes.
+Executable branch registry: PASS; selected 31, executed leaf validators 30, recursion guard 1, failures 0, unexplained skips 0. The dedicated AI-DEV-216, AI-DEV-214, hardened H3 and H2 gates pass. Real Chromium CJK/PDF regression completed through H2 without renderer changes.
 
 ## Safety
 
