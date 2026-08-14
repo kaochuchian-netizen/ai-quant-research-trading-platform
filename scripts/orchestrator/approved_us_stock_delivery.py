@@ -368,9 +368,32 @@ def _compact_us_email_block(card: dict[str, Any], window: str) -> str:
         return "\n".join(lines)
     return decision_email_block_v2(presentation)
 
+def canonical_delivery_date(artifact: dict[str, Any]) -> str:
+    """Return the canonical market date; execution time is metadata only."""
+    value = str(artifact.get("effective_trading_date") or "").strip()
+    if value:
+        return value
+    session = artifact.get("session_context") if isinstance(artifact.get("session_context"), dict) else {}
+    return str(session.get("session_date") or artifact.get("generated_at", "")[:10])
+
+
+def validate_delivery_date_contract(artifact: dict[str, Any], *, admitted: bool = True) -> list[str]:
+    errors: list[str] = []
+    canonical = str(artifact.get("effective_trading_date") or "").strip()
+    if admitted and not canonical:
+        errors.append("missing_canonical_effective_trading_date")
+    if canonical and canonical_delivery_date(artifact) != canonical:
+        errors.append("canonical_delivery_date_mismatch")
+    return errors
+
+
+def build_email_subject(artifact: dict[str, Any], window: str) -> str:
+    return f"{EMAIL_SUBJECTS[window]} {canonical_delivery_date(artifact)}"
+
+
 def build_email_body(artifact: dict[str, Any], window: str) -> str:
     contract = get_window_report_contract("US", window)
-    date = artifact.get("generated_at", "")[:10]
+    date = canonical_delivery_date(artifact)
     cards = [card for card in artifact.get("dashboard_ready_contract", {}).get("cards", []) if isinstance(card, dict)]
     projection = project_decision_intelligence_v4("US", window, artifact)
     projection_summary = compact_summary(projection, "email") if window != "us_post_close_review_0630" else "預測評估與交易結果分開呈現；不以區間命中宣稱交易命中。"
@@ -501,8 +524,7 @@ def send_email_if_allowed(artifact: dict[str, Any], window: str, production_appr
     if env_file.exists():
         load_env_file(env_file)
     config = load_mail_config()
-    date = artifact.get("generated_at", "")[:10]
-    msg: EmailMessage = build_message(config, f"{EMAIL_SUBJECTS[window]} {date}", build_email_body(artifact, window))
+    msg: EmailMessage = build_message(config, build_email_subject(artifact, window), build_email_body(artifact, window))
     send_message(config, msg)
     return {"attempted": True, "succeeded": True, "secret_values_printed": False}
 
@@ -547,6 +569,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     try:
         artifact = build_runtime_artifact(args.window, dry_run=not production_approved, reference=batch_reference, live_data=args.live_data, production_artifact=production_artifact)
         artifact["generated_at"] = started.isoformat()
+        canonical_trading_date = batch_reference.astimezone(NEW_YORK).date().isoformat()
+        artifact["effective_trading_date"] = canonical_trading_date
         if args.manual_rerun and (production_approved or production_artifact):
             runtime_provenance = RuntimeProvenance.MANUAL_RERUN.value
         elif production_approved or production_artifact:
@@ -558,6 +582,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         artifact["runtime_provenance"] = runtime_provenance
         artifact["provenance_source"] = "approved_us_stock_delivery_cli_contract"
         artifact["run_kind"] = "manual_rerun" if args.manual_rerun else "scheduled" if runtime_provenance == RuntimeProvenance.SCHEDULED_PRODUCTION.value else runtime_provenance
+        date_contract_errors = validate_delivery_date_contract(artifact)
+        if date_contract_errors:
+            raise ValueError("delivery_date_contract:" + ",".join(date_contract_errors))
         admission = provenance_admission(artifact, run_kind=artifact["run_kind"])
         persist_formal_runtime = admission["admitted"] and runtime_provenance in ADMITTED_PROVENANCE
         out_path = WINDOW_OUTPUTS[args.window]
@@ -572,7 +599,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 WINDOW_SNAPSHOT_ARCHIVE,
                 market="US",
                 window=args.window,
-                effective_trading_date=batch_reference.astimezone(NEW_YORK).date().isoformat(),
+                effective_trading_date=canonical_trading_date,
                 generated_at=started.isoformat(),
                 source_payload=artifact,
                 status="completed",
@@ -626,7 +653,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             result_name = "sent" if delivery.get("succeeded") else "failed" if attempted else "suppressed" if "suppress" in str(delivery.get("reason") or "") else "not_attempted"
             provenance = build_delivery_provenance(
                 market="US", window=args.window,
-                trading_date=batch_reference.astimezone(NEW_YORK).date().isoformat(),
+                trading_date=canonical_trading_date,
                 snapshot=latest_snapshot, canonical_url=get_window_report_contract("US", args.window).dashboard_url,
                 channel=channel, content=content, delivery_result=result_name,
                 delivery_attempted=attempted, recipient_count=int(delivery.get("recipient_count") or 0),
@@ -640,7 +667,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             provenance_results[channel] = result_name
         operations_provenance = build_operations_provenance(
             market="US", window=args.window, runtime_status="completed",
-            runtime_trading_date=batch_reference.astimezone(NEW_YORK).date().isoformat(),
+            runtime_trading_date=canonical_trading_date,
             snapshot=latest_snapshot, public_sync=public_latest_sync,
             email_result=provenance_results.get("email", "not_attempted"),
             line_result=provenance_results.get("line", "not_attempted"),
