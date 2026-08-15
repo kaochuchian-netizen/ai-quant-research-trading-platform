@@ -34,6 +34,7 @@ DEFAULT_ALLOWED_PATHS = [
     "scripts/orchestrator/",
     "scripts/governance/",
     "config/governance/",
+    "config/nginx/",
     ".github/workflows/ai_dev_validation.yml",
     "app/trading/",
     "app/us_stock/",
