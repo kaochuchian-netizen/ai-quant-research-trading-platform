@@ -218,15 +218,22 @@ Or manually remove only the block between:
 
 Then reload nginx and verify the public healthz route no longer reports ready.
 
-## Persistence Warning
+## Persistent nginx source ownership
 
-If the Dify/nginx container is recreated from a template that overwrites `default.conf`, rerun:
+The Dify nginx container renders `/etc/nginx/conf.d/default.conf` from the bind-mounted host source:
+
+`/home/kaochuchian/dify/docker/nginx/conf.d/default.conf.template`
+
+The repository-governed API contract is `config/nginx/manual_rerun_api_proxy_v1.conf`. Apply it to both the persistent template and active config, then validate an actual container recreation:
 
 ```bash
-python3 scripts/orchestrator/deploy_manual_rerun_runtime_route_v1.py --apply --pretty
+python3 scripts/orchestrator/deploy_manual_rerun_nginx_persistence_v1.py --apply --recreate --pretty
 python3 scripts/orchestrator/deploy_manual_rerun_bridge_service_v1.py --apply --pretty
 python3 scripts/orchestrator/validate_manual_rerun_runtime_persistent_deployment_v1.py --pretty
+python3 scripts/orchestrator/validate_ai_dev_217_manual_rerun_nginx_persistence_v1.py
 ```
+
+The exact and prefix API locations must remain before `location ^~ /stock-ai-dashboard/`; otherwise the static alias will return nginx 404 without reaching the bridge. The proxy does not own PIN validation or task admission.
 
 ## Safety Boundaries
 
