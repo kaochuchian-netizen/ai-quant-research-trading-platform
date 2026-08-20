@@ -63,6 +63,7 @@ from app.reports.canonical_outcomes import aggregate_us_post_close_review, norma
 from app.reports.tw_pre_open_structured import aggregate as aggregate_tw_pre_open
 from app.reports.tw_pre_open_quality import data_gaps as canonical_pre_open_gaps, public_reason, public_reasons, technical_contract
 from app.reports.tw_prediction_explainability import project_tw_prediction_card
+from app.reports.tw_preopen_product_intelligence import portfolio_summary as tw_preopen_product_summary
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PUBLIC_BASE_URL = "http://35.201.242.167/stock-ai-dashboard"
@@ -950,6 +951,43 @@ def _tw_prediction_html(card: dict[str, Any], window: str) -> str:
     """
 
 
+def _tw_preopen_product_html(card: dict[str, Any]) -> str:
+    product = card.get("tw_preopen_product_intelligence_v1") if isinstance(card.get("tw_preopen_product_intelligence_v1"), dict) else {}
+    if not product:
+        return _tw_prediction_html(card, "pre_open_0700")
+    news_rows = []
+    for item in (product.get("important_news") or [])[:3]:
+        news_rows.append(
+            f'<li style="margin:0 0 .75rem"><strong>{_escape(item.get("headline"))}</strong>'
+            f'<div>{_escape(item.get("summary"))}</div>'
+            f'<small>影響：{_escape(item.get("expected_impact"))}｜來源：{_escape(item.get("publisher") or "已驗證來源")}</small></li>'
+        )
+    news_html = (
+        f'<ul class="preopen-important-news" style="margin:.75rem 0 0;padding-left:1.25rem">{"".join(news_rows)}</ul>'
+        if news_rows
+        else f'<p class="decision-note">{_escape(product.get("news_message"))}</p>'
+    )
+    direction = f'{product.get("direction_label")} {product.get("direction_arrow")}'
+    return f"""
+      <section class="decision-section tw-preopen-product-intelligence"
+        data-section="tw-preopen-product-intelligence"
+        data-projection-id="{_escape(product.get('projection_id'))}"
+        data-today-direction="{_escape(product.get('today_direction'))}"
+        style="border:1px solid #334155;border-radius:14px;padding:1rem;background:linear-gradient(135deg,#0f172a,#172554)">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.75rem;margin-bottom:1rem">
+          <div><small>今日方向</small><div style="font-size:1.65rem;font-weight:800">{_escape(direction)}</div></div>
+          <div><small>目標價</small><div style="font-size:1.65rem;font-weight:800">{_escape(format_optional_price(product.get('target_price')))}</div></div>
+          <div><small>預測區間</small><div style="font-size:1.3rem;font-weight:750">{_escape(format_optional_price(product.get('predicted_low')))} ～ {_escape(format_optional_price(product.get('predicted_high')))}</div></div>
+          <div><small>目前／基準價</small><div style="font-size:1.3rem;font-weight:750">{_escape(format_optional_price(product.get('reference_price')))}</div></div>
+        </div>
+        <h4>今日判斷</h4>
+        <p style="font-size:1.05rem;line-height:1.65">{_escape(product.get('daily_thesis'))}</p>
+        <h4>今日重要消息</h4>
+        {news_html}
+        <p class="decision-note">今日行動：{_escape((product.get('decision') or {}).get('action') or "待確認")}。預測目標不等於交易停利或委託價格。</p>
+      </section>
+    """
+
 def _tw_rre_production_html(tw_v2: dict[str, Any]) -> str:
     research = tw_v2.get("research_reasoning_projection") if isinstance(tw_v2.get("research_reasoning_projection"), dict) else {}
     if not research:
@@ -1292,7 +1330,7 @@ def _tw_post_close_card(card: dict[str, Any]) -> str:
 
 def _tw_pre_open_structured_card(card: dict[str, Any]) -> str:
     card = project_tw_prediction_card(card, "pre_open_0700", strict=False)
-    prediction_html = _tw_prediction_html(card, "pre_open_0700")
+    prediction_html = _tw_preopen_product_html(card)
     symbol = card.get("symbol") or card.get("stock_id")
     name = card.get("name") or card.get("stock_name")
     availability = clean_text(card.get("availability_status"), missing="unavailable")
@@ -1362,7 +1400,15 @@ def render_tw_window_report(window: str, artifact: dict[str, Any] | None = None)
         if cards and not summary.get("coverage"):
             summary = aggregate_tw_pre_open(cards, [str(card.get("symbol") or card.get("stock_id")) for card in cards])
         groups = summary.get("groups", {}) if isinstance(summary.get("groups"), dict) else {}
+        product_summary = tw_preopen_product_summary(cards)
+        direction_counts = product_summary.get("counts") or {}
+        priority_text = "；".join(
+            f"{row.get('symbol')} {row.get('name')} — {row.get('direction_label')} — 目標 {format_optional_price(row.get('target_price'))}"
+            for row in product_summary.get("priority") or []
+        ) or "尚未建立"
+        product_summary_html = f'<div class="decision-plan pre-open-product-summary"><h3>今日盤前總覽</h3><p>偏多：{direction_counts.get("BULLISH", 0)}｜偏空：{direction_counts.get("BEARISH", 0)}｜盤整：{direction_counts.get("SIDEWAYS", 0)}</p><p>優先關注：{_escape(priority_text)}</p></div>'
         body = "".join(_tw_pre_open_structured_card(card) for card in cards if isinstance(card, dict))
+        body = product_summary_html + body
         if not body:
             body = '<article class="status-card warn official-pre-open-empty-state"><h3>正式盤前決策尚未建立</h3><p>本批次沒有通過 admission 的 structured payload；不沿用舊資料，不使用範例資料。</p></article>'
         return f"""

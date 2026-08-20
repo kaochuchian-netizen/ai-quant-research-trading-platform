@@ -44,6 +44,41 @@ def _number(value: Any) -> float | None:
     return result if math.isfinite(result) else None
 
 
+def _prediction_point_forecast(
+    direction: str,
+    current: float | None,
+    low: float | None,
+    high: float | None,
+    ma5: float | None,
+    ma10: float | None,
+) -> dict[str, Any]:
+    """Prediction-owned point forecast; never a trade target or level alias."""
+    if None in (current, low, high) or low > high:
+        return {}
+    if direction == "bullish":
+        price, method = high, "directional_range_upper_v1"
+        inputs = {"reference_price": current, "atr_range_upper": high}
+    elif direction == "bearish":
+        price, method = low, "directional_range_lower_v1"
+        inputs = {"reference_price": current, "atr_range_lower": low}
+    elif ma5 is not None and ma10 is not None:
+        equilibrium = (ma5 + ma10) / 2
+        price, method = max(low, min(high, equilibrium)), "ma5_ma10_equilibrium_v1"
+        inputs = {"ma5": ma5, "ma10": ma10, "range_low": low, "range_high": high}
+    else:
+        return {}
+    return {
+        "price": round(float(price), 4),
+        "method": method,
+        "owner": "tw_prediction_engine",
+        "horizon": "today",
+        "is_execution_target": False,
+        "is_support": False,
+        "is_resistance": False,
+        "provenance": inputs,
+    }
+
+
 def _hash(value: Any, prefix: str) -> str:
     raw = json.dumps(value, ensure_ascii=False, sort_keys=True, default=str, separators=(",", ":"))
     return prefix + hashlib.sha256(raw.encode("utf-8")).hexdigest()[:24]
@@ -156,6 +191,7 @@ def build_prediction_snapshot(card: dict[str, Any], *, effective_date: str | Non
         atr = None if high is None or low is None else max(high - low, current * .005)
     ma5, ma10 = _number(factors.get("ma5")), _number(factors.get("ma10"))
     available = bars >= MIN_PREDICTION_BARS and current is not None and atr is not None and atr > 0
+    point_forecast: dict[str, Any] = {}
     if not available:
         direction = "insufficient_data"
         regime = "insufficient_data"
@@ -171,6 +207,7 @@ def build_prediction_snapshot(card: dict[str, Any], *, effective_date: str | Non
             direction = "neutral"
         regime = "trend_continuation" if direction != "neutral" else "range"
         low, high = round(current - atr, 4), round(current + atr, 4)
+        point_forecast = _prediction_point_forecast(direction=direction, current=current, low=low, high=high, ma5=ma5, ma10=ma10)
         completeness = min(1.0, bars / FULL_TECHNICAL_BARS)
         confidence = round(35 + 30 * completeness + (5 if ma5 is not None and ma10 is not None else 0), 2)
         reason = None
@@ -188,6 +225,8 @@ def build_prediction_snapshot(card: dict[str, Any], *, effective_date: str | Non
         "generated_at": generated, "method_version": PREDICTION_METHOD,
         "prediction_status": "evaluable" if available else "insufficient_data",
         "direction_forecast": direction, "range_forecast": {"low": low, "high": high, "interval_width": None if low is None or high is None else round(high - low, 4), "method": "latest_close_plus_minus_atr14"},
+        "reference_price": current,
+        "point_forecast": point_forecast,
         "regime_forecast": regime, "setup_forecast": {"class": "not_estimated", "probability": None, "reason": "no validated probability model"},
         "confidence": confidence, "confidence_method": "data_sufficiency_and_ma_alignment_v1" if available else None,
         "reason_code": reason, "research_identity": research_identity, "evidence_identity": evidence_identity,
