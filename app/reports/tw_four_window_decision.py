@@ -25,6 +25,7 @@ from app.reports.tw_prediction_explainability import (
     post_close_quality_review,
     project_tw_prediction_card,
 )
+from app.reports.tw_preopen_product_intelligence import project_tw_preopen_product
 from app.research.tw_production_intelligence_v2 import (
     build_prediction_snapshot as build_research_prediction_v2,
     effective_coverage as effective_research_coverage_v2,
@@ -292,6 +293,8 @@ def upgrade_pre_open_card(card: dict[str, Any], tactical: dict[str, Any] | None,
         result, effective_date=trading_date, generated_at=result.get("generated_at") or result.get("as_of"),
     )
     result = project_tw_prediction_card(result, "pre_open_0700", strict=True)
+    if result["prediction_snapshot_v2"].get("prediction_status") == "evaluable":
+        result = project_tw_preopen_product(result, strict=True)
     result["verification_record_v1"] = verification_record(result["prediction_snapshot_v2"])
     without_hash = dict(result)
     without_hash.pop("source_payload_hash", None)

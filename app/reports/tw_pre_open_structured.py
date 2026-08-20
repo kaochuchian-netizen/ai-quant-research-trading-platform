@@ -15,6 +15,7 @@ from app.reports.presentation_normalization import (
 )
 from app.reports.tw_four_window_decision import canonical_news_direction, localize, sanitize_text, upgrade_pre_open_card
 from app.reports.tw_pre_open_quality import market_confidence, news_contract
+from app.reports.tw_preopen_product_intelligence import render_line as render_product_line
 
 WINDOW = "pre_open_0700"
 MARKET = "TW"
@@ -301,6 +302,11 @@ def render_email(payload: dict[str, Any], url: str) -> str:
 
 
 def render_line(payload: dict[str, Any], url: str) -> str:
+    product_cards = [
+        card for card in payload.get("structured_pre_open_cards", []) if isinstance(card, dict)
+    ]
+    if product_cards and all(isinstance(card.get("tw_preopen_product_intelligence_v1"), dict) for card in product_cards):
+        return render_product_line(product_cards, url)
     summary=payload.get("pre_open_summary") or aggregate(payload.get("structured_pre_open_cards",[]),payload.get("tracking_symbols",[]))
     if not summary.get("coverage"):
         summary=aggregate(payload.get("structured_pre_open_cards",[]),payload.get("tracking_symbols",[]) or [str(card.get("symbol") or card.get("stock_id")) for card in payload.get("structured_pre_open_cards",[])])
