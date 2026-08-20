@@ -8,8 +8,10 @@ IMPLEMENTED_DETERMINISTIC_QA_PASS_PENDING_CONTROLLED_VERIFICATION
 
 - Starting main: `3658192320d454fad5e17d8de839c8d6a30d21bd`
 - Branch: `ai-dev/218a-tw-preopen-product-intelligence-v1`
-- Implementation commit: pending
-- Pull request / CI / merge: pending final governance workflow
+- Implementation commit: `d431237`
+- Pull request: #285
+- CI: run `32380579450` PASS
+- Merge/current main: `964fcc821439e856aef232d99a2994a92467b673`
 
 ## Root causes
 
@@ -50,7 +52,7 @@ The dedicated validator exercises real Playwright Chromium rendering, full-page 
 - Python compile / JSON registry / diff check: PASS
 - AI-DEV-202 and AI-DEV-217 prediction lineage regressions: PASS
 - Full branch registry: PASS (34 selected; 33 executed leaves PASS; 1 recursion guard; 0 failures; 0 unexplained skips)
-- CI and post-merge registry: pending workflow completion
+- CI and post-merge registry: PASS (34 selected; 33 executed leaves PASS; 1 recursion guard; 0 failures; 0 unexplained skips)
 
 ## Safety
 
