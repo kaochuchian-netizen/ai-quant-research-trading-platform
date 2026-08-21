@@ -53,12 +53,27 @@ def _format_price(value: float) -> str:
     return f"{value:,.2f}".rstrip("0").rstrip(".")
 
 
+def _display_publisher(item: dict[str, Any]) -> tuple[str | None, str | None]:
+    candidates = (
+        item.get("underlying_publisher"), item.get("original_publisher"),
+        item.get("publisher"), item.get("source_name"), item.get("provider"),
+    )
+    values = [str(value).strip() for value in candidates if str(value or "").strip()]
+    publisher = next((value for value in values if "google news" not in value.lower()), None)
+    discovery = str(item.get("discovery_channel") or item.get("source_id") or "").strip() or None
+    if publisher:
+        return publisher, discovery
+    if any("google news" in value.lower() for value in values) or "google" in str(discovery or "").lower():
+        return "Google News RSS（原始來源未解析）", "GOOGLE_NEWS_RSS"
+    return None, discovery
+
+
 def _important_news(news: dict[str, Any], symbol: str) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for item in news.get("selected_items") or []:
         if not isinstance(item, dict):
             continue
-        raw_tier = item.get("source_tier") or item.get("source_class") or 4
+        raw_tier = item.get("tw_news_tier") or item.get("source_tier") or item.get("source_class") or 4
         try:
             tier = int(raw_tier)
         except (TypeError, ValueError):
@@ -68,46 +83,100 @@ def _important_news(news: dict[str, Any], symbol: str) -> list[dict[str, Any]]:
         headline = str(item.get("headline") or item.get("title") or "").strip()
         if not headline:
             continue
-        summary = str(
-            item.get("summary")
-            or item.get("materiality_reason")
-            or item.get("relevance_reason")
-            or "此事件具個股或產業關聯，納入今日情境判斷。"
-        ).strip()
+        publisher, discovery_channel = _display_publisher(item)
+        summary = str(item.get("summary") or item.get("materiality_reason") or item.get("relevance_reason") or "此事件具個股或產業關聯，納入今日情境判斷。").strip()
         direction = str(item.get("direction") or "unavailable").lower()
-        impact = "偏多" if direction == "bullish" else "偏空" if direction == "bearish" else "中性/風險"
-        rows.append(
-            {
-                "evidence_id": item.get("evidence_id") or item.get("news_id") or item.get("id"),
-                "headline": headline,
-                "summary": summary,
-                "expected_impact": impact,
-                "direction": direction,
-                "source_tier": tier,
-                "publisher": item.get("publisher") or item.get("source_name"),
-                "published_at": item.get("published_at") or item.get("timestamp"),
-                "source_url": item.get("source_url") or item.get("url"),
-                "attribution_provenance": {
-                    "symbol": symbol,
-                    "subject_contract": item.get("subject_contract"),
-                    "projection_source": "tw_finalized_news_projection_v1",
-                },
-            }
-        )
+        impact = "偏多" if direction == "bullish" else "偏空風險" if direction == "bearish" else "中性/風險"
+        attribution = deepcopy(item.get("entity_attribution") or item.get("subject_contract") or {})
+        rows.append({
+            "news_id": item.get("news_id") or item.get("evidence_id") or item.get("id"),
+            "evidence_id": item.get("evidence_id") or item.get("news_id") or item.get("id"),
+            "headline": headline, "title": headline, "summary": summary,
+            "expected_impact": impact, "direction": direction, "source_tier": tier,
+            "publisher": publisher, "source_display": publisher,
+            "discovery_channel": discovery_channel,
+            "published_at": item.get("published_at") or item.get("timestamp"),
+            "source_url": item.get("source_url") or item.get("url"),
+            "materiality": item.get("materiality"),
+            "selection_reason": item.get("selection_reason") or item.get("classification_reason") or "FINALIZED_CURRENT_NEWS_SELECTED",
+            "attribution_provenance": {
+                "symbol": symbol, "subject_contract": attribution,
+                "projection_source": "tw_finalized_news_projection_v1",
+            },
+        })
     return rows[:3]
 
 
-def _news_message(news: dict[str, Any], selected: list[dict[str, Any]]) -> str:
+def _news_funnel(news: dict[str, Any]) -> dict[str, Any]:
+    source_funnel = news.get("source_funnel") if isinstance(news.get("source_funnel"), dict) else {}
+    stages = source_funnel.get("stages") if isinstance(source_funnel.get("stages"), dict) else {}
+    counts = news.get("news_counts") if isinstance(news.get("news_counts"), dict) else {}
+    retrieved = int(counts.get("retrieved") or stages.get("RETRIEVED") or 0)
+    qualified = int(counts.get("qualified") or counts.get("screened") or 0)
+    selected = int(counts.get("selected") or news.get("selected_count") or 0)
+    rejections = deepcopy(news.get("rejection_reasons") or source_funnel.get("rejection_reasons") or {})
+    labels = {
+        "SYMBOL_ATTRIBUTION_FAILED": "相關性不足", "LOW_RELEVANCE": "相關性不足",
+        "LOW_MATERIALITY": "重大性不足", "LOW_SOURCE_QUALITY": "來源品質不足",
+        "TIER4_SENTIMENT_RESTRICTED": "來源品質不足", "STALE": "時效不足",
+        "OUTSIDE_WINDOW": "時效不足", "INSUFFICIENT_PROVENANCE": "來源資訊不足",
+        "DUPLICATE": "重複消息",
+    }
+    public: dict[str, int] = {}
+    for code, count in rejections.items():
+        label = labels.get(str(code), str(code))
+        public[label] = public.get(label, 0) + int(count or 0)
+    return {
+        "retrieved_count": retrieved, "screened_count": qualified,
+        "qualified_count": qualified, "selected_count": selected,
+        "not_selected_count": max(0, retrieved - selected),
+        "rejection_reasons": rejections,
+        "public_rejection_reasons": dict(sorted(public.items())),
+        "count_semantics": source_funnel.get("count_semantics") or "EXACT",
+    }
+
+
+def validate_news_funnel_contract(funnel: dict[str, Any], selected_news: list[dict[str, Any]]) -> list[str]:
+    errors: list[str] = []
+    retrieved = int(funnel.get("retrieved_count") or 0)
+    qualified = int(funnel.get("qualified_count") or 0)
+    selected = int(funnel.get("selected_count") or 0)
+    if min(retrieved, qualified, selected) < 0:
+        errors.append("negative_news_funnel_count")
+    if qualified > retrieved:
+        errors.append("news_qualified_exceeds_retrieved")
+    if selected > qualified:
+        errors.append("news_selected_exceeds_qualified")
+    if selected != len(selected_news):
+        errors.append("news_selected_projection_count_mismatch")
+    if len(selected_news) > 3:
+        errors.append("primary_news_limit_exceeded")
+    for item in selected_news:
+        if not item.get("news_id"):
+            errors.append("selected_news_missing_identity")
+        if not item.get("headline"):
+            errors.append("selected_news_missing_title")
+        if not item.get("publisher"):
+            errors.append("selected_news_missing_source")
+        if not item.get("source_url"):
+            errors.append("selected_news_missing_provenance")
+        if not (item.get("attribution_provenance") or {}).get("subject_contract"):
+            errors.append("selected_news_missing_attribution")
+    return sorted(set(errors))
+
+
+def _news_message(news: dict[str, Any], selected: list[dict[str, Any]], funnel: dict[str, Any]) -> str:
     if selected:
         return f"已選出 {len(selected)} 則足以影響今日情境判斷的重要消息。"
     state = str(news.get("state") or news.get("status") or "NO_RELEVANT").upper()
+    retrieved = funnel["retrieved_count"]
     if state == "RETRIEVAL_FAILED":
-        return "新聞來源取得失敗；目前無法判定是否沒有重大消息。"
+        return "新聞來源取得失敗，目前無法判定是否沒有重大消息；此狀態不等於今日沒有重大新聞。"
     if state == "STALE_ONLY":
-        return "目前僅取得過期消息，未納入今日判斷。"
+        return f"已取得 {retrieved} 則消息，但僅有過期內容，未納入今日判斷。"
     if state == "DISCOVERED_BUT_FILTERED":
-        return "有取得消息，但未通過個股相關性、品質或重大性門檻。"
-    return "目前未取得足以改變今日判斷的重大消息。"
+        return f"已取得 {retrieved} 則新聞，但目前沒有通過相關性、品質與重大性門檻的消息。"
+    return f"已取得 {retrieved} 則候選消息，目前未找到與本標的足夠相關的當期重大新聞。"
 
 
 def project_tw_preopen_product(card: dict[str, Any], *, strict: bool = True) -> dict[str, Any]:
@@ -146,11 +215,8 @@ def project_tw_preopen_product(card: dict[str, Any], *, strict: bool = True) -> 
         errors.append("confidence_semantic_aliasing")
     news = projected.get("finalized_tw_news_projection_v1") or {}
     selected_news = _important_news(news, str(projected.get("symbol") or projected.get("stock_id") or ""))
-    if len(selected_news) > 3:
-        errors.append("primary_news_limit_exceeded")
-    for item in selected_news:
-        if not (item.get("attribution_provenance") or {}).get("subject_contract"):
-            errors.append("selected_news_missing_attribution")
+    news_funnel = _news_funnel(news)
+    errors.extend(validate_news_funnel_contract(news_funnel, selected_news))
     if errors and strict:
         raise ValueError("|".join(sorted(set(errors))))
 
@@ -190,11 +256,14 @@ def project_tw_preopen_product(card: dict[str, Any], *, strict: bool = True) -> 
         "thesis_version": "tw_preopen_daily_thesis_v1",
         "important_news": selected_news,
         "news_state": news.get("state"),
-        "news_message": "新聞來源取得失敗，目前無法判定是否存在重大消息。" if source_retrieval_failed and not selected_news else _news_message(news, selected_news),
+        "news_funnel": news_funnel,
+        "news_message": _news_message(news, selected_news, news_funnel),
         "news_diagnostics": {
             "source_funnel": deepcopy(news.get("source_funnel") or {}),
             "reason_code": news.get("reason_code"),
-            "retrieval_failed": source_retrieval_failed or str(news.get("state") or news.get("status") or news.get("reason_code") or "").upper() == "RETRIEVAL_FAILED",
+            "retrieval_failed": bool((news.get("retrieval_status") or {}).get("failed")) or source_retrieval_failed,
+            "retrieval_status": deepcopy(news.get("retrieval_status") or {}),
+            "rejection_reasons": deepcopy(news_funnel.get("rejection_reasons") or {}),
         },
         "decision": {
             "action": projected.get("action") or projected.get("decision"),
@@ -257,8 +326,10 @@ def render_line(cards: list[dict[str, Any]], url: str) -> str:
                 f"區間 {_format_price(product.get('predicted_low'))}～{_format_price(product.get('predicted_high'))}",
             ]
         )
+        funnel = product.get("news_funnel") or {}
+        lines.append(f"新聞：抓取 {funnel.get('retrieved_count', 0)}｜可用 {funnel.get('selected_count', 0)}")
         for item in (product.get("important_news") or [])[:2]:
-            lines.append(f"• {item.get('headline')}（{item.get('expected_impact')}）")
+            lines.append(f"• {item.get('headline')}｜{item.get('publisher')}｜{item.get('expected_impact')}")
         lines.append("")
     lines.extend([url, "僅供研究參考，非交易指令。"])
     return "\n".join(lines)

@@ -955,36 +955,55 @@ def _tw_preopen_product_html(card: dict[str, Any]) -> str:
     product = card.get("tw_preopen_product_intelligence_v1") if isinstance(card.get("tw_preopen_product_intelligence_v1"), dict) else {}
     if not product:
         return _tw_prediction_html(card, "pre_open_0700")
+    funnel = product.get("news_funnel") if isinstance(product.get("news_funnel"), dict) else {}
     news_rows = []
     for item in (product.get("important_news") or [])[:3]:
+        time_text = format_timestamp(item.get("published_at"), timezone_name="Asia/Taipei") if item.get("published_at") else "時間未標示"
         news_rows.append(
-            f'<li style="margin:0 0 .75rem"><strong>{_escape(item.get("headline"))}</strong>'
-            f'<div>{_escape(item.get("summary"))}</div>'
-            f'<small>影響：{_escape(item.get("expected_impact"))}｜來源：{_escape(item.get("publisher") or "已驗證來源")}</small></li>'
+            f'<li style="margin:0 0 .85rem;color:#0f172a"><strong style="color:#020617">{_escape(item.get("headline"))}</strong>'
+            f'<div style="color:#334155;line-height:1.55">{_escape(item.get("summary"))}</div>'
+            f'<small style="color:#334155">來源：{_escape(item.get("publisher"))}｜{_escape(time_text)}｜影響：{_escape(item.get("expected_impact"))}</small></li>'
         )
     news_html = (
         f'<ul class="preopen-important-news" style="margin:.75rem 0 0;padding-left:1.25rem">{"".join(news_rows)}</ul>'
         if news_rows
-        else f'<p class="decision-note">{_escape(product.get("news_message"))}</p>'
+        else f'<p class="decision-note" style="color:#334155">{_escape(product.get("news_message"))}</p>'
+    )
+    reasons = funnel.get("public_rejection_reasons") if isinstance(funnel.get("public_rejection_reasons"), dict) else {}
+    reason_text = "｜".join(f"{label} {count}" for label, count in reasons.items()) or "無"
+    rejection_html = (
+        f'<p class="decision-note" style="color:#475569">其他未採用：{int(funnel.get("not_selected_count") or 0)} 則<br>主要原因：{_escape(reason_text)}</p>'
+        if int(funnel.get("not_selected_count") or 0) else ""
     )
     direction = f'{product.get("direction_label")} {product.get("direction_arrow")}'
+    direction_color = {
+        "BULLISH": "#166534", "BEARISH": "#b91c1c", "SIDEWAYS": "#334155",
+    }.get(str(product.get("today_direction")), "#334155")
     return f"""
       <section class="decision-section tw-preopen-product-intelligence"
         data-section="tw-preopen-product-intelligence"
         data-projection-id="{_escape(product.get('projection_id'))}"
         data-today-direction="{_escape(product.get('today_direction'))}"
-        style="border:1px solid #334155;border-radius:14px;padding:1rem;background:linear-gradient(135deg,#0f172a,#172554)">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.75rem;margin-bottom:1rem">
-          <div><small>今日方向</small><div style="font-size:1.65rem;font-weight:800">{_escape(direction)}</div></div>
-          <div><small>目標價</small><div style="font-size:1.65rem;font-weight:800">{_escape(format_optional_price(product.get('target_price')))}</div></div>
-          <div><small>預測區間</small><div style="font-size:1.3rem;font-weight:750">{_escape(format_optional_price(product.get('predicted_low')))} ～ {_escape(format_optional_price(product.get('predicted_high')))}</div></div>
-          <div><small>目前／基準價</small><div style="font-size:1.3rem;font-weight:750">{_escape(format_optional_price(product.get('reference_price')))}</div></div>
+        data-primary-background="#f8fafc"
+        data-primary-foreground="#0f172a"
+        style="border:1px solid #94a3b8;border-radius:14px;padding:1rem;background:linear-gradient(135deg,#f8fafc,#eef2ff);color:#0f172a">
+        <div class="preopen-product-core" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.75rem;margin-bottom:1rem">
+          <div><small style="color:#475569">今日方向</small><div style="font-size:1.65rem;font-weight:800;color:{direction_color}">{_escape(direction)}</div></div>
+          <div><small style="color:#475569">目標價</small><div style="font-size:1.65rem;font-weight:800;color:#020617">{_escape(format_optional_price(product.get('target_price')))}</div></div>
+          <div><small style="color:#475569">預測區間</small><div style="font-size:1.3rem;font-weight:750;color:#020617">{_escape(format_optional_price(product.get('predicted_low')))} ～ {_escape(format_optional_price(product.get('predicted_high')))}</div></div>
+          <div><small style="color:#475569">目前／基準價</small><div style="font-size:1.3rem;font-weight:750;color:#020617">{_escape(format_optional_price(product.get('reference_price')))}</div></div>
         </div>
-        <h4>今日判斷</h4>
-        <p style="font-size:1.05rem;line-height:1.65">{_escape(product.get('daily_thesis'))}</p>
-        <h4>今日重要消息</h4>
+        <h4 style="color:#0f172a">今日判斷</h4>
+        <p style="font-size:1.05rem;line-height:1.65;color:#1e293b">{_escape(product.get('daily_thesis'))}</p>
+        <h4 style="color:#0f172a">今日重要消息</h4>
+        <div class="preopen-news-funnel" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.5rem;margin:.5rem 0 .75rem">
+          <div style="background:#e2e8f0;border-radius:8px;padding:.55rem;color:#0f172a"><small style="color:#475569">新聞抓取</small><strong style="display:block">{int(funnel.get('retrieved_count') or 0)} 則</strong></div>
+          <div style="background:#e2e8f0;border-radius:8px;padding:.55rem;color:#0f172a"><small style="color:#475569">通過篩選</small><strong style="display:block">{int(funnel.get('qualified_count') or 0)} 則</strong></div>
+          <div style="background:#e2e8f0;border-radius:8px;padding:.55rem;color:#0f172a"><small style="color:#475569">可用於今日判斷</small><strong style="display:block">{int(funnel.get('selected_count') or 0)} 則</strong></div>
+        </div>
         {news_html}
-        <p class="decision-note">今日行動：{_escape((product.get('decision') or {}).get('action') or "待確認")}。預測目標不等於交易停利或委託價格。</p>
+        {rejection_html}
+        <p class="decision-note" style="color:#475569">今日行動：{_escape((product.get('decision') or {}).get('action') or "待確認")}。預測目標不等於交易停利或委託價格。</p>
       </section>
     """
 

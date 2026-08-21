@@ -103,6 +103,7 @@ def _browser_render(
     pdf: Path,
     *,
     timeout_ms: int,
+    viewport: dict[str, int] | None = None,
 ) -> dict[str, Any]:
     """Render the final route with a real headless Chromium browser."""
     try:
@@ -137,7 +138,7 @@ def _browser_render(
             except Exception as exc:  # pragma: no cover - environment failure
                 raise RuntimeError("BROWSER_START_FAILED") from exc
             try:
-                page = browser.new_page(viewport=VIEWPORT)
+                page = browser.new_page(viewport=viewport or VIEWPORT)
                 response = page.goto(source.resolve().as_uri(), wait_until="networkidle", timeout=timeout_ms)
                 if response is not None and not response.ok:
                     raise RuntimeError(f"PAGE_HTTP_ERROR:{response.status}")

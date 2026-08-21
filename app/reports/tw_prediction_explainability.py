@@ -26,6 +26,10 @@ ETF_EVENT_MARKERS = {
     "distribution": ("配息", "股息", "收益分配"),
     "index_exposure": ("指數", "cpi", "市場曝險"),
 }
+RETRIEVAL_FAILURE_CODES = {
+    "RETRIEVAL_FAILED", "TIMEOUT", "UPSTREAM_ERROR", "PARSER_ERROR",
+    "HTTP_ERROR", "RATE_LIMITED", "ENCODING_ERROR", "SOURCE_UNAVAILABLE",
+}
 
 
 def _number(value: Any) -> float | None:
@@ -106,14 +110,28 @@ def finalized_tw_news_projection(card: dict[str, Any]) -> dict[str, Any]:
     funnel = news.get("evidence_funnel") if isinstance(news.get("evidence_funnel"), dict) else {}
     stages = dict(funnel.get("stages") or {})
     retrieval = news.get("retrieval") if isinstance(news.get("retrieval"), dict) else {}
-    retrieval_failed = bool(retrieval.get("failure_reason")) and not raw
+    retrieval_reason = str(
+        retrieval.get("failure_reason")
+        or news.get("reason_code")
+        or news.get("absence_state")
+        or ""
+    ).upper()
+    retrieval_failed = retrieval_reason in RETRIEVAL_FAILURE_CODES and not raw
     stale = len(classified) - len(current)
-    selected = institutional[:3]
+    screened = [
+        item for item in current
+        if int(item["tw_news_tier"]) <= 3
+        and str(item.get("relevance") or "medium").lower() in {"medium", "high", "critical"}
+        and str(item.get("materiality") or "medium").lower() in {"medium", "high", "critical"}
+    ]
+    selected = [item for item in institutional if item in screened][:3]
+    retrieved = max(int(stages.get("RETRIEVED") or retrieval.get("result_count_raw") or 0), len(raw))
+    discovered = max(int(stages.get("DISCOVERED") or retrieval.get("result_count_discovered") or 0), retrieved)
     state = (
         "AVAILABLE" if selected else
         "RETRIEVAL_FAILED" if retrieval_failed else
         "STALE_ONLY" if stale and stale == len(classified) else
-        "DISCOVERED_BUT_FILTERED" if int(stages.get("DISCOVERED") or 0) else
+        "DISCOVERED_BUT_FILTERED" if discovered or retrieved else
         "NO_RELEVANT"
     )
     direction_items = [item for item in selected if item.get("can_establish_research_direction")]
@@ -126,6 +144,21 @@ def finalized_tw_news_projection(card: dict[str, Any]) -> dict[str, Any]:
         "selected_items": selected,
         "context_items": contextual,
         "selected_count": len(selected),
+        "news_counts": {
+            "discovered": discovered,
+            "retrieved": retrieved,
+            "screened": len(screened),
+            "qualified": len(screened),
+            "selected": len(selected),
+        },
+        "rejection_reasons": deepcopy(funnel.get("rejection_reasons") or {}),
+        "retrieval_status": {
+            "failed": retrieval_failed,
+            "reason_code": retrieval_reason or None,
+            "sources_attempted": deepcopy(retrieval.get("sources_attempted") or []),
+            "sources_succeeded": deepcopy(retrieval.get("sources_succeeded") or []),
+            "sources_failed": deepcopy(retrieval.get("sources_failed") or []),
+        },
         "context_count": len(contextual),
         "directional_count": len(direction_items),
         "bullish_count": sum(item.get("direction") == "bullish" for item in direction_items),
