@@ -625,6 +625,8 @@ def _us_window_card(card: dict[str, Any], window: str) -> str:
         state = "主要交易機會" if eligibility.get("top_opportunity") else "僅觀察" if eligibility.get("watch_only") else "暫不交易"
         reason_labels = {
             "PREMARKET_DATA_UNAVAILABLE_OR_STALE": "盤前行情尚未取得或已過舊", "RR_BELOW_THRESHOLD": "報酬風險比未達門檻",
+            "PREMARKET_SESSION_NOT_STARTED": "尚未進入美股盤前資料可用時段",
+            "PREMARKET_DATA_NOT_YET_AVAILABLE": "尚未進入美股盤前資料可用時段",
             "LOW_CONFIDENCE": "信心偏低", "DIRECTION_NOT_BULLISH": "方向尚未轉為偏多", "SETUP_NOT_STABILIZED": "尚未止穩",
             "CHASE_RISK_HIGH": "追價風險偏高", "EVENT_RISK_HIGH": "事件風險偏高",
         }
@@ -634,12 +636,21 @@ def _us_window_card(card: dict[str, Any], window: str) -> str:
         change = f"{float(pre['change']):+.2f}（{float(pre['change_pct']):+.2f}%）" if isinstance(pre.get("change"), (int, float)) and isinstance(pre.get("change_pct"), (int, float)) else "尚未取得"
         forecast = card.get("us_premarket_product_projection_v1") or {}
         news_product = card.get("us_news_product_projection_v1") or {}
+        availability = ((card.get("session_context") or {}).get("session_availability") or {})
+        if availability.get("state") == "PREMARKET_SESSION_NOT_STARTED":
+            off_session_note = "<p class='decision-note'>尚未進入美股盤前資料可用時段；此狀態不是新聞或行情來源取得失敗。</p>"
+            reasons = "尚未進入美股盤前資料可用時段"
+        elif availability.get("state") == "OFF_SESSION_VERIFICATION":
+            off_session_note = "<p class='decision-note'>目前為美股非交易時段的 controlled verification；行情 absence 不視為來源取得失敗。</p>"
+            reasons = "美股非交易時段，僅驗證產品與既有證據"
+        else:
+            off_session_note = ""
         direction_label = {"BULLISH": "偏多 ↑", "BEARISH": "偏空 ↓", "SIDEWAYS": "盤整 ↔"}.get(forecast.get("direction"), "盤整 ↔")
         selected_news_html = "".join(f"<li><strong>{_escape(item.get('headline') or item.get('english_headline'))}</strong><br>{_escape(item.get('publisher') or '原始來源未解析')}｜{_escape(item.get('published_at') or '時間未標示')}｜{_escape(item.get('direction_status') or 'NOT_EVALUATED')}</li>" for item in (news_product.get("selected_items") or [])[:3]) or f"<li>{_escape(news_product.get('state_label') or '目前沒有通過門檻的當期消息')}</li>"
         return f"""
         <article class="stock-card decision-card window-stock-card" data-market="US" data-card-type="window-premarket" data-contract-card-type="us-pre-market-v4" data-report-type="{report_type}">
           <div class="decision-card__head"><div><div class="decision-card__market">US｜20:00 美股盤前｜盤前決策</div><h3>{symbol} {name}</h3></div><span class="decision-badge {'decision-badge--ok' if active else 'decision-badge--warn'}">{_escape(state)}</span></div>
-          <section class="decision-section us-product-intelligence" data-section="us-premarket-product"><h4>今日盤前判斷</h4>{_window_metric_grid([('方向', direction_label), ('盤前／基準價', forecast.get('reference_price')), ('預測目標', forecast.get('target_price')), ('預測區間', f"{forecast.get('predicted_low')} ～ {forecast.get('predicted_high')}")])}<h4>今日重要消息</h4><p>新聞抓取 {news_product.get('retrieved_count', 0)}｜通過篩選 {news_product.get('qualified_count', 0)}｜可用於判斷 {news_product.get('selected_count', 0)}</p><ul>{selected_news_html}</ul></section>
+          <section class="decision-section us-product-intelligence" data-section="us-premarket-product"><h4>今日盤前判斷</h4>{_window_metric_grid([('方向', direction_label), ('預測目標', forecast.get('target_price')), ('預測區間', f"{forecast.get('predicted_low')} ～ {forecast.get('predicted_high')}"), ('盤前／基準價', forecast.get('reference_price'))])}<p><strong>短評：</strong>{_escape(forecast.get('short_judgment') or '預測資料不足，暫不推導價格情境。')}</p>{off_session_note}<h4>今日重要消息</h4><p>新聞抓取 {news_product.get('retrieved_count', 0)}｜通過篩選 {news_product.get('qualified_count', 0)}｜可用於判斷 {news_product.get('selected_count', 0)}</p><ul>{selected_news_html}</ul><h4>今日行動</h4><p>{_escape(state)}｜{_escape(reasons)}</p></section>
           <section class="decision-section" data-section="premarket-observed"><h4>盤前實際行情</h4>{_window_metric_grid([('盤前價格', pre.get('price')), ('前收', pre.get('previous_close')), ('盤前漲跌', change), ('Gap', gap), ('資料時間', format_timestamp(pre.get('timestamp'), timezone_name='America/New_York')), ('資料來源', pre.get('source')), ('資料狀態', localize_enum(pre.get('availability'))), ('相對 QQQ', f"{float(relative['vs_qqq_pp']):+.2f} 個百分點" if isinstance(relative.get('vs_qqq_pp'), (int, float)) else '尚未取得'), ('相對 SOXX', f"{float(relative['vs_sector_pp']):+.2f} 個百分點" if isinstance(relative.get('vs_sector_pp'), (int, float)) else '尚未取得')])}</section>
           <section class="decision-section" data-section="premarket-eligibility"><h4>行動資格</h4>{_window_metric_grid([('目前狀態', state), ('交易方向', localize_enum(card.get('direction'))), ('策略型態', safe_public_text(card.get('setup_type'))), ('市場方向衝突', '是' if card.get('market_conflict') else '否'), ('進場條件就緒', '是' if eligibility.get('entry_ready') else '否'), ('主要交易機會', '是' if eligibility.get('top_opportunity') else '否'), ('信心', tactical.get('confidence')), ('報酬風險比', plan.get('reward_risk')), ('事件風險', localize_enum(event.get('canonical_level'))), ('行動理由', safe_public_text(card.get('action_rationale'))), ('原因', reasons)])}</section>
           <section class="decision-section" data-section="premarket-plan"><h4>{'正式交易計畫' if active else '觀察與重新評估'}</h4>{_window_metric_grid([(entry_label, format_price_range(plan.get('entry') if active else plan.get('observation_zone'))), ('Stop 停損', f"{float(plan['stop']):.2f}" if active and isinstance(plan.get('stop'), (int, float)) else '不建立'), ('Target 目標', format_price_range(plan.get('target')) if active else '不建立'), ('失效條件', plan.get('invalidation_condition') if active else '不適用'), ('重新評估條件', plan.get('reassessment_condition'))])}</section>
@@ -696,7 +707,7 @@ def render_us_window_report(window: str, artifacts: list[dict[str, Any]]) -> str
         "us_post_close_review_0630": "us-post-close-review",
     }[window]
     intro = {
-        "us_pre_market_2000": "Premarket、Gap、SPY / QQQ / 類股脈絡與 Entry / Stop / Target。",
+        "us_pre_market_2000": "方向、預測目標、預測區間、短評、新聞漏斗與今日行動；Entry / Stop / execution Target 為次要執行資訊。",
         "us_intraday_2300": "開盤後變化、Gap follow-through、Volume confirmation、Entry trigger 與 Target / Stop proximity。",
         "us_post_close_review_0630": "Prediction review、Entry / Stop / Target outcome、MFE / MAE 與 next-session watchlist。",
     }[window]
@@ -1052,809 +1063,50 @@ def _tw_rre_production_html(tw_v2: dict[str, Any]) -> str:
             <summary>{_escape(note.get('research_summary'))}</summary>
             <div class="decision-details__body">
               {_window_metric_grid([
-                  ('公司脈絡', context),
-                  ('支持證據', supporting),
-                  ('反對證據', opposing),
-                  ('市場／技術脈絡', contextual),
-                  ('未知／缺口', missing_values),
-                  ('新聞狀態', news_state),
-                  ('新聞證據鏈', f"發現 {news_stages.get('DISCOVERED', 0)}｜納入 {news_stages.get('ADMITTED', 0)}｜推理 {news_stages.get('RRE_USED', 0)}｜呈現 {news_stages.get('RENDERED', 0)}"),
-                  ('研究假設', hypothesis.get('statement')),
-                  ('獨立預測快照', prediction_text),
-                  ('預測識別碼', prediction.get('prediction_identity')),
-                  ('成立條件', hypothesis.get('expected_trigger')),
-                  ('失效條件', hypothesis.get('invalidation')),
-                  ('如果判斷錯誤', note.get('counter_argument')),
-              ])}
-            </div>
-          </details>
-        """)
-    return f"""
-      <section class="decision-section tw-rre-production" data-research-identity="{_escape(research.get('production_research_identity'))}" data-prediction-identity="{_escape(tw_v2.get('prediction_identity'))}">
-        <h3>{_escape(brief.get('label') or '研究摘要')}</h3>
-        <p>{_escape(brief.get('market_narrative'))}</p>
-        {_window_metric_grid([
-            ('最佳研究', brief.get('best_research')),
-            ('最大研究風險', brief.get('largest_research_risk')),
-            ('下一個研究問題', brief.get('next_question')),
-            ('研究識別碼', research.get('production_research_identity')),
-        ])}
-        <h3>逐股機構研究筆記</h3>
-        {''.join(note_html)}
-        <p class="decision-note">研究由 RRE V1 產生；Decision Layer 僅讀取研究內容，未修改策略、評分、排序、預測或交易行動。</p>
-      </section>
-    """
-
-
-def _decision_intelligence_v4_html(market: str, window: str, payload: dict[str, Any] | None) -> str:
-    projection = project_decision_intelligence_v4(market, window, payload)
-    tw_v2 = projection.get("tw_decision_intelligence_v2") if isinstance(projection.get("tw_decision_intelligence_v2"), dict) else {}
-    canonical = projection.get("canonical_decision_summary") if isinstance(projection.get("canonical_decision_summary"), dict) else {}
-    confidence = canonical.get("confidence_explanation") if isinstance(canonical.get("confidence_explanation"), dict) else {}
-    transition = canonical.get("change_from_previous_window") if isinstance(canonical.get("change_from_previous_window"), dict) else {}
-    why_items = canonical.get("why") if isinstance(canonical.get("why"), list) else []
-    missing = canonical.get("missing_data_impact") if isinstance(canonical.get("missing_data_impact"), dict) else {}
-    why_html = "".join(f"<li>{_escape(item)}</li>" for item in why_items[:4]) or "<li>本批次未提供可追溯 evidence；不補造原因。</li>"
-    score = canonical.get("confidence")
-    score_text = "尚未取得" if score is None else f"{float(score):.1f}"
-    story_html = f"""
-      <section class="decision-section canonical-decision-story" data-summary-hash="{_escape(canonical.get('canonical_summary_hash'))}">
-        <h4>本批次決策故事</h4>
-        {_window_metric_grid([
-            ('目前判斷', canonical.get('current_view')),
-            ('目前行動', canonical.get('current_action')),
-            ('信心', f"{score_text}｜{confidence.get('explanation') or '本批次未提供信心解釋'}"),
-            ('相較上一時段', f"{transition.get('public_label') or '當日尚無上一正式時段'}｜{transition.get('reason') or '沒有可安全引用的上一時段決策'}"),
-            ('下一觸發', canonical.get('next_trigger')),
-        ])}
-        <h4>主要依據</h4><ul>{why_html}</ul>
-        <p class="decision-note">資料缺口：{int(missing.get('count') or 0)} 項；缺資料不視為中性證據。</p>
-      </section>
-    """
-    counts = projection["counts"]
-    labels = {
-        "total": "標的數", "top_opportunities": "主要交易機會", "no_trade": "暫不交易",
-        "chase_risk": "追價風險", "entry_ready": "進場條件就緒", "triggered": "已觸發",
-        "invalidated": "已失效", "still_actionable": "仍可行動", "volume_confirmed": "量能確認",
-        "failed_gaps": "Gap 失效", "direction_hit": "方向命中", "reviewed": "檢討卡",
+             …50939 tokens truncated…else "not_applicable",
+        "missed_opportunity_candidate": missed_opportunity,
+        "trigger_too_strict_candidate": missed_opportunity,
+        "evidence_quality_insufficient": bool(base.get("missing_evidence")),
+        "auto_threshold_change": False, "auto_learning": False,
     }
-    count_fields = {
-        "pre_open_0700": ("total", "top_opportunities", "no_trade", "chase_risk", "entry_ready"),
-        "intraday_1305": ("total", "triggered", "invalidated", "still_actionable", "volume_confirmed"),
-        "pre_close_1335": ("total", "still_actionable", "no_trade", "chase_risk"),
-        "post_close_1500": ("total", "reviewed", "direction_hit"),
-        "us_pre_market_2000": ("total", "top_opportunities", "chase_risk", "entry_ready"),
-        "us_intraday_2300": ("total", "triggered", "failed_gaps", "volume_confirmed", "still_actionable", "chase_risk"),
-        "us_post_close_review_0630": ("total", "reviewed", "direction_hit"),
-    }[window]
-    metric_rows = [(labels[key], counts[key]) for key in count_fields]
-    if window in {"post_close_1500", "us_post_close_review_0630"}:
-        dist = projection["outcome_distribution"]
-        metric_rows = [
-            ("命中", int(dist.get("hit", 0))), ("失敗", int(dist.get("fail", 0))),
-            ("未觸發", int(dist.get("not_triggered", 0))), ("無交易", int(dist.get("no_trade", 0))),
-            ("待確認", int(dist.get("pending", 0))), ("已完成檢討", counts["reviewed"]),
-        ]
-    lists = projection["lists"]
-    canonical_intraday_groups: dict[str, Any] = {}
-    if window == "us_intraday_2300":
-        canonical_summary = payload.get("intraday_summary") if isinstance(payload, dict) and isinstance(payload.get("intraday_summary"), dict) else {}
-        canonical_intraday_groups = canonical_summary.get("groups") if isinstance(canonical_summary.get("groups"), dict) else {}
-        if canonical_intraday_groups:
-            metric_rows = [
-                ("標的數", int(canonical_summary.get("tracking_count") or 0)),
-                ("20:00 正式計畫", int(canonical_summary.get("active_plan_count") or 0)),
-                ("觀察", int(canonical_summary.get("watch_only_count") or 0)),
-                ("暫不交易", int(canonical_summary.get("no_trade_count") or 0)),
-                ("已失效", int(canonical_summary.get("invalidated_count") or 0)),
-                ("仍可行動", int(canonical_summary.get("still_actionable_count") or 0)),
-            ]
-            lists = {
-                "opportunities": canonical_intraday_groups.get("top_opportunity") or [],
-                "invalidated": canonical_intraday_groups.get("invalidated") or [],
-                "still_actionable": canonical_intraday_groups.get("still_actionable") or [],
-            }
-        else:
-            metric_rows = [("標的數", int(canonical_summary.get("tracking_count") or counts.get("total") or 0)), ("20:00 計畫綁定", "本批次資料未提供")]
-            lists = {}
-    list_rows = []
-    for key, label in (("opportunities", "主要交易機會"), ("triggered", "已觸發"), ("invalidated", "已失效"), ("volume_confirmed", "量價確認"), ("failed_gaps", "Gap 失效"), ("event_risk", "事件風險"), ("still_actionable", "仍可行動"), ("no_trade", "暫不交易"), ("chase_risk", "追價風險")):
-        values = lists.get(key, [])
-        if values:
-            list_rows.append((label, "、".join(str(item) for item in values[:5])))
-    if not list_rows:
-        list_rows.append(("資料狀態", "目前 payload 沒有可安全分類的明細；不跨 window 補值。"))
-    distribution_rows = []
-    if window in {"post_close_1500", "us_post_close_review_0630"}:
-        outcome_labels = {"hit": "命中", "fail": "失敗", "not_triggered": "未觸發", "no_trade": "無交易", "pending": "待確認"}
-        distribution_rows.extend((outcome_labels[key], value) for key, value in projection["outcome_distribution"].items() if key in outcome_labels)
-    else:
-        confidence_labels = {"high": "高信心", "medium": "中信心", "low": "低信心", "unknown": "信心資料待接"}
-        distribution_rows.extend((confidence_labels.get(key, "其他"), value) for key, value in projection["confidence_distribution"].items())
-    distribution_html = _window_metric_grid(distribution_rows) if distribution_rows else '<p class="decision-note">尚無可安全彙整的分布。</p>'
-    research_html = _tw_rre_production_html(tw_v2)
-    v2_html = ""
-    if tw_v2:
-        pm = tw_v2.get("pm_daily_summary") or {}
-        rankings = tw_v2.get("rankings") or {}
-        stock_rows = []
-        for row in tw_v2.get("stock_intelligence") or []:
-            stock_rows.append(
-                "<tr>"
-                f"<td>{_escape(row.get('symbol'))} {_escape(row.get('name'))}</td>"
-                f"<td>{_escape(row.get('decision_category_label'))}</td>"
-                f"<td>{_escape(row.get('opportunity_rank'))}</td>"
-                f"<td>{_escape(row.get('research_rank'))}</td>"
-                f"<td>{_escape(row.get('risk_rank'))}</td>"
-                f"<td>{_escape((row.get('decision_reason') or ['尚未取得'])[0])}</td>"
-                "</tr>"
-            )
-        coverage_rows = []
-        for dimension, states in (tw_v2.get("coverage_registry") or {}).items():
-            coverage_rows.append((dimension, "｜".join(f"{state} {count}" for state, count in sorted(states.items()))))
-        v2_html = f"""
-          <section class="decision-section tw-decision-intelligence-v2" data-decision-identity="{_escape(tw_v2.get('decision_identity'))}">
-            <h3>台股決策智慧 V2</h3>
-            {_window_metric_grid([
-                ('今日一句話', pm.get('one_line')), ('今日最大機會', pm.get('largest_opportunity')),
-                ('今日最大風險', pm.get('largest_risk')), ('最值得追蹤', pm.get('most_worth_tracking')),
-                ('下一步觀察', pm.get('next_observation')), ('決策識別碼', tw_v2.get('decision_identity')),
-            ])}
-            <section class="decision-section"><h4>PM 決策優先級</h4>{_window_metric_grid([
-                ('機會閱讀順序', '、'.join((rankings.get('opportunity') or [])[:5]) or '無'),
-                ('研究閱讀順序', '、'.join((rankings.get('research') or [])[:5]) or '無'),
-                ('風險閱讀順序', '、'.join((rankings.get('risk') or [])[:5]) or '無'),
-            ])}</section>
-            <details class="decision-details"><summary>逐股差異化決策與資料覆蓋</summary><div class="decision-details__body">
-              <div class="table-wrap"><table><thead><tr><th>標的</th><th>決策候選</th><th>機會</th><th>研究</th><th>風險</th><th>主要原因</th></tr></thead><tbody>{''.join(stock_rows)}</tbody></table></div>
-              {_window_metric_grid(coverage_rows)}
-              <p class="decision-note">排序只供 PM 閱讀優先級；未修改既有策略排序、評分、預測模型或因子權重。</p>
-            </div></details>
-          </section>
-        """
-    return f"""
-    <section class="decision-section decision-intelligence-v4" data-presentation-version="seven-window-decision-intelligence-v4" data-card-type="{_escape(projection['expected_card_type'])}">
-      <h3>Decision Intelligence V4</h3>
-      <p>{_escape(projection['question'])}</p>
-      {research_html}
-      {v2_html}
-      {story_html}
-      {_window_metric_grid(metric_rows)}
-      <section class="decision-section"><h4>本批次決策清單</h4>{_window_metric_grid(list_rows)}</section>
-      <section class="decision-section"><h4>{'Outcome distribution' if window in {'post_close_1500', 'us_post_close_review_0630'} else 'Confidence distribution'}</h4>{distribution_html}</section>
-      <details class="decision-details"><summary>內容範圍與資料來源</summary><div class="decision-details__body"><p>{_escape('、'.join(projection['section_inventory']))}</p><p class="decision-note">來源：指定 market/window payload 的 tactical 與 review 欄位；不跨市場、不跨時段、不補造資料。</p></div></details>
-    </section>
-    """
-
-
-def _first_text(items: Any, fallback: str) -> str:
-    if isinstance(items, list):
-        for item in items:
-            text = clean_text(item, missing="")
-            if text:
-                return text
-    return fallback
-
-
-def _first_reason(presentation: dict[str, Any]) -> str:
-    return _first_text(presentation.get("reasons"), "等待量價與資料確認")
-
-
-def _first_risk(presentation: dict[str, Any]) -> str:
-    return _first_text(presentation.get("risks"), "未偵測到額外風險")
-
-
-def _joined_text(items: Any, fallback: str) -> str:
-    if isinstance(items, list):
-        values = [clean_text(item, missing="") for item in items]
-        values = [value for value in values if value]
-        if values:
-            return "；".join(values)
-    return fallback
-
-
-def _research_v3_text(presentation: dict[str, Any], key: str, fallback: str = "尚未取得") -> str:
-    research_v3 = presentation.get("research_v3", {}) if isinstance(presentation.get("research_v3"), dict) else {}
-    research = presentation.get("research", {}) if isinstance(presentation.get("research"), dict) else {}
-    return clean_text(research_v3.get(key) or research.get(key), missing=fallback)
-
-
-def _tw_intraday_card(card: dict[str, Any]) -> str:
-    card = normalize_lifecycle_card(card, "intraday_1305")
-    prediction_html = _tw_prediction_html(card, "intraday_1305")
-    stock_id = card.get("symbol") or card.get("stock_id")
-    stock_name = card.get("name") or card.get("stock_name")
-    action = localize_tw_value(card.get("canonical_intraday_action"))
-    if card.get("plan_status") == "no_trade":
-        return f"""
-        <article class="stock-card decision-card window-stock-card compact-no-trade-card" data-market="TW" data-card-type="window-intraday" data-report-type="intraday-change">
-          <div class="decision-card__head"><div><div class="decision-card__market">TW｜13:05 盤中變化</div><h3>{_escape(stock_id)} {_escape(stock_name)}</h3></div><span class="decision-badge decision-badge--warn">無交易</span></div>
-          {prediction_html}
-          <section class="decision-section"><h4>盤中決策</h4>{_window_metric_grid([('目前價格', safe_public_text(card.get('current_price'))), ('盤中高 / 低', f"{safe_public_text(card.get('session_high'))} / {safe_public_text(card.get('session_low'))}"), ('決策', '維持無交易'), ('原因', '07:00 未建立正式交易計畫')])}</section>
-        </article>"""
-    if card.get("plan_status") == "watch":
-        monitoring = card.get("monitoring_range") if isinstance(card.get("monitoring_range"), dict) else {}
-        zone = f"{safe_public_text(monitoring.get('low'))}–{safe_public_text(monitoring.get('high'))}"
-        return f"""
-        <article class="stock-card decision-card window-stock-card compact-watch-card" data-market="TW" data-card-type="window-intraday" data-report-type="intraday-change">
-          <div class="decision-card__head"><div><div class="decision-card__market">TW｜13:05 盤中變化</div><h3>{_escape(stock_id)} {_escape(stock_name)}</h3></div><span class="decision-badge decision-badge--warn">觀察</span></div>
-          {prediction_html}
-          <section class="decision-section"><h4>盤中觀察</h4>{_window_metric_grid([('目前價格', safe_public_text(card.get('current_price'))), ('行情證據時間', format_timestamp(card.get('market_data_as_of'), reference_value=card.get('fetched_at'))), ('Provider 更新時間', format_timestamp(card.get('fetched_at'))), ('交易所收盤時間', f"{card.get('trading_date')} 13:30 Asia/Taipei"), ('觀察區間', zone), ('正式交易計畫', '未建立'), ('等待事項', localize_tw_value(card.get('pre_entry_action'))), ('原因', safe_public_text(card.get('action_change_reason')))])}</section>
-        </article>"""
-    return f"""
-    <article class="stock-card decision-card window-stock-card" data-market="TW" data-card-type="window-intraday" data-report-type="intraday-change">
-      <div class="decision-card__head"><div><div class="decision-card__market">TW｜13:05 盤中變化</div><h3>{_escape(stock_id)} {_escape(stock_name)}</h3></div><span class="decision-badge decision-badge--ok">{_escape(action)}</span></div>
-      {prediction_html}
-      <section class="decision-section" data-section="intraday-status"><h4>盤中觀察</h4>{_window_metric_grid([('目前價格', safe_public_text(card.get('current_price'))), ('行情證據時間', format_timestamp(card.get('market_data_as_of'), reference_value=card.get('fetched_at'))), ('Provider 更新時間', format_timestamp(card.get('fetched_at'))), ('交易所收盤時間', f"{card.get('trading_date')} 13:30 Asia/Taipei"), ('盤中高 / 低', f"{safe_public_text(card.get('session_high'), missing='不適用')} / {safe_public_text(card.get('session_low'), missing='不適用')}"), ('觸發狀態', localize_tw_value(card.get('trigger_status')))])}</section>
-      <section class="decision-section" data-section="intraday-proximity"><h4>量價 / 目標 / 停損</h4>{_window_metric_grid([('成交量倍率', f"{float(card.get('volume_ratio')):.2f} 倍" if card.get('volume_ratio') is not None else '尚未取得'), ('量能基準', '近 20 個交易日日均量，依已經過交易時段比例折算'), ('量能狀態', localize_enum(card.get('volume_confirmation_state'))), ('目標 / 停損距離', f"{format_distance(card.get('distance_to_target_1_pct'), kind='target')}｜{format_distance(card.get('distance_to_stop_pct'), kind='stop')}"), ('盤中調整', action), ('調整原因', safe_public_text(card.get('action_change_reason')))])}</section>
-    </article>
-    """
-
-
-def _tw_pre_close_card(card: dict[str, Any]) -> str:
-    card = normalize_lifecycle_card(card, "pre_close_1335")
-    prediction_html = _tw_prediction_html(card, "pre_close_1335")
-    stock_id = card.get("symbol") or card.get("stock_id")
-    stock_name = card.get("name") or card.get("stock_name")
-    action = localize_tw_value(card.get("overnight_action"))
-    return f"""
-    <article class="stock-card decision-card window-stock-card" data-market="TW" data-card-type="window-snapshot" data-report-type="pre-close-snapshot">
-      <div class="decision-card__head"><div><div class="decision-card__market">TW｜13:35 收盤快照</div><h3>{stock_id} {stock_name}</h3></div><span class="decision-badge decision-badge--warn">{_escape(action)}</span></div>
-      {prediction_html}
-      <section class="decision-section" data-section="pre-close-summary"><h4>收盤前摘要</h4>{_window_metric_grid([('目前價格', safe_public_text(card.get('current_price'))), ('行情證據時間', format_timestamp(card.get('market_data_as_of'), reference_value=card.get('fetched_at'))), ('Provider 更新時間', format_timestamp(card.get('fetched_at'))), ('交易所收盤時間', f"{card.get('trading_date')} 13:30 Asia/Taipei"), ('觸發狀態', localize_tw_value(card.get('trigger_status'))), ('留倉決策', action)])}</section>
-      <section class="decision-section" data-section="pre-close-risk"><h4>尾盤風險</h4>{_window_metric_grid([('風險狀態', localize_tw_value(card.get('risk_state'))), ('目標 / 停損距離', f"{format_distance(card.get('distance_to_target_1_pct'), kind='target')}｜{format_distance(card.get('distance_to_stop_pct'), kind='stop')}")])}</section>
-      <section class="decision-section" data-section="next-watch"><h4>明日初步觀察</h4><p>{_escape(next_session_action(card))}</p></section>
-    </article>
-    """
-
-
-def _review_result_text(tactical: dict[str, Any], review: dict[str, Any]) -> str:
-    status = clean_text(review.get("status") or review.get("hit_miss_status") or review.get("direction_result"), missing="")
-    if status == "no_trade":
-        return "無交易"
-    if status and status != "資料待接":
-        return status
-    if is_no_trade(tactical):
-        return "無交易"
-    return "本次檢討尚待實際結果"
-
-
-def _tw_post_close_card(card: dict[str, Any]) -> str:
-    card = normalize_lifecycle_card(card, "post_close_1500")
-    prediction_html = _tw_prediction_html(card, "post_close_1500")
-    stock_id = card.get("symbol") or card.get("stock_id")
-    stock_name = card.get("name") or card.get("stock_name")
-    result = localize_tw_value(card.get("trade_outcome"))
-    prediction_result = localize_tw_value((card.get("prediction_evaluation") or {}).get("range_result"))
-    if card.get("trade_outcome") == "no_trade":
-        return f"""
-        <article class="stock-card decision-card window-stock-card compact-no-trade-card" data-market="TW" data-card-type="window-review" data-report-type="post-close-review">
-          <div class="decision-card__head"><div><div class="decision-card__market">TW｜15:00 盤後檢討</div><h3>{stock_id} {stock_name}</h3></div><span class="decision-badge decision-badge--warn">無交易</span></div>
-          {prediction_html}
-          <section class="decision-section"><h4>今日結果</h4>{_window_metric_grid([('預測區間', '不適用'), ('交易結果', '無交易'), ('明日行動', next_action_for_outcome('no_trade'))])}</section>
-        </article>"""
-    mfe = card.get("mfe") if isinstance(card.get("mfe"), dict) else {}
-    mae = card.get("mae") if isinstance(card.get("mae"), dict) else {}
-    timeline = card.get("lifecycle_timeline") if isinstance(card.get("lifecycle_timeline"), list) else []
-    timeline_text = "｜".join(f"{str(item.get('source_window') or '').replace('pre_open_0700','07:00').replace('intraday_1305','13:05').replace('pre_close_1335','13:35').replace('post_close_1500','15:00')}：{localize_tw_value(item.get('state'))}" for item in timeline if isinstance(item, dict))
-    trade_detail = "第一目標命中" if card.get("trade_outcome") == "win" else "停損觸發" if card.get("trade_outcome") == "loss" else result
-    explanation = card.get("prediction_explainability") if isinstance(card.get("prediction_explainability"), dict) else {}
-    predicted = explanation.get("predicted_range") if isinstance(explanation.get("predicted_range"), dict) else {}
-    actual = explanation.get("actual_range") if isinstance(explanation.get("actual_range"), dict) else {}
-    predicted_text = f"{safe_public_text(predicted.get('low'), missing='不適用')}–{safe_public_text(predicted.get('high'), missing='不適用')}"
-    actual_text = f"{safe_public_text(actual.get('low'), missing='不適用')}–{safe_public_text(actual.get('high'), missing='不適用')}"
-    return f"""
-    <article class="stock-card decision-card window-stock-card" data-market="TW" data-card-type="window-review" data-report-type="post-close-review">
-      <div class="decision-card__head"><div><div class="decision-card__market">TW｜15:00 盤後檢討</div><h3>{stock_id} {stock_name}</h3></div><span class="decision-badge decision-badge--warn">{_escape(result)}</span></div>
-      {prediction_html}
-      <section class="decision-section" data-section="prediction-review"><h4>預測與交易結果</h4>{_window_metric_grid([('預測區間', predicted_text), ('實際區間', actual_text), ('預測結果', prediction_result), ('判定原因', safe_public_text(explanation.get('reason'))), ('交易結果', trade_detail), ('明日行動', next_action_for_outcome(card.get('trade_outcome')))])}</section>
-      <section class="decision-section compact-outcome-line" data-section="outcome-review"><h4>進場與邊界</h4>{_window_metric_grid([('是否進場', '已觸發' if card.get('entry_triggered') else '未觸發'), ('第一目標結果', '命中' if card.get('target_1_hit') else '未命中'), ('第二目標結果', '命中' if card.get('target_2_hit') else '未命中'), ('停損結果', '觸發' if card.get('stop_hit') else '未觸發')])}</section>
-      <section class="decision-section" data-section="mfe-mae"><h4>交易歷程</h4>{_window_metric_grid([('最大有利變動', f"{float(mfe.get('pct')):+.2f}%" if isinstance(mfe.get('pct'), (int,float)) else '不適用'), ('最大不利變動', f"{float(mae.get('pct')):+.2f}%" if isinstance(mae.get('pct'), (int,float)) else '不適用'), ('基準', f"首次進場觸發價 {safe_public_text(mfe.get('reference_price'), missing='尚未取得')}"), ('行情解析度', '5 分鐘' if mfe.get('resolution') == 'minute_5' else '日內高低價'), ('今日決策歷程', timeline_text or '本批次尚未保存完整來源鏈'), ('行情證據時間', format_timestamp(card.get('market_data_as_of'), reference_value=card.get('fetched_at'))), ('Provider 更新時間', format_timestamp(card.get('fetched_at'))), ('交易所收盤時間', f"{card.get('trading_date')} 13:30 Asia/Taipei")])}</section>
-    </article>
-    """
-
-
-def _tw_pre_open_structured_card(card: dict[str, Any]) -> str:
-    card = project_tw_prediction_card(card, "pre_open_0700", strict=False)
-    prediction_html = _tw_preopen_product_html(card)
-    symbol = card.get("symbol") or card.get("stock_id")
-    name = card.get("name") or card.get("stock_name")
-    availability = clean_text(card.get("availability_status"), missing="unavailable")
-    action = clean_text(card.get("action"), missing="等待確認")
-    freshness = card.get("data_freshness") if isinstance(card.get("data_freshness"), dict) else {}
-    tactical = ((card.get("strategies") or {}).get("daily_tactical") or {}) if isinstance(card.get("strategies"), dict) else {}
-    technical = card.get("technical_data") if isinstance(card.get("technical_data"), dict) else technical_contract(tactical)
-    missing_fields = card.get("data_gaps") if isinstance(card.get("data_gaps"), list) else canonical_pre_open_gaps(technical, card)
-    news = concise_news_summary(card)
-    actionable = bool(card.get("actionable") or card.get("entry_readiness") in {"entry_ready", "ready_for_open_confirmation"})
-    no_trade = bool(card.get("no_trade") or card.get("entry_readiness") == "no_trade")
-    if actionable:
-        plan = _window_metric_grid([('進場狀態', '進場條件就緒'), ('進場條件', safe_public_text(card.get('entry_condition'))), ('進場區', f"{card.get('entry_low')}–{card.get('entry_high')}"), ('停損', card.get('stop_level')), ('目標一 / 二', f"{card.get('target_1')} / {safe_public_text(card.get('target_2'), missing='不適用')}"), ('報酬風險比', card.get('risk_reward'))])
-    elif no_trade:
-        plan = _window_metric_grid([('目前狀態', '暫不交易'), ('原因', public_reasons(card.get('do_not_trade_reason') or card.get('risk_summary'))), ('重新評估條件', '資料完整且策略條件重新成立')])
-    else:
-        zone = f"{card.get('entry_low')}–{card.get('entry_high')}" if card.get('entry_low') is not None else '尚未取得'
-        plan = _window_metric_grid([('目前狀態', '觀察等待'), ('觀察區間', zone), ('等待條件', safe_public_text(card.get('entry_condition'))), ('正式交易計畫', '暫不建立'), ('原因', public_reasons(card.get('risk_summary')))])
-    gaps = sorted(set(str(value) for value in missing_fields if value) | {
-        name for name, value in (("隔夜", card.get("overnight_context")), ("籌碼", card.get("chip_summary")), ("新聞", card.get("news_status")), ("Gap", card.get("gap_risk")), ("事件風險", card.get("event_risk")))
-        if value in (None, "", "unavailable", "unknown", "尚未判定", "資料尚未取得") or "無法取得" in str(value)
+    carry = {
+        "unresolved_hypothesis": hypothesis_state not in {"invalidated", "confirmed"},
+        "invalidated_hypothesis": hypothesis_state == "invalidated",
+        "major_forecast_miss": range_hit == "miss",
+        "contradictory_intraday_evidence": hypothesis_state in {"contradicted", "invalidated"},
+        "missing_critical_sources": list(base.get("missing_evidence") or []),
+        "carryforward_reason": "保留未解假設、重大預測誤差、盤中矛盾與關鍵來源缺口供下一個 20:00 研究。",
+    }
+    base.update({
+        "window": "us_post_close_review_0630", "observed_at": observed_at,
+        "prediction_evaluation": evaluation, "no_trade_learning": learning,
+        "next_session_carryforward": carry,
+        "window_update": {"state": "reviewed", "hypothesis_state": hypothesis_state, "range_result": range_hit, "trade_outcome": trade_outcome, "decision_layer_action_changed": False},
     })
-    news_detail = '' if news['status'] != '分析可用' else f'<details class="decision-details" data-section="news-detail"><summary>完整新聞分析</summary><div class="decision-details__body"><p>{_escape(safe_public_text(card.get("news_summary")))}</p></div></details>'
-    technical_text = (f"無法判定｜歷史 {technical.get('history_bars', 0)}/{technical.get('required_bars', 20)} 根" if technical and not technical.get('analysis_eligible') else safe_public_text(card.get('technical_summary')))
-    context_metrics = [('市場環境', safe_public_text(card.get('market_context'))), ('技術', technical_text)]
-    for label, value in (('隔夜影響', card.get('overnight_context')), ('ADR', format_adr_context(card.get('adr_context'), strategy_action=card.get('action'))), ('籌碼', card.get('chip_summary'))):
-        rendered = safe_public_text(value)
-        if rendered not in {'尚未取得', '本批次尚未取得', '資料尚未取得'}:
-            context_metrics.append((label, rendered))
-    raw_reason = safe_public_text(card.get('do_not_trade_reason') or card.get('risk_summary'))
-    decision_reason = public_reasons(raw_reason)
-    risk_metrics = [('追價風險', localize_enum(card.get('chase_risk'))), ('決策原因', decision_reason)]
-    for label, value in (('Gap 風險', card.get('gap_risk')), ('事件風險', card.get('event_risk'))):
-        if str(value or '') not in {'', 'unknown', 'unavailable', '尚未判定'}:
-            risk_metrics.append((label, localize_enum(value)))
-    return f"""
-    <article class="stock-card decision-card window-stock-card tw-pre-open-structured-card"
-      data-market="TW" data-window="pre_open_0700" data-symbol="{_escape(symbol)}"
-      data-card-type="pre-open-decision-v4" data-availability="{_escape(availability)}">
-      <div class="decision-card__head"><div><div class="decision-card__market">TW｜07:00 盤前決策</div><h3>{_escape(symbol)} {_escape(name)}</h3></div><span class="decision-badge decision-badge--ok">{_escape(action)}</span></div>
-      {prediction_html}
-      <section class="decision-section" data-section="pre-open-action"><h4>今日行動</h4>{plan}</section>
-      <section class="decision-section" data-section="pre-open-context"><h4>市場與隔夜脈絡</h4>{_window_metric_grid(context_metrics)}</section>
-      <section class="decision-section news-decision-summary" data-section="news-summary"><h4>新聞決策摘要</h4>{_window_metric_grid([('新聞方向', news['direction']), ('新聞狀態', news['status']), ('主要原因', news['reason']), ('策略影響', news['strategy_impact']), ('來源品質', news['source_quality']), ('信心', news['confidence'])])}</section>
-      {news_detail}
-      <section class="decision-section" data-section="pre-open-risk"><h4>主要風險</h4>{_window_metric_grid(risk_metrics)}</section>
-      <details class="decision-details"><summary>資料新鮮度與缺口</summary><div class="decision-details__body">{_window_metric_grid([('技術資料', freshness.get('technical_as_of') or '未取得'), ('ADR', freshness.get('adr_as_of') or '未取得'), ('新聞', freshness.get('news_as_of') or '未取得'), ('籌碼', freshness.get('chip_as_of') or '未取得'), ('報告產生', freshness.get('report_generated_at') or '本批次尚未取得'), ('資料缺口', '、'.join(public_reason(item) for item in gaps) or '無')])}</div></details>
-    </article>
-    """
+    base["window_research_identity"] = "us_rv2_" + stable_hash({k: v for k, v in base.items() if k != "window_research_identity"})[:24]
+    return base
 
 
-def render_tw_window_report(window: str, artifact: dict[str, Any] | None = None) -> str:
-    contract = get_window_report_contract("TW", window)
-    artifact = artifact if artifact is not None else _load_tw_tactical_artifact()
-    cards_key = {"pre_open_0700": "structured_pre_open_cards", "intraday_1305": "structured_intraday_cards", "pre_close_1335": "structured_pre_close_cards", "post_close_1500": "structured_review_cards"}[window]
-    cards = artifact.get(cards_key, []) if isinstance(artifact, dict) and isinstance(artifact.get(cards_key), list) else []
-    if not cards and isinstance(artifact, dict) and isinstance(artifact.get("cards"), list):
-        cards = artifact["cards"]
-    presentation_artifact = dict(artifact) if isinstance(artifact, dict) else {}
-    if window == "post_close_1500":
-        presentation_artifact["cards"] = cards
-    projection = project_decision_intelligence_v4("TW", window, presentation_artifact)
-    projected_tw = projection.get("tw_decision_intelligence_v2") if isinstance(projection.get("tw_decision_intelligence_v2"), dict) else {}
-    research_html = _tw_rre_production_html(projected_tw)
-    if window == "pre_open_0700":
-        summary = artifact.get("pre_open_summary", {}) if isinstance(artifact, dict) else {}
-        if cards and not summary.get("coverage"):
-            summary = aggregate_tw_pre_open(cards, [str(card.get("symbol") or card.get("stock_id")) for card in cards])
-        groups = summary.get("groups", {}) if isinstance(summary.get("groups"), dict) else {}
-        product_summary = tw_preopen_product_summary(cards)
-        direction_counts = product_summary.get("counts") or {}
-        priority_text = "；".join(
-            f"{row.get('symbol')} {row.get('name')} — {row.get('direction_label')} — 目標 {format_optional_price(row.get('target_price'))}"
-            for row in product_summary.get("priority") or []
-        ) or "尚未建立"
-        product_summary_html = f'<div class="decision-plan pre-open-product-summary"><h3>今日盤前總覽</h3><p>偏多：{direction_counts.get("BULLISH", 0)}｜偏空：{direction_counts.get("BEARISH", 0)}｜盤整：{direction_counts.get("SIDEWAYS", 0)}</p><p>優先關注：{_escape(priority_text)}</p></div>'
-        body = "".join(_tw_pre_open_structured_card(card) for card in cards if isinstance(card, dict))
-        body = product_summary_html + body
-        if not body:
-            body = '<article class="status-card warn official-pre-open-empty-state"><h3>正式盤前決策尚未建立</h3><p>本批次沒有通過 admission 的 structured payload；不沿用舊資料，不使用範例資料。</p></article>'
-        return f"""
-        <section class="section window-report-section" data-market="TW" data-window="{_escape(window)}" data-report-type="pre-open-decision">
-          <h2>{_escape(contract.title)}</h2>
-          <p>今日盤前重點、市場環境、可觀察標的與短線操作計畫。</p>
-          {research_html}
-          <div class="decision-plan pre-open-summary">{_metric('主要交易機會', summary.get('top_opportunity_count'))}{_metric('進場條件就緒', summary.get('entry_ready_count'))}{_metric('觀察等待', summary.get('watch_only_count'))}{_metric('暫不交易', summary.get('no_trade_count'))}{_metric('避免追價', summary.get('avoid_chase_count'))}</div>
-          <p class="decision-note">市場基調：{_escape('偏保守' if summary.get('market_bias') == 'cautious' else '中性')}｜整體信心：{_escape((summary.get('market_confidence') or {}).get('score', 0))}%｜{_escape('偏低' if summary.get('market_bias_confidence') == 'low' else '中')}</p>
-          <p class="decision-note">主要交易機會：{_escape('、'.join(groups.get('top_opportunities') or []) or '無')}｜觀察等待：{_escape('、'.join(groups.get('watch_only') or groups.get('watch_wait') or []) or '無')}｜暫不交易：{_escape('、'.join(groups.get('no_trade') or []) or '無')}｜避免追價：{_escape('、'.join(groups.get('avoid_chase') or groups.get('high_chase_risk') or []) or '無')}</p>
-          <p class="decision-note">資料覆蓋：{_escape('｜'.join(f"{label} {((summary.get('coverage') or {}).get(key) or {}).get('available', 0)}/{((summary.get('coverage') or {}).get(key) or {}).get('total', len(cards))}" for key,label in [('quote_available','行情資料可用'),('history_sufficient','技術分析可執行'),('trend_confirmed','趨勢可確認'),('overnight','ADR／隔夜'),('chip','籌碼'),('news','新聞'),('gap','Gap'),('event_risk','事件風險')]))}</p>
-          <p class="decision-note pre-open-card-count" data-tracking-stock-count="{_escape(artifact.get('tracking_stock_count', len(cards)))}" data-rendered-card-count="{len(cards)}">追蹤 {_escape(artifact.get('tracking_stock_count', len(cards)))}｜呈現 {len(cards)}</p>
-          <div class="grid decision-grid">{body}</div>
-        </section>
-        """
-    card_renderers = {
-        "intraday_1305": _tw_intraday_card,
-        "pre_close_1335": _tw_pre_close_card,
-        "post_close_1500": _tw_post_close_card,
-    }
-    renderer = card_renderers[window]
-    if not cards:
-        body = ('<article class="status-card warn official-review-empty-state" data-review-state="official-empty">'
-                '<h3>正式 Review Payload 尚未建立</h3><p>本批次尚未建立正式 Review Payload。'
-                '不跨 window 補值，不使用範例或測試資料。</p></article>') if window == "post_close_1500" else '<article class="status-card warn"><h3>本批次資料尚未取得</h3><p>不回退到其他 window 的 generic stock report。</p></article>'
-    else:
-        body = ''.join(renderer(card) for card in cards if isinstance(card, dict))
-    section_intro = {
-        "pre_open_0700": "今日盤前重點、市場環境、可觀察標的與短線操作計畫。",
-        "intraday_1305": "盤中變化、交易條件觸發、目標 / 停損接近度與即時風險。",
-        "pre_close_1335": "收盤前摘要、尾盤風險、避免追價與明日初步觀察。",
-        "post_close_1500": "今日預測 vs 實際、進場 / 目標 / 停損結果、MFE / MAE 與明日觀察清單。",
-    }[window]
-    summary = aggregate_tw_lifecycle(window, cards) if cards else {}
-    if window == "post_close_1500":
-        predictions = summary.get("prediction_evaluation_counts") if isinstance(summary.get("prediction_evaluation_counts"), dict) else {}
-        outcomes = summary.get("trade_outcome_counts") if isinstance(summary.get("trade_outcome_counts"), dict) else {}
-        structured_summary = _window_metric_grid([
-            ("預測命中", predictions.get("hit", 0)), ("預測部分命中", predictions.get("partial_hit", 0)),
-            ("預測未命中", predictions.get("miss", 0)), ("預測不適用", predictions.get("not_applicable", 0)),
-        ]) + _window_metric_grid([
-            ("交易命中", outcomes.get("win", 0)), ("交易失敗", outcomes.get("loss", 0)),
-            ("未觸發", outcomes.get("not_triggered", 0)), ("無交易", outcomes.get("no_trade", 0)),
-            ("收盤尚未結束", outcomes.get("open_at_close", 0)), ("證據不足", outcomes.get("pending_evidence", 0)),
-        ])
-    elif window == "pre_close_1335":
-        counts = summary.get("overnight_action_counts") or {}
-        structured_summary = _window_metric_grid([
-            ("追蹤", summary.get("tracking_count", len(cards))), ("可留倉", counts.get("hold", 0)),
-            ("可留倉但需保護", counts.get("hold_with_protection", 0)), ("觀察", counts.get("watch", 0)),
-            ("降低部位", counts.get("reduce", 0)), ("不建議留倉", counts.get("exit", 0)),
-            ("無交易", counts.get("no_trade", 0)), ("雙向臨界", (summary.get("risk_state_counts") or {}).get("both_near", 0)),
-        ])
-    else:
-        plans = summary.get("plan_status_counts") or {}
-        actions = summary.get("intraday_action_counts") or {}
-        structured_summary = _window_metric_grid([
-            ("追蹤", summary.get("tracking_count", len(cards))),
-            ("正式交易計畫", plans.get("active", 0)),
-            ("觀察", plans.get("watch", 0)),
-            ("無交易", plans.get("no_trade", 0)),
-            ("已觸發", (summary.get("trigger_status_counts") or {}).get("triggered", 0)),
-            ("等待量能確認", actions.get("wait_volume", 0)),
-            ("降低風險", actions.get("reduce", 0)),
-            ("策略失效", (summary.get("trigger_status_counts") or {}).get("invalidated", 0)),
-            ("接近目標", summary.get("near_target_count")),
-            ("接近停損", summary.get("near_stop_count")),
-        ]) + '<p class="decision-note">成交量倍率基準：近 20 個交易日日均量，依本批次已經過交易時段比例折算。接近目標／停損門檻：距離 ≤ 1.5%。</p>'
-    decision_summary = structured_summary if summary else _decision_intelligence_v4_html("TW", window, presentation_artifact)
-    return f"""
-    <section class="section window-report-section" data-market="TW" data-window="{_escape(window)}" data-report-type="{_escape({'pre_open_0700':'pre-open-decision','intraday_1305':'intraday-change','pre_close_1335':'pre-close-snapshot','post_close_1500':'post-close-review'}[window])}">
-      <h2>{_escape(contract.title)}</h2>
-      <p>{_escape(section_intro)}</p>
-      {research_html}
-      {decision_summary}
-      {('<p class="decision-note review-card-count" data-tracking-stock-count="' + str(artifact.get('tracking_stock_count', len(cards))) + '" data-rendered-review-card-count="' + str(len(cards)) + '">追蹤 ' + str(artifact.get('tracking_stock_count', len(cards))) + '｜呈現 ' + str(len(cards)) + '</p>') if window == 'post_close_1500' else ''}
-      <div class="grid decision-grid">{body}</div>
-    </section>
-    """
-
-def shared_market_navigation(active_market: str, title: str, subtitle: str) -> str:
-    active = html.escape(active_market)
-    current_tw = ' aria-current="page"' if active_market == "TW" else ""
-    current_us = ' aria-current="page"' if active_market == "US" else ""
-    return f"""<div class="wrap section market-shared-navigation market-shared-navigation--v1" data-shared-navigation="tw-us" data-active-market="{active}"><h1>{html.escape(title)}</h1><nav class="market-shared-navigation__grid market-shared-navigation__grid--responsive" aria-label="Market Dashboard Navigation"><a class="market-shared-navigation__button" href="/stock-ai-dashboard/index.html">回到總覽</a><a class="market-shared-navigation__button" href="/stock-ai-dashboard/dashboard/tw/index.html"{current_tw}>台股 Dashboard</a><a class="market-shared-navigation__button" href="/stock-ai-dashboard/dashboard/us/index.html"{current_us}>美股 Dashboard</a></nav><p class="market-shared-navigation__subtitle">{html.escape(subtitle)}</p></div>"""
+def attach_initial(bundle: dict[str, Any], observed_at: str) -> dict[str, Any]:
+    updated = json.loads(json.dumps(bundle))
+    updated["research_intelligence_v2"] = build_initial_projection(updated, observed_at=observed_at)
+    updated["canonical_research_schema_version"] = SCHEMA_VERSION
+    return updated
 
 
-def _snapshot_decision_content(snapshot: dict[str, Any]) -> str:
-    market = str(snapshot.get("market") or "")
-    window = str(snapshot.get("window") or snapshot.get("scheduler_window") or "")
-    payload = snapshot.get("payload") if isinstance(snapshot.get("payload"), dict) else {}
-    if market == "US":
-        return render_us_window_report(window, [payload])
-    if window in {"pre_open_0700", "intraday_1305", "pre_close_1335", "post_close_1500"}:
-        return render_tw_window_report(window, payload)
-    report = payload.get("user_facing_report") if isinstance(payload.get("user_facing_report"), dict) else {}
-    cards = report.get("stock_cards") if isinstance(report.get("stock_cards"), list) else []
-    forbidden_card_markers = ("樣本資料", "fixture", "contract validation", "example", "demo")
-    cards = [
-        card for card in cards
-        if isinstance(card, dict)
-        and not any(marker in " ".join(str(value) for value in card.values()).lower() for marker in forbidden_card_markers)
-    ]
-    cards_html = "".join(
-        f'<article class="stock-card decision-card snapshot-stock-card"><h3>{_escape(card.get("title") or card.get("stock_id"))}</h3><p>{_escape(card.get("summary"))}</p></article>'
-        for card in cards if isinstance(card, dict)
-    )
-    return (
-        _decision_intelligence_v4_html("TW", window, payload)
-        + (f'<div class="grid decision-grid">{cards_html}</div>' if cards_html else '<p class="decision-note">此 snapshot 尚無可顯示的個股卡片。</p>')
-    )
-
-
-def render_immutable_snapshot_section(snapshot: dict[str, Any], *, show_revision: bool = True) -> str:
-    contract = snapshot_parity_contract(snapshot)
-    assert contract is not None
-    updated = str(snapshot.get("revision_created_at") or snapshot.get("generated_at") or "")
-    payload = snapshot.get("payload") if isinstance(snapshot.get("payload"), dict) else {}
-    marker = payload.get("marker")
-    marker_text = f'<p class="decision-note">內容識別：{_escape(marker)}</p>' if marker else ""
-    revision_text = f'｜Revision {contract["revision"]}' if show_revision and int(contract["revision"]) > 1 else ""
-    updated_text = f'｜最後更新 {_escape(updated[11:16])}' if show_revision and len(updated) >= 16 else ""
-    provenance = f'Runtime Provenance：{_escape(snapshot.get("runtime_provenance"))}｜Admission：{_escape(snapshot.get("admission_reason"))}｜Admitted：{str(snapshot.get("admitted") is True).lower()}'
-    return f'''<section class="section immutable-snapshot-payload" {identity_attributes(snapshot)}>
-      <h2>Snapshot 決策內容</h2>
-      <p>有效交易日：{_escape(contract["effective_trading_date"])}{revision_text}{updated_text}</p>
-      <p class="decision-note">Active Window：{_escape(contract["active_window"])}｜Source Route：{_escape(contract["source_route"])}</p>
-      <p class="decision-note">{provenance}</p>
-      {marker_text}
-      {_snapshot_decision_content(snapshot)}
-      <p class="decision-note">本頁只使用 resolver 選出的 immutable snapshot payload；不讀取全域 latest runtime。</p>
-    </section>'''
-
-def render_landing_page() -> str:
-    archive_buttons: dict[str, list[str]] = {"TW": [], "US": []}
-    health_rows = []
-    for market, windows in MARKET_WINDOWS.items():
-        for window in windows:
-            selected = resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, market, window)
-            latest = selected.latest
-            previous = selected.previous
-            latest_date = str(latest.get("effective_trading_date")) if latest else "尚無資料"
-            revision = int(latest.get("revision") or 1) if latest else 0
-            updated = str(latest.get("revision_created_at") or latest.get("generated_at") or "") if latest else ""
-            updated_time = updated[11:16] if len(updated) >= 16 else ""
-            latest_meta = latest_date
-            if revision > 1:
-                latest_meta += f"｜Revision {revision}"
-            if updated_time:
-                latest_meta += f"｜最後更新 {updated_time}"
-            previous_meta = str(previous.get("effective_trading_date")) if previous else "尚無上一有效交易日"
-            runtime_provenance = _operations_runtime_provenance(market, window, latest)
-            provenance_label = "Validation Only" if runtime_provenance in {"fixture", "validator", "preview", "dry_run", "controlled_no_send"} else runtime_provenance
-            archive_buttons[market].extend([
-                f'<a class="market-shared-navigation__button archive-browser-button" data-market="{market}" data-window="{window}" data-selection="latest" href="/stock-ai-dashboard/dashboard/archive/{market.lower()}/{window}/latest/index.html">{market}｜{window}｜Latest<br><small>{_escape(latest_meta)}</small></a>',
-                f'<a class="market-shared-navigation__button archive-browser-button" data-market="{market}" data-window="{window}" data-selection="previous" href="/stock-ai-dashboard/dashboard/archive/{market.lower()}/{window}/previous/index.html">{market}｜{window}｜Previous<br><small>{_escape(previous_meta)}</small></a>',
-            ])
-            archive_status = "已累積" if latest else "等待首筆正式資料"
-            overall_status = "可用" if latest else "等待資料（非失敗）"
-            parity = snapshot_parity_contract(latest) or {}
-            latest_payload = latest.get("payload") if isinstance(latest, dict) and isinstance(latest.get("payload"), dict) else {}
-            health_rows.append(f'<tr data-market="{market}" data-window="{window}" data-snapshot-id="{_escape(parity.get("snapshot_id"))}" data-payload-hash="{_escape(parity.get("payload_hash"))}" data-tracking-stock-count="{_escape(latest_payload.get("tracking_stock_count"))}"><th>{market}｜{_escape(window)}</th><td>{_escape(latest_date)}</td><td>{revision or "—"}</td><td>{_escape(previous_meta)}</td><td>{_escape(provenance_label)}</td><td>設定維持</td><td>依正式批次</td><td>可建置</td><td>{_escape(archive_status)}</td><td>未發送</td><td>未發送</td><td>{_escape(overall_status)}</td></tr>')
-    archive_buttons_html = "".join(
-        f'<section class="archive-market-group" data-market="{market}"><h3>{"台股批次" if market == "TW" else "美股批次"}</h3><div class="market-shared-navigation__grid">{"".join(archive_buttons[market])}</div></section>'
-        for market in ("TW", "US")
-    )
-    health_rows_html = "".join(health_rows)
-    return f"""<!doctype html>
-    <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>AI Multi-Market Decision Intelligence</title><style>{base_css()}</style></head>
-    <body><header><div class="wrap"><h1>AI Multi-Market Decision Intelligence</h1><p>台股與美股分流入口；LINE/Email 依市場連到正確 Dashboard。</p></div></header><main class="wrap">
-    <div class="grid">
-      <a class="section market-choice" href="/stock-ai-dashboard/dashboard/tw/index.html"><h2>台股 Dashboard</h2><p>07:00 盤前｜13:05 盤中｜13:35 收盤快照｜15:00 盤後／檢討</p><span class="badge">TW</span></a>
-      <a class="section market-choice" href="/stock-ai-dashboard/dashboard/us/index.html"><h2>美股 Dashboard</h2><p>20:00 美股盤前｜23:00 美股盤中｜06:30 美股盤後檢討</p><span class="badge">US</span></a>
-    </div>
-    <section class="section" id="snapshot-archive-browser"><h2>批次報告歷史</h2><p>Latest 是最新有效交易日最高 revision；Previous 永遠是上一有效交易日最高 revision。</p>{archive_buttons_html}</section>
-    <section class="section" id="production-operations-center"><h2>系統營運中心</h2><p class="decision-note">Production health 內容投影不改變既有 health source；archive empty state 是等待資料，不是批次失敗。</p><div class="operations-table-scroll" role="region" aria-label="Production Operations Center" tabindex="0"><table class="decision-table operations-table"><thead><tr><th>Market / Window</th><th>Latest</th><th>Revision</th><th>Previous</th><th>Runtime Provenance</th><th>Scheduler</th><th>Pipeline</th><th>Dashboard</th><th>Archive</th><th>LINE</th><th>Email</th><th>Overall</th></tr></thead><tbody>{health_rows_html}</tbody></table></div></section>
-    {render_manual_control_center()}
-    <section class="section"><h2>Runtime 狀態摘要</h2><p>Dashboard 顯示完整內容；Email 顯示 window-specific 摘要；LINE 僅作短提醒與入口。舊四時段網址保留為台股相容入口。</p></section>
-    </main></body></html>\n"""
-def render_tw_page(source_html: str | None = None) -> str:
-    nav = shared_market_navigation("TW", "台股 AI 決策儀表板", "TW 專用頁：07:00 / 13:05 / 13:35 / 15:00。美股內容不在此頁渲染。")
-    active = resolve_active_snapshot(WINDOW_SNAPSHOT_ARCHIVE, "TW")
-    window_reports = render_immutable_snapshot_section(active) if active else '<section class="section archive-empty-state"><h2>尚無可用 snapshot</h2><p>TW 尚無 successful admitted snapshot；不回退到 fixture、validator、preview 或 global latest runtime。</p></section>'
-    manual_pointer = '<section class="section"><h2>手動批次控制</h2><p><a href="/stock-ai-dashboard/index.html#manual-batch-control-center">手動批次控制請回到總覽頁</a></p></section>'
-    return f"""<!doctype html>
-    <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>台股 AI 決策儀表板</title><meta name="market" content="TW"><style>{base_css()}</style></head>
-    <body {identity_attributes(active)}><header>{nav}</header><main class="wrap">
-    {window_reports}
-    {manual_pointer}
-    </main></body></html>\n"""
-
-
-def render_us_page(artifacts: list[dict[str, Any]] | None = None) -> str:
-    active = resolve_active_snapshot(WINDOW_SNAPSHOT_ARCHIVE, "US")
-    window_reports = render_immutable_snapshot_section(active) if active else '<section class="section archive-empty-state"><h2>尚無可用 snapshot</h2><p>US 尚無 successful admitted snapshot；不回退到 fixture、validator、preview、dry-run 或 global latest runtime。</p></section>'
-    return f"""<!doctype html>
-    <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>美股 AI 決策儀表板</title><meta name="market" content="US"><style>{base_css()}</style></head>
-    <body {identity_attributes(active)}><header>{shared_market_navigation("US", "美股 AI 決策儀表板", "美股盤前 20:00｜美股盤中 23:00｜美股檢討 06:30")}</header><main class="wrap">
-    <!-- AI-DEV-170-US-DASHBOARD-START -->
-    {window_reports}
-    <!-- AI-DEV-170-US-DASHBOARD-END -->
-    </main></body></html>\n"""
-
-
-def _content_generated_at(artifacts: list[dict[str, Any]]) -> str:
-    """Stable build identity derived from rendered inputs, not validator wall time."""
-    candidates = [str(item.get("generated_at") or "") for item in artifacts]
-    tw = _load_tw_tactical_artifact()
-    if tw:
-        candidates.append(str(tw.get("generated_at") or ""))
-    for market, windows in MARKET_WINDOWS.items():
-        for window in windows:
-            selected = resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, market, window)
-            for snapshot in (selected.latest, selected.previous):
-                if snapshot:
-                    candidates.append(str(snapshot.get("revision_created_at") or snapshot.get("generated_at") or ""))
-    return max([value for value in candidates if value] or ["content-not-yet-generated"])
-
-def build_pages(output_dir: Path = OUTPUT_DIR) -> dict[str, Any]:
-    output_dir.mkdir(parents=True, exist_ok=True)
-    artifacts = _load_us_artifacts()
-    pages = {
-        "landing": render_landing_page(),
-        "tw": render_tw_page(),
-        "us": render_us_page(artifacts),
-        "old_compat": render_tw_page(),
-    }
-    paths = {
-        "landing": output_dir / "index.html",
-        "tw": output_dir / "tw_index.html",
-        "us": output_dir / "us_index.html",
-        "old_compat": output_dir / "old_four_window_index.html",
-    }
-    for key, path in paths.items():
-        path.write_text(stable_html(pages[key]), encoding="utf-8")
-    archive_routes: dict[str, str] = {}
-    for market, windows in MARKET_WINDOWS.items():
-        for window in windows:
-            for name in ("latest", "previous"):
-                route = f"dashboard/archive/{market.lower()}/{window}/{name}/index.html"
-                target = output_dir / route
-                build_archive_route(output_dir, market, window, name)
-                archive_routes[f"{market}:{window}:{name}"] = str(target)
-    manifest = {
-        "schema_version": "multi_market_dashboard_v2_build_v1",
-        "task_id": "AI-DEV-181",
-        "generated_at": _content_generated_at(artifacts),
-        "landing_url": LANDING_URL,
-        "tw_url": TW_URL,
-        "us_url": US_URL,
-        "old_compat_url": PUBLIC_BASE_URL + OLD_ROUTE,
-        "us_stock_count": us_stock_count(artifacts),
-        "market_isolation": {"tw_reads_us_artifacts": False, "us_reads_tw_artifacts": False, "cross_market_fallback": False},
-        "paths": {key: str(path) for key, path in paths.items()},
-        "archive_routes": archive_routes,
-        "archive_route_count": len(archive_routes),
-    }
-    (output_dir / "manifest.json").write_text(stable_json(manifest), encoding="utf-8")
-    return manifest
-
-
-def render_snapshot_archive_page(market: str, window: str, selection: str, snapshot: dict[str, Any] | None, comparison: dict[str, Any]) -> str:
-    if snapshot is None:
-        body = '<section class="section archive-empty-state"><h2>尚無可用 snapshot</h2><p>找不到符合正式、完整 admission policy 且同市場同時段的 immutable snapshot。</p></section>'
-        identity = ""
-    else:
-        identity = identity_attributes(snapshot)
-        revision = int(snapshot.get("revision") or 1)
-        updated = str(snapshot.get("revision_created_at") or snapshot.get("generated_at") or "")
-        revision_text = f"｜Revision {revision}" if selection == "latest" and revision > 1 else ""
-        updated_text = f"｜最後更新 {updated[11:16]}" if selection == "latest" and len(updated) >= 16 else ""
-        body = render_immutable_snapshot_section(snapshot, show_revision=selection == "latest")
-        if market == "TW" and window == "pre_close_1335":
-            body += render_tw_1335_dashboard(tw_1335_context_for_snapshot(WINDOW_SNAPSHOT_ARCHIVE, snapshot))
-        if selection == "latest":
-            revisions = revisions_for_snapshot(WINDOW_SNAPSHOT_ARCHIVE, market, window, str(snapshot.get("effective_trading_date")))
-            manual_count = len([item for item in revisions if item.get("manual_rerun") is True or item.get("run_kind") == "manual_rerun"])
-            rows = "".join(f'<tr><th>Revision {int(item.get("revision") or 1)}</th><td>{_escape(str(item.get("revision_created_at") or item.get("generated_at") or "")[11:16])}</td><td>{"Manual" if item.get("manual_rerun") is True or item.get("run_kind") == "manual_rerun" else "正式批次"}</td></tr>' for item in revisions)
-            body += f'<section class="section revision-history"><h2>本交易日 Revision History</h2><p>共手動更新 {manual_count} 次</p><table class="decision-table"><tbody>{rows}</tbody></table></section>'
-    if comparison.get("available"):
-        changed_count = len(comparison.get("changes", []))
-        change = f'<section class="section same-window-change"><h2>同時段跨交易日變化</h2><p>{_escape(comparison.get("previous_trading_date"))} → {_escape(comparison.get("current_trading_date"))}；決策來源欄位變更 {changed_count} 項。</p><p class="decision-note">比較基準固定為同市場、同 window、前一有效交易日最高 revision；不顯示原始 payload 或 runtime metadata。</p></section>'
-    else:
-        change = f'<section class="section same-window-change archive-empty-state"><h2>同時段跨交易日變化</h2><p>{_escape(comparison.get("empty_state"))}</p></section>'
-    return f'<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{_escape(market)} {_escape(window)} {_escape(selection)}</title><style>{base_css()}</style></head><body {identity}><header>{shared_market_navigation(market, f"{market} Snapshot Archive", f"{window}｜{selection}")}</header><main class="wrap">{body}{change}</main></body></html>\n'
-
-
-def build_archive_route(output_dir: Path, market: str, window: str, selection_name: str) -> Path:
-    selected = resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, market, window)
-    snapshot = selected.latest if selection_name == "latest" else selected.previous
-    comparison = same_window_change(selected.latest, selected.previous)
-    target = output_dir / f"dashboard/archive/{market.lower()}/{window}/{selection_name}/index.html"
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(stable_html(render_snapshot_archive_page(market, window, selection_name, snapshot, comparison)), encoding="utf-8")
-    return target
-
-
-def publish_archive_latest_route(market: str, window: str, static_root: Path = STATIC_ROOT, output_dir: Path = Path("/tmp/stock-ai-dashboard-archive-latest")) -> dict[str, Any]:
-    """Manual rerun contract: rebuild and publish this window's latest route only."""
-    source = build_archive_route(output_dir, market, window, "latest")
-    target = static_root / f"dashboard/archive/{market.lower()}/{window}/latest/index.html"
-    target.parent.mkdir(parents=True, exist_ok=True)
-    _atomic_copy(source, target)
-    return {"published": True, "selection": "latest", "market": market, "window": window, "source": str(source), "target": str(target), "previous_updated": False, "other_windows_updated": False, "notification_sent": False, "production_pipeline_executed": False}
-
-
-def publish_market_dashboard_alias(market: str, static_root: Path = STATIC_ROOT, output_dir: Path = Path("/tmp/stock-ai-dashboard-market-alias")) -> dict[str, Any]:
-    """Publish one market wrapper from the same resolver-selected immutable payload."""
-    active = resolve_active_snapshot(WINDOW_SNAPSHOT_ARCHIVE, market)
-    if not active:
-        return {"published": False, "market": market, "reason": "no_admitted_active_snapshot"}
-    output_dir.mkdir(parents=True, exist_ok=True)
-    filename = "tw_index.html" if market == "TW" else "us_index.html"
-    source = output_dir / filename
-    source.write_text(stable_html(render_tw_page() if market == "TW" else render_us_page()), encoding="utf-8")
-    target = static_root / f"dashboard/{market.lower()}/index.html"
-    _atomic_copy(source, target)
-    parity = snapshot_parity_contract(active)
-    return {"published": True, "market": market, "source": str(source), "target": str(target), "parity": parity}
-
-
-def publish_manual_rerun_update(market: str, window: str, static_root: Path = STATIC_ROOT, output_dir: Path = Path("/tmp/stock-ai-dashboard-manual-rerun")) -> dict[str, Any]:
-    """Update target Latest and sync the market page only when the target is active."""
-    latest = publish_archive_latest_route(market, window, static_root=static_root, output_dir=output_dir / "latest")
-    active = resolve_active_snapshot(WINDOW_SNAPSHOT_ARCHIVE, market)
-    active_window = str(active.get("window") or "") if active else None
-    market_result = (
-        publish_market_dashboard_alias(market, static_root=static_root, output_dir=output_dir / "market")
-        if active_window == window else
-        {"published": False, "market": market, "reason": "manual_window_is_not_active", "active_window": active_window}
-    )
-    return {
-        "latest": latest,
-        "market_dashboard": market_result,
-        "active_window": active_window,
-        "latest_route_updated": latest.get("published") is True,
-        "market_dashboard_updated": market_result.get("published") is True,
-        "previous_route_updated": False,
-        "other_windows_updated": False,
-        "notification_sent": False,
-        "production_pipeline_executed": False,
-    }
-
-
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def _atomic_copy(source: Path, target: Path) -> None:
-    target.parent.mkdir(parents=True, exist_ok=True)
-    staged = target.with_name(f".{target.name}.ai-dev-181d.tmp")
-    shutil.copy2(source, staged)
-    os.replace(staged, target)
-
-
-def production_landing_contract_errors(page: str) -> list[str]:
-    errors = []
-    for marker in ("台股 Dashboard", "美股 Dashboard", "批次報告歷史", "台股手動批次", "美股手動批次", "系統營運中心"):
-        if marker not in page:
-            errors.append(f"missing:{marker}")
-    expected_counts = {
-        "archive_buttons": (page.count('class="market-shared-navigation__button archive-browser-button"'), 14),
-        "manual_buttons": (page.count('class="manual-batch-button"'), 7),
-        "operations_rows": (page.count('<tr data-market='), 7),
-    }
-    errors.extend(f"{name}:{actual}!={expected}" for name, (actual, expected) in expected_counts.items() if actual != expected)
-    lowered = page.lower()
-    for marker in ("stock ai legacy / debug landing", "legacy / debug landing", "raw pipeline report content", "正式決策入口已移至四時段"):
-        if marker.lower() in lowered:
-            errors.append(f"forbidden:{marker}")
-    return errors
-
-
-def publish_pages(static_root: Path = STATIC_ROOT, source_dir: Path = OUTPUT_DIR) -> dict[str, Any]:
-    manifest = build_pages(source_dir)
-    landing_source = source_dir / "index.html"
-    landing_errors = production_landing_contract_errors(landing_source.read_text(encoding="utf-8"))
-    if landing_errors:
-        raise ValueError("production landing contract failed before publish: " + ", ".join(landing_errors))
-    timestamp = datetime.now(ZoneInfo("Asia/Taipei")).strftime("%Y%m%d-%H%M%S")
-    backup = static_root / ".ai_dev_170_rollback" / timestamp
-    backup.mkdir(parents=True, exist_ok=True)
-    targets = {
-        "landing": static_root / "index.html",
-        "tw": static_root / "dashboard/tw/index.html",
-        "us": static_root / "dashboard/us/index.html",
-        "old_compat": static_root / "dashboard/decision-intelligence/four-window-preview/index.html",
-    }
-    sources = {
-        "landing": source_dir / "index.html",
-        "tw": source_dir / "tw_index.html",
-        "us": source_dir / "us_index.html",
-        "old_compat": source_dir / "old_four_window_index.html",
-    }
-    for key, target in targets.items():
-        if target.exists():
-            dest = backup / (key + ".before_ai_dev_170.html")
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(target, dest)
-        _atomic_copy(sources[key], target)
-    archive_source = source_dir / "dashboard/archive"
-    archive_target = static_root / "dashboard/archive"
-    if archive_source.exists():
-        for source in sorted(archive_source.rglob("index.html")):
-            relative = source.relative_to(archive_source)
-            target = archive_target / relative
-            _atomic_copy(source, target)
-    result = {
-        **manifest,
-        "published": True,
-        "static_root": str(static_root),
-        "backup_path": str(backup),
-        "notification_sent": False,
-        "production_pipeline_executed": False,
-        "archive_route_count": manifest.get("archive_route_count", 0),
-        "production_landing_owner": PRODUCTION_LANDING_OWNER,
-        "production_source_hash": _sha256(landing_source),
-        "staged_landing_hash": _sha256(landing_source),
-        "public_landing_hash": _sha256(static_root / "index.html"),
-        "rollback_command": f"cp {backup}/landing.before_ai_dev_170.html {static_root}/index.html 2>/dev/null || true; cp {backup}/tw.before_ai_dev_170.html {static_root}/dashboard/tw/index.html 2>/dev/null || true; cp {backup}/us.before_ai_dev_170.html {static_root}/dashboard/us/index.html 2>/dev/null || true; cp {backup}/old_compat.before_ai_dev_170.html {static_root}/dashboard/decision-intelligence/four-window-preview/index.html 2>/dev/null || true",
-    }
-    (static_root / ".ai_dev_170_publish_latest.json").write_text(stable_json(result), encoding="utf-8")
-    return result
+def validate_projection(projection: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    for key in ("research_brief", "research_confidence", "supporting_evidence", "opposing_evidence", "missing_evidence", "hypothesis", "effective_coverage", "window_research_identity"):
+        if projection.get(key) is None:
+            errors.append(f"missing:{key}")
+    hypothesis = projection.get("hypothesis") or {}
+    if hypothesis.get("state") not in HYPOTHESIS_STATES:
+        errors.append("invalid_hypothesis_state")
+    if not hypothesis.get("trigger") or not hypothesis.get("invalidation") or not hypothesis.get("counter_argument"):
+        errors.append("hypothesis_incomplete")
+    boundary = projection.get("boundary") or {}
+    if projection.get("decision_context_export", {}).get("trade_action") is not None:
+        errors.append("research_exported_trade_action")
+    if any(boundary.get(key) for key in ("eligibility_modified", "ranking_modified", "scoring_modified", "strategy_weights_modified", "prediction_model_modified", "auto_learning")):
+        errors.append("layer_boundary_violation")
+    return sorted(set(errors))

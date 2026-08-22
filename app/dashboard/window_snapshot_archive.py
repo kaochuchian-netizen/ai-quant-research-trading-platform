@@ -11,6 +11,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from app.us_stock.runtime_provenance import ADMITTED_PROVENANCE, provenance_admission
+from app.us_stock.trading_calendar import is_us_trading_day
 
 SCHEMA_VERSION = "window_snapshot_archive_v1"
 MARKET_WINDOWS = {
@@ -54,9 +55,12 @@ def admission_errors(payload: dict[str, Any]) -> list[str]:
     elif window not in MARKET_WINDOWS[market]:
         errors.append("window")
     try:
-        date.fromisoformat(str(trading_date))
+        parsed_trading_date = date.fromisoformat(str(trading_date))
     except ValueError:
         errors.append("effective_trading_date")
+    else:
+        if market == "US" and not is_us_trading_day(parsed_trading_date):
+            errors.append("us_non_trading_effective_date")
     if payload.get("status") not in {"complete", "success"}:
         errors.append("status")
     if payload.get("run_kind") in REJECTED_RUN_KINDS or payload.get("is_fixture") is True:
@@ -213,9 +217,11 @@ def write_snapshot(
     if market not in MARKET_WINDOWS or canonical_window not in MARKET_WINDOWS[market]:
         return {"written": False, "reason": "unsupported_market_window"}
     try:
-        date.fromisoformat(effective_trading_date)
+        parsed_effective_date = date.fromisoformat(effective_trading_date)
     except ValueError:
         return {"written": False, "reason": "invalid_effective_trading_date"}
+    if market == "US" and not is_us_trading_day(parsed_effective_date):
+        return {"written": False, "reason": "us_non_trading_effective_date"}
     if run_kind not in {"scheduled", "manual_rerun", "backfill"}:
         return {"written": False, "reason": "rejected_run_kind"}
     if market == "TW" and canonical_window == "pre_open_0700" and (

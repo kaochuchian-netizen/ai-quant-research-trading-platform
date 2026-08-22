@@ -442,9 +442,14 @@ def build_initial_projection(bundle: dict[str, Any], *, observed_at: str) -> dic
         "state": "created", "method": "deterministic_company_event_narrative_v2",
         "event_family": narrative["event_family"],
     }
+    directional_explanation = research_direction_explanation(
+        coverage_score=coverage["score"], stance=stance,
+        supporting_count=len(supporting), opposing_count=len(opposing),
+    )
     brief = (
         f"研究立場為 {stance}；{len(supporting)} 項支持、{len(opposing)} 項反對。"
         f"有效覆蓋 {coverage['score']:.1f}%，主要缺口：{', '.join(missing[:4]) or '無'}。"
+        f"{directional_explanation}"
     )
     context_contracts = {
         "news": {
@@ -493,6 +498,14 @@ def build_initial_projection(bundle: dict[str, Any], *, observed_at: str) -> dic
     }
     projection["window_research_identity"] = "us_rv2_" + stable_hash(projection)[:24]
     return projection
+
+
+def research_direction_explanation(*, coverage_score: float, stance: str,
+                                   supporting_count: int, opposing_count: int) -> str:
+    """Explain availability coverage separately from directional sufficiency."""
+    if stance == "insufficient_evidence" and coverage_score >= 80 and supporting_count == opposing_count == 0:
+        return "研究資料覆蓋高，但本次沒有足夠公司方向性證據形成研究立場。"
+    return "研究立場依公司方向性證據形成；市場背景不單獨建立公司方向。"
 
 
 def evolve_intraday(origin: dict[str, Any], observed: dict[str, Any], *, observed_at: str) -> dict[str, Any]:

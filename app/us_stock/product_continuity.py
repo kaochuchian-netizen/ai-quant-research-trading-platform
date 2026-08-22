@@ -19,10 +19,12 @@ def forecast_projection(card: dict[str, Any], prediction: dict[str, Any]) -> dic
     low, high = _number(prediction.get("predicted_session_low")), _number(prediction.get("predicted_session_high"))
     reference = _number(prediction.get("reference_price") or card.get("price"))
     if low is None or high is None or low > high:
-        return {"schema_version": "us_premarket_product_projection_v1", "market": "US", "status": "INSUFFICIENT", "direction": "SIDEWAYS", "target_price": None, "predicted_low": low, "predicted_high": high, "reference_price": reference, "decision_authority": False}
+        return {"schema_version": "us_premarket_product_projection_v1", "market": "US", "status": "INSUFFICIENT", "direction": "SIDEWAYS", "target_price": None, "predicted_low": low, "predicted_high": high, "reference_price": reference, "short_judgment": "目前預測輸入不足，無法建立可靠目標與區間。", "decision_authority": False}
     raw = str((card.get("daily_tactical_summary") or {}).get("direction") or "").lower()
     direction = "BULLISH" if "bull" in raw else "BEARISH" if "bear" in raw else "SIDEWAYS"
-    return {"schema_version": "us_premarket_product_projection_v1", "market": "US", "status": "AVAILABLE", "direction": direction, "reference_price": reference, "target_price": round((low + high) / 2, 2), "predicted_low": low, "predicted_high": high, "horizon": "US_CURRENT_SESSION", "target_method": "canonical_prediction_interval_midpoint", "decision_authority": False, "execution_target": False}
+    target = round((low + high) / 2, 2)
+    direction_text = {"BULLISH": "偏多", "BEARISH": "偏空", "SIDEWAYS": "盤整"}[direction]
+    return {"schema_version": "us_premarket_product_projection_v1", "market": "US", "status": "AVAILABLE", "direction": direction, "reference_price": reference, "target_price": target, "predicted_low": low, "predicted_high": high, "short_judgment": f"今日預期{direction_text}，預測重心 {target:.2f}，合理區間 {low:.2f}～{high:.2f}；突破區間需重新評估。", "horizon": "US_CURRENT_SESSION", "target_method": "canonical_prediction_interval_midpoint", "decision_authority": False, "execution_target": False}
 
 def news_projection(value: dict[str, Any]) -> dict[str, Any]:
     """Expose compact funnel counts without recomputing provider evidence."""
