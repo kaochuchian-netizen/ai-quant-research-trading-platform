@@ -43,6 +43,7 @@ from app.reports.presentation_normalization import (
 from app.us_stock.watchlist import normalize_us_watchlist_rows
 from app.us_stock.runtime_provenance import ADMITTED_PROVENANCE, RuntimeProvenance, provenance_admission
 from app.us_stock.research_presentation import research_review_lines
+from app.us_stock.trading_calendar import resolve_us_effective_trading_date
 from app.runtime.operations_provenance import build_operations_provenance, write_operations_provenance
 from scripts.orchestrator.notify_stage_report import build_message, load_env_file, load_mail_config, send_message
 
@@ -585,7 +586,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     try:
         artifact = build_runtime_artifact(args.window, dry_run=not production_approved, reference=batch_reference, live_data=args.live_data, production_artifact=production_artifact)
         artifact["generated_at"] = started.isoformat()
-        canonical_trading_date = batch_reference.astimezone(NEW_YORK).date().isoformat()
+        canonical_trading_date = resolve_us_effective_trading_date(batch_reference, args.window).isoformat()
         artifact["effective_trading_date"] = canonical_trading_date
         if args.manual_rerun and (production_approved or production_artifact):
             runtime_provenance = RuntimeProvenance.MANUAL_RERUN.value

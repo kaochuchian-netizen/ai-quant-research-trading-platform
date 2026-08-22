@@ -29,6 +29,7 @@ from app.us_stock.research_presentation import (
     apply_finalized_news_surfaces,
 )
 from app.us_stock.product_continuity import forecast_projection, intraday_continuity, news_projection
+from app.us_stock.trading_calendar import resolve_us_effective_trading_date, us_session_availability
 from app.strategy.dual_strategy import DAILY_TACTICAL, RESEARCH_POSITION, US_TACTICAL_FACTOR_VERSION, build_dual_strategies
 from app.reports.canonical_outcomes import aggregate_us_post_close_review, build_structured_review_cards
 from app.us_stock.intraday_observed import (
@@ -78,13 +79,19 @@ def session_context(window: str, reference: datetime | None = None) -> dict[str,
         "taipei_time": US_BATCH_WINDOWS[window]["scheduled_time_tw"],
         "reference_taipei": reference.isoformat(),
         "reference_new_york": ny.isoformat(),
-        "session_date": ny.date().isoformat(),
+        "wall_clock_new_york_date": ny.date().isoformat(),
+        "session_date": resolve_us_effective_trading_date(reference, window).isoformat(),
         "us_daylight_saving_active": is_dst,
         "market_open_expected": closed_reason is None,
         "market_closed_reason": closed_reason,
         "phase_note": "PM-approved Asia/Taipei fixed schedule retained; phase metadata is advisory.",
     }
     context.update(resolve_market_session(reference))
+    # resolve_market_session describes observed wall-clock state; canonical
+    # identity and availability remain owned by the US calendar contract.
+    context["session_date"] = resolve_us_effective_trading_date(reference, window).isoformat()
+    context["effective_trading_date"] = context["session_date"]
+    context["session_availability"] = us_session_availability(reference, window)
     return context
 
 def rating_action(score: float | None, confidence_status: str, event_risk_level: str = "low") -> tuple[str, str, float | None, str]:
@@ -350,6 +357,7 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
                 (institutional_research.get("research_intelligence_v2") or {}).get("window_research_identity")
             )
             card["us_premarket_product_projection_v1"] = forecast_projection(card, prediction)
+            card["session_context"] = json.loads(json.dumps(context))
         if window == "us_intraday_2300":
             tactical = strategies.get(DAILY_TACTICAL, {}) if isinstance(strategies, dict) else {}
             source_plan = resolve_source_trade_plan(WINDOW_ARCHIVE_DIR, context["session_date"], symbol)

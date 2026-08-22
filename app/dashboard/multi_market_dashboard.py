@@ -625,6 +625,8 @@ def _us_window_card(card: dict[str, Any], window: str) -> str:
         state = "主要交易機會" if eligibility.get("top_opportunity") else "僅觀察" if eligibility.get("watch_only") else "暫不交易"
         reason_labels = {
             "PREMARKET_DATA_UNAVAILABLE_OR_STALE": "盤前行情尚未取得或已過舊", "RR_BELOW_THRESHOLD": "報酬風險比未達門檻",
+            "PREMARKET_SESSION_NOT_STARTED": "尚未進入美股盤前資料可用時段",
+            "PREMARKET_DATA_NOT_YET_AVAILABLE": "尚未進入美股盤前資料可用時段",
             "LOW_CONFIDENCE": "信心偏低", "DIRECTION_NOT_BULLISH": "方向尚未轉為偏多", "SETUP_NOT_STABILIZED": "尚未止穩",
             "CHASE_RISK_HIGH": "追價風險偏高", "EVENT_RISK_HIGH": "事件風險偏高",
         }
@@ -634,12 +636,21 @@ def _us_window_card(card: dict[str, Any], window: str) -> str:
         change = f"{float(pre['change']):+.2f}（{float(pre['change_pct']):+.2f}%）" if isinstance(pre.get("change"), (int, float)) and isinstance(pre.get("change_pct"), (int, float)) else "尚未取得"
         forecast = card.get("us_premarket_product_projection_v1") or {}
         news_product = card.get("us_news_product_projection_v1") or {}
+        availability = ((card.get("session_context") or {}).get("session_availability") or {})
+        if availability.get("state") == "PREMARKET_SESSION_NOT_STARTED":
+            off_session_note = "<p class='decision-note'>尚未進入美股盤前資料可用時段；此狀態不是新聞或行情來源取得失敗。</p>"
+            reasons = "尚未進入美股盤前資料可用時段"
+        elif availability.get("state") == "OFF_SESSION_VERIFICATION":
+            off_session_note = "<p class='decision-note'>目前為美股非交易時段的 controlled verification；行情 absence 不視為來源取得失敗。</p>"
+            reasons = "美股非交易時段，僅驗證產品與既有證據"
+        else:
+            off_session_note = ""
         direction_label = {"BULLISH": "偏多 ↑", "BEARISH": "偏空 ↓", "SIDEWAYS": "盤整 ↔"}.get(forecast.get("direction"), "盤整 ↔")
         selected_news_html = "".join(f"<li><strong>{_escape(item.get('headline') or item.get('english_headline'))}</strong><br>{_escape(item.get('publisher') or '原始來源未解析')}｜{_escape(item.get('published_at') or '時間未標示')}｜{_escape(item.get('direction_status') or 'NOT_EVALUATED')}</li>" for item in (news_product.get("selected_items") or [])[:3]) or f"<li>{_escape(news_product.get('state_label') or '目前沒有通過門檻的當期消息')}</li>"
         return f"""
         <article class="stock-card decision-card window-stock-card" data-market="US" data-card-type="window-premarket" data-contract-card-type="us-pre-market-v4" data-report-type="{report_type}">
           <div class="decision-card__head"><div><div class="decision-card__market">US｜20:00 美股盤前｜盤前決策</div><h3>{symbol} {name}</h3></div><span class="decision-badge {'decision-badge--ok' if active else 'decision-badge--warn'}">{_escape(state)}</span></div>
-          <section class="decision-section us-product-intelligence" data-section="us-premarket-product"><h4>今日盤前判斷</h4>{_window_metric_grid([('方向', direction_label), ('盤前／基準價', forecast.get('reference_price')), ('預測目標', forecast.get('target_price')), ('預測區間', f"{forecast.get('predicted_low')} ～ {forecast.get('predicted_high')}")])}<h4>今日重要消息</h4><p>新聞抓取 {news_product.get('retrieved_count', 0)}｜通過篩選 {news_product.get('qualified_count', 0)}｜可用於判斷 {news_product.get('selected_count', 0)}</p><ul>{selected_news_html}</ul></section>
+          <section class="decision-section us-product-intelligence" data-section="us-premarket-product"><h4>今日盤前判斷</h4>{_window_metric_grid([('方向', direction_label), ('預測目標', forecast.get('target_price')), ('預測區間', f"{forecast.get('predicted_low')} ～ {forecast.get('predicted_high')}"), ('盤前／基準價', forecast.get('reference_price'))])}<p><strong>短評：</strong>{_escape(forecast.get('short_judgment') or '預測資料不足，暫不推導價格情境。')}</p>{off_session_note}<h4>今日重要消息</h4><p>新聞抓取 {news_product.get('retrieved_count', 0)}｜通過篩選 {news_product.get('qualified_count', 0)}｜可用於判斷 {news_product.get('selected_count', 0)}</p><ul>{selected_news_html}</ul><h4>今日行動</h4><p>{_escape(state)}｜{_escape(reasons)}</p></section>
           <section class="decision-section" data-section="premarket-observed"><h4>盤前實際行情</h4>{_window_metric_grid([('盤前價格', pre.get('price')), ('前收', pre.get('previous_close')), ('盤前漲跌', change), ('Gap', gap), ('資料時間', format_timestamp(pre.get('timestamp'), timezone_name='America/New_York')), ('資料來源', pre.get('source')), ('資料狀態', localize_enum(pre.get('availability'))), ('相對 QQQ', f"{float(relative['vs_qqq_pp']):+.2f} 個百分點" if isinstance(relative.get('vs_qqq_pp'), (int, float)) else '尚未取得'), ('相對 SOXX', f"{float(relative['vs_sector_pp']):+.2f} 個百分點" if isinstance(relative.get('vs_sector_pp'), (int, float)) else '尚未取得')])}</section>
           <section class="decision-section" data-section="premarket-eligibility"><h4>行動資格</h4>{_window_metric_grid([('目前狀態', state), ('交易方向', localize_enum(card.get('direction'))), ('策略型態', safe_public_text(card.get('setup_type'))), ('市場方向衝突', '是' if card.get('market_conflict') else '否'), ('進場條件就緒', '是' if eligibility.get('entry_ready') else '否'), ('主要交易機會', '是' if eligibility.get('top_opportunity') else '否'), ('信心', tactical.get('confidence')), ('報酬風險比', plan.get('reward_risk')), ('事件風險', localize_enum(event.get('canonical_level'))), ('行動理由', safe_public_text(card.get('action_rationale'))), ('原因', reasons)])}</section>
           <section class="decision-section" data-section="premarket-plan"><h4>{'正式交易計畫' if active else '觀察與重新評估'}</h4>{_window_metric_grid([(entry_label, format_price_range(plan.get('entry') if active else plan.get('observation_zone'))), ('Stop 停損', f"{float(plan['stop']):.2f}" if active and isinstance(plan.get('stop'), (int, float)) else '不建立'), ('Target 目標', format_price_range(plan.get('target')) if active else '不建立'), ('失效條件', plan.get('invalidation_condition') if active else '不適用'), ('重新評估條件', plan.get('reassessment_condition'))])}</section>
@@ -696,7 +707,7 @@ def render_us_window_report(window: str, artifacts: list[dict[str, Any]]) -> str
         "us_post_close_review_0630": "us-post-close-review",
     }[window]
     intro = {
-        "us_pre_market_2000": "Premarket、Gap、SPY / QQQ / 類股脈絡與 Entry / Stop / Target。",
+        "us_pre_market_2000": "方向、預測目標、預測區間、短評、新聞漏斗與今日行動；Entry / Stop / execution Target 為次要執行資訊。",
         "us_intraday_2300": "開盤後變化、Gap follow-through、Volume confirmation、Entry trigger 與 Target / Stop proximity。",
         "us_post_close_review_0630": "Prediction review、Entry / Stop / Target outcome、MFE / MAE 與 next-session watchlist。",
     }[window]
