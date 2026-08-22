@@ -10,7 +10,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import subprocess
 import sys
 import threading
 import time
@@ -36,6 +35,7 @@ from scripts.orchestrator.manual_rerun_single_window import (  # noqa: E402
 )
 from app.dashboard.window_snapshot_archive import resolve_snapshots
 from app.dashboard.multi_market_dashboard import STATIC_ROOT, publish_manual_rerun_update
+from app.runtime.manual_rerun_process_supervisor import run_process_group
 
 PIN_HASH_ENV = "STOCK_AI_MANUAL_RERUN_PIN_HASH"
 PIN_HASH_FILE = Path.home() / ".config/stock-ai/manual_rerun_pin_hash"
@@ -44,12 +44,24 @@ STATUS_PATH = "/stock-ai-dashboard/api/manual-rerun/status"
 HEALTH_PATH = "/stock-ai-dashboard/api/manual-rerun/healthz"
 ACTIVATION_RESULT = ROOT / "artifacts/runtime/manual_rerun/manual_rerun_runtime_activation_latest.json"
 ACTIVATION_TRACE = ROOT / "artifacts/runtime/manual_rerun/manual_rerun_runtime_activation_trace_latest.md"
-MANUAL_STATUS_SCHEMA = "manual_rerun_status_v2"
+MANUAL_STATUS_SCHEMA = "manual_rerun_status_v3"
+RUNTIME_TIMEOUT_SECONDS = 1800
+RUNTIME_TERM_GRACE_SECONDS = 10
+RUNTIME_KILL_GRACE_SECONDS = 5
+RUNTIME_HEARTBEAT_SECONDS = 5
+RUNTIME_LOG_DIR = ROOT / "artifacts/runtime/manual_rerun/logs"
+RUNTIME_PROGRESS_DIR = ROOT / "artifacts/runtime/manual_rerun/progress"
+ACTIVE_JOB_LOCK_PATH = Path("/tmp/stock_ai_manual_rerun_bridge_active.json")
 ACTIVE_LOCK = threading.Lock()
 ACTIVE_JOB_ID: str | None = None
 STAGE_LABELS = {
     "submitted": "驗證請求", "queued": "等待執行", "running": "建立 Runtime",
     "publishing": "同步市場 Dashboard", "completed": "完成", "failed": "執行失敗", "rejected": "請求被拒絕",
+    "runtime_started": "啟動 Runtime", "market_data": "取得市場資料",
+    "news_acquisition": "取得新聞資料", "research_rre": "建立研究與 RRE",
+    "prediction_projection": "建立預測投影", "artifact_generation": "產生批次 Artifact",
+    "admission": "執行 Admission", "archive_publish": "歸檔與發布",
+    "chromium_visual": "建立 Visual Evidence", "notification": "建立通知結果",
 }
 
 
@@ -63,6 +75,7 @@ def persist_status(data: dict[str, Any], status_dir: Path | None = None) -> dict
     directory.mkdir(parents=True, exist_ok=True)
     clean = sanitize_response(data)
     clean.setdefault("schema_version", MANUAL_STATUS_SCHEMA)
+    clean["updated_at"] = datetime.now(ZoneInfo("Asia/Taipei")).replace(microsecond=0).isoformat()
     clean.setdefault("line_attempted", False)
     clean.setdefault("email_attempted", False)
     clean.setdefault("trading_or_order_executed", False)
@@ -77,8 +90,9 @@ def persist_status(data: dict[str, Any], status_dir: Path | None = None) -> dict
 
 def lifecycle_status(base: dict[str, Any], status: str, **updates: Any) -> dict[str, Any]:
     data = dict(base)
+    stage = str(updates.pop("stage", status))
     data.update(updates)
-    data.update({"status": status, "stage": status, "stage_label": STAGE_LABELS.get(status, status)})
+    data.update({"status": status, "stage": stage, "stage_label": STAGE_LABELS.get(stage, stage)})
     history = list(base.get("lifecycle", [])) if isinstance(base.get("lifecycle"), list) else []
     if not history or history[-1] != status:
         history.append(status)
@@ -92,6 +106,26 @@ def lifecycle_status(base: dict[str, Any], status: str, **updates: Any) -> dict[
     data.setdefault("email_attempted", False)
     data.setdefault("trading_or_order_executed", False)
     return data
+
+
+def _write_active_job_lock(job_id: str) -> None:
+    payload = {"schema_version": "manual_rerun_active_lock_v1", "job_id": job_id, "bridge_pid": os.getpid(), "acquired_at": datetime.now(ZoneInfo("Asia/Taipei")).replace(microsecond=0).isoformat()}
+    temporary = ACTIVE_JOB_LOCK_PATH.with_suffix(".tmp")
+    temporary.write_text(stable(payload), encoding="utf-8")
+    temporary.replace(ACTIVE_JOB_LOCK_PATH)
+
+
+def _release_active_job_lock(job_id: str) -> bool:
+    if not ACTIVE_JOB_LOCK_PATH.exists():
+        return True
+    try:
+        owner = json.loads(ACTIVE_JOB_LOCK_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    if str(owner.get("job_id")) != job_id:
+        return False
+    ACTIVE_JOB_LOCK_PATH.unlink(missing_ok=True)
+    return True
 
 
 def _route_hashes(market: str, window: str, static_root: Path = STATIC_ROOT) -> dict[str, Any]:
@@ -175,6 +209,7 @@ def process_manual_rerun_request(request: dict[str, Any], *, pin_hash_value: str
                 persist_status(rejected)
                 return rejected
             ACTIVE_JOB_ID = str(response.get("job_id"))
+            _write_active_job_lock(ACTIVE_JOB_ID)
         persist_status(response)
         if execute_async:
             threading.Thread(target=_execute_and_release, args=(response,), name=f"manual-rerun-{response.get('job_id')}", daemon=True).start()
@@ -191,6 +226,7 @@ def _execute_and_release(response: dict[str, Any]) -> dict[str, Any]:
         with ACTIVE_LOCK:
             if ACTIVE_JOB_ID == str(response.get("job_id")):
                 ACTIVE_JOB_ID = None
+                _release_active_job_lock(str(response.get("job_id")))
 
 
 def manual_date_provenance(requested_effective_date: str, latest: dict[str, Any] | None) -> dict[str, Any]:
@@ -223,15 +259,39 @@ def execute_manual_backend(response: dict[str, Any]) -> dict[str, Any]:
         command.extend(["--effective-trading-date", requested_effective_date])
     else:
         command.extend(["--as-of", reference.isoformat()])
-    running_state = lifecycle_status(base, "running", started_at=started_at, message="正在建立 Runtime 並更新 Archive。")
+    task_id = str(response.get("job_id"))
+    running_state = lifecycle_status(base, "running", stage="runtime_started", started_at=started_at, timeout_seconds=RUNTIME_TIMEOUT_SECONDS, message="正在建立 Runtime 並更新 Archive。")
     persist_status(running_state)
-    try:
-        completed = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, timeout=1800, check=False)
-    except subprocess.TimeoutExpired:
+    latest_runtime_state = dict(running_state)
+
+    def runtime_update(update: dict[str, Any]) -> None:
+        nonlocal latest_runtime_state
+        heartbeat = update.pop("runtime_heartbeat", False)
+        latest_runtime_state = lifecycle_status(latest_runtime_state, "running", **update)
+        if heartbeat:
+            latest_runtime_state["last_heartbeat_at"] = datetime.now(ZoneInfo("Asia/Taipei")).replace(microsecond=0).isoformat()
+        persist_status(latest_runtime_state)
+
+    runtime_result = run_process_group(
+        command, cwd=ROOT, task_id=task_id,
+        log_path=RUNTIME_LOG_DIR / f"{task_id}.log",
+        progress_path=RUNTIME_PROGRESS_DIR / f"{task_id}.jsonl",
+        timeout_seconds=RUNTIME_TIMEOUT_SECONDS,
+        terminate_grace_seconds=RUNTIME_TERM_GRACE_SECONDS,
+        kill_grace_seconds=RUNTIME_KILL_GRACE_SECONDS,
+        heartbeat_seconds=RUNTIME_HEARTBEAT_SECONDS, update=runtime_update,
+    )
+    running_state = lifecycle_status(
+        latest_runtime_state, "running", stage=runtime_result.stage, pid=runtime_result.pid, pgid=runtime_result.pgid,
+        runtime_log_path=str(Path(runtime_result.log_path).relative_to(ROOT)), runtime_log_bytes=runtime_result.log_bytes,
+        runtime_log_truncated=runtime_result.log_truncated, stage_started_at=runtime_result.stage_started_at,
+        stage_timings=runtime_result.stage_timings,
+    )
+    if runtime_result.timed_out:
         finished = datetime.now(ZoneInfo("Asia/Taipei")).replace(microsecond=0)
-        failed = lifecycle_status(running_state, "failed", started_at=started_at, finished_at=finished.isoformat(), duration_seconds=int(time.monotonic() - started_monotonic), error_stage="建立 Runtime", error_summary="手動批次執行逾時。", message="手動重跑失敗；Archive、Latest、Previous 與市場 Dashboard 不應更新。", hash_evidence={"before": before_hashes, "after": _route_hashes(market, window)})
+        failed = lifecycle_status(running_state, "failed", stage=runtime_result.stage, started_at=started_at, finished_at=finished.isoformat(), duration_seconds=int(runtime_result.elapsed_seconds), failure_class="runtime_timeout", error_stage=runtime_result.stage, error_summary="手動批次執行逾時。", termination=list(runtime_result.termination), lock_released=True, message="手動重跑失敗；Archive、Latest、Previous 與市場 Dashboard 不應更新。", hash_evidence={"before": before_hashes, "after": _route_hashes(market, window)})
         return persist_status(failed)
-    success = completed.returncode == 0
+    success = runtime_result.returncode == 0
     after_selection = resolve_snapshots(ROOT / "artifacts/archive/window_snapshots", market, window)
     latest = after_selection.latest
     publish_result: dict[str, Any] = {}
@@ -258,7 +318,7 @@ def execute_manual_backend(response: dict[str, Any]) -> dict[str, Any]:
         "mode": ALLOWED_MODE,
         "status": "completed" if success else "failed",
         "pipeline_status": "completed" if success else "failed",
-        "backend_returncode": completed.returncode,
+        "backend_returncode": runtime_result.returncode,
         "backend_output_recorded": False,
         "dashboard_publish_attempted": success,
         "dashboard_publish_status": "completed" if success else "failed",
@@ -280,11 +340,19 @@ def execute_manual_backend(response: dict[str, Any]) -> dict[str, Any]:
         "market_dashboard_sync_reason": (publish_result.get("market_dashboard") or {}).get("reason"),
         "previous_route_updated": False,
         "other_windows_updated": False,
+        "pid": runtime_result.pid,
+        "pgid": runtime_result.pgid,
+        "runtime_command_identity": latest_runtime_state.get("runtime_command_identity"),
+        "runtime_log_path": str(Path(runtime_result.log_path).relative_to(ROOT)),
+        "runtime_log_bytes": runtime_result.log_bytes,
+        "runtime_log_truncated": runtime_result.log_truncated,
+        "stage_timings": runtime_result.stage_timings,
+        "lock_released": True,
         "latest_url": latest_url,
         "market_dashboard_url": market_url,
         "hash_evidence": {"before": before_hashes, "after": after_hashes},
         "error_stage": None if success else "建立 Runtime / Archive admission",
-        "error_summary": None if success else f"backend return code {completed.returncode}; 未確認新的 admitted revision。",
+        "error_summary": None if success else f"backend return code {runtime_result.returncode}; 未確認新的 admitted revision。",
         "message": f"{contract['label']} 手動重跑已完成。" if success else "手動重跑失敗；未確認新的 admitted revision。",
         "lifecycle": publishing_state.get("lifecycle", []),
         "safety_notes": ["single_window_only", "dashboard_refresh_only", "no_line_email", "no_trading", "existing_latest_effective_date_preserved_for_revision" if selected.latest else "first_snapshot_uses_market_session_date"],
@@ -306,7 +374,7 @@ def status_payload(job_id: str | None = None, status_dir: Path | None = None) ->
     normalized_status = "rejected" if raw_status in rejected_states else raw_status
     if normalized_status not in {"idle", "submitted", "queued", "running", "publishing", "completed", "failed", "rejected"}:
         normalized_status = "failed"
-    normalized = lifecycle_status(data, normalized_status)
+    normalized = lifecycle_status(data, normalized_status, stage=str(data.get("stage") or normalized_status))
     normalized["schema_version"] = MANUAL_STATUS_SCHEMA
     if raw_status != normalized_status:
         normalized.setdefault("reason", raw_status)

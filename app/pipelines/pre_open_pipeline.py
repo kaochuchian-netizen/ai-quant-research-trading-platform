@@ -34,6 +34,7 @@ from app.reports.tw_pre_open_structured import build_card as build_pre_open_card
 from app.reports.tw_pre_open_structured import render_line as render_pre_open_line
 from app.reports.tw_pre_open_structured import unavailable_card as build_unavailable_pre_open_card
 from app.strategy.tw_daily_tactical import build_runtime as build_tw_daily_tactical_runtime
+from app.runtime.manual_rerun_progress import report_manual_rerun_stage
 
 from scripts.update_historical_csv import main as update_historical_csv
 
@@ -167,6 +168,7 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
     print(f"run_date: {context['run_date']}", flush=True)
     print(f"run_time: {context['run_time']}", flush=True)
 
+    report_manual_rerun_stage("market_data", window="pre_open_0700")
     stage_timing.start("load_stock_universe")
     stock_ids, stock_universe_evidence = load_stock_ids_with_provenance()
     stage_timing.finish(
@@ -234,6 +236,7 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
         for card in tactical_runtime.get("cards", [])
     }
     stage_timing.finish("strategy_setup", tactical_card_count=len(tactical_by_symbol))
+    report_manual_rerun_stage("market_data", "completed", symbol_count=len(stock_ids))
     print(f"pre_open selected stock count: {len(stock_ids)}")
     print(f"pre_open selected stock ids: {selected_stock_ids}")
 
@@ -295,7 +298,9 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
             adr_result = get_adr_result(stock_id)
             adr_score = calculate_adr_score(adr_result)
 
+            report_manual_rerun_stage("news_acquisition", symbol=stock_id)
             news_bundle = analyze_news(stock_id, stock_name, include_evidence=True)
+            report_manual_rerun_stage("news_acquisition", "completed", symbol=stock_id)
             news_result = news_bundle.get("analysis", "")
             news_score_result = calculate_news_score(news_result)
             news_score = news_score_result.get("score", 50)
@@ -311,12 +316,15 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
                 chip_score=chip_score,
             )
 
+            report_manual_rerun_stage("research_rre", symbol=stock_id)
             ai_analysis = analyze_stock(
                 indicator_result=indicator_result,
                 adr_result=adr_result,
                 news_result=news_result,
             )
 
+            report_manual_rerun_stage("research_rre", "completed", symbol=stock_id)
+            report_manual_rerun_stage("prediction_projection", symbol=stock_id)
             report = format_stock_report_v2(
                 stock_id=stock_id,
                 stock_name=stock_name,
@@ -377,6 +385,7 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
                     ],
                 )
             )
+            report_manual_rerun_stage("prediction_projection", "completed", symbol=stock_id)
             stage_timing.finish(stage_name, report_ready=True)
 
         except Exception as e:
@@ -398,6 +407,7 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
     if dry_run:
         print("dry-run 模式：略過正式 07:00 window runtime 寫入")
     else:
+        report_manual_rerun_stage("artifact_generation")
         stage_timing.start("window_runtime_write")
         window_runtime = _write_pre_open_runtime(context, structured_cards, selected_stock_ids)
         stage_timing.finish(
@@ -405,7 +415,9 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
             structured_card_count=window_runtime["structured_card_count"],
             tracking_stock_count=window_runtime["tracking_stock_count"],
         )
+        report_manual_rerun_stage("artifact_generation", "completed")
 
+    report_manual_rerun_stage("notification")
     stage_timing.start("line_link_only_reminder")
     line_payload = window_runtime or {
         "effective_trading_date": context["run_date"],
@@ -420,6 +432,7 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
         structured_payload=line_payload,
     )
     stage_timing.finish("line_link_only_reminder", report_count=len(daily_reports))
+    report_manual_rerun_stage("notification", "completed", delivery_suppressed=os.environ.get("STOCK_AI_SUPPRESS_NOTIFICATIONS") == "1")
 
     result = {
         "pipeline_type": context["pipeline_type"],
