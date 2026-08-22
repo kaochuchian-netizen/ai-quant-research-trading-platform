@@ -33,6 +33,7 @@ from app.dashboard.market_dashboard_alias import payload_hash  # noqa: E402
 from app.dashboard.window_snapshot_archive import resolve_snapshots, write_snapshot  # noqa: E402
 from app.dashboard.public_latest_sync import synchronize_admitted_latest, write_sync_artifact  # noqa: E402
 from app.dashboard.visual_evidence_archive import capture_published_snapshot_non_blocking  # noqa: E402
+from app.runtime.manual_rerun_progress import report_manual_rerun_stage  # noqa: E402
 from app.reports.delivery_provenance import build_delivery_provenance, write_delivery_provenance  # noqa: E402
 from app.reports.report_content_contract import build_report_content_artifact  # noqa: E402
 from app.reports.window_context import get_window_context  # noqa: E402
@@ -877,6 +878,7 @@ def main() -> int:
     if not env_enabled("STOCK_AI_APPROVED_DELIVERY") and not args.manual_rerun:
         raise SystemExit("STOCK_AI_APPROVED_DELIVERY=1 is required for approved delivery")
     if args.manual_rerun:
+        report_manual_rerun_stage("runtime_started")
         if not args.effective_trading_date:
             raise SystemExit("--effective-trading-date is required for manual rerun")
         os.environ["STOCK_AI_SUPPRESS_NOTIFICATIONS"] = "1"
@@ -1041,6 +1043,7 @@ def main() -> int:
         stock_cards=snapshot_cards,
     )
     effective_trading_date = args.effective_trading_date or scheduled_datetime_taipei(args.window, generated).date().isoformat()
+    report_manual_rerun_stage("admission")
     archive_write = write_snapshot(
         WINDOW_SNAPSHOT_ARCHIVE,
         market="TW",
@@ -1099,6 +1102,7 @@ def main() -> int:
         rebuild_routes=args.manual_rerun,
         effective_batch_time=effective_batch_time,
     )
+    report_manual_rerun_stage("admission", "completed" if archive_write.get("written") is True else "failed", reason=archive_write.get("reason"))
     stage_timing_path = REPO_ROOT / "artifacts/runtime/stage_timing" / f"tw_{args.window}_latest.json"
     record_stage_result(
         stage_timing_path, "snapshot_admission",
@@ -1117,6 +1121,7 @@ def main() -> int:
             REPO_ROOT / "artifacts/runtime/public_latest_sync" / f"tw_{args.window}_latest.json",
             public_latest_sync,
         )
+    report_manual_rerun_stage("chromium_visual")
     visual_evidence = capture_published_snapshot_non_blocking(
         market="TW",
         window=str(archive_write.get("window") or args.window),
@@ -1126,6 +1131,8 @@ def main() -> int:
         snapshot_archive_root=WINDOW_SNAPSHOT_ARCHIVE,
         capture_origin="manual_rerun" if args.manual_rerun else "scheduled",
     )
+    report_manual_rerun_stage("chromium_visual", "completed" if str((visual_evidence.get("capture") or {}).get("status") or visual_evidence.get("status")) in {"SUCCESS", "DEGRADED"} else "failed")
+    report_manual_rerun_stage("archive_publish")
     sync_stage_ok = public_latest_sync.get("status") == "verified" or (args.manual_rerun and archive_write.get("written") is True)
     record_stage_result(stage_timing_path, "archive_build", status="completed" if sync_stage_ok else "failed", error_category=None if sync_stage_ok else "route_build_failure")
     record_stage_result(stage_timing_path, "publish", status="completed" if sync_stage_ok else "failed", error_category=None if sync_stage_ok else "public_verification_failure")
@@ -1158,6 +1165,8 @@ def main() -> int:
             "line_email_delivery_not_blocked": True,
         }))
     dashboard = publish_dashboard(Path(args.dashboard_publish_dir), args.window, run_id, generated_at, pipeline_status, output_tail)
+    report_manual_rerun_stage("archive_publish", "completed" if sync_stage_ok else "failed")
+    report_manual_rerun_stage("notification")
     if args.manual_rerun:
         email = {"send_attempted": False, "send_status": "manual_rerun_no_send"}
         line = {"send_attempted": False, "send_status": "manual_rerun_no_send"}
@@ -1222,6 +1231,7 @@ def main() -> int:
         ),
     )
     record_stage_result(stage_timing_path, "delivery", status="completed" if email_ok and line_ok else "failed", error_category=None if email_ok and line_ok else "delivery_failure")
+    report_manual_rerun_stage("notification", "completed" if email_ok and line_ok else "failed", manual_no_send=args.manual_rerun)
     result = {
         "schema_version": SCHEMA_VERSION,
         "task_id": TASK_ID,
@@ -1270,6 +1280,7 @@ def main() -> int:
         else "approved_scheduler_delivery_completed_with_delivery_failure",
     }
     Path(args.output).write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    report_manual_rerun_stage("completed", "completed")
     print(stable_json({key: result[key] for key in ["schema_version", "task_id", "run_id", "scheduler_window", "pipeline_status", "dashboard_url", "secret_values_printed", "trading_order_portfolio_action", "ok", "decision"]}))
     sync_ok = args.manual_rerun or public_latest_sync.get("status") == "verified"
     return completed.returncode if completed.returncode != 0 else 0 if email_ok and line_ok and sync_ok else 1
