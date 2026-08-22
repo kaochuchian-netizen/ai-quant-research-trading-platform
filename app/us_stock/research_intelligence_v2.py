@@ -341,14 +341,25 @@ def effective_coverage(bundle: dict[str, Any]) -> dict[str, Any]:
     providers = [x for x in bundle.get("providers", []) if isinstance(x, dict)]
     knowledge = bundle.get("knowledge") if isinstance(bundle.get("knowledge"), dict) else {}
     categories = {key: _status_for(key, evidence, providers, knowledge) for key in COVERAGE_WEIGHTS}
-    denominator = sum(COVERAGE_WEIGHTS.values())
-    score = sum(COVERAGE_WEIGHTS[key] * COVERAGE_UTILITY.get(status, 0) for key, status in categories.items()) / denominator * 100
+    applicable, excluded = [], []
+    for key in COVERAGE_WEIGHTS:
+        capable = [p for p in providers if key in (p.get("capability") or [])]
+        availability = {str(p.get("availability") or "") for p in capable}
+        if categories[key] == "MISSING" and capable and availability and availability <= {"NOT_CONFIGURED", "NOT_LICENSED"}:
+            categories[key] = "NOT_APPLICABLE"
+            excluded.append(key)
+        else:
+            applicable.append(key)
+    denominator = sum(COVERAGE_WEIGHTS[key] for key in applicable)
+    score = 0.0 if denominator <= 0 else sum(COVERAGE_WEIGHTS[key] * COVERAGE_UTILITY.get(categories[key], 0) for key in applicable) / denominator * 100
     return {
         "schema_version": "us_effective_research_coverage_v2",
         "score": round(score, 2), "categories": categories,
         "weights": COVERAGE_WEIGHTS, "utility": COVERAGE_UTILITY,
         "available": sorted(k for k, v in categories.items() if v == "AVAILABLE"),
         "coverage_gap": sorted(k for k, v in categories.items() if v in {"MISSING", "FAILED", "STALE"}),
+        "applicable_categories": applicable, "excluded_not_applicable": excluded,
+        "denominator_weight": round(denominator, 4),
         "not_applicable_penalized": False, "duplicate_evidence_counted": False,
         "used_as_trade_score": False,
     }

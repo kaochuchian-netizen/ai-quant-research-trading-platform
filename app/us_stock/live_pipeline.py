@@ -28,6 +28,7 @@ from app.us_stock.research_intelligence_v2 import (
 from app.us_stock.research_presentation import (
     apply_finalized_news_surfaces,
 )
+from app.us_stock.product_continuity import forecast_projection, intraday_continuity, news_projection
 from app.strategy.dual_strategy import DAILY_TACTICAL, RESEARCH_POSITION, US_TACTICAL_FACTOR_VERSION, build_dual_strategies
 from app.reports.canonical_outcomes import aggregate_us_post_close_review, build_structured_review_cards
 from app.us_stock.intraday_observed import (
@@ -339,6 +340,7 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
         card["institutional_research"] = institutional_research
         card["research_identity"] = institutional_research["research_identity"]
         finalized_news = apply_finalized_news_surfaces(card, research, institutional_research)
+        card["us_news_product_projection_v1"] = news_projection(finalized_news)
         if window == "us_pre_market_2000":
             # The compatibility card is projected only after bounded RRE
             # selection.  It may not retain provider-stage RRE/rendered zeros.
@@ -347,6 +349,7 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
             card["news_evidence"]["canonical_funnel_identity"] = (
                 (institutional_research.get("research_intelligence_v2") or {}).get("window_research_identity")
             )
+            card["us_premarket_product_projection_v1"] = forecast_projection(card, prediction)
         if window == "us_intraday_2300":
             tactical = strategies.get(DAILY_TACTICAL, {}) if isinstance(strategies, dict) else {}
             source_plan = resolve_source_trade_plan(WINDOW_ARCHIVE_DIR, context["session_date"], symbol)
@@ -364,11 +367,20 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
             # object, preventing Dashboard/Email/LINE from diverging.
             card = {**card, **observed}
             origin_projection = institutional_research.get("research_intelligence_v2") or {}
-            institutional_research["research_intelligence_v2"] = evolve_intraday(
-                origin_projection, observed, observed_at=generated_at,
-            )
+            lineage_available = (institutional_research.get("continuity") or {}).get("status") == "inherited"
+            if lineage_available:
+                institutional_research["research_intelligence_v2"] = evolve_intraday(
+                    origin_projection, observed, observed_at=generated_at,
+                )
+            else:
+                origin_projection = json.loads(json.dumps(origin_projection))
+                origin_projection["window"] = "us_intraday_2300"
+                origin_projection.setdefault("hypothesis", {})["state"] = "insufficient_new_evidence"
+                origin_projection["window_update"] = {"state": "INSUFFICIENT_SOURCE_LINEAGE", "explanation": "20:00 admitted source research snapshot unavailable; unchanged is not inferred.", "new_evidence": [], "decision_layer_action_changed": False}
+                institutional_research["research_intelligence_v2"] = origin_projection
             card["institutional_research"] = institutional_research
-            card["window_research_identity"] = institutional_research["research_intelligence_v2"]["window_research_identity"]
+            card["window_research_identity"] = institutional_research["research_intelligence_v2"].get("window_research_identity")
+            card["us_intraday_research_continuity_v1"] = intraday_continuity(institutional_research, observed)
             structured_intraday_cards.append(card)
         if result.ok and prediction.get("prediction_status") == "available":
             success += 1
