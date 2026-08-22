@@ -467,8 +467,11 @@ def line_text(artifact: dict[str, Any], window: str) -> str:
             key=lambda card: ({"stop_invalidated": 0, "reduce_risk": 1, "cancel_chase": 2, "target_near": 3}.get(str(card.get("tactical_adjustment")), 9), str(card.get("symbol") or "")),
         )[:3]
         changes = "、".join(f"{card.get('symbol')} {_intraday_text(card.get('tactical_adjustment'))}" for card in ranked) or "無可安全判定標的"
+        continuity = [card.get("us_intraday_research_continuity_v1") or {} for card in cards]
+        continuity_summary = "｜".join(f"{row.get('continuity_state', 'INSUFFICIENT_SOURCE_LINEAGE')} {sum(1 for value in continuity if value.get('continuity_state') == row.get('continuity_state'))}" for row in {str(value.get('continuity_state')): value for value in continuity}.values()) or "來源研究 lineage 尚未取得"
         return "\n".join([
             "【Stock AI】23:00 美股盤中",
+            f"20:00 判斷延續：{continuity_summary}",
             f"正式計畫 {summary.get('active_plan_count', 0)}｜觀察 {summary.get('watch_only_count', 0)}｜無交易 {summary.get('no_trade_count', 0)}",
             f"已觸發 {summary.get('triggered_count', 0)}｜已失效 {summary.get('invalidated_count', 0)}｜仍可行動 {summary.get('still_actionable_count', 0)}",
             f"接近停損 {summary.get('near_stop_count', 0)}｜接近目標 {summary.get('near_target_count', 0)}｜行情不足 {summary.get('data_unavailable_count', 0)}",
@@ -503,13 +506,26 @@ def line_text(artifact: dict[str, Any], window: str) -> str:
         if lead:
             plan = lead.get("trade_plan") or {}
             lead_line = f"重點：{lead.get('symbol')} {lead.get('name') or ''} 符合行動門檻｜RR {_num(plan.get('reward_risk'))}"
+        direction_labels = {"BULLISH": "偏多 ↑", "BEARISH": "偏空 ↓", "SIDEWAYS": "盤整 ↔"}
+        compact_cards: list[str] = []
+        for card in cards:
+            forecast = card.get("us_premarket_product_projection_v1") or {}
+            news = card.get("us_news_product_projection_v1") or {}
+            compact_cards.extend([
+                f"{card.get('symbol')} {card.get('name') or ''}",
+                f"方向：{direction_labels.get(forecast.get('direction'), '盤整 ↔')}｜盤前價 {_num(forecast.get('reference_price'))}",
+                f"目標：{_num(forecast.get('target_price'))}｜區間：{_num(forecast.get('predicted_low'))}～{_num(forecast.get('predicted_high'))}",
+                f"新聞：抓取 {news.get('retrieved_count', 0)}｜通過 {news.get('qualified_count', 0)}｜可用 {news.get('selected_count', 0)}",
+            ])
+            for item in (news.get("selected_items") or [])[:2]:
+                compact_cards.append(f"• {item.get('headline') or item.get('english_headline')}｜{item.get('publisher') or '原始來源未解析'}｜{item.get('direction_status') or 'NOT_EVALUATED'}")
         return "\n".join([
             "【Stock AI】20:00 美股盤前",
             f"市場：SPY {fmt((context.get('spy') or {}).get('change_pct'))}｜QQQ {fmt((context.get('qqq') or {}).get('change_pct'))}｜{context.get('risk_direction') or '尚未取得'}",
             f"主要交易機會 {len(top)}：{'、'.join(top) or '無'}",
             f"觀察等待：{'、'.join(watch) or '無'}",
             f"暫不交易：{'、'.join(no_trade) or '無'}",
-            lead_line, research_line, "完整報告：", contract.dashboard_url, "僅供研究參考，非交易指令。",
+            lead_line, *compact_cards, research_line, "完整報告：", contract.dashboard_url, "僅供研究參考，非交易指令。",
         ])
     parts = [f"【Stock AI】{contract.title}已更新", "美股決策摘要已更新"]
     parts.append(compact_summary(project_decision_intelligence_v4("US", window, artifact), "line"))

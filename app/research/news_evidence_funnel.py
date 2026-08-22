@@ -283,7 +283,7 @@ def normalize_yfinance_news(
         publisher = str(item.get("publisher") or provider_obj.get("displayName") or "").strip()
         published = item.get("pubDate") or item.get("providerPublishTime") or item.get("published_at")
         source_url = _url(item.get("canonicalUrl") or item.get("clickThroughUrl") or item.get("link") or item.get("url"))
-        if not title or not publisher or not published or not source_url:
+        if not title or not published or not source_url:
             reject("PARSER_ERROR")
             continue
         counts["NORMALIZED"] += 1
@@ -295,6 +295,10 @@ def normalize_yfinance_news(
         counts["SYMBOL_ATTRIBUTED"] += 1
         # Yahoo Finance is contextual Tier 3. Official/IR evidence remains a
         # separate higher-priority adapter and is never impersonated here.
+        publisher_resolution_status = "resolved" if publisher else "unresolved"
+        if not publisher:
+            reject("PUBLISHER_UNRESOLVED")
+            publisher = "原始來源未解析"
         counts["QUALITY_QUALIFIED"] += 1
         published_at = parse_time(published)
         if published_at is None:
@@ -328,6 +332,8 @@ def normalize_yfinance_news(
             "materiality": "medium", "freshness": "fresh",
             "direction": "unavailable", "direction_status": "NOT_EVALUATED",
             "entity_attribution": attribution,
+            "publisher_resolution_status": publisher_resolution_status,
+            "discovery_channel": "YAHOO_FINANCE",
             "dedupe_key": source_url,
         })
     unique: dict[str, dict[str, Any]] = {}
@@ -339,7 +345,7 @@ def normalize_yfinance_news(
             unique[key] = item
     admitted = list(unique.values())
     counts["DEDUPLICATED"] = counts["ADMITTED"] = len(admitted)
-    if retrieval_error:
+    if retrieval_error and not admitted:
         reject("RETRIEVAL_FAILED")
         absence = "NEWS_RETRIEVAL_FAILED"
     elif admitted:
@@ -356,7 +362,7 @@ def normalize_yfinance_news(
         "rejection_reasons": dict(sorted(reasons.items())),
         "absence_state": absence,
         "source_preference": ["official", "SEC", "company_ir", "company_newsroom", "recognized_financial_media"],
-        "retrieval": {"status": "FAILED" if retrieval_error else "SUCCESS", "reason_code": "RETRIEVAL_FAILED" if retrieval_error else None},
+        "retrieval": {"status": "PARTIAL" if retrieval_error and admitted else "FAILED" if retrieval_error else "SUCCESS", "reason_code": "PARTIAL_PROVIDER_FAILURE" if retrieval_error and admitted else "RETRIEVAL_FAILED" if retrieval_error else None},
     }
     return admitted, diagnostic
 
