@@ -35,6 +35,7 @@ from app.dashboard.public_latest_sync import synchronize_admitted_latest, write_
 from app.dashboard.visual_evidence_archive import capture_published_snapshot_non_blocking  # noqa: E402
 from app.runtime.manual_rerun_progress import report_manual_rerun_stage  # noqa: E402
 from app.reports.delivery_provenance import build_delivery_provenance, write_delivery_provenance  # noqa: E402
+from app.runtime.batch_audit_bundle import enqueue_batch_audit_non_blocking  # noqa: E402
 from app.reports.report_content_contract import build_report_content_artifact  # noqa: E402
 from app.reports.window_context import get_window_context  # noqa: E402
 from app.reports.window_report_contract import get_window_report_contract  # noqa: E402
@@ -1205,6 +1206,7 @@ def main() -> int:
     line_content = build_line_message(args.window, generated_at, pipeline_status, args.dashboard_url, output_tail)
     record_stage_result(stage_timing_path, "notification_format", status="completed")
     provenance_results = {}
+    provenance_payloads = {}
     for channel, delivery, content in (("email", email, email_content), ("line", line, line_content)):
         raw_status = str(delivery.get("send_status") or "not_attempted")
         delivery_result = "sent" if raw_status in {"sent", "handled_by_pipeline"} else "failed" if raw_status == "failed" else "suppressed" if "suppress" in raw_status or "manual" in raw_status else "not_attempted"
@@ -1220,6 +1222,19 @@ def main() -> int:
             provenance,
         )
         provenance_results[channel] = delivery_result
+        provenance_payloads[channel] = provenance
+    audit_bundle = enqueue_batch_audit_non_blocking(
+        snapshot=latest_snapshot,
+        visual_manifest_path=Path(str(visual_evidence.get("manifest_path") or "")),
+        line_message=line_content,
+        email_subject=f"[Stock AI] {cfg['label']} approved delivery {generated_at}",
+        email_body=email_content,
+        line_provenance=provenance_payloads.get("line", {}),
+        email_provenance=provenance_payloads.get("email", {}),
+        dashboard_url=args.dashboard_url,
+        public_parity_status=str(public_latest_sync.get("status") or "not_attempted"),
+        duplicate_delivery_suppressed=False,
+    )
     write_operations_provenance(
         REPO_ROOT / "artifacts/runtime/operations_provenance" / f"tw_{args.window}_latest.json",
         build_operations_provenance(
@@ -1254,6 +1269,7 @@ def main() -> int:
         "archive_write": archive_write,
         "public_latest_sync": public_latest_sync,
         "visual_evidence": visual_evidence,
+        "batch_audit_bundle": audit_bundle,
         "line_delivery": line,
         "line_delivery_status": line.get("send_status"),
         "line_delivery_reason": line.get("reason"),

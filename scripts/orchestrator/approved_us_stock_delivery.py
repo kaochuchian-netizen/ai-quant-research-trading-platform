@@ -35,6 +35,7 @@ from app.dashboard.window_snapshot_archive import resolve_snapshots, write_snaps
 from app.dashboard.public_latest_sync import synchronize_admitted_latest, write_sync_artifact
 from app.dashboard.visual_evidence_archive import capture_published_snapshot_non_blocking
 from app.reports.delivery_provenance import build_delivery_provenance, write_delivery_provenance
+from app.runtime.batch_audit_bundle import enqueue_batch_audit_non_blocking
 from app.reports.window_report_contract import get_window_report_contract
 from app.reports.canonical_outcomes import aggregate_us_post_close_review, normalize_review_card
 from app.reports.presentation_normalization import (
@@ -665,6 +666,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         email_preview = build_email_body(artifact, args.window)
         line_preview = line_text(artifact, args.window)
         provenance_results = {}
+        provenance_payloads = {}
         for channel, delivery, content in (("email", email_result, email_preview), ("line", line_result, line_preview)):
             attempted = bool(delivery.get("attempted"))
             result_name = "sent" if delivery.get("succeeded") else "failed" if attempted else "suppressed" if "suppress" in str(delivery.get("reason") or "") else "not_attempted"
@@ -682,6 +684,19 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     provenance,
                 )
             provenance_results[channel] = result_name
+            provenance_payloads[channel] = provenance
+        audit_bundle = enqueue_batch_audit_non_blocking(
+            snapshot=latest_snapshot,
+            visual_manifest_path=Path(str(visual_evidence.get("manifest_path") or "")),
+            line_message=line_preview,
+            email_subject=build_email_subject(artifact, args.window),
+            email_body=email_preview,
+            line_provenance=provenance_payloads.get("line", {}),
+            email_provenance=provenance_payloads.get("email", {}),
+            dashboard_url=get_window_report_contract("US", args.window).dashboard_url,
+            public_parity_status=str(public_latest_sync.get("status") or "not_attempted"),
+            duplicate_delivery_suppressed=delivery_skipped_duplicate,
+        )
         operations_provenance = build_operations_provenance(
             market="US", window=args.window, runtime_status="completed",
             runtime_trading_date=canonical_trading_date,
@@ -731,6 +746,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "visual_evidence": visual_evidence,
             "operations_provenance_preview": operations_provenance,
             "delivery_provenance_persisted": persist_formal_runtime,
+            "batch_audit_bundle": audit_bundle,
             "python3_main_executed": False,
             "secret_values_printed": False,
         }
