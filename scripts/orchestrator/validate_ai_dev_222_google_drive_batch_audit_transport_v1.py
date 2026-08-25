@@ -152,6 +152,15 @@ def main() -> int:
             def upload(self, parent_id: str, name: str, path: Path, checksum: str) -> str:
                 time.sleep(0.2)
                 return super().upload(parent_id, name, path, checksum)
+        # Keep the timeout assertion scoped to Drive transport.  Production may
+        # render a missing email PDF before upload, and Chromium startup time is
+        # intentionally outside the per-call Drive timeout contract.
+        require(render_email_preview_pdf(
+            timeout_bundle,
+            renderer=lambda _source, destination: destination.write_bytes(
+                b"%PDF-1.4\\nemail timeout fixture\\n%%EOF\\n"
+            ),
+        )["status"] == "SUCCESS", "timeout fixture PDF")
         started = time.monotonic(); timeout_result = upload_bundle(timeout_bundle, SlowDrive(), max_retries=1, timeout_seconds=0.01)
         require(timeout_result["status"] == "DEGRADED" and time.monotonic() - started < 0.15, "upload timeout blocked worker")
         cases["bounded_upload_timeout"] = "PASS"
