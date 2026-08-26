@@ -48,6 +48,28 @@ PM interactive OAuth consent, approved Secret Manager activation, controlled
 no-send TW/US upload, ChatGPT Drive readback and natural lifecycle verification
 remain pending.
 
+## Secret access infrastructure closure
+
+Controlled activation correctly failed closed because the production VM's
+legacy OAuth scopes do not authorize Secret Manager. The VM default Compute
+identity also retains project Editor, so adding `cloud-platform` would expose a
+materially broader effective permission set. No IAM, scope, identity or VM
+mutation was performed. The repository now normalizes base secret resources to
+`/versions/latest`, accepts explicit positive numeric versions for rollback,
+returns sanitized failure reasons, pins the compatible Secret Manager/protobuf
+stack, and registers an ACTIVE required preflight validator.
+
+The recommended production architecture is a separate least-privilege uploader
+execution boundary with access to only the OAuth-envelope secret. The uploader
+remains disabled pending one PM-approved integrated infrastructure change and a
+separately authorized controlled activation.
+
+The declared compatibility set (`google-cloud-secret-manager==2.29.0`,
+`protobuf==5.29.6`, `grpc-google-iam-v1==0.14.4`,
+`grpcio-status==1.71.2`) was installed with the OAuth/Drive dependencies and
+`google-ai-generativelanguage==0.6.15` in an isolated environment; `pip check`
+reported no broken requirements.
+
 ## Fixed-loopback activation hardening
 
 The post-merge activation review found that an unpinned VM loopback callback
