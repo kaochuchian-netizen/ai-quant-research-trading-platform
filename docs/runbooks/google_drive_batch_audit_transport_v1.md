@@ -21,11 +21,36 @@ resource exists.
 1. Create a Google OAuth Desktop client under the governed Google project.
 2. Prepare an existing Secret Manager secret for the OAuth envelope. Do not put
    its value in shell history, logs, artifacts or Git.
-3. Run `scripts/orchestrator/activate_google_drive_batch_audit_oauth.py` with the
-   local client JSON and Secret Manager resource. The helper requests only
-   `drive.file`, writes the envelope to Secret Manager over stdin, suppresses
-   command output and never writes tokens to the repository.
-4. Configure only the secret **resource name** as
+3. From a native Mac terminal, establish the fixed loopback tunnel and keep it
+   open (replace the host alias only with the approved GCP SSH target):
+
+   ```bash
+   ssh -L 8765:127.0.0.1:8765 <approved-gcp-host>
+   ```
+
+4. Copy the Desktop client JSON to a temporary operator-controlled VM path
+   outside the repository. In the tunneled SSH session run:
+
+   ```bash
+   python3 scripts/orchestrator/activate_google_drive_batch_audit_oauth.py \
+     --oauth-client-json /secure/temporary/oauth-client.json \
+     --secret-resource projects/trading-agent-493803/secrets/SECRET_NAME \
+     --callback-port 8765 \
+     --timeout-seconds 300
+   ```
+
+   Open only the displayed authorization URL in the Mac browser. The Desktop
+   client loopback redirect reaches VM `127.0.0.1:8765` through SSH. The helper
+   never binds `0.0.0.0`. Cancellation, timeout, an occupied callback port,
+   authorization failure, and Secret Manager write failure abort with a
+   sanitized reason code. No token or client secret is printed. Remove the
+   temporary client JSON after governed activation review; never place it in
+   the repository.
+
+5. The helper requests only `drive.file`, writes the envelope to Secret Manager
+   over stdin, suppresses provider output and never writes tokens to the
+   repository.
+6. Configure only the secret **resource name** as
    `STOCK_AI_DRIVE_OAUTH_SECRET_RESOURCE`, then set
    `STOCK_AI_BATCH_AUDIT_ENABLED=1` through the approved production mechanism.
 
