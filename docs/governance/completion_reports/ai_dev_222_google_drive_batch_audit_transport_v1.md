@@ -48,4 +48,16 @@ PM interactive OAuth consent, approved Secret Manager activation, controlled
 no-send TW/US upload, ChatGPT Drive readback and natural lifecycle verification
 remain pending.
 
+## Fixed-loopback activation hardening
+
+The post-merge activation review found that an unpinned VM loopback callback
+cannot be reached by a consent flow opened on the PM's Mac. The helper now uses
+an explicit callback port (default `8765`), binds only `127.0.0.1`, displays the
+authorization URL, and supports a native Mac SSH local-port tunnel. Callback
+timeout, cancellation, occupied port, authorization failure and Secret Manager
+write failure all fail closed with sanitized reason codes. A required ACTIVE
+validator covers the loopback, output, credential-file and uploader-disabled
+boundaries. No OAuth activation or credential handling occurred during this
+repository-side hardening.
+
 `IMPLEMENTED_PENDING_NATURAL_VERIFICATION`
