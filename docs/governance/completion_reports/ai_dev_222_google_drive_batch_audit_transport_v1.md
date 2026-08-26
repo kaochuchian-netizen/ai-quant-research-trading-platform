@@ -64,6 +64,10 @@ execution boundary with access to only the OAuth-envelope secret. The uploader
 remains disabled pending one PM-approved integrated infrastructure change and a
 separately authorized controlled activation.
 
+- Hard-gate implementation commit: `d1071db`
+- Pull request: `#296`
+- CI and final merge identity: governed GitHub history for PR `#296`
+
 The declared compatibility set (`google-cloud-secret-manager==2.29.0`,
 `protobuf==5.29.6`, `grpc-google-iam-v1==0.14.4`,
 `grpcio-status==1.71.2`) was installed with the OAuth/Drive dependencies and
