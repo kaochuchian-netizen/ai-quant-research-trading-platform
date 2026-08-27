@@ -50,9 +50,23 @@ resource exists.
 5. The helper requests only `drive.file`, writes the envelope to Secret Manager
    over stdin, suppresses provider output and never writes tokens to the
    repository.
-6. Configure only the secret **resource name** as
-   `STOCK_AI_DRIVE_OAUTH_SECRET_RESOURCE`, then set
+6. Configure only the secret **version resource name** as
+   `STOCK_AI_DRIVE_OAUTH_SECRET_RESOURCE=projects/trading-agent-493803/secrets/SECRET_NAME/versions/latest`.
+   A base secret is normalized to `/versions/latest`; an explicit positive
+   numeric version such as `/versions/7` is supported for audited rollback.
+   Other aliases and malformed resources fail closed. Then set
    `STOCK_AI_BATCH_AUDIT_ENABLED=1` through the approved production mechanism.
+
+### Secret access infrastructure preflight
+
+Do not activate on a VM whose OAuth access scopes block Secret Manager, and do
+not add `cloud-platform` while its attached identity retains broad Editor. The
+approved target is a separate least-privilege uploader boundary with access to
+only this secret version (or secret), not the main production VM identity.
+Before enabling, prove: the expected execution identity; one-secret access;
+denial of unrelated secrets and project mutation; compatible pinned packages;
+and `pip check` success. Errors expose only stable reason codes such as
+`SECRET_ACCESS_TOKEN_SCOPE_INSUFFICIENT`, never provider payloads or tokens.
 
 The uploader creates its own app-owned `Stock-AI-Batch-Audit` root. It does not
 assume `drive.file` can access the existing connector-created folder

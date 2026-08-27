@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import queue
+import re
 import threading
 import time
 from pathlib import Path
@@ -21,6 +22,32 @@ from app.runtime.batch_audit_bundle import DEFAULT_OUTBOX_ROOT, sha256, stable_j
 REFERENCE_FOLDER_ID = "1JCCyIV5fRVepN5hOotxNjq6Xqko1n3hy"
 APP_ROOT_NAME = "Stock-AI-Batch-Audit"
 UPLOAD_SCHEMA = "google_drive_batch_audit_upload_state_v1"
+SECRET_RESOURCE = re.compile(r"^projects/([^/]+)/secrets/([^/]+)(?:/versions/(latest|[1-9][0-9]*))?$")
+
+
+def normalize_secret_version_resource(value: str) -> str:
+    """Normalize a base secret or explicit numeric version without aliases."""
+    match = SECRET_RESOURCE.fullmatch(str(value or "").strip())
+    if not match:
+        raise RuntimeError("OAUTH_SECRET_RESOURCE_INVALID")
+    project, secret, version = match.groups()
+    return f"projects/{project}/secrets/{secret}/versions/{version or 'latest'}"
+
+
+def secret_manager_failure_reason(exc: BaseException) -> str:
+    """Map provider failures to stable reason codes without returning details."""
+    name = type(exc).__name__.upper()
+    reason = str(getattr(exc, "reason", "") or "").upper()
+    details = f"{name} {reason} {str(exc).upper()}"
+    if "ACCESS_TOKEN_SCOPE_INSUFFICIENT" in details or "INSUFFICIENTAUTHENTICATIONSCOPES" in details:
+        return "SECRET_ACCESS_TOKEN_SCOPE_INSUFFICIENT"
+    if "PERMISSIONDENIED" in details or "PERMISSION_DENIED" in details or "FORBIDDEN" in details:
+        return "SECRET_ACCESS_PERMISSION_DENIED"
+    if "NOTFOUND" in details:
+        return "SECRET_VERSION_NOT_FOUND"
+    if "UNAVAILABLE" in details or "DEADLINEEXCEEDED" in details or "TIMEOUT" in details:
+        return "SECRET_MANAGER_UNAVAILABLE"
+    return "SECRET_MANAGER_ACCESS_FAILED"
 
 
 class DriveBackend(Protocol):
@@ -63,7 +90,8 @@ class FakeDriveBackend:
 class GcpSecretManagerOAuthProvider:
     """Load one OAuth client/refresh-token envelope without logging its values."""
     def __init__(self, secret_resource: str | None = None) -> None:
-        self.secret_resource = secret_resource or os.environ.get("STOCK_AI_DRIVE_OAUTH_SECRET_RESOURCE", "")
+        configured = secret_resource or os.environ.get("STOCK_AI_DRIVE_OAUTH_SECRET_RESOURCE", "")
+        self.secret_resource = normalize_secret_version_resource(configured) if configured else ""
 
     def credentials(self) -> Any:  # pragma: no cover - production activation gate
         if not self.secret_resource:
@@ -73,7 +101,10 @@ class GcpSecretManagerOAuthProvider:
             from google.oauth2.credentials import Credentials  # type: ignore
         except ImportError as exc:
             raise RuntimeError("GOOGLE_OAUTH_DEPENDENCY_NOT_INSTALLED") from exc
-        response = secretmanager.SecretManagerServiceClient().access_secret_version(name=self.secret_resource)
+        try:
+            response = secretmanager.SecretManagerServiceClient().access_secret_version(name=self.secret_resource)
+        except Exception as exc:
+            raise RuntimeError(secret_manager_failure_reason(exc)) from None
         try:
             value = json.loads(bytes(response.payload.data).decode("utf-8"))
             required = ("client_id", "client_secret", "refresh_token", "token_uri")
