@@ -84,6 +84,23 @@ Run the independent worker:
 python3 scripts/orchestrator/upload_google_drive_batch_audit.py --pretty
 ```
 
+When the production VM cannot access Secret Manager because of its governed
+legacy OAuth scopes, the same uploader accepts one explicitly selected local
+OAuth envelope. The file must be outside the repository and `artifacts/`, must
+be a regular non-symlink file, and on POSIX must have mode `0600`:
+
+```bash
+python3 scripts/orchestrator/upload_google_drive_batch_audit.py \
+  --credential-file /etc/stock-ai/credentials/google-drive-oauth.json \
+  --outbox artifacts/runtime/chatgpt_batch_audit_outbox/DATE/MARKET/WINDOW/revision-NNNN \
+  --pretty
+```
+
+An explicitly supplied invalid local file fails closed and never falls back to
+Secret Manager. Omitting `--credential-file` retains the existing Secret
+Manager contract. Never print, copy into the repository, back up, or include
+the local envelope in an outbox or artifact.
+
 This command uploads only allowlisted bundle files. It uses per-file checksums,
 does not overwrite a different remote body, resumes partial state, and renders
 the captured Email body PDF asynchronously. `403`, `404`, `429`, timeouts and
