@@ -16,6 +16,7 @@ from activate_google_drive_batch_audit_oauth import (
     require_loopback_port_available,
     request_credentials,
     store_credentials,
+    store_credentials_file,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -103,6 +104,22 @@ def main() -> int:
                 and options["stderr"] is subprocess.DEVNULL, "credential command output exposed")
         require("refresh-token" in str(options["input"]), "credential envelope not sent via stdin")
         cases["secret_manager_stdin_and_failure"] = "PASS"
+
+        protected = Path(raw) / "drive-oauth.json"
+        store_credentials_file(credentials, protected)
+        require(protected.is_file() and protected.stat().st_mode & 0o777 == 0o600,
+                "protected credential mode")
+        value = json.loads(protected.read_text(encoding="utf-8"))
+        require(value["refresh_token"] == "refresh-token" and set(value) == {
+            "client_id", "client_secret", "refresh_token", "token_uri"
+        }, "protected credential envelope")
+        try:
+            store_credentials_file(credentials, protected)
+        except ActivationError as exc:
+            require(str(exc) == "credential_output_exists", "existing credential not fail closed")
+        else:
+            raise AssertionError("existing credential overwritten")
+        cases["protected_local_file_output"] = "PASS"
 
     helper = (ROOT / "scripts/orchestrator/activate_google_drive_batch_audit_oauth.py").read_text(encoding="utf-8")
     runbook = (ROOT / "docs/runbooks/google_drive_batch_audit_transport_v1.md").read_text(encoding="utf-8")

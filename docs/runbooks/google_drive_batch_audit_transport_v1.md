@@ -57,6 +57,21 @@ resource exists.
    Other aliases and malformed resources fail closed. Then set
    `STOCK_AI_BATCH_AUDIT_ENABLED=1` through the approved production mechanism.
 
+If governed VM scopes prevent Secret Manager access, use the same OAuth helper
+and the same fixed loopback flow with the protected local backend instead:
+
+```bash
+python3 scripts/orchestrator/activate_google_drive_batch_audit_oauth.py \
+  --oauth-client-json /secure/temporary/oauth-client.json \
+  --credential-output-file /etc/stock-ai/credentials/google-drive-oauth.json \
+  --callback-port 8765 \
+  --timeout-seconds 300
+```
+
+The destination must not already exist, must be outside the repository, and is
+created atomically as mode `0600`. The helper never prints the credential
+envelope. Secret Manager and local-file destinations are mutually exclusive.
+
 ### Secret access infrastructure preflight
 
 Do not activate on a VM whose OAuth access scopes block Secret Manager, and do

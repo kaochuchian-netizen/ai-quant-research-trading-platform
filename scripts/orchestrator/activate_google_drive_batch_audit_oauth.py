@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import socket
 import subprocess
 import sys
@@ -104,10 +105,60 @@ def store_credentials(credentials: Any, secret_resource: str, *, runner: Callabl
         raise ActivationError("secret_manager_write_failed")
 
 
+def credential_envelope(credentials: Any) -> dict[str, str]:
+    if not getattr(credentials, "refresh_token", None):
+        raise ActivationError("oauth_refresh_token_missing")
+    return {
+        "client_id": credentials.client_id,
+        "client_secret": credentials.client_secret,
+        "refresh_token": credentials.refresh_token,
+        "token_uri": credentials.token_uri,
+    }
+
+
+def store_credentials_file(credentials: Any, destination: Path) -> None:
+    """Atomically create one non-repository, owner-only OAuth envelope."""
+    repo_root = Path(__file__).resolve().parents[2]
+    try:
+        destination.resolve(strict=False).relative_to(repo_root)
+    except ValueError:
+        pass
+    else:
+        raise ActivationError("credential_output_repository_path_rejected")
+    if destination.is_symlink():
+        raise ActivationError("credential_output_symlink_rejected")
+    if destination.exists():
+        raise ActivationError("credential_output_exists")
+    parent = destination.parent
+    if not parent.is_dir() or parent.is_symlink():
+        raise ActivationError("credential_output_parent_invalid")
+    envelope = credential_envelope(credentials)
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+    descriptor: int | None = None
+    try:
+        descriptor = os.open(destination, flags, 0o600)
+        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+            descriptor = None
+            json.dump(envelope, stream, separators=(",", ":"))
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.chmod(destination, 0o600)
+    except OSError:
+        if descriptor is not None:
+            os.close(descriptor)
+        destination.unlink(missing_ok=True)
+        raise ActivationError("credential_output_write_failed") from None
+    finally:
+        envelope.clear()
+
+
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(description=__doc__)
     result.add_argument("--oauth-client-json", type=Path, required=True)
-    result.add_argument("--secret-resource", required=True, help="projects/.../secrets/... (existing approved secret)")
+    destination = result.add_mutually_exclusive_group(required=True)
+    destination.add_argument("--secret-resource", help="projects/.../secrets/... (existing approved secret)")
+    destination.add_argument("--credential-output-file", type=Path,
+                             help="Create a protected local OAuth envelope (must not already exist)")
     result.add_argument("--callback-port", type=int, default=DEFAULT_CALLBACK_PORT)
     result.add_argument("--timeout-seconds", type=int, default=DEFAULT_TIMEOUT_SECONDS)
     return result
@@ -117,14 +168,19 @@ def main() -> int:  # pragma: no cover - interactive production hard gate
     args = parser().parse_args()
     try:
         credentials = request_credentials(args.oauth_client_json, args.callback_port, args.timeout_seconds)
-        store_credentials(credentials, args.secret_resource)
+        if args.credential_output_file:
+            store_credentials_file(credentials, args.credential_output_file)
+        else:
+            store_credentials(credentials, args.secret_resource)
         credentials = None
     except ActivationError as exc:
         print(json.dumps({"status": "OAUTH_ACTIVATION_FAILED", "reason_code": str(exc),
                           "secret_values_printed": False}, sort_keys=True), file=sys.stderr)
         return 2
     print(json.dumps({"status": "OAUTH_ACTIVATED", "scope": "drive.file",
-                      "secret_resource": args.secret_resource, "callback_host": LOOPBACK_HOST,
+                      "credential_destination": (str(args.credential_output_file)
+                                                 if args.credential_output_file else args.secret_resource),
+                      "callback_host": LOOPBACK_HOST,
                       "callback_port": args.callback_port, "secret_values_printed": False,
                       "service_account_used": False}, sort_keys=True))
     return 0
