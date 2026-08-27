@@ -12,6 +12,7 @@ import json
 import os
 import queue
 import re
+import stat
 import threading
 import time
 from pathlib import Path
@@ -23,6 +24,8 @@ REFERENCE_FOLDER_ID = "1JCCyIV5fRVepN5hOotxNjq6Xqko1n3hy"
 APP_ROOT_NAME = "Stock-AI-Batch-Audit"
 UPLOAD_SCHEMA = "google_drive_batch_audit_upload_state_v1"
 SECRET_RESOURCE = re.compile(r"^projects/([^/]+)/secrets/([^/]+)(?:/versions/(latest|[1-9][0-9]*))?$")
+OAUTH_TOKEN_URI = "https://oauth2.googleapis.com/token"
+MAX_CREDENTIAL_FILE_BYTES = 64 * 1024
 
 
 def normalize_secret_version_resource(value: str) -> str:
@@ -58,6 +61,84 @@ class DriveBackend(Protocol):
 
 class ConflictError(RuntimeError):
     pass
+
+
+class CredentialContractError(RuntimeError):
+    """Credential failure with a stable, non-sensitive diagnostic code."""
+
+    def __init__(self, reason_code: str) -> None:
+        self.reason_code = reason_code
+        super().__init__(reason_code)
+
+
+class OAuthCredentialProvider(Protocol):
+    def credentials(self) -> Any: ...
+
+
+def _credentials_from_envelope(value: Any) -> Any:
+    if not isinstance(value, dict):
+        raise CredentialContractError("OAUTH_CREDENTIAL_CONTRACT_INVALID")
+    required = ("client_id", "client_secret", "refresh_token", "token_uri")
+    if any(not isinstance(value.get(key), str) or not value[key].strip() for key in required):
+        raise CredentialContractError("OAUTH_CREDENTIAL_CONTRACT_INCOMPLETE")
+    if value["token_uri"] != OAUTH_TOKEN_URI:
+        raise CredentialContractError("OAUTH_TOKEN_URI_INVALID")
+    try:
+        from google.oauth2.credentials import Credentials  # type: ignore
+    except ImportError as exc:
+        raise RuntimeError("GOOGLE_OAUTH_DEPENDENCY_NOT_INSTALLED") from exc
+    return Credentials(
+        token=None, refresh_token=value["refresh_token"], token_uri=value["token_uri"],
+        client_id=value["client_id"], client_secret=value["client_secret"],
+        scopes=["https://www.googleapis.com/auth/drive.file"],
+    )
+
+
+class LocalProtectedOAuthProvider:
+    """Load one explicitly selected POSIX-protected OAuth envelope."""
+
+    def __init__(self, credential_file: Path | str) -> None:
+        self.credential_file = Path(credential_file)
+
+    def credentials(self) -> Any:
+        try:
+            metadata = self.credential_file.lstat()
+        except OSError:
+            raise CredentialContractError("OAUTH_CREDENTIAL_FILE_UNAVAILABLE") from None
+        if stat.S_ISLNK(metadata.st_mode):
+            raise CredentialContractError("OAUTH_CREDENTIAL_FILE_SYMLINK_REJECTED")
+        if not stat.S_ISREG(metadata.st_mode):
+            raise CredentialContractError("OAUTH_CREDENTIAL_FILE_NOT_REGULAR")
+        repo_root = Path(__file__).resolve().parents[2]
+        try:
+            self.credential_file.resolve(strict=False).relative_to(repo_root)
+        except ValueError:
+            pass
+        else:
+            raise CredentialContractError("OAUTH_CREDENTIAL_FILE_REPOSITORY_PATH_REJECTED")
+        if os.name == "posix" and stat.S_IMODE(metadata.st_mode) & 0o077:
+            raise CredentialContractError("OAUTH_CREDENTIAL_FILE_PERMISSIONS_UNSAFE")
+        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+        try:
+            descriptor = os.open(self.credential_file, flags)
+            with os.fdopen(descriptor, "rb") as stream:
+                opened = os.fstat(stream.fileno())
+                if not stat.S_ISREG(opened.st_mode) or opened.st_size > MAX_CREDENTIAL_FILE_BYTES:
+                    raise CredentialContractError("OAUTH_CREDENTIAL_FILE_INVALID")
+                if os.name == "posix" and stat.S_IMODE(opened.st_mode) & 0o077:
+                    raise CredentialContractError("OAUTH_CREDENTIAL_FILE_PERMISSIONS_UNSAFE")
+                raw = stream.read(MAX_CREDENTIAL_FILE_BYTES + 1)
+        except CredentialContractError:
+            raise
+        except OSError:
+            raise CredentialContractError("OAUTH_CREDENTIAL_FILE_UNAVAILABLE") from None
+        if len(raw) > MAX_CREDENTIAL_FILE_BYTES:
+            raise CredentialContractError("OAUTH_CREDENTIAL_FILE_TOO_LARGE")
+        try:
+            value = json.loads(raw.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            raise CredentialContractError("OAUTH_CREDENTIAL_FILE_MALFORMED") from None
+        return _credentials_from_envelope(value)
 
 
 class FakeDriveBackend:
@@ -98,7 +179,6 @@ class GcpSecretManagerOAuthProvider:
             raise RuntimeError("OAUTH_SECRET_RESOURCE_NOT_CONFIGURED")
         try:
             from google.cloud import secretmanager  # type: ignore
-            from google.oauth2.credentials import Credentials  # type: ignore
         except ImportError as exc:
             raise RuntimeError("GOOGLE_OAUTH_DEPENDENCY_NOT_INSTALLED") from exc
         try:
@@ -107,21 +187,16 @@ class GcpSecretManagerOAuthProvider:
             raise RuntimeError(secret_manager_failure_reason(exc)) from None
         try:
             value = json.loads(bytes(response.payload.data).decode("utf-8"))
-            required = ("client_id", "client_secret", "refresh_token", "token_uri")
-            if any(not value.get(key) for key in required):
-                raise RuntimeError("OAUTH_SECRET_CONTRACT_INCOMPLETE")
-            return Credentials(
-                token=None, refresh_token=value["refresh_token"], token_uri=value["token_uri"],
-                client_id=value["client_id"], client_secret=value["client_secret"],
-                scopes=["https://www.googleapis.com/auth/drive.file"],
-            )
+            return _credentials_from_envelope(value)
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            raise CredentialContractError("OAUTH_SECRET_CONTRACT_MALFORMED") from None
         finally:
             response = None
 
 
 class GoogleDriveBackend:
     """My Drive adapter using user OAuth and app-owned drive.file content."""
-    def __init__(self, provider: GcpSecretManagerOAuthProvider | None = None) -> None:
+    def __init__(self, provider: OAuthCredentialProvider | None = None) -> None:
         try:
             from googleapiclient.discovery import build  # type: ignore
         except ImportError as exc:  # pragma: no cover - production dependency gate
@@ -339,10 +414,12 @@ def process_outbox(backend: DriveBackend, *, outbox_root: Path = DEFAULT_OUTBOX_
             "bundle_count": len(results), "results": results, "production_batch_continues": True}
 
 
-def process_outbox_non_blocking(*, outbox_root: Path = DEFAULT_OUTBOX_ROOT) -> dict[str, Any]:
+def process_outbox_non_blocking(*, outbox_root: Path = DEFAULT_OUTBOX_ROOT,
+                                credential_provider: OAuthCredentialProvider | None = None) -> dict[str, Any]:
     if os.environ.get("STOCK_AI_BATCH_AUDIT_ENABLED") != "1":
         return {"status": "DISABLED", "reason_code": "TRANSPORT_NOT_ACTIVATED", "production_batch_continues": True}
     try:
-        return process_outbox(GoogleDriveBackend(), outbox_root=outbox_root)
+        return process_outbox(GoogleDriveBackend(credential_provider), outbox_root=outbox_root)
     except Exception as exc:
-        return {"status": "DEGRADED", "reason_code": type(exc).__name__.upper()[:80], "production_batch_continues": True}
+        reason = exc.reason_code if isinstance(exc, CredentialContractError) else type(exc).__name__.upper()[:80]
+        return {"status": "DEGRADED", "reason_code": reason, "production_batch_continues": True}
