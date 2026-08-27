@@ -141,6 +141,8 @@ def resolve_source_trade_plan(archive_root: Path, session_date: str, symbol: str
         "target": {"low": price_range(raw_target)[0], "high": price_range(raw_target)[1]} if plan_status == "active" else None,
         "event_risk": card.get("event_risk"), "sec_evidence": card.get("sec_evidence"),
         "news_evidence": card.get("news_evidence"), "relative_strength": card.get("relative_strength"),
+        "forecast": json.loads(json.dumps(card.get("us_premarket_product_projection_v1") or {})),
+        "confidence": card.get("confidence"),
         "market_context": card.get("market_context"), "action_rationale": card.get("action_rationale"),
         "invalidation_condition": f"跌破 {number(stop):.2f}" if plan_status == "active" and direction == "long" and number(stop) is not None else f"突破 {number(stop):.2f}" if plan_status == "active" and direction == "short" and number(stop) is not None else None,
     }

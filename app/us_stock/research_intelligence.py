@@ -341,6 +341,11 @@ class USResearchIntelligenceBuilder:
                 "relevance": item.get("relevance") or "medium",
                 "source_url": item.get("source_url"),
                 "publisher": item.get("publisher") or item.get("source"),
+                "candidate_id": item.get("candidate_id"),
+                "news_event_id": item.get("news_event_id"),
+                "canonical_event_identity": item.get("canonical_event_identity") or item.get("news_event_id"),
+                "contextual_role": item.get("contextual_role"),
+                "related_symbols": deepcopy(item.get("related_symbols") or []),
                 "entity_attribution": deepcopy(item.get("entity_attribution")) if isinstance(item.get("entity_attribution"), dict) else None,
                 "provenance": provenance("company_official" if item.get("official_source") else "secondary_news", published_at=item.get("published_at"), reference=item.get("source_url") or item.get("source"), quality="headline_only"),
             })
