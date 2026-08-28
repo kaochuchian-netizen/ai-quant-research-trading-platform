@@ -133,8 +133,8 @@ def validate() -> dict:
     )
     checks["case_o_exact_funnel_marked"] = funnel["count_semantics"] == "EXACT" and not funnel["inferred_stages"]
 
-    # V3 natural-production remediation: canonical post-close partition wins
-    # over conflicting V2 evaluation metadata.
+    # AI-DEV-226: prediction evaluation remains independent from no-trade
+    # tactical ownership. Explicit canonical results therefore remain samples.
     post_close_cards = []
     for index in range(8):
         post_close_cards.append({
@@ -157,15 +157,15 @@ def validate() -> dict:
         "generated_at": NOW, "effective_trading_date": "2026-08-12",
         "structured_review_cards": post_close_cards,
     })
-    expected_partition = {"hit": 0, "partial_hit": 1, "miss": 0, "not_applicable": 8}
+    expected_partition = {"hit": 8, "partial_hit": 1, "miss": 0, "not_applicable": 0}
     checks["case_p_natural_post_close_partition"] = post_close_aggregate["prediction_evaluation_counts"] == expected_partition
-    checks["case_q_no_trade_v2_cannot_override"] = all(canonical_prediction_range_result(row) == "not_applicable" for row in post_close_cards[:8])
+    checks["case_q_no_trade_v2_cannot_override"] = all(canonical_prediction_range_result(row) == "hit" for row in post_close_cards[:8])
     checks["case_r_canonical_partial_beats_v2"] = canonical_prediction_range_result(partial_card) == "partial_hit"
     partition_symbols = post_close_aggregate["prediction_evaluation_symbols"]
     checks["case_s_exact_symbol_partition"] = (
         sum(len(values) for values in partition_symbols.values()) == len(post_close_cards)
         and partition_symbols["partial_hit"] == ["6873"]
-        and len(partition_symbols["not_applicable"]) == 8
+        and len(partition_symbols["hit"]) == 8
         and post_close_decision["prediction_review"]["prediction_distribution"] == expected_partition
     )
 

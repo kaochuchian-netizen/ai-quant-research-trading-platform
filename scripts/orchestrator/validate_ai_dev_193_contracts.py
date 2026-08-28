@@ -47,7 +47,19 @@ def validate() -> dict:
     checks["history_insufficient_is_ineligible"] = insufficient["technical_data"]["analysis_eligible"] is False
     checks["history_insufficient_direction_unavailable"] = insufficient["technical_data"]["direction"] == "unavailable" and insufficient["technical_summary"] == "無法判定"
     checks["gap_missing_chase_unavailable"] = insufficient["chase_risk"] == "unavailable"
-    sufficient = _card("2337", 60, [{"headline": "公司公告營運更新", "publisher": "MOPS", "published_at": "2026-07-27T06:10:00+08:00", "url": "mops:2337:1", "direction": "bullish", "official_source": True}])
+    sufficient = _card("2337", 60, [{
+        "headline": "公司公告營運更新",
+        "publisher": "MOPS",
+        "published_at": "2026-07-27T06:10:00+08:00",
+        "url": "mops:2337:1",
+        "direction": "bullish",
+        "official_source": True,
+        "materiality": "high",
+        "relevance": "high",
+        "symbol_attributed": True,
+        "primary_subject": "2337",
+        "relationship_type": "primary",
+    }])
     checks["history_sufficient_is_eligible"] = sufficient["technical_data"]["analysis_eligible"] is True
     checks["news_evidence_traceable"] = sufficient["news_status"] == "available" and len(sufficient["news_items"]) == 1 and sufficient["news_items"][0]["source_tier"] == 1
     checks["news_direction_has_confidence"] = sufficient["news_direction"] == "bullish" and isinstance(sufficient["news_confidence"].get("score"), int)

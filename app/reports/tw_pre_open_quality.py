@@ -6,6 +6,9 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
+import hashlib
+import json
+import re
 from typing import Any
 
 REQUIRED_HISTORY_BARS = 20
@@ -53,7 +56,19 @@ def public_reasons(value: Any) -> str:
 def technical_contract(tactical: dict[str, Any]) -> dict[str, Any]:
     factors = tactical.get("technical_factors") if isinstance(tactical.get("technical_factors"), dict) else {}
     bars = int(factors.get("history_days") or 0)
-    eligible = bars >= REQUIRED_HISTORY_BARS and factors.get("ma20") is not None
+    latest_date = str(factors.get("history_end") or factors.get("latest_date") or "")[:10]
+    expected_date = str(tactical.get("effective_trading_date") or tactical.get("trading_date") or "")[:10]
+    age_days = None
+    if latest_date and expected_date:
+        try:
+            age_days = (datetime.fromisoformat(expected_date).date() - datetime.fromisoformat(latest_date).date()).days
+        except ValueError:
+            age_days = None
+    freshness = (
+        "fresh" if latest_date and (not expected_date or age_days is not None and 0 <= age_days <= 7)
+        else "stale" if latest_date and expected_date else "unavailable"
+    )
+    eligible = bars >= REQUIRED_HISTORY_BARS and factors.get("ma20") is not None and freshness != "stale"
     raw_direction = str(tactical.get("direction") or "unavailable")
     direction = raw_direction if eligible and raw_direction in {"bullish", "neutral", "bearish"} else "unavailable"
     reasons = [] if eligible else ["INSUFFICIENT_HISTORY", "TREND_UNAVAILABLE"]
@@ -65,7 +80,8 @@ def technical_contract(tactical: dict[str, Any]) -> dict[str, Any]:
         "history_end": factors.get("history_end") or factors.get("latest_date"),
         "source": factors.get("source") or "canonical_historical_csv",
         "source_timestamp": factors.get("latest_date"),
-        "freshness": "fresh" if factors.get("latest_date") else "unavailable",
+        "freshness": freshness,
+        "freshness_context": {"latest_date": latest_date or None, "canonical_trading_date": expected_date or None, "calendar_age_days": age_days, "maximum_calendar_age_days": 7},
         "calculation_method": "tw_daily_ohlcv_features_v2",
         "feature_provenance": {
             "period_end": factors.get("history_end") or factors.get("latest_date"),
@@ -110,12 +126,32 @@ def _news_preference(item: dict[str, Any]) -> tuple[int, float, str]:
     return int(item.get("source_tier") or 4), newest_first, str(item.get("headline") or "")
 
 
+def canonical_tw_event_identity(item: dict[str, Any]) -> str:
+    """Publisher-independent event identity; URLs remain provenance only."""
+    headline = str(item.get("headline") or item.get("title") or "").lower()
+    headline = re.sub(r"\s+", " ", headline)
+    headline = re.sub(r"^(?:轉載|快訊|更新)\s*[：:]\s*", "", headline)
+    publishers = r"reuters|bloomberg|中央社|經濟日報|工商時報|yahoo|google news"
+    headline = re.sub(rf"\s*[-｜|]\s*(?:{publishers})\s*$", "", headline)
+    headline = re.sub(rf"^(?:{publishers})\s*[-｜|]\s*", "", headline)
+    subject = str(item.get("primary_subject") or item.get("symbol") or item.get("stock_id") or "unattributed")
+    bucket = str(item.get("published_at") or item.get("published") or item.get("date") or "")[:10]
+    facts = item.get("material_facts") if isinstance(item.get("material_facts"), list) else []
+    raw = json.dumps([headline.strip(" -｜|"), item.get("event_type") or item.get("event_family"), subject, bucket, sorted(map(str, facts))], ensure_ascii=False, sort_keys=True)
+    return "tw_event_" + hashlib.sha256(raw.encode("utf-8")).hexdigest()[:24]
+
+
 def news_contract(raw_news: Any, *, generated_at: str | None = None) -> dict[str, Any]:
     admitted = []
     raw_items = _news_items(raw_news)
     rejection_reasons: dict[str, int] = {}
-    def reject(code: str) -> None:
+    candidate_records: list[dict[str, Any]] = []
+    def reject(code: str, candidate: dict[str, Any] | None = None) -> None:
         rejection_reasons[code] = rejection_reasons.get(code, 0) + 1
+        if candidate is not None:
+            candidate["admission_status"] = "REJECTED"
+            candidate["rejection_reason"] = code
+            candidate_records.append(candidate)
     reference = _parse_time(generated_at)
     normalized_count = 0
     attributed_count = 0
@@ -128,45 +164,61 @@ def news_contract(raw_news: Any, *, generated_at: str | None = None) -> dict[str
         publisher = item.get("publisher") or item.get("source")
         published = item.get("published_at") or item.get("published") or item.get("timestamp") or item.get("date")
         source_url = item.get("source_url") or item.get("url") or item.get("link") or item.get("source_id")
+        candidate = {
+            "candidate_id": item.get("news_id") or "candidate_" + hashlib.sha256(json.dumps(item, ensure_ascii=False, sort_keys=True, default=str).encode("utf-8")).hexdigest()[:20],
+            "headline": headline, "publisher": publisher, "published_at": published,
+            "source_reference": source_url, "fetched_at": item.get("fetched_at") or generated_at,
+            "canonical_event_identity": canonical_tw_event_identity(item),
+            "primary_subject": item.get("primary_subject"), "relationship_type": item.get("relationship_type") or "unattributed",
+            "related_symbols": item.get("related_symbols") or [], "event_type": item.get("event_type"),
+            "materiality": item.get("materiality") or "UNKNOWN", "relevance": item.get("relevance") or "UNKNOWN",
+            "research_role": str(item.get("research_role") or item.get("contextual_role") or "NOT_USED").upper(),
+            "counted_in_synthesis": bool(item.get("counted_in_synthesis")), "evidence_id": item.get("evidence_id"),
+        }
         if not all(_present(value) for value in (headline, publisher, published, source_url)):
-            reject("INSUFFICIENT_PROVENANCE")
+            reject("INSUFFICIENT_PROVENANCE", candidate)
             continue
         normalized_count += 1
-        symbol_attributed = item.get("symbol_attributed", True) is not False
+        relationship = str(item.get("relationship_type") or "").lower()
+        contextual_role = str(item.get("contextual_role") or item.get("research_role") or "").upper()
+        symbol_attributed = item.get("symbol_attributed") is True or relationship in {"primary", "customer", "supplier", "competitor", "sector", "macro", "regulatory", "geopolitical"}
         if not symbol_attributed:
-            reject("SYMBOL_ATTRIBUTION_FAILED")
+            reject("SYMBOL_ATTRIBUTION_FAILED", candidate)
             continue
         attributed_count += 1
-        relevance = str(item.get("relevance") or "medium").lower()
+        relevance = str(item.get("relevance") or "unknown").lower()
         if relevance not in {"medium", "high", "critical"}:
-            reject("LOW_RELEVANCE")
+            reject("RELEVANCE_NOT_EVALUATED" if relevance == "unknown" else "LOW_RELEVANCE", candidate)
             continue
         relevant_count += 1
-        materiality = str(item.get("materiality") or "medium").lower()
+        materiality = str(item.get("materiality") or "unknown").lower()
         if materiality not in {"medium", "high", "critical"}:
-            reject("LOW_MATERIALITY")
+            reject("MATERIALITY_NOT_EVALUATED" if materiality == "unknown" else "LOW_MATERIALITY", candidate)
             continue
         material_count += 1
         tier = _source_tier(item)
         if tier > 3:
-            reject("LOW_SOURCE_QUALITY")
+            reject("LOW_SOURCE_QUALITY", candidate)
             continue
         quality_count += 1
         published_time = _parse_time(published)
         age_hours = None if not reference or not published_time else max(0.0, (reference - published_time).total_seconds() / 3600)
         freshness = "fresh" if age_hours is not None and age_hours <= NEWS_LOOKBACK_HOURS else "stale" if age_hours is not None else "unknown"
         if freshness == "stale":
-            reject("STALE")
+            reject("STALE", candidate)
             continue
         if freshness != "fresh":
-            reject("OUTSIDE_WINDOW")
+            reject("OUTSIDE_WINDOW", candidate)
             continue
         fresh_count += 1
         direction = str(item.get("direction") or "unavailable").lower()
         if direction not in {"bullish", "neutral", "bearish", "unavailable"}:
             direction = "unavailable"
-        canonical_event_id = item.get("canonical_event_id") or item.get("event_cluster_id")
-        admitted.append({
+        if relationship in {"macro", "sector", "regulatory", "geopolitical"} or contextual_role in {"CONTEXT", "EXPLAIN", "CONTEXTUALIZE"}:
+            direction = "unavailable"
+            contextual_role = contextual_role or "CONTEXT"
+        canonical_event_id = item.get("canonical_event_id") or item.get("event_cluster_id") or candidate["canonical_event_identity"]
+        admitted_item = {
             "headline": str(headline), "publisher": str(publisher), "published_at": str(published),
             "source_url": str(source_url), "source_tier": tier,
             "source_quality": {1: "high", 2: "medium_high", 3: "medium", 4: "low"}[tier],
@@ -178,7 +230,14 @@ def news_contract(raw_news: Any, *, generated_at: str | None = None) -> dict[str
             "canonical_event_id": str(canonical_event_id) if canonical_event_id else None,
             "dedupe_key": str(canonical_event_id or item.get("dedupe_key") or source_url),
             "freshness": freshness, "age_hours": None if age_hours is None else round(age_hours, 2),
-        })
+            "relationship_type": relationship or "primary", "contextual_role": contextual_role or None,
+        }
+        admitted.append(admitted_item)
+        candidate.update({"source_tier": tier, "source_quality": admitted_item["source_quality"], "freshness": freshness,
+                          "admission_status": "ADMITTED", "rejection_reason": None,
+                          "canonical_event_identity": canonical_event_id, "relationship_type": relationship or "primary",
+                          "research_role": contextual_role or candidate["research_role"]})
+        candidate_records.append(candidate)
     before_dedupe = len(admitted)
     unique: dict[str, dict[str, Any]] = {}
     for item in admitted:
@@ -221,6 +280,7 @@ def news_contract(raw_news: Any, *, generated_at: str | None = None) -> dict[str
             "RRE_USED": 0, "RENDERED": 0,
         },
         "rejection_reasons": dict(sorted(rejection_reasons.items())),
+        "candidate_records": candidate_records[:64],
     }
     absence_state = (
         "NEWS_SELECTED_AND_RENDERED" if supplied_retrieval.get("rendered_count") else

@@ -49,15 +49,11 @@ PREDICTION_RESULTS = ("hit", "partial_hit", "miss", "not_applicable")
 def canonical_prediction_range_result(card: dict[str, Any]) -> str:
     """Resolve the public prediction result without allowing V2 to override canon.
 
-    Prediction evaluation remains separate from trade authorization, but a
-    canonical no-trade review is not a range-result sample in the four-window
-    Decision presentation.  V2 is a compatibility fallback only when its
-    originating snapshot and evaluation are both explicitly valid.
+    Prediction evaluation remains separate from trade authorization.  A
+    ``no_trade`` tactical outcome therefore cannot erase an explicitly
+    evaluable prediction result.  V2 remains a compatibility fallback only
+    when its originating snapshot and evaluation are both explicitly valid.
     """
-    trade_outcome = str(card.get("trade_outcome") or "").lower()
-    prediction_status = str(card.get("prediction_status") or "").lower()
-    if trade_outcome == "no_trade" or prediction_status == "no_trade":
-        return "not_applicable"
     candidates = [card.get("prediction_range_result")]
     evaluation = card.get("prediction_evaluation")
     if isinstance(evaluation, dict):
@@ -375,8 +371,8 @@ def _risk_state(*, plan_status: str, trigger_status: str, near_target: bool, nea
 
 
 def _prediction_result(setup: dict[str, Any], actual_low: float | None, actual_high: float | None, *, no_trade: bool) -> str:
-    if no_trade:
-        return "not_applicable"
+    # Prediction evaluation is independent from trade eligibility.  ``no_trade``
+    # remains part of the tactical outcome and must not erase an evaluable range.
     predicted_low = number(setup.get("predicted_low"))
     predicted_high = number(setup.get("predicted_high"))
     if None in (predicted_low, predicted_high, actual_low, actual_high):
@@ -565,10 +561,10 @@ def normalize_lifecycle_card(card: dict[str, Any], window: str) -> dict[str, Any
                 else "open" if trade_outcome == "open_at_close" else "closed" if trade_outcome in {"win", "loss"} else "not_started"
             ),
             "evidence_status": "not_applicable" if plan_status == "no_trade" else "complete" if actual_complete else "missing",
+            "prediction_evidence_status": "complete" if actual_complete and prediction_result != "not_applicable" else "missing",
         })
         if plan_status == "no_trade":
             item.update({
-                "predicted_direction": "not_applicable", "predicted_low": None, "predicted_high": None,
                 "entry_triggered": None, "target_1_hit": None, "target_2_hit": None, "stop_hit": None,
                 "mfe_pct": "not_applicable", "mae_pct": "not_applicable",
                 "mfe": {"status": "not_applicable"}, "mae": {"status": "not_applicable"},

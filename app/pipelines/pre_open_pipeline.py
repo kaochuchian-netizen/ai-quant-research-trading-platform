@@ -86,8 +86,20 @@ class StageTiming:
 
 
 def _write_pre_open_runtime(context, cards, tracking_symbols):
+    from app.reports.tw_evidence_regression import append_records, build_regression_records
+    from app.reports.tw_human_summary import build_tw_human_summary
+
     summary = aggregate_pre_open_cards(cards, tracking_symbols)
     generated_at = _now_taipei()
+    ledger_records = []
+    for card in cards:
+        card["tw_human_decision_summary_v1"] = build_tw_human_summary(card, "pre_open_0700")
+        ledger_records.extend(build_regression_records(
+            card=card, window="pre_open_0700", trading_date=context["run_date"], generated_at=generated_at,
+        ))
+    ledger_result = append_records(ledger_records) if ledger_records else {
+        "schema_version": "tw_evidence_regression_append_result_v1", "written": 0, "existing": 0, "append_only": True,
+    }
     source_dates = sorted(
         {
             str((card.get("data_freshness") or {}).get("market_data_as_of"))[:10]
@@ -120,6 +132,7 @@ def _write_pre_open_runtime(context, cards, tracking_symbols):
         "structured_pre_open_cards": cards,
         "cards": cards,
         "pre_open_summary": summary,
+        "tw_evidence_regression_ledger": ledger_result,
         "email_attempted": False,
         "line_attempted": False,
         "trading_or_order_executed": False,
