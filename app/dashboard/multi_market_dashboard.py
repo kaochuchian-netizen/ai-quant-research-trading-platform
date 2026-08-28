@@ -65,6 +65,7 @@ from app.reports.tw_pre_open_structured import aggregate as aggregate_tw_pre_ope
 from app.reports.tw_pre_open_quality import data_gaps as canonical_pre_open_gaps, public_reason, public_reasons, technical_contract
 from app.reports.tw_prediction_explainability import project_tw_prediction_card
 from app.reports.tw_preopen_product_intelligence import portfolio_summary as tw_preopen_product_summary
+from app.reports.tw_human_summary import build_tw_human_summary
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PUBLIC_BASE_URL = "http://35.201.242.167/stock-ai-dashboard"
@@ -979,6 +980,59 @@ def _tw_prediction_html(card: dict[str, Any], window: str) -> str:
     """
 
 
+def _tw_human_summary_html(card: dict[str, Any], window: str) -> str:
+    summary = card.get("tw_human_decision_summary_v1") if isinstance(card.get("tw_human_decision_summary_v1"), dict) else build_tw_human_summary(card, window)
+    direction = {"BULLISH": "偏多 ↑", "BEARISH": "偏空 ↓", "SIDEWAYS": "盤整 ↔"}.get(summary.get("direction"), "方向證據不足")
+    confidence = "尚未建立" if summary.get("confidence") is None else f"{float(summary['confidence']):.0f}%"
+    forecast_range = f"{safe_public_text(summary.get('forecast_low'), missing='尚未建立')} ～ {safe_public_text(summary.get('forecast_high'), missing='尚未建立')}"
+    reasons = "".join(f"<li>{_escape(reason)}</li>" for reason in (summary.get("key_reasons") or [])[:4]) or "<li>本批次沒有可安全引用的新增方向證據。</li>"
+    display = {
+        "CONFIRMED": "已確認", "STILL_VALID": "仍有效", "WEAKENED": "已轉弱",
+        "INVALIDATED": "已失效", "INSUFFICIENT_EVIDENCE": "證據不足",
+        "WITHIN_RANGE": "預測區間內", "ABOVE_RANGE": "高於預測區間", "BELOW_RANGE": "低於預測區間",
+        "HIT": "命中", "MISS": "未命中", "hit": "命中", "partial_hit": "部分命中", "miss": "未命中",
+        "no_trade": "無交易", "not_triggered": "未觸發", "triggered": "已觸發", "invalidated": "已失效",
+        "SUPPORTING": "支持", "OPPOSING": "反對", "CONTEXT": "脈絡", "EXPLAIN": "解釋", "USED": "採用", "NOT_USED": "未採用",
+    }
+    public = lambda value: display.get(str(value), localize_tw_value(value))
+    news = "".join(
+        f"<li><strong>{_escape(item.get('headline'))}</strong><br><small>{_escape(item.get('publisher'))}｜{_escape(public(item.get('role')))}</small><br>{_escape(item.get('impact_summary'))}</li>"
+        for item in (summary.get("important_news") or [])[:4]
+    ) or "<li>目前沒有通過相關性、品質與重大性門檻的重要消息。</li>"
+    common = [
+        ("方向", direction), ("信心", confidence), ("預測目標", safe_public_text(summary.get("forecast_target"), missing="尚未建立")),
+        ("預估區間", forecast_range), ("中長期策略", public(summary.get("research_stance"))), ("短線策略", public(summary.get("daily_tactical_stance"))),
+    ]
+    delta = []
+    if window in {"intraday_1305", "pre_close_1335"}:
+        delta = [
+            ("目前價格", safe_public_text(summary.get("current_price"))), ("區間位置", public(summary.get("range_position"))),
+            ("目標進度", f"{summary.get('target_progress_pct'):.1f}%" if isinstance(summary.get("target_progress_pct"), (int, float)) else "尚未建立"),
+            ("判斷狀態", public(summary.get("hypothesis_state"))), ("短線觸發", public(summary.get("tactical_trigger_state"))),
+        ]
+        if window == "pre_close_1335":
+            delta.extend([("13:05 基準", summary.get("parent_snapshot_identity")), ("13:35 現況", summary.get("current_snapshot_identity")), ("收盤風險", summary.get("closing_risk"))])
+    elif window == "post_close_1500":
+        errors = summary.get("forecast_errors") or {}
+        delta = [
+            ("方向結果", public(summary.get("direction_result"))), ("區間結果", public(summary.get("range_result"))),
+            ("實際高 / 低 / 收", f"{safe_public_text(summary.get('actual_high'))} / {safe_public_text(summary.get('actual_low'))} / {safe_public_text(summary.get('actual_close'))}"),
+            ("高 / 低 / 中點誤差", f"{safe_public_text(errors.get('high'))} / {safe_public_text(errors.get('low'))} / {safe_public_text(errors.get('midpoint'))}"),
+            ("Daily Tactical 結果", public(summary.get("tactical_outcome"))), ("證據學習", summary.get("major_evidence_lesson")),
+            ("明日帶入", summary.get("next_session_carry_forward")),
+        ]
+    return f"""
+      <section class="decision-section tw-human-summary" data-section="tw-human-summary" data-window="{_escape(window)}" data-decision-authority="false">
+        <h4>{'今日決策摘要' if window == 'pre_open_0700' else '相較前一時段' if window != 'post_close_1500' else '預測與學習摘要'}</h4>
+        {_window_metric_grid(common + delta)}
+        <h4>今日重點</h4><ul>{reasons}</ul>
+        <p class="decision-note"><strong>主要風險：</strong>{_escape(summary.get('main_risk') or '本批次未提供額外風險證據')}</p>
+        <h4>重要新聞</h4><ul>{news}</ul>
+        <details class="decision-details"><summary>證據與 lineage</summary><div class="decision-details__body">origin={_escape(summary.get('origin_prediction_identity'))}｜current={_escape(summary.get('current_snapshot_identity'))}｜new={len(summary.get('new_evidence_identity') or [])}｜inherited={len(summary.get('inherited_evidence_identity') or [])}</div></details>
+      </section>
+    """
+
+
 def _tw_preopen_product_html(card: dict[str, Any]) -> str:
     product = card.get("tw_preopen_product_intelligence_v1") if isinstance(card.get("tw_preopen_product_intelligence_v1"), dict) else {}
     if not product:
@@ -1282,7 +1336,7 @@ def _research_v3_text(presentation: dict[str, Any], key: str, fallback: str = "�
 
 def _tw_intraday_card(card: dict[str, Any]) -> str:
     card = normalize_lifecycle_card(card, "intraday_1305")
-    prediction_html = _tw_prediction_html(card, "intraday_1305")
+    prediction_html = _tw_human_summary_html(card, "intraday_1305")
     stock_id = card.get("symbol") or card.get("stock_id")
     stock_name = card.get("name") or card.get("stock_name")
     action = localize_tw_value(card.get("canonical_intraday_action"))
@@ -1314,7 +1368,7 @@ def _tw_intraday_card(card: dict[str, Any]) -> str:
 
 def _tw_pre_close_card(card: dict[str, Any]) -> str:
     card = normalize_lifecycle_card(card, "pre_close_1335")
-    prediction_html = _tw_prediction_html(card, "pre_close_1335")
+    prediction_html = _tw_human_summary_html(card, "pre_close_1335")
     stock_id = card.get("symbol") or card.get("stock_id")
     stock_name = card.get("name") or card.get("stock_name")
     action = localize_tw_value(card.get("overnight_action"))
@@ -1342,7 +1396,7 @@ def _review_result_text(tactical: dict[str, Any], review: dict[str, Any]) -> str
 
 def _tw_post_close_card(card: dict[str, Any]) -> str:
     card = normalize_lifecycle_card(card, "post_close_1500")
-    prediction_html = _tw_prediction_html(card, "post_close_1500")
+    prediction_html = _tw_human_summary_html(card, "post_close_1500")
     stock_id = card.get("symbol") or card.get("stock_id")
     stock_name = card.get("name") or card.get("stock_name")
     result = localize_tw_value(card.get("trade_outcome"))
@@ -1352,7 +1406,7 @@ def _tw_post_close_card(card: dict[str, Any]) -> str:
         <article class="stock-card decision-card window-stock-card compact-no-trade-card" data-market="TW" data-card-type="window-review" data-report-type="post-close-review">
           <div class="decision-card__head"><div><div class="decision-card__market">TW｜15:00 盤後檢討</div><h3>{stock_id} {stock_name}</h3></div><span class="decision-badge decision-badge--warn">無交易</span></div>
           {prediction_html}
-          <section class="decision-section"><h4>今日結果</h4>{_window_metric_grid([('預測區間', '不適用'), ('交易結果', '無交易'), ('明日行動', next_action_for_outcome('no_trade'))])}</section>
+          <section class="decision-section"><h4>今日結果</h4>{_window_metric_grid([('預測評估', localize_tw_value(card.get('prediction_range_result'))), ('交易結果', '無交易'), ('明日行動', next_action_for_outcome('no_trade'))])}</section>
         </article>"""
     mfe = card.get("mfe") if isinstance(card.get("mfe"), dict) else {}
     mae = card.get("mae") if isinstance(card.get("mae"), dict) else {}
@@ -1377,7 +1431,7 @@ def _tw_post_close_card(card: dict[str, Any]) -> str:
 
 def _tw_pre_open_structured_card(card: dict[str, Any]) -> str:
     card = project_tw_prediction_card(card, "pre_open_0700", strict=False)
-    prediction_html = _tw_preopen_product_html(card)
+    prediction_html = _tw_preopen_product_html(card) + _tw_human_summary_html(card, "pre_open_0700")
     symbol = card.get("symbol") or card.get("stock_id")
     name = card.get("name") or card.get("stock_name")
     availability = clean_text(card.get("availability_status"), missing="unavailable")

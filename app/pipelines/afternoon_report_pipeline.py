@@ -45,8 +45,22 @@ def _decision_state(action):
 
 
 def _write_window_runtime(pipeline_type, context, cards, runtime_dir=None):
+    from app.reports.tw_evidence_regression import append_records, build_regression_records
+    from app.reports.tw_human_summary import build_tw_human_summary
+
     window = WINDOW_BY_PIPELINE[pipeline_type]
     effective_trading_date = str(context.get("run_date") or datetime.now(ZoneInfo("Asia/Taipei")).date().isoformat())
+    generated_at = datetime.now(ZoneInfo("Asia/Taipei")).replace(microsecond=0).isoformat()
+    ledger_records = []
+    for card in cards:
+        card["tw_human_decision_summary_v1"] = build_tw_human_summary(card, window)
+        ledger_records.extend(build_regression_records(
+            card=card, window=window, trading_date=effective_trading_date, generated_at=generated_at,
+        ))
+    ledger_result = append_records(ledger_records) if runtime_dir is None and ledger_records else {
+        "schema_version": "tw_evidence_regression_append_result_v1", "written": 0, "existing": 0, "append_only": True,
+        "validation_only": runtime_dir is not None,
+    }
     source_dates = sorted({str(card.get("source_data_date")) for card in cards if card.get("source_data_date")})
     summary = aggregate_cards(window, cards)
     structured_key = {
@@ -67,7 +81,7 @@ def _write_window_runtime(pipeline_type, context, cards, runtime_dir=None):
         "window": window,
         "pipeline_type": pipeline_type,
         "pipeline_run_id": context["pipeline_run_id"],
-        "generated_at": datetime.now(ZoneInfo("Asia/Taipei")).replace(microsecond=0).isoformat(),
+        "generated_at": generated_at,
         "effective_trading_date": effective_trading_date,
         "source_data_time": observed_times[-1] if observed_times else None,
         "source_data_dates": source_dates,
@@ -75,6 +89,7 @@ def _write_window_runtime(pipeline_type, context, cards, runtime_dir=None):
         "cards": cards,
         structured_key: cards,
         "tw_window_summary": summary,
+        "tw_evidence_regression_ledger": ledger_result,
         "tracking_stock_count": summary["tracking_count"],
         "structured_card_count": summary["structured_card_count"],
         "tracking_symbols": summary["symbols"],

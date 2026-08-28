@@ -249,6 +249,15 @@
       "required_windows": ["TW pre_open_0700", "TW intraday_1305", "TW pre_close_1335", "TW post_close_1500"],
       "acceptance": "A complete natural TW lifecycle demonstrates refreshed historical OHLCV, deterministic technical evidence, explicit source failures, differentiated RRE hypotheses, independent no-trade predictions, post-close prediction evaluation, append-safe verification maturity and five-channel research/prediction identity parity without changing Decision Layer ownership.",
       "monitoring": "Inspect history bars/freshness and fallback provenance at 07:00; intraday price-evidence hypothesis evolution at 13:05/13:35; prediction range/direction/error/no-trade evaluation and registry growth at 15:00; distinguish natural samples from replay."
+    },
+    {
+      "task_id": "AI-DEV-226-PHASE-B",
+      "state": "PENDING",
+      "registered_at": "2026-08-28",
+      "owner": "TW Decision Intelligence Product Owner",
+      "required_windows": ["TW pre_open_0700", "TW intraday_1305", "TW pre_close_1335", "TW post_close_1500"],
+      "acceptance": "One natural TW lifecycle demonstrates 5–10 second decision readability, truthful important news and chip status, incremental 13:05/13:35 deltas, independent no-trade prediction evaluation, complete identity lineage and bounded evidence-ledger linkage without US or trading regression.",
+      "monitoring": "Inspect 07:00 summary hierarchy; 13:05 origin/range/target delta; distinct 13:05 and 13:35 snapshot identities and stale rejection; 15:00 direction/range/errors/MFE/MAE and tactical separation; admitted/rejected news, chip and technical ledger records; mobile/browser rendering."
     }
   ]
 }
