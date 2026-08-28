@@ -37,6 +37,9 @@ def _normalize_selected(item: dict[str, Any]) -> dict[str, Any]:
     direction = str(item.get("direction") or "unavailable")
     return {
         "news_id": item.get("news_id"),
+        "candidate_id": item.get("candidate_id"),
+        "news_event_id": item.get("news_event_id") or item.get("event_cluster_id"),
+        "canonical_event_identity": item.get("canonical_event_identity") or item.get("event_cluster_id"),
         "headline": item.get("headline") or item.get("english_headline"),
         "english_headline": item.get("english_headline") or item.get("headline"),
         "chinese_translation": item.get("chinese_translation"),
@@ -53,6 +56,8 @@ def _normalize_selected(item: dict[str, Any]) -> dict[str, Any]:
         ),
         "freshness": item.get("freshness"),
         "source_reference": item.get("source_reference"),
+        "contextual_role": item.get("contextual_role"),
+        "role": item.get("role"),
         "entity_attribution": dict(item.get("entity_attribution")) if isinstance(item.get("entity_attribution"), dict) else None,
     }
 

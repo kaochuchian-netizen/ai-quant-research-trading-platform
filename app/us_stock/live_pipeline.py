@@ -29,6 +29,8 @@ from app.us_stock.research_presentation import (
     apply_finalized_news_surfaces,
 )
 from app.us_stock.product_continuity import forecast_projection, intraday_continuity, news_projection
+from app.us_stock.human_summary import build_us_human_summary
+from app.us_stock.evidence_regression import LEDGER_ROOT, append_regression_records, build_regression_records
 from app.us_stock.trading_calendar import resolve_us_effective_trading_date, us_session_availability
 from app.strategy.dual_strategy import DAILY_TACTICAL, RESEARCH_POSITION, US_TACTICAL_FACTOR_VERSION, build_dual_strategies
 from app.reports.canonical_outcomes import aggregate_us_post_close_review, build_structured_review_cards
@@ -288,7 +290,7 @@ def build_review(symbol: str, session_date: str, quote: dict[str, Any], history:
     review["pending_reason"] = evaluated.get("pending_reason") if evaluated.get("trade_review_outcome") == "pending_evidence" else None
     return review
 
-def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *, production_runtime: bool, write_snapshots: bool = True, reference: datetime | None = None) -> dict[str, Any]:
+def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *, production_runtime: bool, write_snapshots: bool = True, reference: datetime | None = None, ledger_root: Path | None = None) -> dict[str, Any]:
     if window not in US_BATCH_WINDOWS:
         raise ValueError(f"unsupported US window: {window}")
     generated_at = now_taipei()
@@ -390,6 +392,8 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
             card["window_research_identity"] = institutional_research["research_intelligence_v2"].get("window_research_identity")
             card["us_intraday_research_continuity_v1"] = intraday_continuity(institutional_research, observed)
             structured_intraday_cards.append(card)
+        if window in {"us_pre_market_2000", "us_intraday_2300"}:
+            card["us_human_decision_summary_v1"] = build_us_human_summary(card, window)
         if result.ok and prediction.get("prediction_status") == "available":
             success += 1
         else:
@@ -420,6 +424,7 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
             review_card["institutional_research"] = bundle
             review_card["window_research_identity"] = bundle["research_intelligence_v2"]["window_research_identity"]
         review_card["research_review_diagnosis"] = review_diagnosis(review_card)
+        review_card["us_human_decision_summary_v1"] = build_us_human_summary(review_card, window)
     premarket_context = normalize_market_context(market_context, reference) if window == "us_pre_market_2000" else None
     premarket_summary = summarize_premarket(cards, premarket_context) if window == "us_pre_market_2000" else None
     premarket_validation_errors = validate_premarket_contract(cards, premarket_summary) if window == "us_pre_market_2000" else []
@@ -493,6 +498,25 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
         "delivery_policy": {"email_full_report": True, "line_reminder_only": True, "unscheduled_validation_send": False},
         "safety_policy": {"python3_main_executed": False, "trading_or_order_executed": False, "line_email_sent_by_builder": False, "tw_formula_modified": False, "secrets_printed": False},
     }
+    item_by_symbol = {str(item.get("symbol") or "").upper(): item for item in items}
+    ledger_records = [
+        record
+        for card in cards
+        for record in build_regression_records(
+            card=card, runtime_item=item_by_symbol.get(str(card.get("symbol") or "").upper()),
+            window=window, trading_date=context["session_date"], generated_at=generated_at,
+        )
+    ]
+    artifact["evidence_regression_contract"] = {
+        "schema_version": "us_evidence_regression_contract_v1", "storage": "immutable_by_record_artifact",
+        "record_count": len(ledger_records), "candidate_limit_per_symbol_window": 64,
+        "copyright_policy": "metadata_and_derived_summary_only_no_article_body",
+        "records": ledger_records, "live_prediction_modified": False, "decision_authority": False,
+    }
+    if production_runtime and write_snapshots and ledger_records:
+        artifact["evidence_regression_append_result"] = append_regression_records(
+            ledger_records, ledger_root or (REPO_ROOT / LEDGER_ROOT),
+        )
     if window == "us_post_close_review_0630":
         review_path = REVIEW_DIR / context["session_date"] / "us_post_close_review_0630.json"
         write_json(review_path, artifact)

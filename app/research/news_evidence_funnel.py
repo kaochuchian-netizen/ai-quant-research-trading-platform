@@ -6,6 +6,8 @@ truthful stage accounting and never turns a headline into a trade direction.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import hashlib
+import json
 import re
 from typing import Any, Iterable
 
@@ -61,6 +63,33 @@ MATERIAL_RELATIONSHIP_PATTERNS = (
     (r"\bcapacity (?:agreement|expansion|commitment|equipment|supply)\b", "capacity"),
 )
 TICKER_STOPWORDS = {"AI", "CPI", "ETF", "CEO", "CFO", "IPO", "US", "USA"}
+MAX_LEDGER_CANDIDATES_PER_SYMBOL_WINDOW = 64
+
+
+def _stable_id(prefix: str, value: Any) -> str:
+    raw = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=str)
+    return prefix + hashlib.sha256(raw.encode("utf-8")).hexdigest()[:24]
+
+
+def normalized_event_topic(title: str) -> str:
+    """Return a publisher-independent topic without storing article content."""
+    text = re.sub(r"\s+(?:[-|]\s*)?(?:reuters|bloomberg|cnbc|marketwatch|yahoo finance)$", "", title, flags=re.I)
+    return re.sub(r"[^a-z0-9]+", " ", text.lower()).strip()
+
+
+def canonical_news_event_id(
+    *, title: str, published_at: Any, attribution: dict[str, Any] | None = None,
+    event_type: str | None = None, related_symbols: Iterable[str] = (),
+) -> str:
+    """Group syndicated reports while keeping distinct updates separate."""
+    attribution = attribution or {}
+    subject = attribution.get("primary_subject") or attribution.get("target_symbol")
+    relationship = attribution.get("relationship_type")
+    bucket = str(published_at or "")[:10]
+    return _stable_id("news_evt_", [
+        normalized_event_topic(title), str(event_type or "news").lower(), subject,
+        relationship, sorted({str(value).upper() for value in related_symbols if value}), bucket,
+    ])
 
 
 def _alias_matches(text: str, aliases: Iterable[str]) -> list[str]:
@@ -269,13 +298,19 @@ def normalize_yfinance_news(
     counts["DISCOVERED"] = counts["RETRIEVED"] = len(raw)
     reference = parse_time(observed_at) or datetime.now(timezone.utc)
     candidates: list[dict[str, Any]] = []
+    candidate_records: list[dict[str, Any]] = []
 
     def reject(code: str) -> None:
         reasons[code] = reasons.get(code, 0) + 1
 
-    for value in raw:
+    for candidate_index, value in enumerate(raw):
         if not isinstance(value, dict):
             reject("PARSER_ERROR")
+            candidate_records.append({
+                "record_version": "us_news_candidate_metadata_v1", "market": "US", "symbol": symbol.upper(),
+                "candidate_id": _stable_id("news_cand_", [symbol.upper(), "invalid", candidate_index, observed_at]),
+                "admission_status": "REJECTED", "rejection_reason": "PARSER_ERROR",
+            })
             continue
         item = _nested(value)
         title = str(item.get("title") or "").strip()
@@ -283,14 +318,27 @@ def normalize_yfinance_news(
         publisher = str(item.get("publisher") or provider_obj.get("displayName") or "").strip()
         published = item.get("pubDate") or item.get("providerPublishTime") or item.get("published_at")
         source_url = _url(item.get("canonicalUrl") or item.get("clickThroughUrl") or item.get("link") or item.get("url"))
+        candidate_base = {
+            "record_version": "us_news_candidate_metadata_v1", "market": "US", "symbol": symbol.upper(),
+            "headline": title or None, "publisher": publisher or None, "published_at": published,
+            "source_reference": source_url, "fetched_at": observed_at,
+        }
+        candidate_base["candidate_id"] = _stable_id("news_cand_", [symbol.upper(), title, published, source_url])
         if not title or not published or not source_url:
             reject("PARSER_ERROR")
+            candidate_records.append({**candidate_base, "admission_status": "REJECTED", "rejection_reason": "PARSER_ERROR"})
             continue
         counts["NORMALIZED"] += 1
         summary = re.sub(r"<[^>]+>", " ", str(item.get("summary") or item.get("description") or ""))
         attribution = _entity_attribution(item, symbol=symbol, title=title, summary=summary)
+        contextual_admission = False
         if not attribution["accepted"]:
             reject(str(attribution["reason_code"]))
+            candidate_records.append({
+                **candidate_base, "entity_attribution": attribution,
+                "news_event_id": canonical_news_event_id(title=title, published_at=published, attribution=attribution, related_symbols=attribution.get("related_ticker_metadata") or []),
+                "admission_status": "REJECTED", "rejection_reason": attribution["reason_code"],
+            })
             continue
         counts["SYMBOL_ATTRIBUTED"] += 1
         # Yahoo Finance is contextual Tier 3. Official/IR evidence remains a
@@ -303,22 +351,30 @@ def normalize_yfinance_news(
         published_at = parse_time(published)
         if published_at is None:
             reject("PARSER_ERROR")
+            candidate_records.append({**candidate_base, "entity_attribution": attribution, "admission_status": "REJECTED", "rejection_reason": "PARSER_ERROR"})
             continue
         age_hours = (reference - published_at).total_seconds() / 3600
         if age_hours < 0:
             reject("OUTSIDE_WINDOW")
+            candidate_records.append({**candidate_base, "entity_attribution": attribution, "admission_status": "REJECTED", "rejection_reason": "OUTSIDE_WINDOW"})
             continue
         if age_hours > 72:
             reject("STALE")
+            candidate_records.append({**candidate_base, "entity_attribution": attribution, "admission_status": "REJECTED", "rejection_reason": "STALE"})
             continue
         counts["FRESH"] += 1
         counts["RELEVANT"] += 1
         content_type = str(item.get("contentType") or "STORY").upper()
         if content_type not in {"STORY", "PRESS_RELEASE", "VIDEO"}:
             reject("LOW_MATERIALITY")
+            candidate_records.append({**candidate_base, "entity_attribution": attribution, "admission_status": "REJECTED", "rejection_reason": "LOW_MATERIALITY"})
             continue
         counts["MATERIAL"] += 1
-        candidates.append({
+        news_event_id = canonical_news_event_id(
+            title=title, published_at=published, attribution=attribution,
+            event_type=content_type, related_symbols=attribution.get("related_ticker_metadata") or [],
+        )
+        normalized = {
             "source": publisher, "publisher": publisher,
             "published_at": published_at.isoformat().replace("+00:00", "Z"),
             "source_url": source_url, "english_headline": title,
@@ -328,20 +384,39 @@ def normalize_yfinance_news(
             "investment_reading": "新聞供事件脈絡參考，不單獨決定評等。",
             "source_quality": "recognized_financial_media",
             "source_tier": 3, "official_source": False,
-            "symbol_attributed": True, "relevance": "medium",
+            "symbol_attributed": attribution["accepted"], "contextual_admission": contextual_admission,
+            "contextual_role": "CONTEXTUALIZE" if contextual_admission else None,
+            "relevance": "medium",
             "materiality": "medium", "freshness": "fresh",
             "direction": "unavailable", "direction_status": "NOT_EVALUATED",
             "entity_attribution": attribution,
             "publisher_resolution_status": publisher_resolution_status,
             "discovery_channel": "YAHOO_FINANCE",
-            "dedupe_key": source_url,
+            "candidate_id": candidate_base["candidate_id"], "news_event_id": news_event_id,
+            "canonical_event_identity": news_event_id, "dedupe_key": news_event_id,
+            "related_symbols": attribution.get("related_ticker_metadata") or [],
+        }
+        candidates.append(normalized)
+        candidate_records.append({
+            **candidate_base, "entity_attribution": attribution, "news_event_id": news_event_id,
+            "canonical_event_identity": news_event_id, "source_tier": 3,
+            "source_quality": "recognized_financial_media", "event_type": content_type.lower(),
+            "materiality": "medium", "relevance": "medium", "freshness": "fresh",
+            "admission_status": "ADMITTED", "rejection_reason": None,
         })
     unique: dict[str, dict[str, Any]] = {}
     for item in candidates:
         key = str(item["dedupe_key"])
         if key in unique:
             reject("DUPLICATE")
+            primary = unique[key]
+            primary.setdefault("duplicate_sources", []).append({"publisher": item.get("publisher"), "source_reference": item.get("source_url")})
+            for record in candidate_records:
+                if record.get("candidate_id") == item.get("candidate_id"):
+                    record.update({"admission_status": "REJECTED", "rejection_reason": "DUPLICATE", "duplicate_group": key})
+                    break
         else:
+            item["duplicate_sources"] = []
             unique[key] = item
     admitted = list(unique.values())
     counts["DEDUPLICATED"] = counts["ADMITTED"] = len(admitted)
@@ -363,6 +438,8 @@ def normalize_yfinance_news(
         "absence_state": absence,
         "source_preference": ["official", "SEC", "company_ir", "company_newsroom", "recognized_financial_media"],
         "retrieval": {"status": "PARTIAL" if retrieval_error and admitted else "FAILED" if retrieval_error else "SUCCESS", "reason_code": "PARTIAL_PROVIDER_FAILURE" if retrieval_error and admitted else "RETRIEVAL_FAILED" if retrieval_error else None},
+        "candidate_records": candidate_records[:MAX_LEDGER_CANDIDATES_PER_SYMBOL_WINDOW],
+        "candidate_retention": {"limit": MAX_LEDGER_CANDIDATES_PER_SYMBOL_WINDOW, "content": "metadata_only_no_article_body", "truncated": len(candidate_records) > MAX_LEDGER_CANDIDATES_PER_SYMBOL_WINDOW},
     }
     return admitted, diagnostic
 

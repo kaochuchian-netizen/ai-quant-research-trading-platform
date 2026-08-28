@@ -218,7 +218,9 @@ def normalize_news(items: Iterable[dict[str, Any]], observed_at: str, diagnostic
         headline = _text(raw.get("english_headline") or raw.get("headline"))
         reference = _text(provenance.get("source_reference") or raw.get("source_url") or raw.get("source_id"))
         published = provenance.get("published_at") or raw.get("published_at")
-        cluster = "news_" + stable_hash([re.sub(r"[^a-z0-9]+", " ", headline.lower()).strip(), str(published)[:10]])[:16]
+        cluster = str(raw.get("canonical_event_identity") or raw.get("news_event_id") or (
+            "news_" + stable_hash([re.sub(r"[^a-z0-9]+", " ", headline.lower()).strip(), str(published)[:10]])[:16]
+        ))
         try:
             published_time = datetime.fromisoformat(str(published).replace("Z", "+00:00"))
             if published_time.tzinfo is None:
@@ -229,7 +231,8 @@ def normalize_news(items: Iterable[dict[str, Any]], observed_at: str, diagnostic
         freshness = "current" if age_hours is not None and 0 <= age_hours <= 72 else "future" if age_hours is not None and age_hours < 0 else "stale"
         item = {
             "news_id": "news_" + stable_hash([cluster, reference, headline])[:20],
-            "event_cluster_id": cluster, "headline": headline or None,
+            "candidate_id": raw.get("candidate_id"), "news_event_id": raw.get("news_event_id") or cluster,
+            "canonical_event_identity": cluster, "event_cluster_id": cluster, "headline": headline or None,
             "summary": _text(raw.get("chinese_summary") or raw.get("summary") or raw.get("investment_reading")) or None,
             "publisher": raw.get("publisher") or provenance.get("publisher"),
             "published_at": published, "observed_at": observed_at,
@@ -246,6 +249,7 @@ def normalize_news(items: Iterable[dict[str, Any]], observed_at: str, diagnostic
             "duplicate_of": None, "counted": False, "eligible_for_rre": freshness == "current",
             "selection_status": "PENDING", "selection_reason": None,
             "entity_attribution": raw.get("entity_attribution") if isinstance(raw.get("entity_attribution"), dict) else None,
+            "contextual_role": raw.get("contextual_role"), "related_symbols": list(raw.get("related_symbols") or []),
             "english_headline": raw.get("english_headline") or raw.get("headline"),
             "chinese_translation": raw.get("chinese_translation"),
             "chinese_summary": raw.get("chinese_summary"),

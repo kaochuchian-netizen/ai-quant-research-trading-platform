@@ -193,6 +193,11 @@ def canonical_evidence(symbol: str, research: dict[str, Any], market_context: di
     for news in [x for x in (research.get("material_news") or {}).get("items", []) if isinstance(x, dict)]:
         provenance, official = news.get("provenance") or {}, bool(news.get("official_source"))
         row = evidence_record(symbol, "company_ir" if official else "yfinance", "A" if official else "C", str(news.get("english_headline") or "Material event metadata"), str(news.get("chinese_summary") or news.get("investment_reading") or ""), observed_at, str(news.get("event_type") or "news"), published_at=provenance.get("published_at"), direction=news.get("direction"), materiality=str(news.get("materiality") or "medium"), relevance=str(news.get("relevance") or "medium"), confidence=.9 if official else .68, official=official, reference=provenance.get("source_reference"))
+        row["candidate_id"] = news.get("candidate_id")
+        row["news_event_id"] = news.get("news_event_id") or news.get("canonical_event_identity")
+        if row["news_event_id"]:
+            row["event_cluster_id"] = row["news_event_id"]
+        row["contextual_role"] = news.get("contextual_role")
         row["entity_attribution"] = json.loads(json.dumps(news.get("entity_attribution") or {}))
         rows.append(row)
     canonical_market = normalize_us_market_context(market_context)
