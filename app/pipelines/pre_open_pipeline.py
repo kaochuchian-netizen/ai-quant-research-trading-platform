@@ -85,7 +85,7 @@ class StageTiming:
         STAGE_TIMING_PATH.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-def _write_pre_open_runtime(context, cards, tracking_symbols):
+def _write_pre_open_runtime(context, cards, tracking_symbols, stock_universe_evidence=None):
     from app.reports.tw_evidence_regression import append_records, build_regression_records
     from app.reports.tw_human_summary import build_tw_human_summary
 
@@ -117,6 +117,11 @@ def _write_pre_open_runtime(context, cards, tracking_symbols):
         "validation_only": False,
         "dry_run": False,
         "status": "completed",
+        "data_quality_status": (
+            "degraded"
+            if (stock_universe_evidence or {}).get("source_status") != "READY"
+            else "complete"
+        ),
         "market": "TW",
         "window": "pre_open_0700",
         "pipeline_run_id": context["pipeline_run_id"],
@@ -127,6 +132,7 @@ def _write_pre_open_runtime(context, cards, tracking_symbols):
         "source_data_time_status": "date_only" if source_dates else "unavailable",
         "tracking_stock_count": summary["tracking_stock_count"],
         "tracking_symbols": summary["tracking_symbols"],
+        "stock_universe_evidence": stock_universe_evidence or {},
         "structured_card_count": summary["structured_card_count"],
         "rendered_card_count": summary["rendered_card_count"],
         "structured_pre_open_cards": cards,
@@ -188,7 +194,15 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
         "load_stock_universe",
         stock_count=len(stock_ids),
         source=stock_universe_evidence["source"],
+        source_status=stock_universe_evidence["source_status"],
         fallback_used=stock_universe_evidence["fallback_used"],
+        fallback_snapshot_age=stock_universe_evidence.get("fallback_snapshot_age"),
+        current_symbol_count=stock_universe_evidence.get("current_symbol_count"),
+        fallback_symbol_count=stock_universe_evidence.get("fallback_symbol_count"),
+        symbol_count_drift=stock_universe_evidence.get("symbol_count_drift"),
+        symbol_drift_status=stock_universe_evidence.get("symbol_drift_status"),
+        missing_symbols=stock_universe_evidence.get("missing_symbols", []),
+        extra_symbols=stock_universe_evidence.get("extra_symbols", []),
         source_effective_trading_date=stock_universe_evidence.get("source_effective_trading_date"),
         source_snapshot_id=stock_universe_evidence.get("source_snapshot_id"),
         source_revision=stock_universe_evidence.get("source_revision"),
@@ -422,7 +436,12 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
     else:
         report_manual_rerun_stage("artifact_generation")
         stage_timing.start("window_runtime_write")
-        window_runtime = _write_pre_open_runtime(context, structured_cards, selected_stock_ids)
+        window_runtime = _write_pre_open_runtime(
+            context,
+            structured_cards,
+            selected_stock_ids,
+            stock_universe_evidence=stock_universe_evidence,
+        )
         stage_timing.finish(
             "window_runtime_write",
             structured_card_count=window_runtime["structured_card_count"],
