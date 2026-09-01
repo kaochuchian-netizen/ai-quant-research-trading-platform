@@ -118,6 +118,54 @@ def _empty_status(start_date, end_date):
     }
 
 
+def bootstrap_symbol_history(stock_id, *, target_date=None, yfinance_downloader=None):
+    """Idempotently bootstrap one missing TW historical CSV.
+
+    Existing files are never overwritten by this onboarding helper.  Provider
+    ownership remains the existing Shioaji -> yfinance fallback contract.
+    """
+
+    stock_id = str(stock_id).strip().zfill(4)
+    target_date = str(target_date or datetime.today().strftime("%Y-%m-%d"))
+    existing = inspect_historical_csv(
+        stock_id, target_date=target_date, minimum_bars=MIN_TECHNICAL_BARS,
+    )
+    if existing.get("exists"):
+        return {
+            "schema_version": "tw_historical_bootstrap_result_v1",
+            "stock_id": stock_id,
+            "success": bool(existing.get("usable")),
+            "attempted": False,
+            "result": "noop_existing_usable" if existing.get("usable") else "existing_historical_insufficient",
+            "csv_path": existing.get("csv_path"),
+        }
+
+    status = main(
+        raise_on_failure=False,
+        stock_ids=[stock_id],
+        universe_evidence={
+            "source": "new_symbol_historical_bootstrap",
+            "fallback_used": False,
+            "stock_count": 1,
+            "market": "TW",
+        },
+        yfinance_downloader=yfinance_downloader,
+    )
+    final = inspect_historical_csv(
+        stock_id, target_date=target_date, minimum_bars=MIN_TECHNICAL_BARS,
+    )
+    return {
+        "schema_version": "tw_historical_bootstrap_result_v1",
+        "stock_id": stock_id,
+        "success": bool(final.get("usable")),
+        "attempted": True,
+        "result": "bootstrap_success" if final.get("usable") else "bootstrap_failed",
+        "csv_path": final.get("csv_path"),
+        "reason": final.get("warning"),
+        "provider_status": status.get("stocks", [{}])[0].get("update_status") if status.get("stocks") else None,
+    }
+
+
 def main(raise_on_failure=False, stock_ids=None, universe_evidence=None, yfinance_downloader=None):
     if stock_ids is None:
         stock_ids, universe_evidence = load_stock_ids_with_provenance()

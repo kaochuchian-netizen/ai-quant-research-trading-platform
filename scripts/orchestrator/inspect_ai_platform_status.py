@@ -232,6 +232,7 @@ def collect_git_status(repo_root: Path) -> tuple[dict[str, Any], list[str]]:
     }
     main_ref_proc = run_git(["rev-parse", "--verify", "main"], repo_root)
     origin_main_ref_proc = run_git(["rev-parse", "--verify", "origin/main"], repo_root)
+    head_ref_proc = run_git(["rev-parse", "--verify", "HEAD"], repo_root)
     if main_ref_proc.returncode != 0 or origin_main_ref_proc.returncode != 0:
         main_sync["status"] = "missing_ref"
         warnings.append("unable to compare main and origin/main; one or both refs are missing")
@@ -260,6 +261,9 @@ def collect_git_status(repo_root: Path) -> tuple[dict[str, Any], list[str]]:
 
     return {
         "current_branch": current_branch,
+        "head_sha": head_ref_proc.stdout.strip() if head_ref_proc.returncode == 0 else None,
+        "main_sha": main_ref_proc.stdout.strip() if main_ref_proc.returncode == 0 else None,
+        "origin_main_sha": origin_main_ref_proc.stdout.strip() if origin_main_ref_proc.returncode == 0 else None,
         "clean": not status_lines and status_error is None,
         "status_short": status_lines,
         "main_origin_main_sync": main_sync,

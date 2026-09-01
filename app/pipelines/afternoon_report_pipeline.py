@@ -12,6 +12,7 @@ from app.market.adr_service import get_adr_result
 from app.market.stock_name_loader import resolve_stock_name
 from app.market.shioaji_client import get_snapshots
 from app.market.snapshot_normalizer import normalize_snapshots
+from app.market.tw_symbol_historical_admission import admit_tw_symbols_with_history
 from app.pipelines.context import create_pipeline_context
 from app.dashboard.window_snapshot_archive import load_admitted_snapshots
 from app.reports.tw_four_window_decision import aggregate_cards, build_observed_card, stable_hash
@@ -44,7 +45,7 @@ def _decision_state(action):
     }
 
 
-def _write_window_runtime(pipeline_type, context, cards, runtime_dir=None):
+def _write_window_runtime(pipeline_type, context, cards, runtime_dir=None, historical_admission=None):
     from app.reports.tw_evidence_regression import append_records, build_regression_records
     from app.reports.tw_human_summary import build_tw_human_summary
 
@@ -94,6 +95,7 @@ def _write_window_runtime(pipeline_type, context, cards, runtime_dir=None):
         "structured_card_count": summary["structured_card_count"],
         "tracking_symbols": summary["symbols"],
         "stock_count": len(cards),
+        "historical_symbol_admission": list(historical_admission or []),
         "trading_or_order_executed": False,
     }
     target = Path(runtime_dir) / f"{window}_latest.json" if runtime_dir else REPO_ROOT / "artifacts/runtime/tw_window_decision" / f"{window}_latest.json"
@@ -138,6 +140,16 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
 
     with timing.stage("market_data"):
         stock_ids = load_stock_ids()
+    requested_stock_ids = [str(stock_id).zfill(4) for stock_id in stock_ids]
+    bootstrapper = None
+    if dry_run:
+        bootstrapper = lambda symbol, **_: {  # noqa: E731 - explicit no-network dry-run boundary
+            "success": False, "result": "dry_run_not_attempted", "reason": "dry_run_no_network",
+        }
+    with timing.stage("historical_bootstrap"):
+        stock_ids, historical_admission = admit_tw_symbols_with_history(
+            stock_ids, target_date=context["run_date"], bootstrapper=bootstrapper,
+        )
     record_stage_result(timing_path, "fundamentals", status="not_applicable", elapsed_seconds=0)
     selected_stock_ids = [str(stock_id).zfill(4) for stock_id in stock_ids]
     quote_failure = None
@@ -166,13 +178,25 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
     prior_key = {"intraday_1305": "structured_intraday_cards", "pre_close_1335": "structured_pre_close_cards"}.get(prior_window or "")
     prior_cards = prior_payload.get(prior_key, []) if prior_key and isinstance(prior_payload, dict) else []
     prior_by_symbol = {str(item.get("symbol") or item.get("stock_id") or "").zfill(4): item for item in prior_cards if isinstance(item, dict)}
-    print(f"{pipeline_type} stock universe count: {len(stock_ids)}")
+    print(f"{pipeline_type} stock universe count: {len(requested_stock_ids)}")
+    print(f"{pipeline_type} historical admitted count: {len(stock_ids)}")
     print(f"{pipeline_type} selected stock ids: {selected_stock_ids}")
     print(f"{pipeline_type} full LINE report disabled; concise scheduler reminder is handled by approved wrapper")
 
     daily_reports = []
     decision_cards = []
-    failed_reports = []
+    failed_reports = [
+        {
+            "stock_id": item["symbol"],
+            "stock_name": None,
+            "reason": item["exclusion_reason"],
+            "exclusion_stage": item["exclusion_stage"],
+            "historical_path": item["historical_path"],
+            "bootstrap_attempted": item["bootstrap_attempted"],
+            "bootstrap_result": item["bootstrap_result"],
+        }
+        for item in historical_admission if item.get("status") != "ADMITTED"
+    ]
     stock_name_warnings = []
 
     for stock_id in stock_ids:
@@ -317,7 +341,9 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
         timing.fail(stage="runtime_write", category="runtime_write_failure", reason="no_valid_decision_cards")
         raise RuntimeError("no_valid_decision_cards")
     with timing.stage("runtime_write"):
-        runtime_path = None if dry_run else _write_window_runtime(pipeline_type, context, decision_cards)
+        runtime_path = None if dry_run else _write_window_runtime(
+            pipeline_type, context, decision_cards, historical_admission=historical_admission,
+        )
     # These stages belong to the approved wrapper; record explicit handoff so
     # the pipeline artifact never implies they happened here.
     for handoff in ("snapshot_admission", "archive_build", "publish", "notification_format", "delivery"):
@@ -332,6 +358,7 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
         "content_state": "stock_analysis_reports_available" if daily_reports else "stock_analysis_reports_unavailable",
         "report_count": len(daily_reports),
         "failed_count": len(failed_reports),
+        "historical_symbol_admission": historical_admission,
         "stock_name_fallback_count": len(stock_name_warnings),
         "stock_name_warnings": stock_name_warnings,
         "full_line_report_disabled": True,

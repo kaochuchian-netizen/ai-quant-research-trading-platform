@@ -161,6 +161,8 @@ def apply_simulated_post_merge_state(report: dict[str, Any]) -> dict[str, Any]:
     git.update(
         {
             "current_branch": "main",
+            "head_sha": git.get("origin_main_sha"),
+            "main_sha": git.get("origin_main_sha"),
             "clean": True,
             "status_short": [],
             "main_origin_main_sync": {
@@ -196,6 +198,9 @@ def summarize_post_merge_status(
     runtime = dict(platform_status.get("runtime", {}))
 
     current_branch = git.get("current_branch")
+    head_sha = git.get("head_sha") or git.get("head")
+    main_sha = git.get("main_sha") or git.get("main")
+    origin_main_sha = git.get("origin_main_sha") or git.get("origin_main")
     clean = bool(git.get("clean"))
     status_entries = list(git.get("status_short", []) or [])
     dirty = classify_dirty_paths(status_entries)
@@ -235,6 +240,26 @@ def summarize_post_merge_status(
             expected="main",
             actual=current_branch,
             notes=[] if current_branch == "main" else ["post-merge validation expects main"],
+        ),
+        "production_checkout_identity_closed": evaluate_check(
+            "production_checkout_identity_closed",
+            current_branch == "main"
+            and bool(head_sha)
+            and head_sha == main_sha == origin_main_sha
+            and main_sync.get("ahead") == 0
+            and main_sync.get("behind") == 0,
+            expected={"branch": "main", "head_equals_main_equals_origin_main": True, "ahead": 0, "behind": 0},
+            actual={
+                "branch": current_branch,
+                "head": head_sha,
+                "main": main_sha,
+                "origin_main": origin_main_sha,
+                "ahead": main_sync.get("ahead"),
+                "behind": main_sync.get("behind"),
+            },
+            notes=[] if current_branch == "main" and head_sha == main_sha == origin_main_sha else [
+                "repository merge is not production checkout closure; expected main at origin/main"
+            ],
         ),
         "worktree_governance_safe": evaluate_check(
             "worktree_governance_safe",
@@ -293,6 +318,9 @@ def summarize_post_merge_status(
 
     git_summary = {
         "current_branch": current_branch,
+        "head_sha": head_sha,
+        "main_sha": main_sha,
+        "origin_main_sha": origin_main_sha,
         "clean": clean,
         "status_short": status_entries,
         "main_origin_main_sync": main_sync,
@@ -306,6 +334,7 @@ def summarize_post_merge_status(
 
     return {
         "ok": not errors,
+        "production_checkout_status": "CLOSED" if checks["production_checkout_identity_closed"]["passed"] else "NOT_CLOSED",
         "main_sync_ok": checks["main_origin_main_in_sync"]["passed"],
         "branch_cleanup_ok": checks["task_branches_cleaned"]["passed"],
         "inspector_ok": checks["inspector_ok"]["passed"],
