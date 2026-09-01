@@ -21,6 +21,9 @@ def platform(*, status: list[str] | None = None, sync: bool = True, branches: bo
         "open_pr_count": open_prs,
         "git": {
             "current_branch": "main",
+            "head_sha": "abc123",
+            "main_sha": "abc123",
+            "origin_main_sha": "abc123",
             "clean": not entries,
             "status_short": entries,
             "main_origin_main_sync": {
@@ -86,6 +89,21 @@ class PostMergeDirtyClassificationTests(unittest.TestCase):
         result = summarize_post_merge_status(platform(sync=False))
         self.assertFalse(result["ok"])
         self.assertFalse(result["main_sync_ok"])
+
+    def test_stale_feature_checkout_fails_even_when_main_is_synced(self) -> None:
+        source = platform()
+        source["git"].update(current_branch="ai-dev/228-test", head_sha="feature123")
+        result = summarize_post_merge_status(source)
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["production_checkout_status"], "NOT_CLOSED")
+        self.assertFalse(result["checks"]["production_checkout_identity_closed"]["passed"])
+
+    def test_head_main_origin_identity_mismatch_fails(self) -> None:
+        source = platform()
+        source["git"]["head_sha"] = "stale123"
+        result = summarize_post_merge_status(source)
+        self.assertFalse(result["ok"])
+        self.assertFalse(result["checks"]["production_checkout_identity_closed"]["passed"])
 
     def test_open_pr_or_branch_cleanup_fails(self) -> None:
         self.assertFalse(summarize_post_merge_status(platform(branches=True))["ok"])
