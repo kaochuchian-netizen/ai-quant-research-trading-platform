@@ -50,6 +50,28 @@ def _now_taipei():
     return datetime.now(ZoneInfo("Asia/Taipei")).isoformat(timespec="seconds")
 
 
+def _store_structured_pre_open_card(card_by_symbol, card):
+    symbol = str(card.get("symbol") or card.get("stock_id") or "")
+    if not symbol:
+        raise ValueError("unexpected_structured_pre_open_symbol")
+    if symbol in card_by_symbol:
+        raise ValueError("duplicate_structured_pre_open_symbol")
+    card_by_symbol[symbol] = card
+
+
+def _reconstruct_structured_pre_open_cards(card_by_symbol, selected_stock_ids):
+    expected = [str(symbol) for symbol in selected_stock_ids]
+    if len(expected) != len(set(expected)):
+        raise ValueError("duplicate_selected_pre_open_symbol")
+    expected_set = set(expected)
+    actual_set = set(card_by_symbol)
+    if actual_set - expected_set:
+        raise ValueError("unexpected_structured_pre_open_symbol")
+    if expected_set - actual_set:
+        raise ValueError("missing_structured_pre_open_symbol")
+    return [card_by_symbol[symbol] for symbol in expected]
+
+
 class StageTiming:
     def __init__(self, window, pipeline_run_id):
         self.window = window
@@ -303,16 +325,19 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
         if item.get("status") != "ADMITTED"
     ]
     stock_name_warnings = []
-    structured_cards = [
-        build_unavailable_pre_open_card(
-            item["symbol"],
-            str(resolve_stock_name(item["symbol"])["stock_name"]),
-            context["run_date"],
-            f"{item['exclusion_stage']}:{item['exclusion_reason']}",
+    structured_card_by_symbol = {}
+    for item in historical_admission:
+        if item.get("status") == "ADMITTED":
+            continue
+        _store_structured_pre_open_card(
+            structured_card_by_symbol,
+            build_unavailable_pre_open_card(
+                item["symbol"],
+                str(resolve_stock_name(item["symbol"])["stock_name"]),
+                context["run_date"],
+                f"{item['exclusion_stage']}:{item['exclusion_reason']}",
+            ),
         )
-        for item in historical_admission
-        if item.get("status") != "ADMITTED"
-    ]
 
     for stock_id in stock_ids:
         stock_id = str(stock_id).zfill(4)
@@ -411,7 +436,8 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
                 print(f"SQLite 已寫入：{stock_name}({stock_id})")
             print(report, flush=True)
             daily_reports.append(report)
-            structured_cards.append(
+            _store_structured_pre_open_card(
+                structured_card_by_symbol,
                 build_pre_open_card(
                     symbol=stock_id,
                     name=stock_name,
@@ -432,7 +458,7 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
                         )
                         if source_value in (None, [], {})
                     ],
-                )
+                ),
             )
             report_manual_rerun_stage("prediction_projection", "completed", symbol=stock_id)
             stage_timing.finish(stage_name, report_ready=True)
@@ -441,16 +467,21 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
             reason = e.__class__.__name__
             print(f"分析失敗：{stock_name}({stock_id})，原因類型：{reason}", flush=True)
             failed_reports.append({"stock_id": stock_id, "stock_name": stock_name, "reason": reason})
-            structured_cards.append(
+            _store_structured_pre_open_card(
+                structured_card_by_symbol,
                 build_unavailable_pre_open_card(
                     stock_id,
                     stock_name,
                     context["run_date"],
                     f"analysis_failed:{reason}",
-                )
+                ),
             )
             stage_timing.finish(stage_name, status="failed", reason=reason)
 
+    structured_cards = _reconstruct_structured_pre_open_cards(
+        structured_card_by_symbol,
+        selected_stock_ids,
+    )
     pre_open_summary = aggregate_pre_open_cards(structured_cards, selected_stock_ids)
     window_runtime = None
     if dry_run:
