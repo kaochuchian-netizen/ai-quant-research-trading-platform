@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 
 from app.loaders.google_sheet_loader import load_stock_ids_with_provenance
 from app.market.stock_name_loader import resolve_stock_name
+from app.market.tw_symbol_historical_admission import admit_tw_symbols_with_history
 from app.market.adr_service import get_adr_result
 from app.market.adr_score_engine import calculate_adr_score
 from app.pipelines.context import create_pipeline_context
@@ -85,7 +86,13 @@ class StageTiming:
         STAGE_TIMING_PATH.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-def _write_pre_open_runtime(context, cards, tracking_symbols, stock_universe_evidence=None):
+def _write_pre_open_runtime(
+    context,
+    cards,
+    tracking_symbols,
+    stock_universe_evidence=None,
+    historical_admission=None,
+):
     from app.reports.tw_evidence_regression import append_records, build_regression_records
     from app.reports.tw_human_summary import build_tw_human_summary
 
@@ -133,6 +140,7 @@ def _write_pre_open_runtime(context, cards, tracking_symbols, stock_universe_evi
         "tracking_stock_count": summary["tracking_stock_count"],
         "tracking_symbols": summary["tracking_symbols"],
         "stock_universe_evidence": stock_universe_evidence or {},
+        "historical_symbol_admission": list(historical_admission or []),
         "structured_card_count": summary["structured_card_count"],
         "rendered_card_count": summary["rendered_card_count"],
         "structured_pre_open_cards": cards,
@@ -214,6 +222,36 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
     else:
         init_database()
 
+    print(f"pre_open stock universe count: {len(stock_ids)}", flush=True)
+    print("pre_open stock universe evidence:", json.dumps(stock_universe_evidence, ensure_ascii=False, sort_keys=True), flush=True)
+    print(f"pre_open dry_run: {dry_run}")
+    print(f"pre_open limit: {limit}")
+
+    if limit is not None:
+        if limit <= 0:
+            raise ValueError("limit must be a positive integer")
+        stock_ids = stock_ids[:limit]
+
+    selected_stock_ids = [str(stock_id).zfill(4) for stock_id in stock_ids]
+    bootstrapper = None
+    if dry_run:
+        bootstrapper = lambda symbol, **_: {  # noqa: E731 - explicit no-network dry-run boundary
+            "success": False,
+            "result": "dry_run_not_attempted",
+            "reason": "dry_run_no_network",
+        }
+    stage_timing.start("historical_bootstrap", requested_count=len(selected_stock_ids))
+    stock_ids, historical_admission = admit_tw_symbols_with_history(
+        stock_ids,
+        target_date=context["run_date"],
+        bootstrapper=bootstrapper,
+    )
+    stage_timing.finish(
+        "historical_bootstrap",
+        admitted_count=len(stock_ids),
+        excluded_count=len(selected_stock_ids) - len(stock_ids),
+    )
+
     if dry_run:
         print("dry-run 模式：略過 historical CSV 更新")
         pipeline_pre_delivery_status = {
@@ -224,7 +262,7 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
             "warnings": [],
         }
     else:
-        print("開始更新 historical CSV", flush=True)
+        print("開始更新 admitted symbols historical CSV", flush=True)
         stage_timing.start("historical_csv_update")
         pipeline_pre_delivery_status = update_historical_csv(
             stock_ids=stock_ids,
@@ -238,24 +276,7 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
         )
         print("pipeline_pre_delivery_status:", flush=True)
         print(json.dumps(pipeline_pre_delivery_status, ensure_ascii=False, sort_keys=True), flush=True)
-        if pipeline_pre_delivery_status.get("historical_update_completed"):
-            print("historical CSV 更新完成")
-        elif pipeline_pre_delivery_status.get("report_ready_available"):
-            print("historical CSV 更新未完全成功，改用 fallback historical CSV 繼續產生報告")
-        else:
-            print("historical CSV 更新失敗且 fallback 不足，pipeline 將繼續嘗試既有逐檔檢查")
 
-    print(f"pre_open stock universe count: {len(stock_ids)}", flush=True)
-    print("pre_open stock universe evidence:", json.dumps(stock_universe_evidence, ensure_ascii=False, sort_keys=True), flush=True)
-    print(f"pre_open dry_run: {dry_run}")
-    print(f"pre_open limit: {limit}")
-
-    if limit is not None:
-        if limit <= 0:
-            raise ValueError("limit must be a positive integer")
-        stock_ids = stock_ids[:limit]
-
-    selected_stock_ids = [str(stock_id).zfill(4) for stock_id in stock_ids]
     stage_timing.start("strategy_setup")
     tactical_runtime = build_tw_daily_tactical_runtime()
     tactical_by_symbol = {
@@ -268,9 +289,30 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
     print(f"pre_open selected stock ids: {selected_stock_ids}")
 
     daily_reports = []
-    failed_reports = []
+    failed_reports = [
+        {
+            "stock_id": item["symbol"],
+            "stock_name": None,
+            "reason": item["exclusion_reason"],
+            "exclusion_stage": item["exclusion_stage"],
+            "historical_path": item["historical_path"],
+            "bootstrap_attempted": item["bootstrap_attempted"],
+            "bootstrap_result": item["bootstrap_result"],
+        }
+        for item in historical_admission
+        if item.get("status") != "ADMITTED"
+    ]
     stock_name_warnings = []
-    structured_cards = []
+    structured_cards = [
+        build_unavailable_pre_open_card(
+            item["symbol"],
+            str(resolve_stock_name(item["symbol"])["stock_name"]),
+            context["run_date"],
+            f"{item['exclusion_stage']}:{item['exclusion_reason']}",
+        )
+        for item in historical_admission
+        if item.get("status") != "ADMITTED"
+    ]
 
     for stock_id in stock_ids:
         stock_id = str(stock_id).zfill(4)
@@ -293,26 +335,6 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
         print(f"開始分析股票：{stock_name}({stock_id})", flush=True)
 
         csv_path = f"data/historical/{stock_id}_daily.csv"
-
-        if not os.path.exists(csv_path):
-            print(f"略過股票 {stock_name}({stock_id})：找不到歷史資料 {csv_path}")
-            failed_reports.append(
-                {
-                    "stock_id": stock_id,
-                    "stock_name": stock_name,
-                    "reason": f"找不到歷史資料 {csv_path}",
-                }
-            )
-            structured_cards.append(
-                build_unavailable_pre_open_card(
-                    stock_id,
-                    stock_name,
-                    context["run_date"],
-                    "missing_historical_csv",
-                )
-            )
-            stage_timing.finish(stage_name, status="failed", reason="missing_historical_csv")
-            continue
 
         try:
             indicator_result = build_indicator_result(stock_id, csv_path)
@@ -441,6 +463,7 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
             structured_cards,
             selected_stock_ids,
             stock_universe_evidence=stock_universe_evidence,
+            historical_admission=historical_admission,
         )
         stage_timing.finish(
             "window_runtime_write",
@@ -457,6 +480,7 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
         "tracking_symbols": selected_stock_ids,
         "structured_pre_open_cards": structured_cards,
         "pre_open_summary": pre_open_summary,
+        "historical_symbol_admission": historical_admission,
     }
     send_reports_in_batches(
         daily_reports,
