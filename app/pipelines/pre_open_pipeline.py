@@ -28,12 +28,9 @@ from reports.report_formatter_v2 import (
     format_stock_report_v2,
     format_multi_stock_report_v2,
 )
-from reports.line_report_sender import send_line_report
-from reports.line_short_formatter import format_line_short
-from app.dashboard.dashboard_url_registry import get_delivery_dashboard_url
 from app.reports.tw_pre_open_structured import aggregate as aggregate_pre_open_cards
 from app.reports.tw_pre_open_structured import build_card as build_pre_open_card
-from app.reports.tw_pre_open_structured import render_line as render_pre_open_line
+from app.reports.tw_pre_open_structured import seal_card_source_payload_hash
 from app.reports.tw_pre_open_structured import unavailable_card as build_unavailable_pre_open_card
 from app.strategy.tw_daily_tactical import build_runtime as build_tw_daily_tactical_runtime
 from app.runtime.manual_rerun_progress import report_manual_rerun_stage
@@ -205,21 +202,25 @@ def _write_pre_open_runtime(
     from app.reports.tw_evidence_regression import append_records, build_regression_records
     from app.reports.tw_human_summary import build_tw_human_summary
 
-    summary = aggregate_pre_open_cards(cards, tracking_symbols)
     generated_at = _now_taipei()
     ledger_records = []
-    for card in cards:
+    finalized_cards = []
+    for source_card in cards:
+        card = dict(source_card)
         card["tw_human_decision_summary_v1"] = build_tw_human_summary(card, "pre_open_0700")
+        card = seal_card_source_payload_hash(card)
+        finalized_cards.append(card)
         ledger_records.extend(build_regression_records(
             card=card, window="pre_open_0700", trading_date=context["run_date"], generated_at=generated_at,
         ))
+    summary = aggregate_pre_open_cards(finalized_cards, tracking_symbols)
     ledger_result = append_records(ledger_records) if ledger_records else {
         "schema_version": "tw_evidence_regression_append_result_v1", "written": 0, "existing": 0, "append_only": True,
     }
     source_dates = sorted(
         {
             str((card.get("data_freshness") or {}).get("market_data_as_of"))[:10]
-            for card in cards
+            for card in finalized_cards
             if (card.get("data_freshness") or {}).get("market_data_as_of")
         }
     )
@@ -247,13 +248,14 @@ def _write_pre_open_runtime(
         "source_data_time": None,
         "source_data_time_status": "date_only" if source_dates else "unavailable",
         "tracking_stock_count": summary["tracking_stock_count"],
+        "selected_symbols": list(tracking_symbols),
         "tracking_symbols": summary["tracking_symbols"],
         "stock_universe_evidence": stock_universe_evidence or {},
         "historical_symbol_admission": list(historical_admission or []),
         "structured_card_count": summary["structured_card_count"],
         "rendered_card_count": summary["rendered_card_count"],
-        "structured_pre_open_cards": cards,
-        "cards": cards,
+        "structured_pre_open_cards": finalized_cards,
+        "cards": finalized_cards,
         "pre_open_summary": summary,
         "tw_evidence_regression_ledger": ledger_result,
         "email_attempted": False,
@@ -269,31 +271,6 @@ def _write_pre_open_runtime(
     os.replace(temporary_path, PRE_OPEN_RUNTIME_PATH)
     return payload
 
-
-
-def send_reports_in_batches(reports, batch_size=LINE_BATCH_SIZE, dry_run=False, structured_payload=None):
-    if not reports:
-        print("沒有可推播的報告")
-        return
-
-    for index in range(0, len(reports), batch_size):
-        if structured_payload:
-            message = render_pre_open_line(
-                structured_payload,
-                get_delivery_dashboard_url("TW", "pre_open_0700", ""),
-            )
-        else:
-            message = format_line_short({"scheduler_window": "pre_open_0700"})
-
-        print("LINE link-only reminder prepared; per-stock details are available on Dashboard only")
-
-        if dry_run or os.environ.get("STOCK_AI_SUPPRESS_NOTIFICATIONS") == "1":
-            print("dry-run 模式：略過 LINE 推播，短提醒內容如下")
-            print(message)
-            break
-
-        send_line_report(message)
-        break
 
 
 def run_pre_open_pipeline(dry_run=False, limit=None):
@@ -580,24 +557,6 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
             tracking_stock_count=window_runtime["tracking_stock_count"],
         )
         report_manual_rerun_stage("artifact_generation", "completed")
-
-    report_manual_rerun_stage("notification")
-    stage_timing.start("line_link_only_reminder")
-    line_payload = window_runtime or {
-        "effective_trading_date": context["run_date"],
-        "generated_at": _now_taipei(),
-        "tracking_symbols": selected_stock_ids,
-        "structured_pre_open_cards": structured_cards,
-        "pre_open_summary": pre_open_summary,
-        "historical_symbol_admission": historical_admission,
-    }
-    send_reports_in_batches(
-        daily_reports,
-        dry_run=dry_run,
-        structured_payload=line_payload,
-    )
-    stage_timing.finish("line_link_only_reminder", report_count=len(daily_reports))
-    report_manual_rerun_stage("notification", "completed", delivery_suppressed=os.environ.get("STOCK_AI_SUPPRESS_NOTIFICATIONS") == "1")
 
     result = {
         "pipeline_type": context["pipeline_type"],

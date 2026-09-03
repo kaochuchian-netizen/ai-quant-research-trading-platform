@@ -29,6 +29,15 @@ REQUIRED_CARD_FIELDS = {
 }
 
 
+def seal_card_source_payload_hash(card: dict[str, Any]) -> dict[str, Any]:
+    """Return a copy whose hash covers the complete, final card projection."""
+    sealed = dict(card)
+    sealed.pop("source_payload_hash", None)
+    raw = json.dumps(sealed, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    sealed["source_payload_hash"] = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+    return sealed
+
+
 def _first(mapping: Any, *keys: str) -> Any:
     if not isinstance(mapping, dict):
         return None
@@ -154,8 +163,7 @@ def build_card(*, symbol: str, name: str, trading_date: str, indicator: dict[str
     if tactical:
         card = upgrade_pre_open_card(card, tactical, source_revision=source_revision)
     else:
-        raw = json.dumps(card, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-        card["source_payload_hash"] = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+        card = seal_card_source_payload_hash(card)
     return card
 
 
@@ -244,10 +252,8 @@ def validate_payload(payload: dict[str, Any]) -> list[str]:
     if isinstance(compatibility_cards, list) and compatibility_cards != cards:
         errors.append("compatibility_cards_mismatch")
     for card in cards:
-        candidate = dict(card)
-        retained_hash = candidate.pop("source_payload_hash", None)
-        raw = json.dumps(candidate, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-        if retained_hash != hashlib.sha256(raw.encode("utf-8")).hexdigest():
+        retained_hash = card.get("source_payload_hash")
+        if retained_hash != seal_card_source_payload_hash(card).get("source_payload_hash"):
             errors.append("card_source_payload_hash")
             break
     try:
