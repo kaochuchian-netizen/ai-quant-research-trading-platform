@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 
 from app.loaders.google_sheet_loader import load_stock_ids_with_provenance
 from app.market.stock_name_loader import resolve_stock_name
+from app.market.historical_storage import inspect_historical_csv
 from app.market.tw_symbol_historical_admission import admit_tw_symbols_with_history
 from app.market.adr_service import get_adr_result
 from app.market.adr_score_engine import calculate_adr_score
@@ -70,6 +71,92 @@ def _reconstruct_structured_pre_open_cards(card_by_symbol, selected_stock_ids):
     if expected_set - actual_set:
         raise ValueError("missing_structured_pre_open_symbol")
     return [card_by_symbol[symbol] for symbol in expected]
+
+
+def _refresh_then_admit_tw_symbols(
+    selected_stock_ids,
+    *,
+    target_date,
+    universe_evidence,
+    dry_run=False,
+    refresher=None,
+    admission_coordinator=None,
+    inspector=None,
+    dry_run_bootstrapper=None,
+):
+    """Refresh the complete selected universe before final history admission.
+
+    The refresh step owns provider access.  Final admission only inspects the
+    resulting files; it must not retry a failed provider call in the same run.
+    Per-symbol refresh metadata is merged into the existing bounded admission
+    diagnostics without changing the coordinator's fail-closed semantics.
+    """
+
+    refresher = refresher or update_historical_csv
+    admission_coordinator = admission_coordinator or admit_tw_symbols_with_history
+    inspector = inspector or inspect_historical_csv
+    selected = [str(symbol).zfill(4) for symbol in selected_stock_ids]
+    before = {
+        symbol: inspector(symbol, target_date=target_date)
+        for symbol in selected
+    }
+
+    if dry_run:
+        refresh_status = {
+            "schema_version": "pipeline_pre_delivery_status_v1",
+            "stage": "historical_csv_update",
+            "status": "skipped_for_dry_run",
+            "report_ready_available": True,
+            "warnings": [],
+            "stocks": [],
+        }
+        bootstrapper = dry_run_bootstrapper
+    else:
+        refresh_status = refresher(
+            stock_ids=selected,
+            universe_evidence=universe_evidence,
+        )
+        refresh_by_symbol = {
+            str(item.get("stock_id") or "").zfill(4): item
+            for item in refresh_status.get("stocks", [])
+            if item.get("stock_id")
+        }
+
+        def bootstrapper(symbol, **_):
+            refresh = refresh_by_symbol.get(str(symbol).zfill(4), {})
+            return {
+                "success": False,
+                "result": str(refresh.get("update_status") or "historical_refresh_failed"),
+                "reason": str(
+                    refresh.get("warning")
+                    or "historical_refresh_did_not_produce_usable_history"
+                ),
+            }
+
+    admitted, diagnostics = admission_coordinator(
+        selected,
+        target_date=target_date,
+        inspector=inspector,
+        bootstrapper=bootstrapper,
+    )
+    refresh_by_symbol = {
+        str(item.get("stock_id") or "").zfill(4): item
+        for item in refresh_status.get("stocks", [])
+        if item.get("stock_id")
+    }
+    for diagnostic in diagnostics:
+        symbol = diagnostic["symbol"]
+        refresh = refresh_by_symbol.get(symbol, {})
+        diagnostic["refresh_attempted"] = not dry_run
+        diagnostic["refresh_result"] = str(
+            refresh.get("update_status")
+            or ("skipped_for_dry_run" if dry_run else "missing_refresh_result")
+        )
+        if not dry_run and not before[symbol].get("exists"):
+            diagnostic["bootstrap_attempted"] = True
+            diagnostic["bootstrap_result"] = diagnostic["refresh_result"]
+
+    return admitted, diagnostics, refresh_status
 
 
 class StageTiming:
@@ -255,49 +342,40 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
         stock_ids = stock_ids[:limit]
 
     selected_stock_ids = [str(stock_id).zfill(4) for stock_id in stock_ids]
-    bootstrapper = None
+    dry_run_bootstrapper = None
     if dry_run:
-        bootstrapper = lambda symbol, **_: {  # noqa: E731 - explicit no-network dry-run boundary
+        dry_run_bootstrapper = lambda symbol, **_: {  # noqa: E731 - explicit no-network dry-run boundary
             "success": False,
             "result": "dry_run_not_attempted",
             "reason": "dry_run_no_network",
         }
-    stage_timing.start("historical_bootstrap", requested_count=len(selected_stock_ids))
-    stock_ids, historical_admission = admit_tw_symbols_with_history(
-        stock_ids,
-        target_date=context["run_date"],
-        bootstrapper=bootstrapper,
+    if not dry_run:
+        print("開始更新 selected symbols historical CSV", flush=True)
+    stage_timing.start("historical_csv_update", requested_count=len(selected_stock_ids))
+    stock_ids, historical_admission, pipeline_pre_delivery_status = (
+        _refresh_then_admit_tw_symbols(
+            selected_stock_ids,
+            target_date=context["run_date"],
+            universe_evidence=stock_universe_evidence,
+            dry_run=dry_run,
+            dry_run_bootstrapper=dry_run_bootstrapper,
+        )
     )
     stage_timing.finish(
-        "historical_bootstrap",
+        "historical_csv_update",
+        updated_count=pipeline_pre_delivery_status.get("updated_count"),
+        fallback_count=pipeline_pre_delivery_status.get("fallback_count"),
+        failed_count=pipeline_pre_delivery_status.get("failed_count"),
+    )
+    if not dry_run:
+        print("pipeline_pre_delivery_status:", flush=True)
+        print(json.dumps(pipeline_pre_delivery_status, ensure_ascii=False, sort_keys=True), flush=True)
+    stage_timing.start("historical_admission", requested_count=len(selected_stock_ids))
+    stage_timing.finish(
+        "historical_admission",
         admitted_count=len(stock_ids),
         excluded_count=len(selected_stock_ids) - len(stock_ids),
     )
-
-    if dry_run:
-        print("dry-run 模式：略過 historical CSV 更新")
-        pipeline_pre_delivery_status = {
-            "schema_version": "pipeline_pre_delivery_status_v1",
-            "stage": "historical_csv_update",
-            "status": "skipped_for_dry_run",
-            "report_ready_available": True,
-            "warnings": [],
-        }
-    else:
-        print("開始更新 admitted symbols historical CSV", flush=True)
-        stage_timing.start("historical_csv_update")
-        pipeline_pre_delivery_status = update_historical_csv(
-            stock_ids=stock_ids,
-            universe_evidence=stock_universe_evidence,
-        )
-        stage_timing.finish(
-            "historical_csv_update",
-            updated_count=pipeline_pre_delivery_status.get("updated_count"),
-            fallback_count=pipeline_pre_delivery_status.get("fallback_count"),
-            failed_count=pipeline_pre_delivery_status.get("failed_count"),
-        )
-        print("pipeline_pre_delivery_status:", flush=True)
-        print(json.dumps(pipeline_pre_delivery_status, ensure_ascii=False, sort_keys=True), flush=True)
 
     stage_timing.start("strategy_setup")
     tactical_runtime = build_tw_daily_tactical_runtime()
