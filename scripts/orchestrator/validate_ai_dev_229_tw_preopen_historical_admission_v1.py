@@ -42,23 +42,39 @@ def main() -> int:
         and node.name == "run_pre_open_pipeline"
     )
     run_source = ast.get_source_segment(source, run_function) or ""
+    orchestration_helper = next(
+        node for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name == "_refresh_then_admit_tw_symbols"
+    )
     calls = {
         node.func.id
         for node in ast.walk(run_function)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+    }
+    helper_calls = {
+        node.func.id
+        for node in ast.walk(orchestration_helper)
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
     }
 
     checks["preopen_imports_shared_coordinator"] = (
         "from app.market.tw_symbol_historical_admission import admit_tw_symbols_with_history" in source
     )
-    checks["preopen_calls_shared_coordinator"] = "admit_tw_symbols_with_history" in calls
+    checks["preopen_calls_shared_coordinator"] = (
+        "_refresh_then_admit_tw_symbols" in calls
+        and "admission_coordinator = admission_coordinator or admit_tw_symbols_with_history"
+        in (ast.get_source_segment(source, orchestration_helper) or "")
+        and "admission_coordinator" in helper_calls
+    )
     checks["architecture_rejects_missing_csv_bypass"] = (
         "missing_historical_csv" not in run_source and "os.path.exists(csv_path)" not in run_source
     )
-    checks["admission_precedes_refresh_and_analysis"] = (
-        run_source.index("admit_tw_symbols_with_history(")
-        < run_source.index("update_historical_csv(")
+    checks["refresh_precedes_admission_and_analysis"] = (
+        run_source.index("_refresh_then_admit_tw_symbols(")
         < run_source.index("for stock_id in stock_ids:")
+        and source.index("refresh_status = refresher(")
+        < source.index("admitted, diagnostics = admission_coordinator(")
     )
     checks["runtime_persists_admission_diagnostics"] = (
         '"historical_symbol_admission": list(historical_admission or [])' in source
