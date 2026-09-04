@@ -9,6 +9,7 @@ from typing import Any, Callable
 from app.dashboard.market_dashboard_alias import snapshot_parity_contract
 
 ACCEPTABLE_UNIVERSE_STATES = {"READY"}
+CHANNEL_RECEIPT_SCHEMA_VERSION = "tw_preopen_channel_receipt_v1"
 
 
 def universe_eligibility(runtime: dict[str, Any]) -> dict[str, Any]:
@@ -58,6 +59,16 @@ def _receipt_path(root: Path, identity: dict[str, Any]) -> Path:
     return root / (hashlib.sha256(raw.encode()).hexdigest() + ".json")
 
 
+def _valid_sent_receipt(retained: Any, expected_identity: dict[str, Any]) -> bool:
+    return (
+        isinstance(retained, dict)
+        and retained.get("schema_version") == CHANNEL_RECEIPT_SCHEMA_VERSION
+        and retained.get("delivery_result") == "sent"
+        and retained.get("send_attempted") is True
+        and retained.get("identity") == expected_identity
+    )
+
+
 def _channel_delivery(channel: str, sender: Callable[[dict[str, Any]], dict[str, Any]], snapshot: dict[str, Any], receipt_root: Path | None) -> dict[str, Any]:
     identity = delivery_identity(snapshot, channel)
     path = _receipt_path(receipt_root, identity) if receipt_root else None
@@ -66,8 +77,9 @@ def _channel_delivery(channel: str, sender: Callable[[dict[str, Any]], dict[str,
             retained = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, ValueError, TypeError):
             return {"send_attempted": False, "send_status": "failed", "error_type": "InvalidDeliveryReceipt", "delivery_identity": identity, "secret_values_printed": False}
-        if retained.get("delivery_result") == "sent" and retained.get("send_attempted") is True:
+        if _valid_sent_receipt(retained, identity):
             return {"send_attempted": False, "send_status": "already_delivered", "delivery_identity": identity, "secret_values_printed": False}
+        return {"send_attempted": False, "send_status": "failed", "error_type": "InvalidDeliveryReceipt", "delivery_identity": identity, "secret_values_printed": False}
     try:
         result = dict(sender(snapshot))
     except Exception as exc:
@@ -78,7 +90,7 @@ def _channel_delivery(channel: str, sender: Callable[[dict[str, Any]], dict[str,
     if path and result.get("send_status") == "sent" and result.get("send_attempted") is True:
         path.parent.mkdir(parents=True, exist_ok=True)
         temporary = path.with_suffix(".tmp")
-        temporary.write_text(json.dumps({"schema_version": "tw_preopen_channel_receipt_v1", "delivery_result": "sent", "send_attempted": True, "identity": identity}, sort_keys=True) + "\n", encoding="utf-8")
+        temporary.write_text(json.dumps({"schema_version": CHANNEL_RECEIPT_SCHEMA_VERSION, "delivery_result": "sent", "send_attempted": True, "identity": identity}, sort_keys=True) + "\n", encoding="utf-8")
         temporary.replace(path)
     return result
 

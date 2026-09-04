@@ -17,6 +17,14 @@ DB = ROOT / "data/stock_analysis.db"
 TAIPEI = ZoneInfo("Asia/Taipei")
 NOW = datetime.now(TAIPEI).replace(microsecond=0)
 
+
+class CanonicalRuntimeError(ValueError):
+    """Machine-readable failure for an explicitly selected canonical runtime."""
+
+    def __init__(self, reason: str) -> None:
+        self.reason = reason
+        super().__init__(reason)
+
 def load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
 
@@ -30,6 +38,45 @@ def stock_universe_from_runtime(path: Path = RUNTIME_DATA) -> list[dict[str, Any
         return [{"stock_id": str(s), "stock_name": names.get(str(s))} for s in payload.get("tracking_symbols", [])]
     rows = payload.get("stock_universe", [])
     return [{"stock_id": str(row.get("stock_id")), "stock_name": row.get("stock_name")} for row in rows if isinstance(row, dict) and row.get("stock_id")]
+
+
+def canonical_stock_universe(path: Path, run_date: date) -> list[dict[str, Any]]:
+    """Load one explicit TW 07:00 universe without any alternate-source fallback."""
+    if not path.is_file():
+        raise CanonicalRuntimeError("CANONICAL_RUNTIME_MISSING")
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError, TypeError):
+        raise CanonicalRuntimeError("CANONICAL_RUNTIME_MALFORMED") from None
+    if not isinstance(payload, dict):
+        raise CanonicalRuntimeError("CANONICAL_RUNTIME_MALFORMED")
+    if payload.get("market") != "TW":
+        raise CanonicalRuntimeError("CANONICAL_RUNTIME_WRONG_MARKET")
+    if payload.get("window") != "pre_open_0700":
+        raise CanonicalRuntimeError("CANONICAL_RUNTIME_WRONG_WINDOW")
+    if str(payload.get("effective_trading_date") or "") != run_date.isoformat():
+        raise CanonicalRuntimeError("CANONICAL_RUNTIME_TRADING_DATE_MISMATCH")
+    raw_symbols = payload.get("tracking_symbols")
+    if not isinstance(raw_symbols, list) or not raw_symbols:
+        raise CanonicalRuntimeError("CANONICAL_RUNTIME_EMPTY_TRACKING_SYMBOLS")
+    symbols = [str(value).strip() for value in raw_symbols]
+    if any(not symbol for symbol in symbols) or len(set(symbols)) != len(symbols):
+        raise CanonicalRuntimeError("CANONICAL_RUNTIME_INVALID_TRACKING_SYMBOLS")
+    cards = payload.get("structured_pre_open_cards")
+    names: dict[str, Any] = {}
+    if cards is not None:
+        if not isinstance(cards, list):
+            raise CanonicalRuntimeError("CANONICAL_RUNTIME_STRUCTURED_CARDS_INVALID")
+        card_symbols = []
+        for card in cards:
+            if not isinstance(card, dict):
+                raise CanonicalRuntimeError("CANONICAL_RUNTIME_STRUCTURED_CARDS_INVALID")
+            symbol = str(card.get("symbol") or card.get("stock_id") or "").strip()
+            card_symbols.append(symbol)
+            names[symbol] = card.get("name") or card.get("stock_name")
+        if card_symbols != symbols:
+            raise CanonicalRuntimeError("CANONICAL_RUNTIME_STRUCTURED_CARD_SYMBOL_MISMATCH")
+    return [{"stock_id": symbol, "stock_name": names.get(symbol)} for symbol in symbols]
 
 def latest_analysis_rows(run_date: date) -> dict[str, dict[str, Any]]:
     if not DB.exists():
@@ -55,9 +102,12 @@ def latest_analysis_rows(run_date: date) -> dict[str, dict[str, Any]]:
     finally:
         con.close()
 
-def build(run_date: date, canonical_runtime: Path = RUNTIME_DATA) -> dict[str, Any]:
+def build(run_date: date, canonical_runtime: Path | None = None) -> dict[str, Any]:
     analysis = latest_analysis_rows(run_date)
-    universe = stock_universe_from_runtime(canonical_runtime) or [{"stock_id": sid, "stock_name": row.get("stock_name")} for sid, row in sorted(analysis.items())]
+    if canonical_runtime is not None:
+        universe = canonical_stock_universe(canonical_runtime, run_date)
+    else:
+        universe = stock_universe_from_runtime(RUNTIME_DATA) or [{"stock_id": sid, "stock_name": row.get("stock_name")} for sid, row in sorted(analysis.items())]
     stocks = [compute_baseline(str(stock.get("stock_id")), stock.get("stock_name") or analysis.get(str(stock.get("stock_id")), {}).get("stock_name"), run_date, analysis.get(str(stock.get("stock_id")), {})) for stock in universe]
     forecast_value_count = sum(1 for stock in stocks for key in ["same_day_high_prediction", "same_day_low_prediction", "next_day_high_prediction", "next_day_low_prediction"] if stock.get(key) is not None)
     return {
@@ -77,7 +127,7 @@ def build(run_date: date, canonical_runtime: Path = RUNTIME_DATA) -> dict[str, A
         "stocks": stocks,
         "canonical_symbol_order": [str(row["stock_id"]) for row in universe],
         "symbol_exclusions": [],
-        "canonical_runtime_source": str(canonical_runtime),
+        "canonical_runtime_source": str(canonical_runtime) if canonical_runtime is not None else None,
         "safety": {"external_api_called": False, "external_credentialed_api_called": False, "secrets_read": False, "db_write": False, "sqlite_opened_read_only": DB.exists(), "notification_sent": False, "production_pipeline_executed": False, "python_main_executed": False, "trading_or_order_executed": False, "fabricated_forecast_values": False, "production_rating_action_confidence_weight_mutated": False},
     }
 
@@ -85,10 +135,14 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     ap.add_argument("--date")
-    ap.add_argument("--canonical-runtime", type=Path, default=RUNTIME_DATA)
+    ap.add_argument("--canonical-runtime", type=Path)
     ap.add_argument("--pretty", action="store_true")
     args = ap.parse_args()
-    data = build(parse_day(args.date), args.canonical_runtime)
+    try:
+        data = build(parse_day(args.date), args.canonical_runtime)
+    except CanonicalRuntimeError as exc:
+        print(stable_json({"ok": False, "error_type": "CanonicalRuntimeError", "reason": exc.reason}), end="")
+        return 1
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(stable_json(data), encoding="utf-8")
     print(stable_json({"ok": True, "output": str(args.output), "artifact_type": data["artifact_type"], "stock_universe_count": data["stock_universe_count"], "forecast_value_count": data["forecast_value_count"], "model_version": MODEL_VERSION, "fabricated_forecast_values": False}), end="")

@@ -12,7 +12,7 @@ sys.path.insert(0, str(ROOT))
 
 from app.dashboard.market_dashboard_alias import snapshot_parity_contract
 from app.reports.delivery_provenance import build_delivery_provenance, transport_delivery_result
-from app.reports.tw_pre_open_delivery_contract import deliver_admitted_pre_open_snapshot, universe_eligibility
+from app.reports.tw_pre_open_delivery_contract import _channel_delivery, _receipt_path, deliver_admitted_pre_open_snapshot, delivery_identity, universe_eligibility
 from app.reports.tw_pre_open_structured import aggregate, seal_card_source_payload_hash, unavailable_card
 from scripts.orchestrator import build_formal_prediction_runtime_artifact as forecast
 
@@ -83,7 +83,8 @@ def main() -> int:
             checks["g_provenance_invariant"] = True
 
         runtime_path = root / "runtime.json"
-        runtime_path.write_text(json.dumps({"market": "TW", "window": "pre_open_0700", "tracking_symbols": SYMBOLS, "structured_pre_open_cards": [{"symbol": s, "name": "N" + s} for s in SYMBOLS]}), encoding="utf-8")
+        runtime_payload = {"market": "TW", "window": "pre_open_0700", "effective_trading_date": "2026-09-04", "tracking_symbols": SYMBOLS, "structured_pre_open_cards": [{"symbol": s, "name": "N" + s} for s in SYMBOLS]}
+        runtime_path.write_text(json.dumps(runtime_payload), encoding="utf-8")
         original = forecast.latest_analysis_rows
         forecast.latest_analysis_rows = lambda _date: {}
         try:
@@ -91,6 +92,54 @@ def main() -> int:
         finally:
             forecast.latest_analysis_rows = original
         checks["h_forecast_audit_order_parity"] = projection["canonical_symbol_order"] == SYMBOLS and [s["stock_id"] for s in projection["stocks"]] == SYMBOLS and projection["symbol_exclusions"] == []
+
+        strict_cases = {
+            "h1_missing_runtime_fails_closed": (root / "missing.json", "CANONICAL_RUNTIME_MISSING"),
+            "h2_malformed_runtime_fails_closed": (root / "malformed.json", "CANONICAL_RUNTIME_MALFORMED"),
+            "h3_wrong_market_fails_closed": (root / "wrong-market.json", "CANONICAL_RUNTIME_WRONG_MARKET"),
+            "h4_wrong_window_fails_closed": (root / "wrong-window.json", "CANONICAL_RUNTIME_WRONG_WINDOW"),
+            "h5_wrong_date_fails_closed": (root / "wrong-date.json", "CANONICAL_RUNTIME_TRADING_DATE_MISMATCH"),
+            "h6_empty_symbols_fails_closed": (root / "empty.json", "CANONICAL_RUNTIME_EMPTY_TRACKING_SYMBOLS"),
+        }
+        (root / "malformed.json").write_text("{", encoding="utf-8")
+        for name, updates in {
+            "wrong-market.json": {"market": "US"},
+            "wrong-window.json": {"window": "intraday_1305"},
+            "wrong-date.json": {"effective_trading_date": "2026-09-03"},
+            "empty.json": {"tracking_symbols": [], "structured_pre_open_cards": []},
+        }.items():
+            value = dict(runtime_payload)
+            value.update(updates)
+            (root / name).write_text(json.dumps(value), encoding="utf-8")
+        for check, (path, reason) in strict_cases.items():
+            try:
+                forecast.build(forecast.parse_day("2026-09-04"), path)
+                checks[check] = False
+            except forecast.CanonicalRuntimeError as exc:
+                checks[check] = exc.reason == reason
+
+        receipt_snapshot = fixture()[2]
+        expected = delivery_identity(receipt_snapshot, "line")
+        receipt_root = root / "invalid-receipts"
+        receipt_path = _receipt_path(receipt_root, expected)
+        receipt_root.mkdir(parents=True)
+        sender_calls = []
+        sender = lambda _snapshot: sender_calls.append("line") or {"send_attempted": True, "send_status": "sent"}
+        receipt_cases = {
+            "m1_malformed_receipt_fails_closed": "{",
+            "m2_mismatched_identity_fails_closed": json.dumps({"schema_version": "tw_preopen_channel_receipt_v1", "delivery_result": "sent", "send_attempted": True, "identity": {**expected, "snapshot_id": "wrong"}}),
+            "m3_wrong_channel_fails_closed": json.dumps({"schema_version": "tw_preopen_channel_receipt_v1", "delivery_result": "sent", "send_attempted": True, "identity": {**expected, "channel": "email"}}),
+            "m4_wrong_payload_revision_fails_closed": json.dumps({"schema_version": "tw_preopen_channel_receipt_v1", "delivery_result": "sent", "send_attempted": True, "identity": {**expected, "payload_hash": "wrong", "revision": 99}}),
+        }
+        for check, content in receipt_cases.items():
+            receipt_path.write_text(content, encoding="utf-8")
+            sender_calls.clear()
+            outcome = _channel_delivery("line", sender, receipt_snapshot, receipt_root)
+            checks[check] = outcome.get("send_status") == "failed" and outcome.get("error_type") == "InvalidDeliveryReceipt" and not sender_calls
+        receipt_path.write_text(json.dumps({"schema_version": "tw_preopen_channel_receipt_v1", "delivery_result": "sent", "send_attempted": True, "identity": expected}), encoding="utf-8")
+        sender_calls.clear()
+        outcome = _channel_delivery("line", sender, receipt_snapshot, receipt_root)
+        checks["m5_valid_receipt_suppresses_duplicate"] = outcome.get("send_status") == "already_delivered" and not sender_calls
 
         result, calls = deliver(root / "unavailable", fixture(unavailable={"009816"}), {"email": ["sent"], "line": ["sent"]})
         checks["i_unavailable_retains_universe"] = result["gate"]["notification_symbols"] == SYMBOLS and len(calls) == 2
