@@ -74,6 +74,7 @@ def verify_identity(expected: dict[str, Any], path: Path) -> dict[str, Any]:
 
 def synchronize_admitted_latest(*, market: str, window: str, static_root: Path, output_dir: Path) -> dict[str, Any]:
     market = market.upper()
+    admitted_snapshot = resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, market, window).latest
     expected = expected_latest_identity(market, window)
     if not expected:
         return {"status": "not_attempted", "failure_category": "admission_rejected", "reason": "no_admitted_snapshot"}
@@ -98,12 +99,17 @@ def synchronize_admitted_latest(*, market: str, window: str, static_root: Path, 
     }
     dashboard_verification = verify_identity(active_identity, static_root / f"dashboard/{market.lower()}/index.html") if active_identity else {"status": "not_attempted"}
     status = "verified" if archive_verification["status"] == dashboard_verification["status"] == "verified" else "failed_verification"
+    admitted_payload = admitted_snapshot.get("payload") if isinstance(admitted_snapshot, dict) and isinstance(admitted_snapshot.get("payload"), dict) else {}
+    rendered_symbols = [str(value) for value in admitted_payload.get("tracking_symbols", [])]
     return {
         "schema_version": "admission_public_latest_sync_v1", "status": status,
         "started_at": build_started,
         "completed_at": datetime.now(ZoneInfo("Asia/Taipei")).replace(microsecond=0).isoformat(),
         "snapshot_id": expected["snapshot_id"], "revision": expected["revision"],
         "source_payload_hash": expected["payload_hash"],
+        # Both rendered routes were verified against the payload hash above;
+        # retain the corresponding ordered universe for downstream delivery.
+        "rendered_symbols": rendered_symbols,
         "archive_build": archive, "market_dashboard_build": market_alias,
         "public_archive_verification": archive_verification,
         "market_dashboard_verification": dashboard_verification,

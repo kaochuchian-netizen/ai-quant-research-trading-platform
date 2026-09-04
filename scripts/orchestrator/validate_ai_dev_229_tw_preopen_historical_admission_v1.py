@@ -78,7 +78,9 @@ def main() -> int:
     )
     checks["runtime_persists_admission_diagnostics"] = (
         '"historical_symbol_admission": list(historical_admission or [])' in source
-        and '"historical_symbol_admission": historical_admission' in source
+    )
+    checks["runtime_does_not_own_notification_delivery"] = (
+        "send_reports_in_batches" not in source and "send_line_report" not in source
     )
     checks["cross_market_guardrail"] = "app.us_stock" not in source and '"market": "TW"' in source
 

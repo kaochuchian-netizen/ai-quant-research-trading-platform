@@ -42,6 +42,7 @@ from app.reports.window_report_contract import get_window_report_contract  # noq
 from app.reports.tw_1335_snapshot_delivery import render_email as render_tw_1335_email, render_line as render_tw_1335_line, resolve_context as resolve_tw_1335_context  # noqa: E402
 from app.reports.tw_post_close_review import build_structured_review_payload, render_email as render_tw_1500_email, render_line as render_tw_1500_line  # noqa: E402
 from app.reports.tw_pre_open_structured import render_email as render_tw_0700_email, render_line as render_tw_0700_line, validate_payload as validate_tw_0700_payload  # noqa: E402
+from app.reports.tw_pre_open_delivery_contract import deliver_admitted_pre_open_snapshot  # noqa: E402
 from app.reports.tw_four_window_decision import render_intraday_email as render_tw_1305_email, render_intraday_line as render_tw_1305_line  # noqa: E402
 from app.runtime.production_run_guard import evaluate_pre_open_run_guard  # noqa: E402
 from app.runtime.runtime_diagnostics import build_guard_result, write_json  # noqa: E402
@@ -99,8 +100,8 @@ WINDOWS = {
         "label": "07:00 pre-open",
         "local_time": "07:00",
         "pipeline_type": "pre_open",
-        "line_policy": "link-only notification handled by production pre_open pipeline",
-        "line_mode": "handled_by_pipeline",
+        "line_policy": "admitted-snapshot notification after public Dashboard parity",
+        "line_mode": "admitted_snapshot",
         "email_policy": "PM-readable scheduled summary with Dashboard link",
         "dashboard_policy": "publish latest full scheduler snapshot",
         "fallback_state": "pipeline output tail is included if report content is partial",
@@ -484,13 +485,18 @@ def _production_email_summary() -> dict[str, Any]:
     }
 
 
-def build_email_body(window_id: str, run_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str) -> str:
+def build_email_body(window_id: str, run_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str, admitted_snapshot: dict[str, Any] | None = None) -> str:
     dashboard_url = _delivery_dashboard_url(window_id, dashboard_url)
     normalized_window = "post_close_1500" if window_id == "prediction_review_1500" else window_id
-    selected = resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, "TW", normalized_window).latest or {}
+    selected = admitted_snapshot if window_id == "pre_open_0700" and admitted_snapshot is not None else (resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, "TW", normalized_window).latest or {})
     selected_payload = selected.get("payload") if isinstance(selected.get("payload"), dict) else {}
     if window_id == "pre_open_0700" and selected_payload:
         return _append_tw_v2(render_tw_0700_email(selected_payload, dashboard_url), project_decision_intelligence_v4("TW", "pre_open_0700", selected_payload))
+    if window_id == "pre_open_0700" and admitted_snapshot is not None:
+        return "\n".join([
+            "【Stock AI】07:00 台股盤前決策未交付",
+            "本批次未通過 immutable snapshot 與 Dashboard parity，未發送當批內容。",
+        ])
     if window_id == "intraday_1305" and selected_payload.get("structured_intraday_cards"):
         return _append_tw_v2(render_tw_1305_email(selected_payload, dashboard_url), project_decision_intelligence_v4("TW", "intraday_1305", selected_payload))
     if window_id == "pre_close_1335":
@@ -562,7 +568,7 @@ def build_email_body(window_id: str, run_id: str, generated_at: str, pipeline_st
     lines += ["", "重點提醒：", "- baseline V1 仍在回測校準。", "- 預測僅供研究參考，非交易指令。", "- 詳細個股、預測、風險與檢討請看 Dashboard。", "本信不包含下單建議。"]
     return "\n".join(lines)
 
-def send_delivery_email(env_file: Path, window_id: str, run_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str) -> dict[str, Any]:
+def send_delivery_email(env_file: Path, window_id: str, run_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str, admitted_snapshot: dict[str, Any] | None = None) -> dict[str, Any]:
     cfg = window_config(window_id)
     expanded = env_file.expanduser()
     if expanded.exists():
@@ -572,7 +578,7 @@ def send_delivery_email(env_file: Path, window_id: str, run_id: str, generated_a
     message = build_message(
         config,
         subject,
-        build_email_body(window_id, run_id, generated_at, pipeline_status, dashboard_url, output_tail),
+        build_email_body(window_id, run_id, generated_at, pipeline_status, dashboard_url, output_tail, admitted_snapshot),
     )
     send_message(config, message)
     return {
@@ -584,7 +590,7 @@ def send_delivery_email(env_file: Path, window_id: str, run_id: str, generated_a
     }
 
 
-def build_line_message(window_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str) -> str:
+def build_line_message(window_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str, admitted_snapshot: dict[str, Any] | None = None) -> str:
     """Build the approved AI-DEV-157 link-only LINE notification.
 
     Runtime diagnostics, pipeline state, stock details, and raw artifact keys stay out
@@ -592,10 +598,15 @@ def build_line_message(window_id: str, generated_at: str, pipeline_status: str, 
     """
     dashboard_url = _delivery_dashboard_url(window_id, dashboard_url)
     if window_id == "pre_open_0700":
-        payload, _snapshot = _latest_pre_open_context()
+        if admitted_snapshot is not None:
+            payload = admitted_snapshot.get("payload") if isinstance(admitted_snapshot.get("payload"), dict) else {}
+        else:
+            payload, _snapshot = _latest_pre_open_context()
         if payload:
             projection = project_decision_intelligence_v4("TW", "pre_open_0700", payload)
             return tail_text(_append_tw_v2(render_tw_0700_line(payload, dashboard_url), projection, line_mode=True), LINE_BODY_LIMIT)
+        if admitted_snapshot is not None:
+            return "【Stock AI】07:00 台股盤前決策未交付：未通過 snapshot / Dashboard 一致性驗證。"
         return "\n".join([
             "【Stock AI】07:00 台股盤前決策尚未建立",
             "本批次未通過正式資料驗證，不沿用舊內容。",
@@ -629,27 +640,9 @@ def build_line_message(window_id: str, generated_at: str, pipeline_status: str, 
     )
 
 
-def send_concise_line(window_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str) -> dict[str, Any]:
+def send_concise_line(window_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str, admitted_snapshot: dict[str, Any] | None = None) -> dict[str, Any]:
     cfg = window_config(window_id)
-    if cfg["line_mode"] == "handled_by_pipeline":
-        if pipeline_status != "completed":
-            return {
-                "send_attempted": False,
-                "send_status": "not_sent",
-                "reason": "pipeline_failed_before_pipeline_line_delivery",
-                "policy": cfg["line_policy"],
-                "concise_reminder": False,
-                "secret_values_printed": False,
-            }
-        return {
-            "send_attempted": False,
-            "send_status": "handled_by_pipeline",
-            "reason": "pre_open_pipeline_owns_full_line_delivery",
-            "policy": cfg["line_policy"],
-            "concise_reminder": False,
-            "secret_values_printed": False,
-        }
-    message = build_line_message(window_id, generated_at, pipeline_status, dashboard_url, output_tail)
+    message = build_line_message(window_id, generated_at, pipeline_status, dashboard_url, output_tail, admitted_snapshot)
     line_module = importlib.import_module("reports.line_report_sender")
     line_sender = getattr(line_module, "send_line_report")
     line_sender(message)
@@ -1004,6 +997,7 @@ def main() -> int:
     if args.window == "pre_open_0700" and pipeline_status == "completed":
         structured_pre_open = {
             "structured_pre_open_cards": window_runtime.get("structured_pre_open_cards", []),
+            "selected_symbols": window_runtime.get("selected_symbols", window_runtime.get("tracking_symbols", [])),
             "tracking_stock_count": window_runtime.get("tracking_stock_count", 0),
             "tracking_symbols": window_runtime.get("tracking_symbols", []),
             "structured_card_count": window_runtime.get("structured_card_count", 0),
@@ -1069,6 +1063,7 @@ def main() -> int:
             } if args.window in {"intraday_1305", "pre_close_1335"} else {}),
             **({
                 "structured_pre_open_cards": structured_pre_open.get("structured_pre_open_cards", []),
+                "selected_symbols": structured_pre_open.get("selected_symbols", []),
                 "tracking_symbols": structured_pre_open.get("tracking_symbols", []),
                 "structured_card_count": structured_pre_open.get("structured_card_count", 0),
                 "rendered_card_count": structured_pre_open.get("rendered_card_count", 0),
@@ -1168,51 +1163,79 @@ def main() -> int:
     dashboard = publish_dashboard(Path(args.dashboard_publish_dir), args.window, run_id, generated_at, pipeline_status, output_tail)
     report_manual_rerun_stage("archive_publish", "completed" if sync_stage_ok else "failed")
     report_manual_rerun_stage("notification")
+    latest_snapshot = resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, "TW", args.window).latest or {}
+    delivery_consistency = None
     if args.manual_rerun:
         email = {"send_attempted": False, "send_status": "manual_rerun_no_send"}
         line = {"send_attempted": False, "send_status": "manual_rerun_no_send"}
         email_ok = True
         line_ok = True
+    elif args.window == "pre_open_0700":
+        delivery_result = deliver_admitted_pre_open_snapshot(
+            runtime=window_runtime,
+            archive_write=archive_write,
+            snapshot=latest_snapshot,
+            public_sync=public_latest_sync,
+            effective_trading_date=effective_trading_date,
+            email_sender=lambda snapshot: send_delivery_email(
+                Path(args.mail_env_file), args.window, run_id, generated_at,
+                pipeline_status, args.dashboard_url, output_tail, snapshot,
+            ),
+            line_sender=lambda snapshot: send_concise_line(
+                args.window, generated_at, pipeline_status, args.dashboard_url,
+                output_tail, snapshot,
+            ),
+        )
+        delivery_consistency = delivery_result["gate"]
+        email = delivery_result["email"]
+        line = delivery_result["line"]
+        email_ok = email.get("send_status") == "sent"
+        line_ok = line.get("send_status") == "sent"
     else:
         email = None
         line = None
-    try:
-        if email is None:
+    if email is None:
+        try:
             email = send_delivery_email(Path(args.mail_env_file), args.window, run_id, generated_at, pipeline_status, args.dashboard_url, output_tail)
-        email_ok = True
-    except Exception as exc:  # pragma: no cover - runtime SMTP/config failure path
-        email = {
-            "send_attempted": True,
-            "send_status": "failed",
-            "error_type": exc.__class__.__name__,
-            "secret_values_printed": False,
-        }
-        email_ok = False
-    try:
-        if line is None:
+            email_ok = True
+        except Exception as exc:  # pragma: no cover - runtime SMTP/config failure path
+            email = {
+                "send_attempted": True,
+                "send_status": "failed",
+                "error_type": exc.__class__.__name__,
+                "secret_values_printed": False,
+            }
+            email_ok = False
+    if line is None:
+        try:
             line = send_concise_line(args.window, generated_at, pipeline_status, args.dashboard_url, output_tail)
-            line_ok = line.get("send_status") in {"sent", "handled_by_pipeline"}
-    except Exception as exc:  # pragma: no cover - runtime LINE/config failure path
-        line = {
-            "send_attempted": True,
-            "send_status": "failed",
-            "policy": cfg["line_policy"],
-            "error_type": exc.__class__.__name__,
-            "secret_values_printed": False,
-        }
-        line_ok = False
-    latest_snapshot = resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, "TW", args.window).latest or {}
-    email_content = build_email_body(args.window, run_id, generated_at, pipeline_status, args.dashboard_url, output_tail)
-    line_content = build_line_message(args.window, generated_at, pipeline_status, args.dashboard_url, output_tail)
+            line_ok = line.get("send_status") == "sent"
+        except Exception as exc:  # pragma: no cover - runtime LINE/config failure path
+            line = {
+                "send_attempted": True,
+                "send_status": "failed",
+                "policy": cfg["line_policy"],
+                "error_type": exc.__class__.__name__,
+                "secret_values_printed": False,
+            }
+            line_ok = False
+    content_snapshot = (
+        latest_snapshot
+        if args.window == "pre_open_0700" and (delivery_consistency or {}).get("eligible") is True
+        else {} if args.window == "pre_open_0700" else None
+    )
+    email_content = build_email_body(args.window, run_id, generated_at, pipeline_status, args.dashboard_url, output_tail, content_snapshot)
+    line_content = build_line_message(args.window, generated_at, pipeline_status, args.dashboard_url, output_tail, content_snapshot)
     record_stage_result(stage_timing_path, "notification_format", status="completed")
     provenance_results = {}
     provenance_payloads = {}
+    provenance_snapshot = content_snapshot if args.window == "pre_open_0700" else latest_snapshot
     for channel, delivery, content in (("email", email, email_content), ("line", line, line_content)):
         raw_status = str(delivery.get("send_status") or "not_attempted")
         delivery_result = "sent" if raw_status in {"sent", "handled_by_pipeline"} else "failed" if raw_status == "failed" else "suppressed" if "suppress" in raw_status or "manual" in raw_status else "not_attempted"
         provenance = build_delivery_provenance(
             market="TW", window=args.window, trading_date=effective_trading_date,
-            snapshot=latest_snapshot, canonical_url=args.dashboard_url, channel=channel,
+            snapshot=provenance_snapshot, canonical_url=args.dashboard_url, channel=channel,
             content=content, delivery_result=delivery_result,
             delivery_attempted=bool(delivery.get("send_attempted")), recipient_count=int(delivery.get("recipient_count") or 0),
             public_sync=public_latest_sync,
@@ -1223,23 +1246,26 @@ def main() -> int:
         )
         provenance_results[channel] = delivery_result
         provenance_payloads[channel] = provenance
-    audit_bundle = enqueue_batch_audit_non_blocking(
-        snapshot=latest_snapshot,
-        visual_manifest_path=Path(str(visual_evidence.get("manifest_path") or "")),
-        line_message=line_content,
-        email_subject=f"[Stock AI] {cfg['label']} approved delivery {generated_at}",
-        email_body=email_content,
-        line_provenance=provenance_payloads.get("line", {}),
-        email_provenance=provenance_payloads.get("email", {}),
-        dashboard_url=args.dashboard_url,
-        public_parity_status=str(public_latest_sync.get("status") or "not_attempted"),
-        duplicate_delivery_suppressed=False,
-    )
+    if args.window == "pre_open_0700" and not args.manual_rerun and not (delivery_consistency or {}).get("eligible"):
+        audit_bundle = {"status": "suppressed_delivery_consistency_failure", "enqueued": False}
+    else:
+        audit_bundle = enqueue_batch_audit_non_blocking(
+            snapshot=latest_snapshot,
+            visual_manifest_path=Path(str(visual_evidence.get("manifest_path") or "")),
+            line_message=line_content,
+            email_subject=f"[Stock AI] {cfg['label']} approved delivery {generated_at}",
+            email_body=email_content,
+            line_provenance=provenance_payloads.get("line", {}),
+            email_provenance=provenance_payloads.get("email", {}),
+            dashboard_url=args.dashboard_url,
+            public_parity_status=str(public_latest_sync.get("status") or "not_attempted"),
+            duplicate_delivery_suppressed=False,
+        )
     write_operations_provenance(
         REPO_ROOT / "artifacts/runtime/operations_provenance" / f"tw_{args.window}_latest.json",
         build_operations_provenance(
             market="TW", window=args.window, runtime_status=pipeline_status,
-            runtime_trading_date=effective_trading_date, snapshot=latest_snapshot,
+            runtime_trading_date=effective_trading_date, snapshot=provenance_snapshot,
             public_sync=public_latest_sync,
             email_result=provenance_results.get("email", "not_attempted"),
             line_result=provenance_results.get("line", "not_attempted"),
@@ -1268,6 +1294,7 @@ def main() -> int:
         "post_run_artifact_wiring": post_run_artifacts,
         "archive_write": archive_write,
         "public_latest_sync": public_latest_sync,
+        "delivery_consistency": delivery_consistency,
         "visual_evidence": visual_evidence,
         "batch_audit_bundle": audit_bundle,
         "line_delivery": line,
@@ -1279,7 +1306,7 @@ def main() -> int:
         "dashboard_delivery_status": dashboard.get("publish_status"),
         "dashboard_url": args.dashboard_url,
         "pipeline_completed": pipeline_status == "completed",
-        "delivery_attempted": True,
+        "delivery_attempted": bool(email.get("send_attempted") or line.get("send_attempted")),
         "late_delivery_suppressed": False,
         "progress_artifact": progress,
         "diagnostics": {
@@ -1290,7 +1317,7 @@ def main() -> int:
         },
         "secret_values_printed": False,
         "trading_order_portfolio_action": False,
-        "ok": completed.returncode == 0 and email_ok and line_ok and (args.manual_rerun or public_latest_sync.get("status") == "verified"),
+        "ok": completed.returncode == 0 and email_ok and line_ok and (args.manual_rerun or public_latest_sync.get("status") == "verified") and (args.window != "pre_open_0700" or args.manual_rerun or (delivery_consistency or {}).get("eligible") is True),
         "decision": "approved_scheduler_delivery_completed"
         if completed.returncode == 0 and email_ok and line_ok
         else "approved_scheduler_delivery_completed_with_delivery_failure",
