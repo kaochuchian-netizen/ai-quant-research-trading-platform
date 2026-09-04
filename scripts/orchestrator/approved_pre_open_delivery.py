@@ -34,7 +34,7 @@ from app.dashboard.window_snapshot_archive import resolve_snapshots, write_snaps
 from app.dashboard.public_latest_sync import synchronize_admitted_latest, write_sync_artifact  # noqa: E402
 from app.dashboard.visual_evidence_archive import capture_published_snapshot_non_blocking  # noqa: E402
 from app.runtime.manual_rerun_progress import report_manual_rerun_stage  # noqa: E402
-from app.reports.delivery_provenance import build_delivery_provenance, write_delivery_provenance  # noqa: E402
+from app.reports.delivery_provenance import build_delivery_provenance, transport_delivery_result, write_delivery_provenance  # noqa: E402
 from app.runtime.batch_audit_bundle import enqueue_batch_audit_non_blocking  # noqa: E402
 from app.reports.report_content_contract import build_report_content_artifact  # noqa: E402
 from app.reports.window_context import get_window_context  # noqa: E402
@@ -64,6 +64,7 @@ LEGACY_DEBUG_ROUTE = Path("debug/legacy")
 DEFAULT_MAIL_ENV_FILE = Path("~/.config/stock-ai-orchestrator/mail.env")
 WINDOW_SNAPSHOT_ARCHIVE = Path(os.environ.get("STOCK_AI_WINDOW_SNAPSHOT_ARCHIVE", REPO_ROOT / "artifacts/archive/window_snapshots"))
 TW_WINDOW_RUNTIME_DIR = REPO_ROOT / "artifacts/runtime/tw_window_decision"
+TW_PREOPEN_CHANNEL_RECEIPTS = REPO_ROOT / "artifacts/runtime/delivery_receipts/tw/pre_open_0700"
 DEFAULT_DECISION_INTELLIGENCE_DASHBOARD_URL = get_tw_dashboard_url()
 EMAIL_BODY_LIMIT = 14000
 LINE_BODY_LIMIT = 520
@@ -727,7 +728,7 @@ def post_delivery_artifact_wiring(*, window_id: str, generated_at: str, review_a
     run_date = generated_at[:10]
     commands: list[list[str]] = []
     if window_id == "pre_open_0700":
-        commands.append(["scripts/orchestrator/build_formal_prediction_runtime_artifact.py", "--date", run_date, "--pretty"])
+        commands.append(["scripts/orchestrator/build_formal_prediction_runtime_artifact.py", "--date", run_date, "--canonical-runtime", str(TW_WINDOW_RUNTIME_DIR / "pre_open_0700_latest.json"), "--pretty"])
         commands.append(["scripts/orchestrator/archive_formal_forecast_daily_snapshot.py", "--date", run_date, "--pretty"])
     elif window_id == "post_close_1500":
         if not review_already_built:
@@ -1068,6 +1069,7 @@ def main() -> int:
                 "structured_card_count": structured_pre_open.get("structured_card_count", 0),
                 "rendered_card_count": structured_pre_open.get("rendered_card_count", 0),
                 "pre_open_summary": structured_pre_open.get("pre_open_summary", {}),
+                "stock_universe_evidence": window_runtime.get("stock_universe_evidence", {}),
             } if args.window == "pre_open_0700" else {}),
             "structured_review_cards": structured_review.get("structured_review_cards", []),
             "structured_review": structured_review,
@@ -1185,12 +1187,13 @@ def main() -> int:
                 args.window, generated_at, pipeline_status, args.dashboard_url,
                 output_tail, snapshot,
             ),
+            receipt_root=TW_PREOPEN_CHANNEL_RECEIPTS,
         )
         delivery_consistency = delivery_result["gate"]
         email = delivery_result["email"]
         line = delivery_result["line"]
-        email_ok = email.get("send_status") == "sent"
-        line_ok = line.get("send_status") == "sent"
+        email_ok = email.get("send_status") in {"sent", "already_delivered"}
+        line_ok = line.get("send_status") in {"sent", "already_delivered"}
     else:
         email = None
         line = None
@@ -1231,8 +1234,7 @@ def main() -> int:
     provenance_payloads = {}
     provenance_snapshot = content_snapshot if args.window == "pre_open_0700" else latest_snapshot
     for channel, delivery, content in (("email", email, email_content), ("line", line, line_content)):
-        raw_status = str(delivery.get("send_status") or "not_attempted")
-        delivery_result = "sent" if raw_status in {"sent", "handled_by_pipeline"} else "failed" if raw_status == "failed" else "suppressed" if "suppress" in raw_status or "manual" in raw_status else "not_attempted"
+        delivery_result = transport_delivery_result(delivery)
         provenance = build_delivery_provenance(
             market="TW", window=args.window, trading_date=effective_trading_date,
             snapshot=provenance_snapshot, canonical_url=args.dashboard_url, channel=channel,

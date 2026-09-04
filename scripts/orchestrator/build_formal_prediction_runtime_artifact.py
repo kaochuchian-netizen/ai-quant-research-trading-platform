@@ -23,11 +23,15 @@ def load_json(path: Path) -> dict[str, Any]:
 def parse_day(value: str | None) -> date:
     return date.fromisoformat(value) if value else NOW.date()
 
-def stock_universe_from_runtime() -> list[dict[str, Any]]:
-    rows = load_json(RUNTIME_DATA).get("stock_universe", [])
+def stock_universe_from_runtime(path: Path = RUNTIME_DATA) -> list[dict[str, Any]]:
+    payload = load_json(path)
+    if payload.get("market") == "TW" and payload.get("window") == "pre_open_0700":
+        names = {str(c.get("symbol") or c.get("stock_id")): c.get("name") or c.get("stock_name") for c in payload.get("structured_pre_open_cards", []) if isinstance(c, dict)}
+        return [{"stock_id": str(s), "stock_name": names.get(str(s))} for s in payload.get("tracking_symbols", [])]
+    rows = payload.get("stock_universe", [])
     return [{"stock_id": str(row.get("stock_id")), "stock_name": row.get("stock_name")} for row in rows if isinstance(row, dict) and row.get("stock_id")]
 
-def latest_analysis_rows() -> dict[str, dict[str, Any]]:
+def latest_analysis_rows(run_date: date) -> dict[str, dict[str, Any]]:
     if not DB.exists():
         return {}
     con = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
@@ -41,14 +45,19 @@ def latest_analysis_rows() -> dict[str, dict[str, Any]]:
         cols = {r["name"] for r in cur.fetchall()}
         wanted = ["stock_id", "stock_name", "created_at", "technical_summary", "chip_summary", "news_summary", "adr_summary", "risk_summary"]
         select_cols = [c for c in wanted if c in cols]
-        cur.execute("select " + ", ".join(select_cols) + " from analysis_results where created_at in (select max(created_at) from analysis_results) order by stock_id")
-        return {str(dict(row)["stock_id"]): dict(row) for row in cur.fetchall() if dict(row).get("stock_id")}
+        date_column = "run_date" if "run_date" in cols else "created_at"
+        cur.execute("select " + ", ".join(select_cols) + " from analysis_results where cast(" + date_column + " as text) like ? order by id", (run_date.isoformat() + "%",))
+        rows = {}
+        for row in cur.fetchall():
+            item = dict(row)
+            if item.get("stock_id"): rows[str(item["stock_id"])] = item
+        return rows
     finally:
         con.close()
 
-def build(run_date: date) -> dict[str, Any]:
-    analysis = latest_analysis_rows()
-    universe = stock_universe_from_runtime() or [{"stock_id": sid, "stock_name": row.get("stock_name")} for sid, row in sorted(analysis.items())]
+def build(run_date: date, canonical_runtime: Path = RUNTIME_DATA) -> dict[str, Any]:
+    analysis = latest_analysis_rows(run_date)
+    universe = stock_universe_from_runtime(canonical_runtime) or [{"stock_id": sid, "stock_name": row.get("stock_name")} for sid, row in sorted(analysis.items())]
     stocks = [compute_baseline(str(stock.get("stock_id")), stock.get("stock_name") or analysis.get(str(stock.get("stock_id")), {}).get("stock_name"), run_date, analysis.get(str(stock.get("stock_id")), {})) for stock in universe]
     forecast_value_count = sum(1 for stock in stocks for key in ["same_day_high_prediction", "same_day_low_prediction", "next_day_high_prediction", "next_day_low_prediction"] if stock.get(key) is not None)
     return {
@@ -66,6 +75,9 @@ def build(run_date: date) -> dict[str, Any]:
         "stock_universe_count": len(stocks),
         "forecast_value_count": forecast_value_count,
         "stocks": stocks,
+        "canonical_symbol_order": [str(row["stock_id"]) for row in universe],
+        "symbol_exclusions": [],
+        "canonical_runtime_source": str(canonical_runtime),
         "safety": {"external_api_called": False, "external_credentialed_api_called": False, "secrets_read": False, "db_write": False, "sqlite_opened_read_only": DB.exists(), "notification_sent": False, "production_pipeline_executed": False, "python_main_executed": False, "trading_or_order_executed": False, "fabricated_forecast_values": False, "production_rating_action_confidence_weight_mutated": False},
     }
 
@@ -73,9 +85,10 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     ap.add_argument("--date")
+    ap.add_argument("--canonical-runtime", type=Path, default=RUNTIME_DATA)
     ap.add_argument("--pretty", action="store_true")
     args = ap.parse_args()
-    data = build(parse_day(args.date))
+    data = build(parse_day(args.date), args.canonical_runtime)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(stable_json(data), encoding="utf-8")
     print(stable_json({"ok": True, "output": str(args.output), "artifact_type": data["artifact_type"], "stock_universe_count": data["stock_universe_count"], "forecast_value_count": data["forecast_value_count"], "model_version": MODEL_VERSION, "fabricated_forecast_values": False}), end="")
