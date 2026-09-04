@@ -25,11 +25,30 @@ def source_payload_hash(snapshot: dict[str, Any]) -> str | None:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
+def transport_delivery_result(delivery: dict[str, Any]) -> str:
+    """Map actual transport evidence without treating ownership labels as success."""
+    status = str(delivery.get("send_status") or "not_attempted")
+    attempted = delivery.get("send_attempted") is True
+    if status == "sent":
+        return "sent" if attempted else "failed"
+    if status == "already_delivered":
+        return "already_delivered"
+    if status == "failed":
+        return "failed"
+    if status == "dry_run_not_sent":
+        return "dry_run_not_sent"
+    if "suppress" in status or "manual" in status:
+        return "suppressed"
+    return "not_attempted"
+
+
 def build_delivery_provenance(*, market: str, window: str, trading_date: str, snapshot: dict[str, Any], canonical_url: str, channel: str, content: str, delivery_result: str, delivery_attempted: bool, recipient_count: int = 0, delivery_time: str | None = None, public_sync: dict[str, Any] | None = None) -> dict[str, Any]:
     if channel not in {"email", "line"}:
         raise ValueError("unsupported_delivery_channel")
-    if delivery_result not in {"sent", "failed", "suppressed", "dry_run_not_sent", "not_attempted"}:
+    if delivery_result not in {"sent", "failed", "suppressed", "dry_run_not_sent", "not_attempted", "already_delivered"}:
         raise ValueError("unsupported_delivery_result")
+    if delivery_result == "sent" and delivery_attempted is not True:
+        raise ValueError("sent_requires_transport_attempt")
     metadata = snapshot.get("metadata") if isinstance(snapshot.get("metadata"), dict) else snapshot
     sync = public_sync if isinstance(public_sync, dict) else {}
     return {

@@ -35,6 +35,7 @@ def _fixture(symbols=SYMBOLS, *, snapshot_symbols=None, date="2026-09-04", dashb
         "market": "TW", "window": "pre_open_0700", "effective_trading_date": "2026-09-04",
         "selected_symbols": list(symbols), "tracking_symbols": list(symbols),
         "structured_pre_open_cards": runtime_cards,
+        "stock_universe_evidence": {"source_status": "READY", "fallback_used": False, "symbol_drift_status": "NO_DRIFT", "missing_symbols": [], "extra_symbols": []},
     }
     chosen = list(snapshot_symbols if snapshot_symbols is not None else symbols)
     cards = [_card(symbol, unavailable=symbol in unavailable) for symbol in chosen]
@@ -44,6 +45,7 @@ def _fixture(symbols=SYMBOLS, *, snapshot_symbols=None, date="2026-09-04", dashb
         "tracking_symbols": chosen, "structured_card_count": len(cards),
         "rendered_card_count": len(cards), "structured_pre_open_cards": cards,
         "cards": cards, "pre_open_summary": aggregate(cards, chosen),
+        "stock_universe_evidence": runtime["stock_universe_evidence"],
     }
     snapshot = {
         "market": "TW", "window": "pre_open_0700", "effective_trading_date": date,
