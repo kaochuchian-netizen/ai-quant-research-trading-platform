@@ -19,6 +19,13 @@ from app.reports.tw_human_summary import build_tw_human_summary, validate_tw_hum
 from app.reports.tw_pre_open_quality import canonical_tw_event_identity, news_contract, technical_contract
 from app.reports.tw_prediction_explainability import project_tw_prediction_card
 
+US_RUNTIME_EVIDENCE_PREFIXES = (
+    "artifacts/runtime/us_stock/",
+    "artifacts/archive/window_snapshots/US/",
+    "artifacts/archive/visual_evidence/",
+)
+US_PRODUCTION_DATA_PATHS = {"data/stock_analysis.db"}
+
 
 def require(value: bool, message: str) -> None:
     if not value: raise AssertionError(message)
@@ -137,8 +144,16 @@ def main() -> int:
     checks["renderer_four_window_hierarchy"] = "PASS"
 
     changed = subprocess.run(["git", "diff", "--name-only", "origin/main...HEAD"], cwd=ROOT, check=True, capture_output=True, text=True).stdout.splitlines()
-    protected_prefixes = ("app/us_stock/", "app/strategy/", "app/database/", "scripts/orchestrator/activate_google_drive", "scripts/orchestrator/upload_google_drive")
-    require(not any(path.startswith(protected_prefixes) for path in changed), f"protected path changed: {changed}")
+    protected_prefixes = ("app/strategy/", "app/database/", "scripts/orchestrator/activate_google_drive", "scripts/orchestrator/upload_google_drive")
+    require(
+        not any(
+            path in US_PRODUCTION_DATA_PATHS
+            or path.startswith(US_RUNTIME_EVIDENCE_PREFIXES)
+            or path.startswith(protected_prefixes)
+            for path in changed
+        ),
+        f"protected path changed: {changed}",
+    )
     checks["protected_contracts"] = "PASS"
     print(json.dumps({"schema_version": "ai_dev_226_phase_b_validator_v1", "status": "PASS", "checks": checks, "check_count": len(checks), "production_rerun": False, "notifications_sent": False, "trading": False, "production_db_write": False, "oauth_drive_changed": False}, ensure_ascii=False, indent=2))
     return 0

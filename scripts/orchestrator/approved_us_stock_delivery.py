@@ -13,6 +13,7 @@ import html
 import importlib
 import json
 import os
+import subprocess
 import sys
 import time
 from datetime import datetime, timedelta
@@ -45,6 +46,7 @@ from app.us_stock.watchlist import normalize_us_watchlist_rows
 from app.us_stock.runtime_provenance import ADMITTED_PROVENANCE, RuntimeProvenance, provenance_admission
 from app.us_stock.research_presentation import research_review_lines
 from app.us_stock.trading_calendar import resolve_us_effective_trading_date
+from app.us_stock.batch_reliability import build_failure_status, contract_for_window
 from app.runtime.operations_provenance import build_operations_provenance, write_operations_provenance
 from scripts.orchestrator.notify_stage_report import build_message, load_env_file, load_mail_config, send_message
 
@@ -456,6 +458,7 @@ def build_email_body(artifact: dict[str, Any], window: str) -> str:
     lines.extend(["", "研究情報：", "- SEC/公司 IR 為 Tier 1 official evidence；yfinance/Yahoo 為 Tier 2 market reference。", "- 不複製完整 filings、transcripts 或 copyrighted articles。", "", "僅供研究參考，非交易指令。"] )
     return "\n".join(lines)
 
+
 def line_text(artifact: dict[str, Any], window: str) -> str:
     contract = get_window_report_contract("US", window)
     cards = [card for card in artifact.get("dashboard_ready_contract", {}).get("cards", []) if isinstance(card, dict)]
@@ -573,6 +576,104 @@ def release_lock() -> None:
             LOCK_PATH.unlink()
     except OSError:
         pass
+
+
+def _persist_reliability_failure(status: dict[str, Any]) -> None:
+    write_json(STATUS_PATH, status)
+    write_json(US_STATUS_PATH, status)
+
+
+def supervise_production_worker(args: argparse.Namespace) -> dict[str, Any]:
+    """Run production delivery in a child process so parent can fail closed.
+
+    This parent path is intentionally lightweight. If the child is killed by a
+    process-level failure such as SIGKILL/OOM or exceeds the window contract
+    timeout, the parent persists durable failure evidence and never claims
+    Email/LINE/Dashboard success.
+    """
+    started = now_taipei()
+    contract = contract_for_window(args.window)
+    timeout_seconds = int(args.timeout_seconds or contract.timeout_seconds)
+    command = [
+        sys.executable,
+        str(Path(__file__).resolve()),
+        "--window",
+        args.window,
+        "--production-approved",
+        "--worker-mode",
+    ]
+    if args.live_data:
+        command.append("--live-data")
+    if args.publish_dashboard:
+        command.append("--publish-dashboard")
+    if args.pretty:
+        command.append("--pretty")
+    if args.as_of:
+        command.extend(["--as-of", args.as_of])
+    if args.manual_rerun:
+        command.append("--manual-rerun")
+    try:
+        completed = subprocess.run(
+            command,
+            cwd=str(REPO_ROOT),
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=timeout_seconds,
+            check=False,
+        )
+    except subprocess.TimeoutExpired as exc:
+        finished = now_taipei()
+        status = build_failure_status(
+            window=args.window,
+            started_at=started,
+            finished_at=finished,
+            reason="worker_timeout",
+            error_type="TimeoutExpired",
+            error_message=str(exc),
+            timeout_seconds=timeout_seconds,
+        )
+        _persist_reliability_failure(status)
+        return {"ok": False, "status": status, "worker": {"timeout": True, "timeout_seconds": timeout_seconds}}
+    if completed.returncode == 0:
+        try:
+            return json.loads(completed.stdout)
+        except json.JSONDecodeError:
+            finished = now_taipei()
+            status = build_failure_status(
+                window=args.window,
+                started_at=started,
+                finished_at=finished,
+                reason="worker_invalid_json",
+                error_type="JSONDecodeError",
+                error_message=completed.stdout[:240],
+                returncode=completed.returncode,
+                timeout_seconds=timeout_seconds,
+            )
+            _persist_reliability_failure(status)
+            return {"ok": False, "status": status, "worker": {"returncode": completed.returncode}}
+    finished = now_taipei()
+    reason = "worker_terminated_signal" if completed.returncode < 0 else "worker_failed"
+    status = build_failure_status(
+        window=args.window,
+        started_at=started,
+        finished_at=finished,
+        reason=reason,
+        error_type="WorkerProcessFailed",
+        error_message=(completed.stderr or completed.stdout)[:240],
+        returncode=completed.returncode,
+        timeout_seconds=timeout_seconds,
+    )
+    _persist_reliability_failure(status)
+    return {
+        "ok": False,
+        "status": status,
+        "worker": {
+            "returncode": completed.returncode,
+            "stdout_tail": completed.stdout[-1000:],
+            "stderr_tail": completed.stderr[-1000:],
+        },
+    }
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
@@ -775,9 +876,14 @@ def main() -> int:
     parser.add_argument("--pretty", action="store_true")
     parser.add_argument("--as-of")
     parser.add_argument("--manual-rerun", action="store_true")
+    parser.add_argument("--worker-mode", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--timeout-seconds", type=int, help=argparse.SUPPRESS)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
-    result = run(args)
+    if args.production_approved and not args.dry_run and not args.worker_mode:
+        result = supervise_production_worker(args)
+    else:
+        result = run(args)
     text = json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True) + "\n"
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
