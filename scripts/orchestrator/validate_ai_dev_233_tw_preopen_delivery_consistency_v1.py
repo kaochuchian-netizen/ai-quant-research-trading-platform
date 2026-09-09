@@ -17,6 +17,12 @@ from app.reports.tw_pre_open_structured import aggregate, seal_card_source_paylo
 
 
 SYMBOLS = ["2330", "009816", "2337", "2353", "6873", "4743", "2305", "00878", "1409", "3293"]
+US_RUNTIME_EVIDENCE_PREFIXES = (
+    "artifacts/runtime/us_stock/",
+    "artifacts/archive/window_snapshots/US/",
+    "artifacts/archive/visual_evidence/",
+)
+US_PRODUCTION_DATA_PATHS = {"data/stock_analysis.db"}
 
 
 def _card(symbol: str, *, unavailable: bool = False) -> dict:
@@ -125,7 +131,12 @@ def main() -> int:
     changed = subprocess.run(
         ["git", "diff", "--name-only", "origin/main"], cwd=ROOT, text=True, capture_output=True, check=True,
     ).stdout.splitlines()
-    checks["h_us_runtime_untouched"] = not any(path.startswith("app/us_stock/") for path in changed)
+    # This TW delivery validator protects evidence/runtime isolation. US source
+    # code changes are governed by the branch gate and US-specific validators.
+    checks["h_us_runtime_untouched"] = not any(
+        path in US_PRODUCTION_DATA_PATHS or path.startswith(US_RUNTIME_EVIDENCE_PREFIXES)
+        for path in changed
+    )
     checks["no_symbol_special_case"] = "3293" not in pipeline_source and "3293" not in (ROOT / "app/reports/tw_pre_open_delivery_contract.py").read_text(encoding="utf-8")
 
     report = {
