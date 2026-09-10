@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 
 from app.loaders.google_sheet_loader import load_stock_ids_with_provenance
-from app.market.shioaji_client import classify_shioaji_error, get_api
+from app.market.shioaji_client import classify_shioaji_error, get_api, transport_failure_evidence
 from app.market.historical_price_loader import get_historical_prices
 from app.market.historical_normalizer import minute_to_daily
 from app.market.historical_storage import inspect_historical_csv, save_historical_to_csv
@@ -77,7 +77,7 @@ def _fallback_history(stock_id, start_date, end_date, *, downloader=None):
     }
 
 
-def _warning(code, message, stock_id=None, severity="warning", source="historical_csv_update"):
+def _warning(code, message, stock_id=None, severity="warning", source="historical_csv_update", evidence=None):
     payload = {
         "code": code,
         "severity": severity,
@@ -86,6 +86,8 @@ def _warning(code, message, stock_id=None, severity="warning", source="historica
     }
     if stock_id is not None:
         payload["stock_id"] = str(stock_id).zfill(4)
+    if evidence is not None:
+        payload["transport_failure_evidence"] = evidence
     return payload
 
 
@@ -99,6 +101,7 @@ def _empty_status(start_date, end_date):
         "requested_end_date": end_date,
         "shioaji_available": False,
         "shioaji_error_classification": None,
+        "transport_failure_evidence": [],
         "historical_update_attempted": False,
         "historical_update_completed": False,
         "updated_count": 0,
@@ -184,13 +187,16 @@ def main(raise_on_failure=False, stock_ids=None, universe_evidence=None, yfinanc
         status["historical_update_attempted"] = True
     except Exception as exc:
         classification = getattr(exc, "classification", classify_shioaji_error(exc))
+        evidence = transport_failure_evidence(exc, provider="shioaji", stage="login")
         status["shioaji_error_classification"] = classification
+        status["transport_failure_evidence"].append(evidence)
         status["warnings"].append(
             _warning(
                 classification,
                 "Shioaji login/runtime unavailable; using existing historical CSV fallback where present.",
                 severity="error",
                 source="shioaji_login",
+                evidence=evidence,
             )
         )
         api = None
@@ -205,6 +211,7 @@ def main(raise_on_failure=False, stock_ids=None, universe_evidence=None, yfinanc
             "csv_path": None,
             "latest_date": None,
             "warning": None,
+            "transport_failure_evidence": None,
         }
 
         print(f"開始更新歷史資料：{stock_id}")
@@ -269,6 +276,7 @@ def main(raise_on_failure=False, stock_ids=None, universe_evidence=None, yfinanc
             print(f"完成：{csv_path}")
         except Exception as exc:
             classification = classify_shioaji_error(exc)
+            evidence = transport_failure_evidence(exc, provider="shioaji", stage="kbars_fetch")
             csv_status = _fallback_history(stock_id, start_date, end_date, downloader=yfinance_downloader)
             stock_status.update(
                 {
@@ -278,18 +286,21 @@ def main(raise_on_failure=False, stock_ids=None, universe_evidence=None, yfinanc
                     "csv_path": csv_status["csv_path"],
                     "latest_date": csv_status["latest_date"],
                     "warning": classification, "fallback_source": csv_status["source"],
+                    "transport_failure_evidence": evidence,
                     "bars_before": csv_status["bars_before"], "bars_after": csv_status["bars_after"],
                     "fallback_failures": csv_status.get("failures", []),
                     "history_admission": csv_status.get("admission"),
                 }
             )
             status["failed_count"] += 1
+            status["transport_failure_evidence"].append({**evidence, "stock_id": stock_id})
             status["warnings"].append(
                 _warning(
                     classification,
                     "Shioaji Kbars fetch failed; using existing historical CSV fallback where present.",
                     stock_id=stock_id,
                     source="shioaji_kbars",
+                    evidence=evidence,
                 )
             )
             if csv_status["usable"]:

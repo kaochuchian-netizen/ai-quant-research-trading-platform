@@ -13,6 +13,7 @@ import html
 import importlib
 import json
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -46,7 +47,7 @@ from app.us_stock.watchlist import normalize_us_watchlist_rows
 from app.us_stock.runtime_provenance import ADMITTED_PROVENANCE, RuntimeProvenance, provenance_admission
 from app.us_stock.research_presentation import research_review_lines
 from app.us_stock.trading_calendar import resolve_us_effective_trading_date
-from app.us_stock.batch_reliability import build_failure_status, contract_for_window
+from app.us_stock.batch_reliability import acquire_pid_lock, build_failure_status, contract_for_window, release_pid_lock
 from app.runtime.operations_provenance import build_operations_provenance, write_operations_provenance
 from scripts.orchestrator.notify_stage_report import build_message, load_env_file, load_mail_config, send_message
 
@@ -563,19 +564,20 @@ def idempotency_path(window: str, reference: datetime) -> Path:
     return IDEMPOTENCY_DIR / f"{reference.date().isoformat()}_{window}.json"
 
 
-def acquire_lock() -> bool:
-    if LOCK_PATH.exists():
-        return False
-    LOCK_PATH.write_text(str(os.getpid()), encoding="utf-8")
-    return True
+def acquire_lock() -> dict[str, Any]:
+    return acquire_pid_lock(LOCK_PATH)
 
 
-def release_lock() -> None:
-    try:
-        if LOCK_PATH.exists() and LOCK_PATH.read_text(encoding="utf-8").strip() == str(os.getpid()):
-            LOCK_PATH.unlink()
-    except OSError:
-        pass
+def release_lock() -> dict[str, Any]:
+    return release_pid_lock(LOCK_PATH)
+
+
+def install_lock_signal_cleanup() -> None:
+    def _handle_signal(signum: int, _frame: Any) -> None:
+        release_lock()
+        raise SystemExit(128 + signum)
+
+    signal.signal(signal.SIGTERM, _handle_signal)
 
 
 def _persist_reliability_failure(status: dict[str, Any]) -> None:
@@ -652,6 +654,13 @@ def supervise_production_worker(args: argparse.Namespace) -> dict[str, Any]:
             )
             _persist_reliability_failure(status)
             return {"ok": False, "status": status, "worker": {"returncode": completed.returncode}}
+    try:
+        parsed = json.loads(completed.stdout)
+    except json.JSONDecodeError:
+        parsed = None
+    if isinstance(parsed, dict) and parsed.get("status") == "lock_busy":
+        parsed["worker"] = {"returncode": completed.returncode, "parsed_nonzero_json": True}
+        return parsed
     finished = now_taipei()
     reason = "worker_terminated_signal" if completed.returncode < 0 else "worker_failed"
     status = build_failure_status(
@@ -683,8 +692,19 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     production_artifact = bool(args.production_artifact and not args.production_approved)
     if args.window not in WINDOWS:
         raise SystemExit(f"unsupported US stock window: {args.window}")
-    if not acquire_lock():
-        return {"ok": False, "status": "lock_busy", "window": args.window, "line_attempted": False, "email_attempted": False}
+    lock_result = acquire_lock()
+    if not lock_result.get("acquired"):
+        return {
+            "ok": False,
+            "status": "lock_busy",
+            "window": args.window,
+            "lock": lock_result,
+            "line_attempted": False,
+            "email_attempted": False,
+            "production_pipeline_executed": False,
+            "trading_or_order_executed": False,
+        }
+    install_lock_signal_cleanup()
     try:
         artifact = build_runtime_artifact(args.window, dry_run=not production_approved, reference=batch_reference, live_data=args.live_data, production_artifact=production_artifact)
         artifact["generated_at"] = started.isoformat()
@@ -841,6 +861,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "error_message": None,
             "idempotency_key": str(idem),
             "duplicate_delivery_suppressed": delivery_skipped_duplicate,
+            "lock": lock_result,
             "dry_run": not production_approved,
             "archive_write": archive_result,
             "public_latest_sync": public_latest_sync,
@@ -860,6 +881,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if production_approved or production_artifact:
             write_json(STATUS_PATH, error)
             write_json(US_STATUS_PATH, error)
+        error["lock"] = lock_result
         return error
     finally:
         release_lock()
