@@ -7,9 +7,11 @@ the same helpers for behavioral coverage.
 from __future__ import annotations
 
 import json
+import os
 import tracemalloc
 from dataclasses import asdict, dataclass
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 from app.us_stock.batch import build_us_stock_batch_artifact, us_stock_batch_input_example
@@ -17,6 +19,7 @@ from app.us_stock.constants import US_BATCH_WINDOWS
 
 RELIABILITY_SCHEMA_VERSION = "us_batch_execution_reliability_contract_v1"
 CONTRACT_WINDOWS = ("us_pre_market_2000", "us_intraday_2300")
+LOCK_SCHEMA_VERSION = "us_batch_pid_lock_v1"
 
 
 @dataclass(frozen=True)
@@ -63,6 +66,127 @@ def contract_for_window(window: str) -> WindowReliabilityContract:
     if window not in US_BATCH_EXECUTION_RELIABILITY_CONTRACT:
         raise ValueError(f"unsupported reliability window: {window}")
     return US_BATCH_EXECUTION_RELIABILITY_CONTRACT[window]
+
+
+def process_is_alive(pid: int) -> bool:
+    if pid <= 0:
+        return False
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    except OSError:
+        return False
+    return True
+
+
+def read_lock_owner(lock_path: Path) -> dict[str, Any]:
+    try:
+        raw = lock_path.read_text(encoding="utf-8").strip()
+    except FileNotFoundError:
+        return {"present": False, "owner_pid": None, "raw": None, "valid": False}
+    except OSError as exc:
+        return {"present": True, "owner_pid": None, "raw": None, "valid": False, "error": type(exc).__name__}
+    try:
+        owner_pid = int(raw)
+    except ValueError:
+        owner_pid = None
+    return {
+        "present": True,
+        "owner_pid": owner_pid,
+        "raw": raw,
+        "valid": owner_pid is not None and owner_pid > 0,
+        "owner_alive": process_is_alive(owner_pid) if owner_pid is not None else False,
+    }
+
+
+def acquire_pid_lock(lock_path: Path, *, pid: int | None = None) -> dict[str, Any]:
+    """Acquire a PID lock atomically, recovering only demonstrably stale locks."""
+    owner_pid = int(pid or os.getpid())
+    recovered_stale = False
+    for _ in range(2):
+        try:
+            fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
+        except FileExistsError:
+            owner = read_lock_owner(lock_path)
+            if owner.get("valid") and owner.get("owner_alive"):
+                return {
+                    "schema_version": LOCK_SCHEMA_VERSION,
+                    "acquired": False,
+                    "reason": "live_lock_present",
+                    "lock_path": str(lock_path),
+                    "owner_pid": owner.get("owner_pid"),
+                    "owner_alive": True,
+                    "recovered_stale": recovered_stale,
+                }
+            try:
+                lock_path.unlink()
+                recovered_stale = True
+                continue
+            except FileNotFoundError:
+                continue
+            except OSError as exc:
+                return {
+                    "schema_version": LOCK_SCHEMA_VERSION,
+                    "acquired": False,
+                    "reason": "stale_lock_recovery_failed",
+                    "lock_path": str(lock_path),
+                    "owner_pid": owner.get("owner_pid"),
+                    "owner_alive": owner.get("owner_alive"),
+                    "error_type": type(exc).__name__,
+                    "recovered_stale": recovered_stale,
+                }
+        else:
+            with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                handle.write(f"{owner_pid}\n")
+            return {
+                "schema_version": LOCK_SCHEMA_VERSION,
+                "acquired": True,
+                "reason": "acquired",
+                "lock_path": str(lock_path),
+                "owner_pid": owner_pid,
+                "owner_alive": True,
+                "recovered_stale": recovered_stale,
+            }
+    return {
+        "schema_version": LOCK_SCHEMA_VERSION,
+        "acquired": False,
+        "reason": "concurrent_lock_acquisition_lost",
+        "lock_path": str(lock_path),
+        "owner_pid": read_lock_owner(lock_path).get("owner_pid"),
+        "recovered_stale": recovered_stale,
+    }
+
+
+def release_pid_lock(lock_path: Path, *, pid: int | None = None) -> dict[str, Any]:
+    owner_pid = int(pid or os.getpid())
+    owner = read_lock_owner(lock_path)
+    if not owner.get("present"):
+        return {"schema_version": LOCK_SCHEMA_VERSION, "released": False, "reason": "lock_absent", "lock_path": str(lock_path)}
+    if owner.get("owner_pid") != owner_pid:
+        return {
+            "schema_version": LOCK_SCHEMA_VERSION,
+            "released": False,
+            "reason": "lock_owned_by_other_process",
+            "lock_path": str(lock_path),
+            "owner_pid": owner.get("owner_pid"),
+            "current_pid": owner_pid,
+        }
+    try:
+        lock_path.unlink()
+    except FileNotFoundError:
+        return {"schema_version": LOCK_SCHEMA_VERSION, "released": False, "reason": "lock_absent", "lock_path": str(lock_path)}
+    except OSError as exc:
+        return {
+            "schema_version": LOCK_SCHEMA_VERSION,
+            "released": False,
+            "reason": "lock_release_failed",
+            "lock_path": str(lock_path),
+            "error_type": type(exc).__name__,
+        }
+    return {"schema_version": LOCK_SCHEMA_VERSION, "released": True, "reason": "released", "lock_path": str(lock_path), "owner_pid": owner_pid}
 
 
 def run_id_for(window: str, started_at: datetime) -> str:
