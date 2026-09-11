@@ -1,7 +1,10 @@
-import gspread
-from google.oauth2.service_account import Credentials
 from datetime import date
 from pathlib import Path
+import re
+import time
+
+import gspread
+from google.oauth2.service_account import Credentials
 
 
 TW_SOURCE_WORKSHEET = "工作表1"
@@ -13,6 +16,11 @@ SCOPES = [
 ]
 
 TW_REQUIRED_HEADERS = ("stock_id", "symbol", "代號")
+GOOGLE_SHEETS_PROVIDER = "google_sheets"
+GOOGLE_SHEETS_STAGE = "historical_csv_update"
+GOOGLE_SHEETS_MAX_ATTEMPTS = 3
+GOOGLE_SHEETS_RETRYABLE_HTTP_STATUS = {429, 500, 502, 503, 504}
+GOOGLE_SHEETS_BACKOFF_SECONDS = (0.2, 0.4)
 
 
 class TWWatchlistSchemaError(ValueError):
@@ -56,13 +64,119 @@ def _extract_tw_stock_ids(rows):
     return symbols, duplicates
 
 
-def _open_sheet(key_file="stock-ai-key.json", sheet_name="stockviewer"):
+def _google_sheets_http_status(exc):
+    response = getattr(exc, "response", None)
+    status = getattr(response, "status_code", None) or getattr(response, "status", None)
+    if status is None:
+        status = getattr(exc, "status_code", None) or getattr(exc, "code", None)
+    if status is not None:
+        try:
+            return int(status)
+        except (TypeError, ValueError):
+            pass
+    match = re.search(r"\[(\d{3})\]", str(exc))
+    if match:
+        return int(match.group(1))
+    return None
+
+
+def _is_transient_google_transport_error(exc):
+    name = exc.__class__.__name__.lower()
+    module = exc.__class__.__module__.lower()
+    text = str(exc).lower()
+    if any(token in name for token in ("permission", "credential", "auth", "forbidden", "notfound")):
+        return False
+    if "google.auth" in module:
+        return False
+    transport_markers = (
+        "timeout", "connectionerror", "connecttimeout", "readtimeout",
+        "transporterror", "connection", "temporarily unavailable",
+    )
+    return (
+        any(marker in name for marker in transport_markers)
+        or ("requests" in module and any(marker in name for marker in transport_markers))
+        or ("urllib3" in module and any(marker in name for marker in transport_markers))
+        or any(marker in text for marker in ("timed out", "connection aborted", "temporary failure"))
+    )
+
+
+def _is_retryable_google_sheets_error(exc):
+    status = _google_sheets_http_status(exc)
+    if status is not None:
+        return status in GOOGLE_SHEETS_RETRYABLE_HTTP_STATUS
+    return _is_transient_google_transport_error(exc)
+
+
+def _google_sheets_attempt_evidence(*, attempt, exc=None, retry_exhausted=False, call_site=None, outcome="failure"):
+    return {
+        "provider": GOOGLE_SHEETS_PROVIDER,
+        "stage": GOOGLE_SHEETS_STAGE,
+        "attempt": attempt,
+        "http_status": _google_sheets_http_status(exc) if exc is not None else None,
+        "retryable": _is_retryable_google_sheets_error(exc) if exc is not None else False,
+        "retry_exhausted": bool(retry_exhausted),
+        "exception_type": exc.__class__.__name__ if exc is not None else None,
+        "call_site": call_site,
+        "outcome": outcome,
+    }
+
+
+def _call_google_sheets_provider(call_site, operation, *, sleep=None, max_attempts=GOOGLE_SHEETS_MAX_ATTEMPTS):
+    sleeper = time.sleep if sleep is None else sleep
+    attempts = []
+    for attempt in range(1, max_attempts + 1):
+        try:
+            result = operation()
+            attempts.append(_google_sheets_attempt_evidence(attempt=attempt, call_site=call_site, outcome="success"))
+            return result, attempts
+        except Exception as exc:
+            retryable = _is_retryable_google_sheets_error(exc)
+            retry_exhausted = retryable and attempt >= max_attempts
+            attempts.append(
+                _google_sheets_attempt_evidence(
+                    attempt=attempt,
+                    exc=exc,
+                    retry_exhausted=retry_exhausted,
+                    call_site=call_site,
+                )
+            )
+            if not retryable or retry_exhausted:
+                setattr(exc, "google_sheets_retry_evidence", list(attempts))
+                raise
+            backoff = GOOGLE_SHEETS_BACKOFF_SECONDS[min(attempt - 1, len(GOOGLE_SHEETS_BACKOFF_SECONDS) - 1)]
+            sleeper(backoff)
+    raise RuntimeError("unreachable_google_sheets_retry_state")
+
+
+def _is_missing_worksheet_error(exc):
+    status = _google_sheets_http_status(exc)
+    return exc.__class__.__name__ == "WorksheetNotFound" or status == 404
+
+
+def _open_sheet_with_retry(key_file="stock-ai-key.json", sheet_name="stockviewer", *, sleep=None):
     creds = Credentials.from_service_account_file(
         key_file,
         scopes=SCOPES,
     )
     client = gspread.authorize(creds)
-    return client.open(sheet_name)
+    return _call_google_sheets_provider("gspread.client.open", lambda: client.open(sheet_name), sleep=sleep)
+
+
+def _open_sheet(key_file="stock-ai-key.json", sheet_name="stockviewer"):
+    sheet, _ = _open_sheet_with_retry(key_file=key_file, sheet_name=sheet_name)
+    return sheet
+
+
+def _load_stock_ids_with_retry_evidence(key_file="stock-ai-key.json", sheet_name="stockviewer", *, sleep=None):
+    sheet, attempts = _open_sheet_with_retry(key_file=key_file, sheet_name=sheet_name, sleep=sleep)
+    worksheet = sheet.sheet1
+    rows, read_attempts = _call_google_sheets_provider(
+        "worksheet.get_all_values",
+        lambda: worksheet.get_all_values(),
+        sleep=sleep,
+    )
+    stock_ids, duplicates = _extract_tw_stock_ids(rows)
+    return stock_ids, duplicates, [*attempts, *read_attempts]
 
 
 def load_stock_ids(
@@ -73,9 +187,7 @@ def load_stock_ids(
 
     Existing Taiwan production flows continue to read the first worksheet / 工作表1.
     """
-    sheet = _open_sheet(key_file=key_file, sheet_name=sheet_name)
-    worksheet = sheet.sheet1
-    stock_ids, _ = _extract_tw_stock_ids(worksheet.get_all_values())
+    stock_ids, _, _ = _load_stock_ids_with_retry_evidence(key_file=key_file, sheet_name=sheet_name)
     return stock_ids
 
 
@@ -95,9 +207,17 @@ def load_stock_ids_with_provenance(
     another market, or another window.
     """
     loader = primary_loader or load_stock_ids
+    google_sheets_retry_evidence = []
     try:
-        stock_ids = loader(key_file=key_file, sheet_name=sheet_name)
-        stock_ids, duplicate_symbols = _normalize_tw_symbols(stock_ids)
+        if primary_loader is None:
+            stock_ids, duplicate_symbols, google_sheets_retry_evidence = _load_stock_ids_with_retry_evidence(
+                key_file=key_file,
+                sheet_name=sheet_name,
+            )
+            stock_ids, duplicate_symbols = _normalize_tw_symbols(stock_ids)
+        else:
+            stock_ids = loader(key_file=key_file, sheet_name=sheet_name)
+            stock_ids, duplicate_symbols = _normalize_tw_symbols(stock_ids)
         source = "google_sheet_tw_watchlist"
         fallback_used = False
         failure_category = None
@@ -109,6 +229,7 @@ def load_stock_ids_with_provenance(
         source_status = "READY"
         current_symbols = list(stock_ids)
     except Exception as exc:
+        google_sheets_retry_evidence = list(getattr(exc, "google_sheets_retry_evidence", google_sheets_retry_evidence))
         if fallback_loader is not None:
             fallback = fallback_loader()
         else:
@@ -173,6 +294,7 @@ def load_stock_ids_with_provenance(
         "missing_symbols": missing_symbols,
         "extra_symbols": extra_symbols,
         "duplicate_symbols": duplicate_symbols,
+        "google_sheets_retry_evidence": google_sheets_retry_evidence,
         "stock_count": len(normalized),
         "market": "TW",
         "window": "pre_open_0700",
@@ -181,13 +303,17 @@ def load_stock_ids_with_provenance(
 
 def _worksheet_records(sheet, worksheet_name):
     try:
-        worksheet = sheet.worksheet(worksheet_name)
-    except Exception:
-        if worksheet_name == TW_SOURCE_WORKSHEET:
+        worksheet, _ = _call_google_sheets_provider(
+            "sheet.worksheet",
+            lambda: sheet.worksheet(worksheet_name),
+        )
+    except Exception as exc:
+        if worksheet_name == TW_SOURCE_WORKSHEET and _is_missing_worksheet_error(exc):
             worksheet = sheet.sheet1
         else:
             raise
-    return worksheet.get_all_records()
+    rows, _ = _call_google_sheets_provider("worksheet.get_all_records", lambda: worksheet.get_all_records())
+    return rows
 
 
 def load_tw_stock_ids(
@@ -198,10 +324,13 @@ def load_tw_stock_ids(
     """Load Taiwan stock IDs from 工作表1 only."""
     sheet = _open_sheet(key_file=key_file, sheet_name=sheet_name)
     try:
-        worksheet = sheet.worksheet(worksheet_name)
-    except Exception:
+        worksheet, _ = _call_google_sheets_provider("sheet.worksheet", lambda: sheet.worksheet(worksheet_name))
+    except Exception as exc:
+        if not _is_missing_worksheet_error(exc):
+            raise
         worksheet = sheet.sheet1
-    stock_ids, _ = _extract_tw_stock_ids(worksheet.get_all_values())
+    rows, _ = _call_google_sheets_provider("worksheet.get_all_values", lambda: worksheet.get_all_values())
+    stock_ids, _ = _extract_tw_stock_ids(rows)
     return stock_ids
 
 
