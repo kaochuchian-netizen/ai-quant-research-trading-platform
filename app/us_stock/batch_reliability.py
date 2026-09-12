@@ -18,7 +18,7 @@ from app.us_stock.batch import build_us_stock_batch_artifact, us_stock_batch_inp
 from app.us_stock.constants import US_BATCH_WINDOWS
 
 RELIABILITY_SCHEMA_VERSION = "us_batch_execution_reliability_contract_v1"
-CONTRACT_WINDOWS = ("us_pre_market_2000", "us_intraday_2300")
+CONTRACT_WINDOWS = ("us_pre_market_2000", "us_intraday_2300", "us_post_close_review_0630")
 LOCK_SCHEMA_VERSION = "us_batch_pid_lock_v1"
 
 
@@ -57,6 +57,13 @@ US_BATCH_EXECUTION_RELIABILITY_CONTRACT: dict[str, WindowReliabilityContract] = 
         scheduled_time_tw=US_BATCH_WINDOWS["us_intraday_2300"]["scheduled_time_tw"],
         timeout_seconds=45 * 60,
         stale_runtime_max_age_seconds=20 * 60,
+        channel_policy=ChannelPolicy(email_allowed=True, line_allowed=False),
+    ),
+    "us_post_close_review_0630": WindowReliabilityContract(
+        window="us_post_close_review_0630",
+        scheduled_time_tw=US_BATCH_WINDOWS["us_post_close_review_0630"]["scheduled_time_tw"],
+        timeout_seconds=45 * 60,
+        stale_runtime_max_age_seconds=30 * 60,
         channel_policy=ChannelPolicy(email_allowed=True, line_allowed=False),
     ),
 }
@@ -316,10 +323,7 @@ def memory_profile_fixture() -> dict[str, Any]:
     """Measure bounded fixture-build memory without calling live providers."""
     payload = us_stock_batch_input_example()
     tracemalloc.start()
-    retained = [
-        build_us_stock_batch_artifact(payload, window="us_pre_market_2000"),
-        build_us_stock_batch_artifact(payload, window="us_intraday_2300"),
-    ]
+    retained = [build_us_stock_batch_artifact(payload, window=window) for window in CONTRACT_WINDOWS]
     retained_json_bytes = len(json.dumps(retained, ensure_ascii=False))
     retained_current, retained_peak = tracemalloc.get_traced_memory()
     tracemalloc.reset_peak()
@@ -338,6 +342,7 @@ def memory_profile_fixture() -> dict[str, Any]:
         "mode": "offline_fixture_tracemalloc",
         "live_provider_called": False,
         "retained_two_window_peak_kib": round(retained_peak / 1024, 2),
+        "retained_three_window_peak_kib": round(retained_peak / 1024, 2),
         "bounded_sequential_peak_kib": round(bounded_peak / 1024, 2),
         "retained_json_bytes": retained_json_bytes,
         "bounded_summaries": summaries,
@@ -383,6 +388,16 @@ def behavioral_contract_cases() -> list[dict[str, Any]]:
         "email": channel_state(attempted=True, succeeded=True),
         "line": channel_state(attempted=False, succeeded=False, reason="line_not_allowed_for_window"),
     }
+    review_started = datetime.fromisoformat("2026-09-09T06:30:01+08:00")
+    review_failure = build_failure_status(
+        window="us_post_close_review_0630",
+        started_at=review_started,
+        finished_at=datetime.fromisoformat("2026-09-09T06:42:01+08:00"),
+        reason="worker_failed",
+        error_type="WorkerProcessFailed",
+        returncode=2,
+        effective_trading_date="2026-09-08",
+    )
     partial_channel = {
         **intraday_normal,
         "status": "partial_channel_failure",
@@ -400,6 +415,10 @@ def behavioral_contract_cases() -> list[dict[str, Any]]:
     return [
         {"case": "20_normal_contract_defined", "passed": "us_pre_market_2000" in US_BATCH_EXECUTION_RELIABILITY_CONTRACT},
         {"case": "23_normal_contract_defined", "passed": "us_intraday_2300" in US_BATCH_EXECUTION_RELIABILITY_CONTRACT},
+        {"case": "0630_normal_contract_defined", "passed": "us_post_close_review_0630" in US_BATCH_EXECUTION_RELIABILITY_CONTRACT},
+        {"case": "0630_contract_for_window_supported", "passed": contract_for_window("us_post_close_review_0630").window == "us_post_close_review_0630"},
+        {"case": "0630_email_allowed_line_not_allowed", "passed": contract_for_window("us_post_close_review_0630").channel_policy.email_allowed is True and contract_for_window("us_post_close_review_0630").channel_policy.line_allowed is False},
+        {"case": "0630_worker_failure_fail_closed", "passed": not validate_status(review_failure) and review_failure["email_attempted"] is False and review_failure["line_attempted"] is False, "status": review_failure},
         {"case": "20_worker_oom_equivalent_fail_closed", "passed": not validate_status(pre_failure), "status": pre_failure},
         {"case": "20_timeout_fail_closed", "passed": not validate_status(timeout), "status": timeout},
         {"case": "20_failure_does_not_mutate_23_contract", "passed": contract_for_window("us_intraday_2300").independent_scheduler_required},
