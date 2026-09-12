@@ -21,6 +21,7 @@ from app.us_stock.batch_reliability import (
     behavioral_contract_cases,
     build_failure_status,
     channel_state,
+    contract_for_window,
     memory_profile_fixture,
     validate_runtime_identity,
     validate_status,
@@ -93,10 +94,13 @@ def _runtime_cases() -> list[dict[str, Any]]:
     runtime_20["effective_trading_date"] = "2026-09-08"
     runtime_23 = build_us_stock_batch_artifact(payload, window="us_intraday_2300")
     runtime_23["effective_trading_date"] = "2026-09-08"
+    runtime_0630 = build_us_stock_batch_artifact(payload, window="us_post_close_review_0630")
+    runtime_0630["effective_trading_date"] = "2026-09-08"
     stale = {**runtime_20, "effective_trading_date": "2026-09-07"}
     return [
         _case("20_runtime_symbol_order", not validate_runtime_identity(runtime_20, expected_window="us_pre_market_2000", expected_trading_date="2026-09-08", expected_symbols=expected_symbols)),
         _case("23_runtime_symbol_order", not validate_runtime_identity(runtime_23, expected_window="us_intraday_2300", expected_trading_date="2026-09-08", expected_symbols=expected_symbols)),
+        _case("0630_runtime_symbol_order", not validate_runtime_identity(runtime_0630, expected_window="us_post_close_review_0630", expected_trading_date="2026-09-08", expected_symbols=expected_symbols)),
         _case("wrong_date_runtime_rejected", "runtime_effective_trading_date_mismatch" in validate_runtime_identity(stale, expected_window="us_pre_market_2000", expected_trading_date="2026-09-08", expected_symbols=expected_symbols)),
     ]
 
@@ -106,11 +110,13 @@ def _idempotency_cases() -> list[dict[str, Any]]:
     duplicate_email = channel_state(attempted=False, succeeded=False, reason="duplicate_delivery_suppressed")
     partial_email = channel_state(attempted=True, succeeded=False, reason="smtp_failed")
     line_23 = channel_state(attempted=False, succeeded=False, reason="line_not_allowed_for_window")
+    line_0630 = channel_state(attempted=False, succeeded=False, reason="line_not_allowed_for_window")
     return [
         _case("sent_implies_attempted", first_email["sent"] and first_email["attempted"]),
         _case("duplicate_retry_not_attempted", duplicate_email["state"] == "suppressed" and not duplicate_email["attempted"]),
         _case("partial_channel_failure_truthful", partial_email["attempted"] and not partial_email["sent"] and partial_email["state"] == "failed"),
         _case("us_2300_line_not_attempted_by_policy", line_23["state"] == "not_attempted" and not line_23["attempted"]),
+        _case("us_0630_line_not_attempted_by_policy", line_0630["state"] == "not_attempted" and not line_0630["attempted"]),
     ]
 
 
@@ -121,6 +127,14 @@ def validate() -> dict[str, Any]:
     cases.extend(_runtime_cases())
     cases.extend(_idempotency_cases())
     memory = memory_profile_fixture()
+    try:
+        supported_0630 = contract_for_window("us_post_close_review_0630").window == "us_post_close_review_0630"
+        unsupported_detail = {}
+    except ValueError as exc:
+        supported_0630 = False
+        unsupported_detail = {"error": str(exc)}
+    cases.append(_case("0630_no_longer_unsupported", supported_0630, unsupported_detail))
+
     def named_case_set(names: set[str]) -> list[dict[str, Any]]:
         selected: list[dict[str, Any]] = []
         seen: set[str] = set()
@@ -134,6 +148,11 @@ def validate() -> dict[str, Any]:
     contract_cases = named_case_set({
         "20_normal_contract_defined",
         "23_normal_contract_defined",
+        "0630_normal_contract_defined",
+        "0630_contract_for_window_supported",
+        "0630_no_longer_unsupported",
+        "0630_email_allowed_line_not_allowed",
+        "0630_worker_failure_fail_closed",
         "20_worker_oom_equivalent_fail_closed",
         "20_timeout_fail_closed",
         "20_failure_does_not_mutate_23_contract",
@@ -150,14 +169,18 @@ def validate() -> dict[str, Any]:
         "partial_channel_failure_truthful",
         "sent_implies_attempted",
         "us_2300_line_not_attempted_by_policy",
+        "us_0630_line_not_attempted_by_policy",
     })
+    formal_windows = {"us_pre_market_2000", "us_intraday_2300", "us_post_close_review_0630"}
     failed = [case for case in cases if not case.get("passed")]
     return {
         "ok": not failed,
         "passed": not failed,
-        "task_id": "AI-DEV-236",
+        "task_id": "AI-DEV-240",
         "contract_name": "US_BATCH_EXECUTION_RELIABILITY_CONTRACT",
         "windows": list(CONTRACT_WINDOWS),
+        "required_formal_windows": sorted(formal_windows),
+        "all_formal_windows_covered": set(CONTRACT_WINDOWS) == formal_windows,
         "contract": {key: value.to_dict() for key, value in US_BATCH_EXECUTION_RELIABILITY_CONTRACT.items()},
         "counts": {
             "overall_passed": sum(1 for case in cases if case.get("passed")),
