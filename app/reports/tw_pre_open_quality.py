@@ -256,9 +256,80 @@ def _resolve_tw_symbol_attribution(
     }
 
 
+def _missing_identity_news_contract(raw_items: list[dict[str, Any]], *, generated_at: str | None, target_symbol: str, target_name: str | None) -> dict[str, Any]:
+    candidate_records = []
+    rejection_reasons = {"CANONICAL_IDENTITY_MISSING": len(raw_items)}
+    for item in raw_items[:64]:
+        candidate_records.append({
+            "candidate_id": item.get("news_id") or "candidate_" + hashlib.sha256(json.dumps(item, ensure_ascii=False, sort_keys=True, default=str).encode("utf-8")).hexdigest()[:20],
+            "headline": item.get("headline") or item.get("title"),
+            "publisher": item.get("publisher") or item.get("source"),
+            "published_at": item.get("published_at") or item.get("published") or item.get("timestamp") or item.get("date"),
+            "source_reference": item.get("source_url") or item.get("url") or item.get("link") or item.get("source_id"),
+            "fetched_at": item.get("fetched_at") or generated_at,
+            "primary_subject": target_symbol,
+            "relationship_type": "canonical_identity_missing",
+            "related_symbols": item.get("related_symbols") or [],
+            "event_type": item.get("event_type"),
+            "materiality": item.get("materiality") or "UNKNOWN",
+            "relevance": item.get("relevance") or "UNKNOWN",
+            "research_role": "NOT_USED",
+            "counted_in_synthesis": False,
+            "evidence_id": item.get("evidence_id"),
+            "admission_status": "REJECTED",
+            "rejection_reason": "CANONICAL_IDENTITY_MISSING",
+            "metadata_readiness": {
+                "status": "MISSING",
+                "reason_code": "CANONICAL_IDENTITY_MISSING",
+                "target_symbol": target_symbol,
+                "target_name": target_name,
+            },
+        })
+    funnel = {
+        "schema_version": "tw_research_evidence_funnel_v1",
+        "count_semantics": "EXACT",
+        "stages": {
+            "DISCOVERED": len(raw_items), "RETRIEVED": len(raw_items),
+            "NORMALIZED": 0, "SYMBOL_ATTRIBUTED": 0,
+            "RELEVANT": 0, "MATERIAL": 0,
+            "QUALITY_QUALIFIED": 0, "FRESH": 0,
+            "DEDUPLICATED": 0, "ADMITTED": 0,
+            "RRE_USED": 0, "RENDERED": 0,
+        },
+        "rejection_reasons": rejection_reasons,
+        "candidate_records": candidate_records,
+    }
+    return {
+        "status": "unavailable",
+        "evidence": [],
+        "primary_evidence": None,
+        "source_quality": "not_applicable",
+        "confidence": {"score": None, "level": "not_applicable", "components": {}, "reason_codes": ["CANONICAL_IDENTITY_MISSING"]},
+        "evidence_funnel": funnel,
+        "absence_state": "CANONICAL_IDENTITY_MISSING",
+        "metadata_readiness": {"status": "MISSING", "reason_code": "CANONICAL_IDENTITY_MISSING", "target_symbol": target_symbol, "target_name": target_name},
+        "retrieval": {
+            "lookback_hours": NEWS_LOOKBACK_HOURS,
+            "sources_attempted": ["UNSPECIFIED_UPSTREAM"],
+            "sources_succeeded": [],
+            "sources_failed": [],
+            "query_started_at": generated_at,
+            "query_completed_at": generated_at,
+            "result_count_raw": len(raw_items),
+            "result_count_deduped": 0,
+            "result_count_admitted": 0,
+            "failure_reason": "CANONICAL_IDENTITY_MISSING",
+        },
+    }
+
+
 def news_contract(raw_news: Any, *, generated_at: str | None = None, target_symbol: str | None = None, target_name: str | None = None) -> dict[str, Any]:
     admitted = []
     raw_items = _news_items(raw_news)
+    if target_symbol:
+        metadata = instrument_metadata("TW", str(target_symbol).strip())
+        if metadata.get("status") != "AVAILABLE":
+            return _missing_identity_news_contract(raw_items, generated_at=generated_at, target_symbol=str(target_symbol).strip(), target_name=target_name)
     rejection_reasons: dict[str, int] = {}
     candidate_records: list[dict[str, Any]] = []
     def reject(code: str, candidate: dict[str, Any] | None = None) -> None:

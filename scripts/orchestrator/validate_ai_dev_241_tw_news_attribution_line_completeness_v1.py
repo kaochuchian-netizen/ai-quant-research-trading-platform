@@ -120,9 +120,32 @@ def run_validation() -> dict[str, Any]:
     details["watchlist_metadata"] = {symbol: metadata[symbol].get("status") for symbol in EXPECTED_TW}
     checks["current_watchlist_symbols_resolve_where_metadata_exists"] = all(
         row.get("status") == "AVAILABLE"
-        for symbol, row in metadata.items()
-        if symbol != "3293"
-    ) and metadata["3293"].get("status") == "MISSING"
+        for row in metadata.values()
+    )
+    checks["3293_resolves_canonical_identity"] = (
+        metadata["3293"].get("status") == "AVAILABLE"
+        and metadata["3293"].get("display_name") == "鈊象"
+        and metadata["3293"].get("exchange") == "TPEx"
+    )
+    positive_3293 = news_contract(
+        [_news("鈊象遊戲業務動能延續", source_url="https://example.invalid/igs")],
+        generated_at=NOW,
+        target_symbol="3293",
+        target_name="鈊象",
+    )
+    checks["3293_positive_attribution_through_canonical_identity"] = positive_3293["evidence_funnel"]["stages"]["ADMITTED"] == 1
+    missing_identity = news_contract(
+        [_news("測試公司發布重大消息", source_url="https://example.invalid/missing")],
+        generated_at=NOW,
+        target_symbol="7777",
+        target_name="測試公司",
+    )
+    checks["future_admitted_symbol_missing_identity_fails_before_synthesis"] = (
+        missing_identity["absence_state"] == "CANONICAL_IDENTITY_MISSING"
+        and missing_identity["evidence_funnel"]["stages"]["NORMALIZED"] == 0
+        and missing_identity["evidence_funnel"]["stages"]["ADMITTED"] == 0
+        and missing_identity["evidence_funnel"]["rejection_reasons"].get("CANONICAL_IDENTITY_MISSING") == 1
+    )
 
     systematic = news_contract(
         [_news(f"候選新聞 {idx}", source_url=f"https://example.invalid/{idx}") for idx in range(5)],
@@ -137,7 +160,7 @@ def run_validation() -> dict[str, Any]:
         and systematic["absence_state"] == "NEWS_DISCOVERED_BUT_FILTERED"
     )
 
-    symbols = EXPECTED_TW[:-1]
+    symbols = EXPECTED_TW
     line = render_line(_cards(symbols), "https://example.invalid/stock-ai-dashboard/dashboard/tw/")
     rendered = rendered_symbols_from_text(line, symbols)
     accounting = build_symbol_delivery_accounting(
