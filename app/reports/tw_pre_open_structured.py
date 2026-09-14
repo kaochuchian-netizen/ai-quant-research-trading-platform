@@ -127,7 +127,7 @@ def build_card(*, symbol: str, name: str, trading_date: str, indicator: dict[str
     entry_readiness = "ready_for_open_confirmation" if group == "opportunity" and numeric_score >= 65 else "wait" if group in {"opportunity", "watch"} else "no_trade" if group == "no_trade" else "unavailable"
     generated_at = generated_at or datetime.now(TAIPEI).replace(microsecond=0).isoformat()
     technical_as_of = _first(indicator, "date", "source_data_date")
-    canonical_news = news_contract(news, generated_at=generated_at)
+    canonical_news = news_contract(news, generated_at=generated_at, target_symbol=str(symbol), target_name=name)
     card: dict[str, Any] = {
         "symbol": str(symbol), "stock_id": str(symbol), "name": name, "stock_name": name,
         "market": MARKET, "window": WINDOW, "trading_date": trading_date,
