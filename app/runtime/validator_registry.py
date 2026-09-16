@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+import hashlib
+import re
 import subprocess
 import sys
 import time
@@ -68,6 +70,34 @@ def _summary(value: Any, limit: int = 2000) -> str:
     return text if len(text) <= limit else text[:limit] + "…"
 
 
+def normalize_validator_failure_text(text: str, *, root: Path = ROOT) -> str:
+    value = str(text or "")
+    venv_path = str(ROOT / "venv")
+    value = re.sub(r"/private/tmp/ai-dev-[^/]+/(base|head)", "/TMP/WORKTREE", value)
+    value = re.sub(r"/tmp/ai-dev-[^/]+/(base|head)", "/TMP/WORKTREE", value)
+    roots = {str(ROOT), str(ROOT.resolve()), str(root), str(root.resolve())}
+    roots |= {"/private" + item for item in roots if item.startswith("/var/")}
+    for item in sorted(roots, key=len, reverse=True):
+        if item:
+            value = value.replace(item, "/TMP/WORKTREE")
+    value = value.replace("/TMP/WORKTREE/venv", venv_path)
+    value = re.sub(r"/private/var/folders/(?:[^/]+/)+T/ai-dev-[^/]+", "/TMP/AI_DEV_TEMP", value)
+    value = re.sub(r"/var/folders/(?:[^/]+/)+T/ai-dev-[^/]+", "/TMP/AI_DEV_TEMP", value)
+    value = re.sub(r"/private/tmp/ai-dev-[^/]+", "/TMP/AI_DEV_TEMP", value)
+    value = re.sub(r"/tmp/ai-dev-[^/]+", "/TMP/AI_DEV_TEMP", value)
+    value = value.replace("/TMP/WORKTREE", "/ENV_ROOT")
+    value = value.replace("/TMP/AI_DEV_TEMP", "/ENV_ROOT")
+    value = re.sub(r"revision_(\d{3})_[0-9a-f]{12}\.json", r"revision_\1_<RUNTIME_ID>.json", value)
+    value = re.sub(r'("visual_evidence_id"\s*:\s*")[0-9a-f]{64}(")', r"\1<VISUAL_EVIDENCE_ID>\2", value)
+    value = re.sub(r"line \d+", "line N", value)
+    return value
+
+
+def validator_failure_fingerprint(stdout: str, stderr: str, *, root: Path = ROOT) -> str:
+    text = stderr if str(stderr or "").strip() else stdout
+    return hashlib.sha256(normalize_validator_failure_text(text, root=root).encode("utf-8")).hexdigest()
+
+
 def _subprocess_runner(path: Path, *, root: Path = ROOT, timeout_seconds: int = 300) -> dict[str, Any]:
     started = time.monotonic()
     completed = subprocess.run(
@@ -112,7 +142,7 @@ def evaluate_validator_entry(
         semantic.get("status") == "FAIL" or semantic.get("passed") is False or semantic.get("ok") is False
     )
     passed = returncode == 0 and not semantic_fail
-    return {
+    output = {
         "status": "PASS" if passed else "FAIL", "execution_status": "PASS" if passed else "FAIL",
         "reason": None if passed else "SEMANTIC_VALIDATOR_FAILURE" if semantic_fail else "VALIDATOR_EXIT_FAILURE",
         "returncode": returncode, "semantic_result": semantic,
@@ -120,6 +150,11 @@ def evaluate_validator_entry(
         "duration_seconds": result.get("duration_seconds", round(time.monotonic() - started, 4)),
         "command": result.get("command") or [sys.executable, str(path)], "pass": passed,
     }
+    if not passed:
+        output["failure_fingerprint"] = validator_failure_fingerprint(
+            str(result.get("stdout") or ""), str(result.get("stderr") or ""), root=root,
+        )
+    return output
 
 
 def execute_validator_gate(
