@@ -44,6 +44,7 @@ from app.reports.tw_post_close_review import build_structured_review_payload, re
 from app.reports.tw_pre_open_structured import render_email as render_tw_0700_email, render_line as render_tw_0700_line, validate_payload as validate_tw_0700_payload  # noqa: E402
 from app.reports.tw_pre_open_delivery_contract import deliver_admitted_pre_open_snapshot  # noqa: E402
 from app.reports.tw_four_window_decision import render_intraday_email as render_tw_1305_email, render_intraday_line as render_tw_1305_line  # noqa: E402
+from app.reports.tw_line_completeness import build_symbol_delivery_accounting, payload_symbols, rendered_symbols_from_text  # noqa: E402
 from app.runtime.production_run_guard import evaluate_pre_open_run_guard  # noqa: E402
 from app.runtime.runtime_diagnostics import build_guard_result, write_json  # noqa: E402
 from app.runtime.timeout_policy import TimeoutPolicy, timeout_policy_from_env  # noqa: E402
@@ -1235,12 +1236,23 @@ def main() -> int:
     provenance_snapshot = content_snapshot if args.window == "pre_open_0700" else latest_snapshot
     for channel, delivery, content in (("email", email, email_content), ("line", line, line_content)):
         delivery_result = transport_delivery_result(delivery)
+        symbol_accounting = {}
+        if args.window == "pre_open_0700":
+            payload = provenance_snapshot.get("payload") if isinstance(provenance_snapshot.get("payload"), dict) else {}
+            expected_symbols = payload_symbols(payload)
+            symbol_accounting = build_symbol_delivery_accounting(
+                expected_symbols=expected_symbols,
+                rendered_symbols=rendered_symbols_from_text(content, expected_symbols),
+                policy=cfg["line_policy"] if channel == "line" else cfg["email_policy"],
+                channel=channel,
+                content=content,
+            )
         provenance = build_delivery_provenance(
             market="TW", window=args.window, trading_date=effective_trading_date,
             snapshot=provenance_snapshot, canonical_url=args.dashboard_url, channel=channel,
             content=content, delivery_result=delivery_result,
             delivery_attempted=bool(delivery.get("send_attempted")), recipient_count=int(delivery.get("recipient_count") or 0),
-            public_sync=public_latest_sync,
+            public_sync=public_latest_sync, symbol_delivery_accounting=symbol_accounting,
         )
         write_delivery_provenance(
             REPO_ROOT / "artifacts/runtime/delivery_provenance" / f"tw_{args.window}_{channel}_latest.json",

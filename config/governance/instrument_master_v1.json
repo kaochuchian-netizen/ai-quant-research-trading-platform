@@ -9,6 +9,7 @@
     "TW:2305": {"symbol":"2305","display_name":"全友","market":"TW","exchange":"TWSE","instrument_type":"company","sector":"電子","industry":"光電業","peer_group":"影像輸入設備","adr_symbol":null,"source":"TWSE/company official","effective_date":"2026-08-12"},
     "TW:4743": {"symbol":"4743","display_name":"合一","market":"TW","exchange":"TPEx","instrument_type":"company","sector":"生技醫療","industry":"生技醫療","peer_group":"新藥研發","adr_symbol":null,"source":"TPEx/company official","effective_date":"2026-08-12"},
     "TW:1409": {"symbol":"1409","display_name":"新纖","market":"TW","exchange":"TWSE","instrument_type":"company","sector":"傳產","industry":"紡織纖維","peer_group":"紡織纖維","adr_symbol":null,"source":"TWSE/company official","effective_date":"2026-08-12"},
+    "TW:3293": {"symbol":"3293","display_name":"鈊象","market":"TW","exchange":"TPEx","instrument_type":"company","sector":"文化創意","industry":"遊戲產業","peer_group":"線上遊戲與數位內容","adr_symbol":null,"source":"TPEx/company official; company IR","effective_date":"2026-09-14"},
     "TW:00878": {"symbol":"00878","display_name":"國泰永續高股息","market":"TW","exchange":"TWSE","instrument_type":"etf","sector":"高股息","industry":"ETF","peer_group":"台股高股息ETF","adr_symbol":null,"source":"TWSE/fund official","effective_date":"2026-08-12"},
     "TW:009816": {"symbol":"009816","display_name":"凱基台灣TOP50","market":"TW","exchange":"TWSE","instrument_type":"etf","sector":"市值型","industry":"ETF","peer_group":"台股市值型ETF","adr_symbol":null,"source":"TWSE/fund official","effective_date":"2026-08-12"}
   }

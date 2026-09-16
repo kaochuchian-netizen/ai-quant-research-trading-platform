@@ -313,23 +313,24 @@ def portfolio_summary(cards: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def render_line(cards: list[dict[str, Any]], url: str) -> str:
-    lines = ["【Stock AI】07:00 台股盤前", ""]
+    lines = ["【Stock AI】07:00 台股盤前"]
+    dispositions: list[str] = []
+    news_available = 0
+    news_retrieved = 0
     for card in cards:
         product = card.get("tw_preopen_product_intelligence_v1") or {}
         if not product:
             continue
-        lines.extend(
-            [
-                f"{product.get('symbol')} {product.get('name')}",
-                f"{product.get('direction_label')} {product.get('direction_arrow')}",
-                f"目標 {_format_price(product.get('target_price'))}",
-                f"區間 {_format_price(product.get('predicted_low'))}～{_format_price(product.get('predicted_high'))}",
-            ]
-        )
         funnel = product.get("news_funnel") or {}
-        lines.append(f"新聞：抓取 {funnel.get('retrieved_count', 0)}｜可用 {funnel.get('selected_count', 0)}")
-        for item in (product.get("important_news") or [])[:2]:
-            lines.append(f"• {item.get('headline')}｜{item.get('publisher')}｜{item.get('expected_impact')}")
-        lines.append("")
+        news_retrieved += int(funnel.get("retrieved_count") or 0)
+        news_available += int(funnel.get("selected_count") or 0)
+        low = _format_price(product.get("predicted_low"))
+        high = _format_price(product.get("predicted_high"))
+        dispositions.append(
+            f"{product.get('symbol')} {product.get('direction_label')} {product.get('direction_arrow')}"
+            f" 目標{_format_price(product.get('target_price'))} 區間{low}～{high}"
+        )
+    lines.append("標的：" + ("；".join(dispositions) if dispositions else "資料待接"))
+    lines.append(f"新聞：抓取 {news_retrieved}｜可用 {news_available}")
     lines.extend([url, "僅供研究參考，非交易指令。"])
     return "\n".join(lines)
