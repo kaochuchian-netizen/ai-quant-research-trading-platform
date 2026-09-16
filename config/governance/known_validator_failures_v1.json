@@ -1,0 +1,106 @@
+{
+  "schema_version": "known_validator_failures_v1",
+  "version": "2026-09-16-ai-dev-243-final",
+  "entries": [
+    {
+      "validator_id": "ai_dev_208_visual_evidence_archive",
+      "failure_fingerprint": "12326a1826572a7c27ecea116838be0c012eeb7b7879f2539ad67f41601812a0",
+      "reason": "Pre-existing identical visual evidence archive failure: case_a_tw_capture_success and case_b_us_capture_success fail on both base and head.",
+      "issue_owner": "AI-DEV-243",
+      "baseline_reference": "AI-DEV-243 final base/head audit: origin/main 0a9243cc9abdb2a1a8325ac5c82e956864c44043 and ai-dev/243-full-gate-known-failure-quarantine final implementation",
+      "introduced_by": "pre-existing visual evidence archive baseline",
+      "expires_at": "2026-10-16",
+      "review_condition": "Remove when ai_dev_208_visual_evidence_archive passes on main or when its underlying visual capture contract is repaired."
+    },
+    {
+      "validator_id": "ai_dev_209_h2_qualified_news_rre_rendering",
+      "failure_fingerprint": "bb8bb8ec310bbccc08fa9579b0b0e76d9a4c425443544ff0139e826d45a75b73",
+      "reason": "Pre-existing identical AI-DEV-209-H2 semantic failure: case_l_ai210_regression fails on both base and head.",
+      "issue_owner": "AI-DEV-243",
+      "baseline_reference": "AI-DEV-243 final base/head audit: origin/main 0a9243cc9abdb2a1a8325ac5c82e956864c44043 and ai-dev/243-full-gate-known-failure-quarantine final implementation",
+      "introduced_by": "pre-existing AI-DEV-209-H2 regression baseline",
+      "expires_at": "2026-10-16",
+      "review_condition": "Remove when ai_dev_209_h2_qualified_news_rre_rendering passes on main or when case_l_ai210_regression is repaired."
+    },
+    {
+      "validator_id": "ai_dev_209_h3_user_visible_research_presentation",
+      "failure_fingerprint": "49edf6bba36fc0da40e910314b123f5009eea9dfc33b1446a24e38cda7869a0a",
+      "reason": "Pre-existing identical AI-DEV-209-H3 generated-artifact failure: rendered_text.md missing under the same artifact-relative path on both base and head; only temp roots differ.",
+      "issue_owner": "AI-DEV-243",
+      "baseline_reference": "AI-DEV-243 final base/head audit: origin/main 0a9243cc9abdb2a1a8325ac5c82e956864c44043 and ai-dev/243-full-gate-known-failure-quarantine final implementation",
+      "introduced_by": "pre-existing AI-DEV-209-H3 visual artifact baseline",
+      "expires_at": "2026-10-16",
+      "review_condition": "Remove when ai_dev_209_h3_user_visible_research_presentation passes on main or when the rendered_text.md artifact path contract is repaired."
+    },
+    {
+      "validator_id": "ai_dev_210_visual_evidence_pdf_retrieval",
+      "failure_fingerprint": "5036a266a68ce554350c0ea015efef57483b6eb670906fe275ad06febddcd372",
+      "reason": "Pre-existing identical AI-DEV-210 validator exit failure: KeyError 'pdf' occurs on both base and head.",
+      "issue_owner": "AI-DEV-243",
+      "baseline_reference": "AI-DEV-243 final base/head audit: origin/main 0a9243cc9abdb2a1a8325ac5c82e956864c44043 and ai-dev/243-full-gate-known-failure-quarantine final implementation",
+      "introduced_by": "pre-existing AI-DEV-210 PDF retrieval baseline",
+      "expires_at": "2026-10-16",
+      "review_condition": "Remove when ai_dev_210_visual_evidence_pdf_retrieval passes on main or when the missing pdf field contract is repaired."
+    },
+    {
+      "validator_id": "ai_dev_211_chatgpt_artifact_transport",
+      "failure_fingerprint": "4b3628fd36d049346b472474c586d6630f98d5651a758d63928390ea973d00f8",
+      "reason": "Pre-existing identical AI-DEV-211 validator exit failure: KeyError 'outbox_location' occurs on both base and head.",
+      "issue_owner": "AI-DEV-243",
+      "baseline_reference": "AI-DEV-243 final base/head audit: origin/main 0a9243cc9abdb2a1a8325ac5c82e956864c44043 and ai-dev/243-full-gate-known-failure-quarantine final implementation",
+      "introduced_by": "pre-existing AI-DEV-211 artifact transport baseline",
+      "expires_at": "2026-10-16",
+      "review_condition": "Remove when ai_dev_211_chatgpt_artifact_transport passes on main or when the outbox_location contract is repaired."
+    },
+    {
+      "validator_id": "ai_dev_212_h2_research_attribution_finalized_news_counter_argument",
+      "failure_fingerprint": "75b6f899522ddc75973cd7fdcdc7dd2bd4efaaaf84e8adb0d8eeb886ef8cc88b",
+      "reason": "Pre-existing identical AI-DEV-212-H2 generated-artifact failure: screenshot_full.png missing under the same artifact-relative path on both base and head; only temp roots differ.",
+      "issue_owner": "AI-DEV-243",
+      "baseline_reference": "AI-DEV-243 final base/head audit: origin/main 0a9243cc9abdb2a1a8325ac5c82e956864c44043 and ai-dev/243-full-gate-known-failure-quarantine final implementation",
+      "introduced_by": "pre-existing AI-DEV-212-H2 visual artifact baseline",
+      "expires_at": "2026-10-16",
+      "review_condition": "Remove when ai_dev_212_h2_research_attribution_finalized_news_counter_argument passes on main or when the screenshot_full.png artifact path contract is repaired."
+    },
+    {
+      "validator_id": "ai_dev_212_research_semantic_visual_integrity",
+      "failure_fingerprint": "2c13de744414fd41b10958a72c1393c2d6a4fcba40e44f49ec7d740203910a3d",
+      "reason": "Pre-existing identical AI-DEV-212 visual integrity generated-artifact failure: screenshot_full.png missing under the same artifact-relative path on both base and head; only temp roots differ.",
+      "issue_owner": "AI-DEV-243",
+      "baseline_reference": "AI-DEV-243 final base/head audit: origin/main 0a9243cc9abdb2a1a8325ac5c82e956864c44043 and ai-dev/243-full-gate-known-failure-quarantine final implementation",
+      "introduced_by": "pre-existing AI-DEV-212 visual artifact baseline",
+      "expires_at": "2026-10-16",
+      "review_condition": "Remove when ai_dev_212_research_semantic_visual_integrity passes on main or when the screenshot_full.png artifact path contract is repaired."
+    },
+    {
+      "validator_id": "ai_dev_217_tw_prediction_news_continuity",
+      "failure_fingerprint": "343cf94fa2b429592e439815d2dc44735c176a1190652faa1c1f6ceebeadac14",
+      "reason": "Pre-existing identical AI-DEV-217 browser-start failure: Playwright Chromium executable missing.",
+      "issue_owner": "AI-DEV-243",
+      "baseline_reference": "AI-DEV-243 final base/head audit: origin/main 0a9243cc9abdb2a1a8325ac5c82e956864c44043 and ai-dev/243-full-gate-known-failure-quarantine final implementation",
+      "introduced_by": "pre-existing AI-DEV-217 local/browser dependency baseline",
+      "expires_at": "2026-10-16",
+      "review_condition": "Remove when ai_dev_217_tw_prediction_news_continuity passes on main or when browser provisioning is governed in CI/local full gate."
+    },
+    {
+      "validator_id": "ai_dev_218a_tw_preopen_product_intelligence",
+      "failure_fingerprint": "d13e6df1ac5880c79ed740da367bc4ee9571db0cf619b1bd3c96f155ca19ff50",
+      "reason": "Pre-existing identical AI-DEV-218A browser-start failure: Playwright Chromium executable missing.",
+      "issue_owner": "AI-DEV-243",
+      "baseline_reference": "AI-DEV-241 base/head differential diagnosis and AI-DEV-243 final audit: base 0a9243cc9abdb2a1a8325ac5c82e956864c44043 and ai-dev/243-full-gate-known-failure-quarantine final implementation",
+      "introduced_by": "pre-existing AI-DEV-218A local/browser dependency baseline",
+      "expires_at": "2026-10-16",
+      "review_condition": "Remove when AI-DEV-218A validator passes on main or when browser provisioning is governed in CI/local full gate."
+    },
+    {
+      "validator_id": "ai_dev_218b_tw_preopen_news_readability_v1",
+      "failure_fingerprint": "21eae368bd0c063313b1b41953f80ad7aade420e7afde130bf11041d93eb73a2",
+      "reason": "Pre-existing identical AI-DEV-218B browser-start failure: Playwright Chromium executable missing.",
+      "issue_owner": "AI-DEV-243",
+      "baseline_reference": "AI-DEV-241 base/head differential diagnosis and AI-DEV-243 final audit: base 0a9243cc9abdb2a1a8325ac5c82e956864c44043 and ai-dev/243-full-gate-known-failure-quarantine final implementation",
+      "introduced_by": "pre-existing AI-DEV-218B local/browser dependency baseline",
+      "expires_at": "2026-10-16",
+      "review_condition": "Remove when AI-DEV-218B validator passes on main or when browser provisioning is governed in CI/local full gate."
+    }
+  ]
+}

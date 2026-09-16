@@ -21,6 +21,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from app.runtime.validator_registry import execute_validator_gate
+from app.runtime.validator_known_failures import apply_known_failure_quarantine
 
 
 DEFAULT_ALLOWED_PATHS = [
@@ -205,8 +206,15 @@ def main() -> int:
     registry_gate = execute_validator_gate(
         "branch", caller_validator_id="branch_gate", root=repo_root,
     )
-    if registry_gate.get("status") != "PASS":
-        reasons.extend(f"registry gate: {reason}" for reason in registry_gate.get("errors", []))
+    known_failure_quarantine = apply_known_failure_quarantine(
+        registry_gate,
+        base_ref=args.base,
+        head_ref=args.head,
+        repo_root=repo_root,
+    )
+    adjusted_registry_gate = known_failure_quarantine.get("adjusted_registry_gate", registry_gate)
+    if adjusted_registry_gate.get("status") != "PASS":
+        reasons.extend(f"registry gate: {reason}" for reason in known_failure_quarantine.get("errors", []))
 
     result = {
         "ok": True,
@@ -222,6 +230,8 @@ def main() -> int:
         "forbidden_changes": forbidden_result,
         "source_inventory_audit": source_inventory_result,
         "registry_gate_execution": registry_gate,
+        "known_failure_quarantine": known_failure_quarantine,
+        "adjusted_registry_gate_execution": adjusted_registry_gate,
         "reasons": reasons,
         "side_effects": {
             "files_modified": False,
