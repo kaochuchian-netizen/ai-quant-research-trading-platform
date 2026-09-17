@@ -15,6 +15,7 @@ REGISTRY_PATH = ROOT / "config/governance/validator_registry_v1.json"
 VALID_STATES = {"ACTIVE", "SUPERSEDED", "DEPRECATED", "HISTORICAL_ONLY"}
 VALID_EXECUTION_ROLES = {"leaf", "orchestrator"}
 GATE_FIELDS = {"branch": "required_in_branch_gate", "post_merge": "required_in_post_merge"}
+ProgressCallback = Callable[[dict[str, Any]], None]
 
 
 def load_validator_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
@@ -113,7 +114,7 @@ def _subprocess_runner(path: Path, *, root: Path = ROOT, timeout_seconds: int = 
 
 def evaluate_validator_entry(
     entry: dict[str, Any], runner: Callable[[Path], dict[str, Any]] | None = None,
-    *, root: Path = ROOT,
+    *, root: Path = ROOT, timeout_seconds: float | None = None,
 ) -> dict[str, Any]:
     """Evaluate one entry fail-closed, including semantic JSON failure."""
     status = entry.get("status")
@@ -129,7 +130,18 @@ def evaluate_validator_entry(
         return {"status": "FAIL", "execution_status": "FAIL", "reason": "REQUIRED_VALIDATOR_MISSING", "pass": False, "command": [sys.executable, str(path)]}
     started = time.monotonic()
     try:
-        result = runner(path) if runner else _subprocess_runner(path, root=root)
+        result = runner(path) if runner else _subprocess_runner(path, root=root, timeout_seconds=max(1, int(timeout_seconds or 300)))
+    except subprocess.TimeoutExpired as exc:
+        stdout = exc.stdout.decode("utf-8", errors="replace") if isinstance(exc.stdout, bytes) else str(exc.stdout or "")
+        stderr = exc.stderr.decode("utf-8", errors="replace") if isinstance(exc.stderr, bytes) else str(exc.stderr or "")
+        return {
+            "status": "FAIL", "execution_status": "TIMEOUT", "reason": "VALIDATOR_TIMEOUT",
+            "timeout_seconds": timeout_seconds, "returncode": None,
+            "stdout_summary": _summary(stdout), "stderr_summary": _summary(stderr),
+            "duration_seconds": round(time.monotonic() - started, 4),
+            "command": [sys.executable, str(path)], "pass": False,
+            "failure_fingerprint": validator_failure_fingerprint(stdout, stderr, root=root),
+        }
     except Exception as exc:  # fail closed by contract
         return {
             "status": "FAIL", "execution_status": "FAIL", "reason": "ACTIVE_VALIDATOR_EXCEPTION",
@@ -160,6 +172,9 @@ def evaluate_validator_entry(
 def execute_validator_gate(
     gate: str, *, caller_validator_id: str, registry_path: Path = REGISTRY_PATH,
     root: Path = ROOT, runner: Callable[[Path], dict[str, Any]] | None = None,
+    overall_timeout_seconds: float | None = None,
+    per_validator_timeout_seconds: float = 300,
+    progress_callback: ProgressCallback | None = None,
 ) -> dict[str, Any]:
     """Execute ACTIVE leaf validators selected by registry policy.
 
@@ -183,8 +198,41 @@ def execute_validator_gate(
     )
     results: list[dict[str, Any]] = []
     errors: list[str] = []
-    for entry in selected:
+    gate_started = time.monotonic()
+
+    def emit(event: str, **payload: Any) -> None:
+        if progress_callback is None:
+            return
+        progress_callback({
+            "schema_version": "validator_gate_progress_v1",
+            "event": event,
+            "gate": gate,
+            "caller_validator_id": caller_validator_id,
+            "elapsed_seconds": round(time.monotonic() - gate_started, 4),
+            **payload,
+        })
+
+    emit("gate_started", selected_count=len(selected))
+    timed_out = False
+    timeout_detail: dict[str, Any] | None = None
+    for index, entry in enumerate(selected, start=1):
         validator_id = str(entry.get("validator_id"))
+        elapsed = time.monotonic() - gate_started
+        remaining = None if overall_timeout_seconds is None else overall_timeout_seconds - elapsed
+        if remaining is not None and remaining <= 0:
+            timed_out = True
+            timeout_detail = {
+                "reason": "GATE_TIMEOUT_BEFORE_VALIDATOR",
+                "timeout_seconds": overall_timeout_seconds,
+                "elapsed_seconds": round(elapsed, 4),
+                "current_validator_id": validator_id,
+                "completed_validator_count": len(results),
+                "total_validator_count": len(selected),
+            }
+            errors.append(f"{validator_id}:GATE_TIMEOUT")
+            emit("gate_timeout", **timeout_detail)
+            break
+        emit("validator_started", validator_id=validator_id, index=index, total=len(selected), remaining_timeout_seconds=round(remaining, 4) if remaining is not None else None)
         if entry.get("execution_role") == "orchestrator":
             if validator_id != caller_validator_id:
                 errors.append(f"{validator_id}:UNEXPECTED_REQUIRED_ORCHESTRATOR")
@@ -194,12 +242,29 @@ def execute_validator_gate(
                     "validator_id": validator_id, "execution_status": "SKIPPED_RECURSION_GUARD",
                     "reason": "CALLER_ORCHESTRATOR_SELF_EXCLUDED", "pass": True,
                 })
+            emit("validator_completed", validator_id=validator_id, index=index, total=len(selected), execution_status=results[-1].get("execution_status"), duration_seconds=0.0)
             continue
-        evaluated = evaluate_validator_entry(entry, runner, root=root)
+        validator_timeout = per_validator_timeout_seconds
+        if remaining is not None:
+            validator_timeout = max(1, min(float(per_validator_timeout_seconds), remaining))
+        evaluated = evaluate_validator_entry(entry, runner, root=root, timeout_seconds=validator_timeout)
         evaluated["validator_id"] = validator_id
         results.append(evaluated)
+        emit("validator_completed", validator_id=validator_id, index=index, total=len(selected), execution_status=evaluated.get("execution_status"), status=evaluated.get("status"), duration_seconds=evaluated.get("duration_seconds"))
         if not evaluated.get("pass"):
             errors.append(f"{validator_id}:{evaluated.get('reason') or 'FAIL'}")
+            if evaluated.get("execution_status") == "TIMEOUT":
+                timed_out = True
+                timeout_detail = {
+                    "reason": "VALIDATOR_TIMEOUT",
+                    "timeout_seconds": overall_timeout_seconds,
+                    "elapsed_seconds": round(time.monotonic() - gate_started, 4),
+                    "current_validator_id": validator_id,
+                    "completed_validator_count": max(0, len(results) - 1),
+                    "total_validator_count": len(selected),
+                }
+                emit("gate_timeout", **timeout_detail)
+                break
     selected_ids = [str(row.get("validator_id")) for row in selected]
     executed_ids = [row["validator_id"] for row in results if row.get("execution_status") not in {"SKIPPED_RECURSION_GUARD"}]
     recursion_ids = [row["validator_id"] for row in results if row.get("execution_status") == "SKIPPED_RECURSION_GUARD"]
@@ -219,5 +284,8 @@ def execute_validator_gate(
         "passed_leaf_count": passed_leaf, "recursion_guard_count": len(recursion_ids),
         "failed_count": sum(not row.get("pass") for row in results),
         "unexplained_skipped_validator_ids": unexplained_skips,
+        "duration_seconds": round(time.monotonic() - gate_started, 4),
+        "timed_out": timed_out,
+        "timeout": timeout_detail,
         "results": results, "errors": errors,
     }

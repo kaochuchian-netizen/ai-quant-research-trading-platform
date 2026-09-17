@@ -23,6 +23,7 @@ import json
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -36,6 +37,7 @@ except ImportError:  # Direct script execution keeps the sibling directory on sy
 
 
 DEFAULT_TASK_BRANCH_PREFIX = "ai-dev/"
+DEFAULT_POST_MERGE_GATE_TIMEOUT_SECONDS = 220.0
 
 TW_WINDOWS = ("pre_open_0700", "intraday_1305", "pre_close_1335", "post_close_1500")
 US_WINDOWS = ("us_pre_market_2000", "us_intraday_2300", "us_post_close_review_0630")
@@ -360,6 +362,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--runtime-dir", default="~/.local/state/stock-ai-orchestrator")
     parser.add_argument("--task-branch-prefix", default=DEFAULT_TASK_BRANCH_PREFIX)
     parser.add_argument(
+        "--gate-timeout-seconds",
+        type=float,
+        default=DEFAULT_POST_MERGE_GATE_TIMEOUT_SECONDS,
+        help="Fail closed with structured JSON if the post-merge registry gate exceeds this budget.",
+    )
+    parser.add_argument(
         "--simulate-post-merge-success",
         action="store_true",
         help="Return a mocked clean main-branch state for format testing without switching branches.",
@@ -368,13 +376,52 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def emit_progress(event: str, **payload: Any) -> None:
+    """Emit machine-readable progress without changing stdout's final JSON contract."""
+    message = {
+        "schema_version": "post_merge_status_progress_v1",
+        "event": event,
+        **payload,
+    }
+    sys.stderr.write(json.dumps(message, ensure_ascii=False, sort_keys=True) + "\n")
+    sys.stderr.flush()
+
+
+def slow_validator_summary(registry_gate: dict[str, Any], *, limit: int = 10) -> list[dict[str, Any]]:
+    rows = []
+    for item in registry_gate.get("results", []) or []:
+        if not isinstance(item, dict):
+            continue
+        duration = item.get("duration_seconds")
+        if duration is None:
+            continue
+        rows.append({
+            "validator_id": item.get("validator_id"),
+            "execution_status": item.get("execution_status"),
+            "status": item.get("status"),
+            "duration_seconds": duration,
+            "reason": item.get("reason"),
+        })
+    return sorted(rows, key=lambda row: float(row.get("duration_seconds") or 0), reverse=True)[:limit]
+
+
 def main() -> int:
     args = parse_args()
     repo_root = Path(args.repo_root).resolve()
     runtime_dir = Path(args.runtime_dir).expanduser().resolve()
+    stage_timings: dict[str, float] = {}
+    started = time.monotonic()
 
+    stage_started = time.monotonic()
+    emit_progress("platform_status_started", repo_root=str(repo_root))
     platform_status = build_platform_status_report(repo_root, runtime_dir)
+    stage_timings["build_platform_status_report"] = round(time.monotonic() - stage_started, 4)
+    emit_progress("platform_status_completed", duration_seconds=stage_timings["build_platform_status_report"])
+
+    stage_started = time.monotonic()
+    emit_progress("git_status_started")
     expanded_status, status_error = collect_expanded_git_status(repo_root)
+    stage_timings["collect_expanded_git_status"] = round(time.monotonic() - stage_started, 4)
     if status_error:
         platform_status = dict(platform_status)
         platform_status["warnings"] = list(platform_status.get("warnings", [])) + [
@@ -386,17 +433,51 @@ def main() -> int:
         git["status_short"] = expanded_status
         git["clean"] = not expanded_status
         platform_status["git"] = git
+    emit_progress("git_status_completed", duration_seconds=stage_timings["collect_expanded_git_status"], status_entry_count=len(expanded_status), status_error=status_error)
     if args.simulate_post_merge_success:
         platform_status = apply_simulated_post_merge_state(platform_status)
 
+    stage_started = time.monotonic()
+    emit_progress("post_merge_summary_started")
     report = summarize_post_merge_status(
         platform_status,
         task_branch_prefix=args.task_branch_prefix,
     )
+    stage_timings["summarize_post_merge_status"] = round(time.monotonic() - stage_started, 4)
+    emit_progress(
+        "post_merge_summary_completed",
+        duration_seconds=stage_timings["summarize_post_merge_status"],
+        preserved_runtime_artifacts=len(report.get("preserved_runtime_artifacts", [])),
+        blocking_task_residue=len(report.get("blocking_task_residue", [])),
+        unknown_dirty_paths=len(report.get("unknown_dirty_paths", [])),
+    )
+
+    stage_started = time.monotonic()
+    emit_progress("registry_gate_started", gate="post_merge", timeout_seconds=args.gate_timeout_seconds)
     registry_gate = execute_validator_gate(
-        "post_merge", caller_validator_id="post_merge_status", root=repo_root,
+        "post_merge",
+        caller_validator_id="post_merge_status",
+        root=repo_root,
+        overall_timeout_seconds=args.gate_timeout_seconds,
+        progress_callback=lambda event: emit_progress("registry_gate_progress", registry_event=event),
+    )
+    stage_timings["execute_validator_gate_post_merge"] = round(time.monotonic() - stage_started, 4)
+    emit_progress(
+        "registry_gate_completed",
+        gate="post_merge",
+        duration_seconds=stage_timings["execute_validator_gate_post_merge"],
+        status=registry_gate.get("status"),
+        completed_validator_count=len(registry_gate.get("results", []) or []),
+        total_validator_count=registry_gate.get("selected_count"),
+        timed_out=registry_gate.get("timed_out"),
     )
     report["registry_gate_execution"] = registry_gate
+    report["post_merge_timing"] = {
+        "schema_version": "post_merge_timing_v1",
+        "total_elapsed_seconds": round(time.monotonic() - started, 4),
+        "stage_timings": stage_timings,
+        "slow_validators": slow_validator_summary(registry_gate),
+    }
     if registry_gate.get("status") != "PASS":
         report["ok"] = False
         report.setdefault("errors", []).extend(

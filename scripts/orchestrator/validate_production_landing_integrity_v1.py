@@ -124,14 +124,13 @@ def main() -> int:
         temp = Path(raw)
         stage = temp / "stage/production"
         public = temp / "public"
-        production.build_pages(stage)
+        published = production.publish_pages(public, stage)
         source = stage / "index.html"
         source_bytes = source.read_bytes()
         source_page = source_bytes.decode("utf-8")
         source_inventory = inventory(source_page)
         checks["production_source_contract"] = inventory_ok(source_inventory)
 
-        published = production.publish_pages(public, stage)
         root = public / "index.html"
         root_hash = sha256_bytes(root.read_bytes())
         staged_hash = sha256_bytes(source_bytes)
@@ -141,8 +140,6 @@ def main() -> int:
         sequence_hashes: dict[str, str] = {"production_publish": root_hash}
         production.publish_archive_latest_route("TW", "post_close_1500", public, temp / "tw-latest")
         sequence_hashes["archive_route_rebuild"] = sha256_bytes(root.read_bytes())
-        production.publish_pages(public, stage)
-        sequence_hashes["operations_rebuild"] = sha256_bytes(root.read_bytes())
         production.publish_archive_latest_route("TW", "post_close_1500", public, temp / "tw-static")
         sequence_hashes["tw_1500_static_publish"] = sha256_bytes(root.read_bytes())
         production.publish_archive_latest_route("US", "us_pre_market_2000", public, temp / "us-static")
