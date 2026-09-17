@@ -22,6 +22,7 @@ USER_AGENT = "stock-ai-news-evidence/1.0"
 MAX_CONTENT_CHARS = 6000
 MIN_CONTENT_CHARS = 80
 REQUEST_TIMEOUT_SECONDS = 6
+MAX_RESPONSE_BYTES = 1_000_000
 
 MATERIALITY_KEYWORDS = {
     "critical": (
@@ -111,27 +112,57 @@ def extract_article_text(html: str) -> str:
     return parser.text()[:MAX_CONTENT_CHARS]
 
 
+def _read_limited_response(response: Any, max_bytes: int = MAX_RESPONSE_BYTES) -> tuple[str, str | None]:
+    chunks: list[bytes] = []
+    total = 0
+    if hasattr(response, "iter_content"):
+        for chunk in response.iter_content(chunk_size=65536):
+            if not chunk:
+                continue
+            total += len(chunk)
+            if total > max_bytes:
+                return "", "RESPONSE_TOO_LARGE"
+            chunks.append(chunk)
+        raw = b"".join(chunks)
+        encoding = getattr(response, "encoding", None) or "utf-8"
+        return raw.decode(encoding, errors="replace"), None
+    text = str(getattr(response, "text", ""))
+    if len(text.encode("utf-8")) > max_bytes:
+        return "", "RESPONSE_TOO_LARGE"
+    return text, None
+
+
 def fetch_article_content(url: str, *, session: Any = None, timeout: int = REQUEST_TIMEOUT_SECONDS) -> ArticleContent:
     parsed = urlparse(str(url or ""))
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         return ArticleContent("failed", "", failure_reason="UNTRUSTED_OR_INVALID_URL")
     client = session or requests
     try:
-        response = client.get(url, timeout=timeout, headers={"User-Agent": USER_AGENT})
+        response = client.get(url, timeout=timeout, headers={"User-Agent": USER_AGENT}, stream=True, allow_redirects=True)
     except requests.Timeout:
         return ArticleContent("failed", "", failure_reason="REQUEST_TIMEOUT")
     except requests.RequestException as exc:
         return ArticleContent("failed", "", failure_reason=exc.__class__.__name__)
     status = int(getattr(response, "status_code", 0) or 0)
+    final_url = str(getattr(response, "url", url))
+    final = urlparse(final_url)
+    if final.scheme not in {"http", "https"} or not final.netloc:
+        return ArticleContent("failed", "", final_url=final_url, failure_reason="UNTRUSTED_REDIRECT_URL", http_status=status)
     if status >= 400:
-        return ArticleContent("failed", "", final_url=str(getattr(response, "url", url)), failure_reason="HTTP_ERROR", http_status=status)
+        return ArticleContent("failed", "", final_url=final_url, failure_reason="HTTP_ERROR", http_status=status)
     ctype = str(getattr(response, "headers", {}).get("content-type", "")).lower()
     if ctype and "html" not in ctype and "text" not in ctype:
-        return ArticleContent("failed", "", final_url=str(getattr(response, "url", url)), failure_reason="UNSUPPORTED_CONTENT_TYPE", http_status=status)
-    text = extract_article_text(getattr(response, "text", ""))
+        return ArticleContent("failed", "", final_url=final_url, failure_reason="UNSUPPORTED_CONTENT_TYPE", http_status=status)
+    html, read_error = _read_limited_response(response)
+    close = getattr(response, "close", None)
+    if callable(close):
+        close()
+    if read_error:
+        return ArticleContent("failed", "", final_url=final_url, failure_reason=read_error, http_status=status)
+    text = extract_article_text(html)
     if len(text) < MIN_CONTENT_CHARS:
-        return ArticleContent("failed", "", final_url=str(getattr(response, "url", url)), failure_reason="EMPTY_OR_UNREADABLE_CONTENT", http_status=status)
-    return ArticleContent("success", text, final_url=str(getattr(response, "url", url)), http_status=status)
+        return ArticleContent("failed", "", final_url=final_url, failure_reason="EMPTY_OR_UNREADABLE_CONTENT", http_status=status)
+    return ArticleContent("success", text, final_url=final_url, http_status=status)
 
 
 def _aliases(symbol: str, stock_name: str | None) -> list[str]:
@@ -227,6 +258,7 @@ def enrich_news_items(
     fetch_content: bool = True,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     enriched: list[dict[str, Any]] = []
+    content_cache: dict[str, ArticleContent] = {}
     stats = {
         "schema_version": "tw_news_content_relevance_enrichment_v1",
         "fetch_content": fetch_content,
@@ -242,7 +274,10 @@ def enrich_news_items(
         url = item.get("source_url") or item.get("url") or item.get("link")
         content_result = ArticleContent("skipped", "", failure_reason="CONTENT_FETCH_DISABLED")
         if fetch_content and url:
-            content_result = fetch_article_content(str(url), session=session)
+            cache_key = str(url)
+            if cache_key not in content_cache:
+                content_cache[cache_key] = fetch_article_content(cache_key, session=session)
+            content_result = content_cache[cache_key]
         item["article_fetch"] = {
             "status": content_result.fetch_status,
             "failure_reason": content_result.failure_reason,

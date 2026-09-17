@@ -24,10 +24,19 @@ class _Response:
         self.status_code = status_code
         self.url = url
         self.headers = {"content-type": "text/html; charset=utf-8"}
+        self.encoding = "utf-8"
 
     def raise_for_status(self) -> None:
         if self.status_code >= 400:
             raise RuntimeError(f"HTTP {self.status_code}")
+
+    def iter_content(self, chunk_size: int = 65536):
+        raw = self.text.encode("utf-8")
+        for index in range(0, len(raw), chunk_size):
+            yield raw[index:index + chunk_size]
+
+    def close(self) -> None:
+        return None
 
 
 class _Session:
@@ -124,8 +133,25 @@ def run_validation() -> dict[str, Any]:
         and low_contract["evidence_funnel"]["rejection_reasons"].get("LOW_RELEVANCE") == 1
     )
 
+    duplicate_session = _Session({
+        "https://news.example/dup": _Response(_html("台積電 2330 月營收成長，先進製程需求升溫，客戶訂單能見度提高。公司說明產能利用率維持高檔，資本支出與供應鏈合作延續，對後續營運展望具有明確影響。")),
+    })
+    dup_items, dup_stats = enrich_news_items([
+        _item("台積電月營收成長", "https://news.example/dup"),
+        _item("台積電展望改善", "https://news.example/dup"),
+    ], stock_id="2330", stock_name="台積電", session=duplicate_session)
+    checks["duplicate_url_fetched_once"] = len(duplicate_session.calls) == 1 and dup_stats["admission_ready"] == 2 and all(item.get("content") for item in dup_items)
+
     direct_failure = fetch_article_content("ftp://news.example/bad")
     checks["untrusted_url_rejected"] = direct_failure.fetch_status == "failed" and direct_failure.failure_reason == "UNTRUSTED_OR_INVALID_URL"
+
+    redirect_session = _Session({"https://news.example/redirect": _Response(_html("台積電 2330 月營收成長，先進製程需求升溫，客戶訂單能見度提高。公司說明產能利用率維持高檔，資本支出與供應鏈合作延續，對後續營運展望具有明確影響。"), url="ftp://evil.example/article")})
+    redirected = fetch_article_content("https://news.example/redirect", session=redirect_session)
+    checks["untrusted_redirect_rejected"] = redirected.fetch_status == "failed" and redirected.failure_reason == "UNTRUSTED_REDIRECT_URL"
+
+    large_session = _Session({"https://news.example/large": _Response("<html><body><article>" + ("台積電 " * 250000) + "</article></body></html>")})
+    large = fetch_article_content("https://news.example/large", session=large_session)
+    checks["oversized_response_rejected"] = large.fetch_status == "failed" and large.failure_reason == "RESPONSE_TOO_LARGE"
 
     return {
         "schema_version": "tw_news_content_relevance_materiality_validation_v1",
