@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from analysis.news_fetcher import fetch_stock_news
+from analysis.news_content_relevance import enrich_news_items
 from analysis.news_prompt_builder import build_news_prompt
 from analysis.gemini_client import generate_analysis
 
@@ -27,10 +28,27 @@ def analyze_news(stock_id, stock_name, *, include_evidence=False):
     if not include_evidence:
         return result
 
+    enrichment = {
+        "schema_version": "tw_news_content_relevance_enrichment_v1",
+        "items_total": len(news_items),
+        "content_success": 0,
+        "content_failed": 0,
+        "evaluated": 0,
+        "admission_ready": 0,
+        "rejection_reasons": {},
+    }
+    if news_items:
+        news_items, enrichment = enrich_news_items(
+            news_items,
+            stock_id=str(stock_id),
+            stock_name=str(stock_name),
+        )
+
     completed_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     return {
         "analysis": result,
         "items": news_items,
+        "content_relevance_enrichment": enrichment,
         "retrieval": {
             "lookback_hours": 72,
             "sources_attempted": ["GOOGLE_NEWS_RSS"],
@@ -43,7 +61,7 @@ def analyze_news(stock_id, stock_name, *, include_evidence=False):
             "query_completed_at": completed_at,
             "result_count_raw": len(news_items),
             "result_count_deduped": len(news_items),
-            "result_count_admitted": 0,
+            "result_count_admitted": int(enrichment.get("admission_ready") or 0),
             "failure_reason": failure_reason,
         },
     }
