@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from analysis.news_fetcher import fetch_stock_news
-from analysis.news_content_relevance import enrich_news_items
+from app.research.tw_news_content_relevance import enrich_news_items
 from analysis.news_prompt_builder import build_news_prompt
 from analysis.gemini_client import generate_analysis
 

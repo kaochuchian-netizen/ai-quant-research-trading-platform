@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from analysis.news_content_relevance import enrich_news_items, extract_article_text, fetch_article_content  # noqa: E402
+from app.research.tw_news_content_relevance import enrich_news_items, extract_article_text, fetch_article_content  # noqa: E402
 from app.reports.tw_pre_open_quality import news_contract  # noqa: E402
 
 NOW = "2026-09-17T07:00:00+08:00"

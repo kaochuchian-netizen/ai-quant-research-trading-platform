@@ -19,7 +19,7 @@ The 2026-09-17 07:00 production artifacts showed `DISCOVERED=5` and `SYMBOL_ATTR
 
 ## Implementation
 
-`analysis.news_content_relevance` adds a read-only enrichment layer:
+`app.research.tw_news_content_relevance` adds a read-only enrichment layer:
 
 - fetches openly accessible article pages with bounded timeout
 - extracts readable article text from HTML
@@ -79,7 +79,7 @@ Run:
 
 ```bash
 ./venv/bin/python -m py_compile \
-  analysis/news_content_relevance.py \
+  app/research/tw_news_content_relevance.py \
   analysis/news_analysis_engine.py \
   scripts/orchestrator/validate_tw_news_content_relevance_materiality_v1.py
 
