@@ -10,9 +10,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from html import unescape
 from html.parser import HTMLParser
+import ipaddress
 import re
+import socket
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import requests
 
@@ -23,6 +25,9 @@ MAX_CONTENT_CHARS = 6000
 MIN_CONTENT_CHARS = 80
 REQUEST_TIMEOUT_SECONDS = 6
 MAX_RESPONSE_BYTES = 1_000_000
+MAX_REDIRECTS = 3
+REDIRECT_STATUSES = {301, 302, 303, 307, 308}
+BLOCKED_HOSTNAMES = {"localhost", "metadata.google.internal"}
 
 MATERIALITY_KEYWORDS = {
     "critical": (
@@ -132,22 +137,102 @@ def _read_limited_response(response: Any, max_bytes: int = MAX_RESPONSE_BYTES) -
     return text, None
 
 
-def fetch_article_content(url: str, *, session: Any = None, timeout: int = REQUEST_TIMEOUT_SECONDS) -> ArticleContent:
-    parsed = urlparse(str(url or ""))
-    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-        return ArticleContent("failed", "", failure_reason="UNTRUSTED_OR_INVALID_URL")
-    client = session or requests
+def _public_ip_address(value: str) -> bool:
     try:
-        response = client.get(url, timeout=timeout, headers={"User-Agent": USER_AGENT}, stream=True, allow_redirects=True)
+        address = ipaddress.ip_address(value)
+    except ValueError:
+        return False
+    return bool(address.is_global)
+
+
+def _resolve_host_ips(hostname: str, port: int | None = None) -> list[str]:
+    infos = socket.getaddrinfo(hostname, port or 443, type=socket.SOCK_STREAM)
+    return sorted({str(info[4][0]) for info in infos})
+
+
+def _validate_public_url(url: str, *, resolver: Any = None) -> tuple[bool, str | None]:
+    parsed = urlparse(str(url or ""))
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc or not parsed.hostname:
+        return False, "UNTRUSTED_OR_INVALID_URL"
+    hostname = parsed.hostname.strip().lower()
+    if hostname in BLOCKED_HOSTNAMES or hostname.endswith(".localhost") or hostname.endswith(".local"):
+        return False, "PRIVATE_OR_INTERNAL_URL"
+    if _public_ip_address(hostname):
+        return True, None
+    try:
+        ipaddress.ip_address(hostname)
+    except ValueError:
+        pass
+    else:
+        return False, "PRIVATE_OR_INTERNAL_URL"
+
+    resolve = resolver or _resolve_host_ips
+    try:
+        addresses = list(resolve(hostname, parsed.port))
+    except Exception:
+        return False, "HOST_RESOLUTION_FAILED"
+    if not addresses:
+        return False, "HOST_RESOLUTION_FAILED"
+    if any(not _public_ip_address(address) for address in addresses):
+        return False, "PRIVATE_OR_INTERNAL_URL"
+    return True, None
+
+
+def fetch_article_content(
+    url: str,
+    *,
+    session: Any = None,
+    timeout: int = REQUEST_TIMEOUT_SECONDS,
+    resolver: Any = None,
+    max_redirects: int = MAX_REDIRECTS,
+) -> ArticleContent:
+    ok, reason = _validate_public_url(str(url or ""), resolver=resolver)
+    if not ok:
+        return ArticleContent("failed", "", failure_reason=reason)
+    client = session or requests
+    current_url = str(url)
+    response = None
+    try:
+        for redirect_count in range(max_redirects + 1):
+            ok, reason = _validate_public_url(current_url, resolver=resolver)
+            if not ok:
+                return ArticleContent("failed", "", final_url=current_url, failure_reason=reason)
+            response = client.get(
+                current_url,
+                timeout=timeout,
+                headers={"User-Agent": USER_AGENT},
+                stream=True,
+                allow_redirects=False,
+            )
+            status = int(getattr(response, "status_code", 0) or 0)
+            if status not in REDIRECT_STATUSES:
+                break
+            location = str(getattr(response, "headers", {}).get("location") or "")
+            close = getattr(response, "close", None)
+            if callable(close):
+                close()
+            if not location:
+                return ArticleContent("failed", "", final_url=current_url, failure_reason="REDIRECT_LOCATION_MISSING", http_status=status)
+            if redirect_count >= max_redirects:
+                return ArticleContent("failed", "", final_url=current_url, failure_reason="TOO_MANY_REDIRECTS", http_status=status)
+            next_url = urljoin(current_url, location)
+            ok, reason = _validate_public_url(next_url, resolver=resolver)
+            if not ok:
+                return ArticleContent("failed", "", final_url=next_url, failure_reason=reason, http_status=status)
+            current_url = next_url
+        else:
+            return ArticleContent("failed", "", final_url=current_url, failure_reason="TOO_MANY_REDIRECTS")
     except requests.Timeout:
         return ArticleContent("failed", "", failure_reason="REQUEST_TIMEOUT")
     except requests.RequestException as exc:
         return ArticleContent("failed", "", failure_reason=exc.__class__.__name__)
+    if response is None:
+        return ArticleContent("failed", "", failure_reason="REQUEST_FAILED")
     status = int(getattr(response, "status_code", 0) or 0)
-    final_url = str(getattr(response, "url", url))
-    final = urlparse(final_url)
-    if final.scheme not in {"http", "https"} or not final.netloc:
-        return ArticleContent("failed", "", final_url=final_url, failure_reason="UNTRUSTED_REDIRECT_URL", http_status=status)
+    final_url = str(getattr(response, "url", current_url) or current_url)
+    ok, reason = _validate_public_url(final_url, resolver=resolver)
+    if not ok:
+        return ArticleContent("failed", "", final_url=final_url, failure_reason=reason, http_status=status)
     if status >= 400:
         return ArticleContent("failed", "", final_url=final_url, failure_reason="HTTP_ERROR", http_status=status)
     ctype = str(getattr(response, "headers", {}).get("content-type", "")).lower()
@@ -256,6 +341,7 @@ def enrich_news_items(
     stock_name: str,
     session: Any = None,
     fetch_content: bool = True,
+    resolver: Any = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     enriched: list[dict[str, Any]] = []
     content_cache: dict[str, ArticleContent] = {}
@@ -276,7 +362,7 @@ def enrich_news_items(
         if fetch_content and url:
             cache_key = str(url)
             if cache_key not in content_cache:
-                content_cache[cache_key] = fetch_article_content(cache_key, session=session)
+                content_cache[cache_key] = fetch_article_content(cache_key, session=session, resolver=resolver)
             content_result = content_cache[cache_key]
         item["article_fetch"] = {
             "status": content_result.fetch_status,

@@ -61,7 +61,8 @@ def analyze_news(stock_id, stock_name, *, include_evidence=False):
             "query_completed_at": completed_at,
             "result_count_raw": len(news_items),
             "result_count_deduped": len(news_items),
-            "result_count_admitted": int(enrichment.get("admission_ready") or 0),
+            "result_count_admitted": 0,
+            "result_count_evaluation_ready": int(enrichment.get("admission_ready") or 0),
             "failure_reason": failure_reason,
         },
     }

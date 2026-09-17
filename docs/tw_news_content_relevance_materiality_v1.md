@@ -24,12 +24,19 @@ The 2026-09-17 07:00 production artifacts showed `DISCOVERED=5` and `SYMBOL_ATTR
 - fetches openly accessible article pages with bounded timeout
 - extracts readable article text from HTML
 - refuses invalid/non-HTTP URLs
+- validates the initial URL before sending a request
+- follows redirects manually and validates each redirect destination before the next request
+- rejects loopback, private, link-local, metadata and otherwise non-public network targets
+- caps redirect depth
+- caps response size
 - records fetch status and failure reason
 - evaluates relevance and materiality with deterministic keyword rules
 - preserves per-item admission or rejection evidence
 - leaves fields unset when content is unavailable, so downstream remains fail-closed
 
 No Selenium is introduced. Existing `requests` is sufficient for the V1 interface and fixture validation.
+
+`analysis.news_analysis_engine` reports enrichment readiness separately from downstream admission. `result_count_admitted` remains `0` at this layer because actual `ADMITTED` counting is owned by `app.reports.tw_pre_open_quality.news_contract()`. The enrichment-side count is exposed as `result_count_evaluation_ready`.
 
 ## Admission Rules
 
