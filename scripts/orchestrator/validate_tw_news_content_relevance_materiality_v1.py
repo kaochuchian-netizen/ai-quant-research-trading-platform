@@ -51,9 +51,11 @@ class _Session:
     def __init__(self, mapping: dict[str, _Response | Exception]) -> None:
         self.mapping = mapping
         self.calls: list[str] = []
+        self.resolved_ips: list[str | None] = []
 
     def get(self, url: str, **_kwargs: Any) -> _Response:
         self.calls.append(url)
+        self.resolved_ips.append(_kwargs.get("resolved_ip"))
         value = self.mapping[url]
         if isinstance(value, Exception):
             raise value
@@ -80,6 +82,10 @@ def _public_resolver(_hostname: str, _port: int | None = None) -> list[str]:
     return ["93.184.216.34"]
 
 
+def _private_resolver(_hostname: str, _port: int | None = None) -> list[str]:
+    return ["10.0.0.5"]
+
+
 def _contract(items: list[dict[str, Any]], symbol: str, name: str) -> dict[str, Any]:
     return news_contract({"items": items, "retrieval": {"sources_attempted": ["GOOGLE_NEWS_RSS"], "sources_succeeded": ["GOOGLE_NEWS_RSS"], "result_count_raw": len(items)}}, generated_at=NOW, target_symbol=symbol, target_name=name)
 
@@ -102,6 +108,7 @@ def run_validation() -> dict[str, Any]:
         and tsmc_contract["evidence"][0]["relevance"] in {"medium", "high"}
         and tsmc_contract["evidence"][0]["materiality"] in {"high", "critical"}
     )
+    checks["transport_receives_verified_public_ip"] = tsmc_session.resolved_ips == ["93.184.216.34"]
     details["2330"] = {"stats": tsmc_stats, "funnel": tsmc_contract["evidence_funnel"]}
 
     igs_session = _Session({
@@ -178,6 +185,21 @@ def run_validation() -> dict[str, Any]:
         redirected.fetch_status == "failed"
         and redirected.failure_reason == "PRIVATE_OR_INTERNAL_URL"
         and redirect_session.calls == ["https://news.example/redirect"]
+    )
+
+    rebinding_session = _Session({
+        "https://news.example/rebind": _Response(_html("台積電 2330 月營收成長，先進製程需求升溫，客戶訂單能見度提高。")),
+    })
+    rebound = fetch_article_content(
+        "https://news.example/rebind",
+        session=rebinding_session,
+        resolver=_public_resolver,
+        connection_resolver=_private_resolver,
+    )
+    checks["dns_rebinding_to_internal_fails_before_request"] = (
+        rebound.fetch_status == "failed"
+        and rebound.failure_reason == "PRIVATE_OR_INTERNAL_URL"
+        and rebinding_session.calls == []
     )
 
     large_session = _Session({"https://news.example/large": _Response("<html><body><article>" + ("台積電 " * 250000) + "</article></body></html>")})

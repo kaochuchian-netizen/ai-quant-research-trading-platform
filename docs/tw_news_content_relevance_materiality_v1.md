@@ -27,6 +27,8 @@ The 2026-09-17 07:00 production artifacts showed `DISCOVERED=5` and `SYMBOL_ATTR
 - validates the initial URL before sending a request
 - follows redirects manually and validates each redirect destination before the next request
 - rejects loopback, private, link-local, metadata and otherwise non-public network targets
+- binds the transport to the verified public IP instead of letting the HTTP client resolve a different address
+- fails closed if connection-time DNS evidence changes to an internal or unverified address
 - caps redirect depth
 - caps response size
 - records fetch status and failure reason
