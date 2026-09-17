@@ -62,6 +62,57 @@ class PostMergeDirtyClassificationTests(unittest.TestCase):
         self.assertEqual(len(result["preserved_runtime_artifacts"]), 4)
         self.assertTrue(result["warnings"])
 
+    def test_tw_ledger_and_manual_progress_are_preserved(self) -> None:
+        entries = [
+            "?? artifacts/runtime/tw/evidence_regression_ledger/v1/2026-08-31/pre_open_0700/2330/tw_ledger_eca6959dcf8710957ad28f10bf34.json",
+            "?? artifacts/runtime/tw/evidence_regression_ledger/v1/2026-09-17/pre_open_0700/009816/tw_ledger_0123456789abcdef0123456789ab.json",
+            "?? artifacts/runtime/manual_rerun/progress/manual-5857673720edd692.jsonl",
+            "?? artifacts/runtime/manual_rerun/progress/manual-6e41610311625470.jsonl",
+        ]
+        result = summarize_post_merge_status(platform(status=entries))
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["preserved_runtime_artifacts"], sorted(entry[3:] for entry in entries))
+        self.assertEqual(result["unknown_dirty_paths"], [])
+
+    def test_tw_preopen_hashed_delivery_receipt_is_preserved(self) -> None:
+        path = "artifacts/runtime/delivery_receipts/tw/pre_open_0700/" + ("a" * 64) + ".json"
+        result = summarize_post_merge_status(platform(status=[f"?? {path}"]))
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["preserved_runtime_artifacts"], [path])
+        self.assertEqual(result["unknown_dirty_paths"], [])
+
+    def test_tw_preopen_delivery_receipt_similar_paths_remain_blocked(self) -> None:
+        entries = [
+            "?? artifacts/runtime/delivery_receipts/tw/pre_open_0700/arbitrary.json",
+            "?? artifacts/runtime/delivery_receipts/tw/pre_open_0700/" + ("a" * 63) + ".json",
+            "?? artifacts/runtime/delivery_receipts/tw/pre_open_0700/" + ("a" * 64) + ".jsonl",
+            "?? artifacts/runtime/delivery_receipts/tw/pre_open_0700/archive/" + ("a" * 64) + ".json",
+            "?? artifacts/runtime/delivery_receipts/tw/intraday_1305/" + ("a" * 64) + ".json",
+            "?? artifacts/runtime/delivery_receipts/us/pre_open_0700/" + ("a" * 64) + ".json",
+            "?? stock-ai-key.json.pre-migration-20260911",
+            " M app/reports/tw_pre_open_delivery_contract.py",
+        ]
+        result = summarize_post_merge_status(platform(status=entries))
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["preserved_runtime_artifacts"], [])
+        self.assertEqual(result["blocking_task_residue"], ["app/reports/tw_pre_open_delivery_contract.py"])
+        self.assertEqual(result["unknown_dirty_paths"], sorted(entry[3:] for entry in entries[:-1]))
+
+    def test_similar_paths_and_credential_backup_remain_blocked(self) -> None:
+        entries = [
+            "?? artifacts/runtime/tw/evidence_regression_ledger/v1/2026-08-31/pre_open_0700/2330/arbitrary.json",
+            "?? artifacts/runtime/tw/evidence_regression_ledger/v1/2026-08-31/not_a_window/2330/tw_ledger_eca6959dcf8710957ad28f10bf34.json",
+            "?? artifacts/runtime/manual_rerun/progress/random.jsonl",
+            "?? artifacts/runtime/manual_rerun/progress/manual-5857673720edd692.jsonl.bak",
+            "?? stock-ai-key.json.pre-migration-20260911",
+            " M app/reports/tw_evidence_regression.py",
+        ]
+        result = summarize_post_merge_status(platform(status=entries))
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["blocking_task_residue"], ["app/reports/tw_evidence_regression.py"])
+        self.assertEqual(result["unknown_dirty_paths"], sorted(entry[3:] for entry in entries[:-1]))
+        self.assertEqual(result["preserved_runtime_artifacts"], [])
+
     def test_modified_task_source_fails(self) -> None:
         result = summarize_post_merge_status(platform(status=[" M app/reports/example.py"]))
         self.assertFalse(result["ok"])
