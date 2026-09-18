@@ -17,6 +17,20 @@ VALID_EXECUTION_ROLES = {"leaf", "orchestrator"}
 GATE_FIELDS = {"branch": "required_in_branch_gate", "post_merge": "required_in_post_merge"}
 ProgressCallback = Callable[[dict[str, Any]], None]
 
+POST_MERGE_EXECUTION_PRIORITY = {
+    # Keep the heaviest real-rendering/visual validators early in post-merge so
+    # the overall gate budget does not shrink their per-validator timeout to a
+    # few seconds near the end of the run.  This preserves coverage and failure
+    # semantics; it only changes deterministic execution order.
+    "production_landing_integrity": 0,
+    "ai_dev_212_h2_research_attribution_finalized_news_counter_argument": 10,
+    "ai_dev_211_chatgpt_artifact_transport": 20,
+    "ai_dev_209_h3_user_visible_research_presentation": 30,
+    "ai_dev_210_visual_evidence_pdf_retrieval": 40,
+    "ai_dev_208_visual_evidence_archive": 50,
+    "ai_dev_209_h2_qualified_news_rre_rendering": 60,
+}
+
 
 def load_validator_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
@@ -195,7 +209,12 @@ def execute_validator_gate(
     rows = load_validator_registry(registry_path).get("validators") or []
     selected = sorted(
         (row for row in rows if row.get("status") == "ACTIVE" and row.get(gate_field) is True),
-        key=lambda row: str(row.get("validator_id")),
+        key=lambda row: (
+            POST_MERGE_EXECUTION_PRIORITY.get(str(row.get("validator_id")), 1000)
+            if gate == "post_merge"
+            else 0,
+            str(row.get("validator_id")),
+        ),
     )
     results: list[dict[str, Any]] = []
     errors: list[str] = []
