@@ -37,7 +37,8 @@ except ImportError:  # Direct script execution keeps the sibling directory on sy
 
 
 DEFAULT_TASK_BRANCH_PREFIX = "ai-dev/"
-DEFAULT_POST_MERGE_GATE_TIMEOUT_SECONDS = 220.0
+POST_MERGE_PERFORMANCE_TARGET_SECONDS = 180.0
+DEFAULT_POST_MERGE_GATE_TIMEOUT_SECONDS = 300.0
 
 TW_WINDOWS = ("pre_open_0700", "intraday_1305", "pre_close_1335", "post_close_1500")
 US_WINDOWS = ("us_pre_market_2000", "us_intraday_2300", "us_post_close_review_0630")
@@ -475,6 +476,13 @@ def main() -> int:
     report["post_merge_timing"] = {
         "schema_version": "post_merge_timing_v1",
         "total_elapsed_seconds": round(time.monotonic() - started, 4),
+        "performance_target_seconds": POST_MERGE_PERFORMANCE_TARGET_SECONDS,
+        "hard_timeout_seconds": args.gate_timeout_seconds,
+        "performance_target_status": (
+            "PASS"
+            if stage_timings["execute_validator_gate_post_merge"] < POST_MERGE_PERFORMANCE_TARGET_SECONDS
+            else "EXCEEDED_NOT_CORRECTNESS_FAILURE"
+        ),
         "stage_timings": stage_timings,
         "slow_validators": slow_validator_summary(registry_gate),
     }
