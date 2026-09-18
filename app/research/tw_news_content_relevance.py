@@ -12,6 +12,7 @@ from datetime import date, datetime, time, timedelta
 from html import unescape
 from html.parser import HTMLParser
 import ipaddress
+import os
 import re
 import socket
 import time as monotonic_time
@@ -812,6 +813,8 @@ def fetch_article_content(
     ok, reason, addresses = _validate_public_url(str(url or ""), resolver=resolver)
     if not ok:
         return ArticleContent("failed", "", failure_reason=reason)
+    if session is None and os.environ.get("STOCK_AI_DISABLE_LIVE_NEWS_NETWORK") == "1":
+        return ArticleContent("failed", "", failure_reason="LIVE_NEWS_NETWORK_DISABLED")
     client = session or requests
     current_url = str(url)
     response = None

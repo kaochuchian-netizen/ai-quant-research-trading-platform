@@ -83,7 +83,7 @@ def admission_errors(payload: dict[str, Any]) -> list[str]:
 
 
 def _normalized_admission_metadata(item: dict[str, Any]) -> dict[str, Any]:
-    normalized = canonical_snapshot(item)
+    normalized = dict(item)
     decision = provenance_admission(normalized.get("payload"), run_kind=str(normalized.get("run_kind") or ""))
     normalized.setdefault("runtime_provenance", decision["runtime_provenance"])
     normalized.setdefault("admission_reason", decision["admission_reason"])
