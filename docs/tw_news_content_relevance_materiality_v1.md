@@ -36,9 +36,95 @@ The 2026-09-17 07:00 production artifacts showed `DISCOVERED=5` and `SYMBOL_ATTR
 - preserves per-item admission or rejection evidence
 - leaves fields unset when content is unavailable, so downstream remains fail-closed
 
-No Selenium is introduced. Existing `requests` is sufficient for the V1 interface and fixture validation.
+Generic article fetching still uses bounded HTTP for non-CNYES sources. CNYES production collection uses Selenium/Chrome browser automation because the search page is an infinite-scroll DOM experience and production correctness must not depend on undocumented internal JSON endpoints.
 
 `analysis.news_analysis_engine` reports enrichment readiness separately from downstream admission. `result_count_admitted` remains `0` at this layer because actual `ADMITTED` counting is owned by `app.reports.tw_pre_open_quality.news_contract()`. The enrichment-side count is exposed as `result_count_evaluation_ready`.
+
+## CNYES Freshness And Lazy Loading
+
+CNYES is added as a bounded TW news source contract, not a parallel news system. Search results are collected incrementally through one Selenium browser session and then passed through the same article-content and deterministic relevance/materiality rules.
+
+The freshness window is the current or most recent valid TW trading day plus the previous valid TW trading day. The implementation uses the repository TW market-day contract from `app.market.tw_history_admission.expected_completed_session()` and accepts the same explicit holiday set. It does not use `today - 1 day` or weekday-only logic. For example:
+
+- Friday 2026-09-18 => `2026-09-18`, `2026-09-17`
+- Monday 2026-09-21 => `2026-09-21`, previous Friday `2026-09-18`
+- a non-trading execution day => most recent valid TW trading day plus the prior valid TW trading day
+- a TW holiday supplied by the market-day contract => rolls back through the holiday
+
+CNYES production architecture:
+
+- `CNYES_SEARCH_METHOD = SELENIUM_BROWSER`
+- `CNYES_LAZY_LOAD_METHOD = DOM_INCREMENTAL_SCROLL`
+- `CNYES_ARTICLE_METHOD = SELENIUM_BROWSER`
+- `CNYES_INTERNAL_JSON_ENDPOINT = NOT_PRODUCTION_DEPENDENCY`
+- `CNYES_BROWSER_CONCURRENCY = 1`
+
+Runtime dependency governance:
+
+- Python Selenium is a formal production dependency declared in `requirements.txt`.
+- Chrome or Chromium is an OS runtime dependency for the production VM.
+- WebDriver compatibility should use Selenium's normal driver-management path when available; do not hand-download arbitrary driver binaries.
+- Runtime enablement must verify Selenium package version, browser version, driver compatibility, headless launch, JavaScript execution, DOM access and clean process shutdown.
+- If any required browser dependency is missing, CNYES remains fail-closed and must report `PRODUCTION_DEPENDENCY_INSTALL_REQUIRED`; it must not fall back to an undocumented internal CNYES JSON endpoint as a production dependency.
+
+The browser flow opens `https://www.cnyes.com/search/news?keyword={symbol}`, waits for the result container, parses visible cards, scrolls incrementally, waits for result-card growth or bounded timeout, deduplicates and stops at the two-trading-day boundary. It does not scroll to the bottom of CNYES historical news.
+
+The implementation intentionally does not use `selenium-stealth`, `undetected-chromedriver`, proxy rotation, CAPTCHA bypass, Cloudflare bypass or fingerprint spoofing. If CNYES presents a protection challenge, the source is marked `PROTECTION_BLOCKED` and remains fail-closed.
+
+The collector is time-window bounded:
+
+- parse each newly visible result batch
+- deduplicate by canonical CNYES article URL or article ID
+- retain only articles whose actual `published_at` falls inside the two-trading-day target window
+- stop when the ordered stream reaches an article older than the previous target trading day
+- avoid premature stop from a pinned/sponsored old article by requiring the older article to appear at the tail of a parsed batch after target-window evidence has been seen
+- enforce `MAX_SCROLL_ROUNDS`, `MAX_SEARCH_RESULTS` and `MAX_SEARCH_DURATION`
+
+Target-window articles are prioritized newest-first. Article body navigation is queued only for target-window records where content is `TITLE_ONLY`, `PARTIAL_CONTENT` or `EMPTY`. Records with `FULL_CONTENT` skip navigation, and records older than the target window never enter the body-fetch queue.
+
+Article navigation reuses the bounded browser session rather than launching a new browser per article. Deduplication happens before navigation with identity order `article_id -> canonical_url -> normalized URL`, so the same CNYES article discovered through multiple symbols opens only once while preserving per-symbol attribution and relevance/materiality evaluation.
+
+Full text is transient pipeline evidence for relevance/materiality and AI news analysis. The long-term artifact contract preserves source, article ID, title, published time, canonical URL, content state, analysis result, relevance/materiality and fetch metadata. It does not create an unbounded permanent CNYES article corpus.
+
+Each CNYES collection result records:
+
+- `target_trading_dates`
+- `target_window_start`
+- `target_window_end`
+- `search_scroll_rounds`
+- `search_results_seen`
+- `within_window_results`
+- `older_than_window_seen`
+- `scroll_stop_reason`
+- `article_fetch_required`
+- `article_fetch_attempted`
+- `article_fetch_success`
+- `article_fetch_failed`
+- `deduplicated_articles`
+- `full_content_available`
+- `article_navigation_required`
+- `article_navigation_attempted`
+- `article_navigation_success`
+- `article_navigation_failed`
+- `browser_timeout_count`
+- `protection_blocked_count`
+- `browser_crash_count`
+- `usable_for_analysis_count`
+- `oldest_result_seen`
+- `newest_result_seen`
+
+This makes the stop decision auditable. A normal boundary stop is reported as `TRADING_WINDOW_BOUNDARY_REACHED`.
+
+Acceptance fixture for `2330`:
+
+1. Initial CNYES results contain `2026-09-18` and `2026-09-17` articles.
+2. Incremental loading adds another `2026-09-17` article and then a `2026-09-16` article.
+3. The collector reports `TRADING_WINDOW_BOUNDARY_REACHED`.
+4. Only `2026-09-18` and `2026-09-17` articles are retained.
+5. Duplicate article IDs are collapsed.
+6. Missing-content records enter the newest-first body-fetch queue.
+7. `FULL_CONTENT` records do not fetch again.
+8. The retained articles continue through deterministic relevance/materiality evaluation.
 
 ## Admission Rules
 
