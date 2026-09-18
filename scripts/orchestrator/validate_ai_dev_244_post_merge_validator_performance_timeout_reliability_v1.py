@@ -13,6 +13,8 @@ sys.path.insert(0, str(ROOT))
 
 from app.runtime.validator_registry import execute_validator_gate
 from scripts.orchestrator.validate_post_merge_status import (
+    DEFAULT_POST_MERGE_GATE_TIMEOUT_SECONDS,
+    POST_MERGE_PERFORMANCE_TARGET_SECONDS,
     classify_dirty_paths,
     slow_validator_summary,
     summarize_post_merge_status,
@@ -109,6 +111,8 @@ def main() -> int:
         )
         check("overall_timeout_fails_closed", timeout_gate["status"] == "FAIL" and timeout_gate["timed_out"] is True, checks)
         check("timeout_never_passes", timeout_gate["failed_count"] == 1 and timeout_gate["timeout"]["current_validator_id"] == "b_timeout", checks)
+        check("overall_timeout_scope_reported", timeout_gate["timeout"]["timeout_scope"] == "overall_budget", checks)
+        check("timeout_report_contains_elapsed_fields", {"overall_elapsed_seconds", "overall_budget_seconds", "validator_elapsed_seconds", "validator_timeout_seconds"} <= set(timeout_gate["timeout"]), checks)
         check("completed_validator_timing_retained", timeout_gate["results"][0]["duration_seconds"] == 0.0123, checks)
         check("progress_available_before_gate_completion", any(event.get("event") == "validator_started" for event in events), checks)
         check("progress_reports_counts", any(event.get("total") == 3 for event in events if event.get("event") == "validator_started"), checks)
@@ -138,6 +142,51 @@ def main() -> int:
         slow = slow_validator_summary(pass_gate, limit=1)
         check("successful_gate_still_passes", pass_gate["status"] == "PASS" and pass_gate["timed_out"] is False, checks)
         check("slow_validator_identity_reported", slow and slow[0]["validator_id"] == "a_slow", checks)
+        check("calibrated_budget_exceeds_performance_target", DEFAULT_POST_MERGE_GATE_TIMEOUT_SECONDS > POST_MERGE_PERFORMANCE_TARGET_SECONDS, checks)
+        check("calibrated_budget_is_300_seconds", DEFAULT_POST_MERGE_GATE_TIMEOUT_SECONDS == 300.0, checks)
+        check("performance_target_remains_180_seconds", POST_MERGE_PERFORMANCE_TARGET_SECONDS == 180.0, checks)
+
+    with tempfile.TemporaryDirectory(prefix="ai-dev-244-registry-") as raw:
+        root = Path(raw)
+        rows = [entry("a_fast"), entry("b_fast"), entry("post_merge_status", role="orchestrator")]
+        registry = fixture_registry(root, rows)
+
+        def quick_runner(path: Path) -> dict:
+            return {
+                "returncode": 0,
+                "stdout": json.dumps({"status": "PASS"}),
+                "stderr": "",
+                "duration_seconds": 0.001,
+            }
+
+        full_gate = execute_validator_gate(
+            "post_merge",
+            caller_validator_id="post_merge_status",
+            registry_path=registry,
+            root=root,
+            runner=quick_runner,
+            overall_timeout_seconds=DEFAULT_POST_MERGE_GATE_TIMEOUT_SECONDS,
+        )
+        check("all_validators_execute_under_calibrated_budget", full_gate["status"] == "PASS" and full_gate["executed_count"] == 2, checks)
+
+    with tempfile.TemporaryDirectory(prefix="ai-dev-244-registry-") as raw:
+        root = Path(raw)
+        rows = [entry("a_timeout"), entry("post_merge_status", role="orchestrator")]
+        registry = fixture_registry(root, rows)
+
+        def per_validator_timeout_runner(path: Path) -> dict:
+            raise subprocess.TimeoutExpired(cmd=[sys.executable, str(path)], timeout=0.01, output="", stderr="fixture timeout")
+
+        per_timeout_gate = execute_validator_gate(
+            "post_merge",
+            caller_validator_id="post_merge_status",
+            registry_path=registry,
+            root=root,
+            runner=per_validator_timeout_runner,
+            overall_timeout_seconds=None,
+            per_validator_timeout_seconds=0.01,
+        )
+        check("per_validator_timeout_scope_reported", per_timeout_gate["timeout"]["timeout_scope"] == "per_validator_timeout", checks)
 
     dirty = classify_dirty_paths([
         "?? artifacts/runtime/delivery_receipts/tw/pre_open_0700/" + ("a" * 64) + ".json",

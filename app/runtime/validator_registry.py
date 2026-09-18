@@ -129,14 +129,15 @@ def evaluate_validator_entry(
     if not path.is_file():
         return {"status": "FAIL", "execution_status": "FAIL", "reason": "REQUIRED_VALIDATOR_MISSING", "pass": False, "command": [sys.executable, str(path)]}
     started = time.monotonic()
+    effective_timeout = max(1, int(timeout_seconds or 300))
     try:
-        result = runner(path) if runner else _subprocess_runner(path, root=root, timeout_seconds=max(1, int(timeout_seconds or 300)))
+        result = runner(path) if runner else _subprocess_runner(path, root=root, timeout_seconds=effective_timeout)
     except subprocess.TimeoutExpired as exc:
         stdout = exc.stdout.decode("utf-8", errors="replace") if isinstance(exc.stdout, bytes) else str(exc.stdout or "")
         stderr = exc.stderr.decode("utf-8", errors="replace") if isinstance(exc.stderr, bytes) else str(exc.stderr or "")
         return {
             "status": "FAIL", "execution_status": "TIMEOUT", "reason": "VALIDATOR_TIMEOUT",
-            "timeout_seconds": timeout_seconds, "returncode": None,
+            "timeout_seconds": timeout_seconds, "validator_timeout_seconds": effective_timeout, "returncode": None,
             "stdout_summary": _summary(stdout), "stderr_summary": _summary(stderr),
             "duration_seconds": round(time.monotonic() - started, 4),
             "command": [sys.executable, str(path)], "pass": False,
@@ -223,9 +224,15 @@ def execute_validator_gate(
             timed_out = True
             timeout_detail = {
                 "reason": "GATE_TIMEOUT_BEFORE_VALIDATOR",
+                "timeout_scope": "overall_budget",
+                "overall_budget_seconds": overall_timeout_seconds,
+                "overall_elapsed_seconds": round(elapsed, 4),
                 "timeout_seconds": overall_timeout_seconds,
                 "elapsed_seconds": round(elapsed, 4),
                 "current_validator_id": validator_id,
+                "validator_id": validator_id,
+                "validator_elapsed_seconds": 0.0,
+                "validator_timeout_seconds": None,
                 "completed_validator_count": len(results),
                 "total_validator_count": len(selected),
             }
@@ -244,11 +251,15 @@ def execute_validator_gate(
                 })
             emit("validator_completed", validator_id=validator_id, index=index, total=len(selected), execution_status=results[-1].get("execution_status"), duration_seconds=0.0)
             continue
+        validator_started = time.monotonic()
         validator_timeout = per_validator_timeout_seconds
+        timeout_scope = "per_validator_timeout"
         if remaining is not None:
             validator_timeout = max(1, min(float(per_validator_timeout_seconds), remaining))
+            timeout_scope = "overall_budget" if validator_timeout < float(per_validator_timeout_seconds) else "per_validator_timeout"
         evaluated = evaluate_validator_entry(entry, runner, root=root, timeout_seconds=validator_timeout)
         evaluated["validator_id"] = validator_id
+        evaluated["timeout_scope"] = timeout_scope if evaluated.get("execution_status") == "TIMEOUT" else None
         results.append(evaluated)
         emit("validator_completed", validator_id=validator_id, index=index, total=len(selected), execution_status=evaluated.get("execution_status"), status=evaluated.get("status"), duration_seconds=evaluated.get("duration_seconds"))
         if not evaluated.get("pass"):
@@ -257,7 +268,13 @@ def execute_validator_gate(
                 timed_out = True
                 timeout_detail = {
                     "reason": "VALIDATOR_TIMEOUT",
-                    "timeout_seconds": overall_timeout_seconds,
+                    "timeout_scope": timeout_scope,
+                    "overall_budget_seconds": overall_timeout_seconds,
+                    "overall_elapsed_seconds": round(time.monotonic() - gate_started, 4),
+                    "validator_id": validator_id,
+                    "validator_elapsed_seconds": evaluated.get("duration_seconds", round(time.monotonic() - validator_started, 4)),
+                    "validator_timeout_seconds": validator_timeout,
+                    "timeout_seconds": overall_timeout_seconds if timeout_scope == "overall_budget" else validator_timeout,
                     "elapsed_seconds": round(time.monotonic() - gate_started, 4),
                     "current_validator_id": validator_id,
                     "completed_validator_count": max(0, len(results) - 1),
