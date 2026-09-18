@@ -19,6 +19,7 @@ from indicators.indicator_engine_v2 import build_indicator_result
 
 from analysis.analysis_engine import analyze_stock
 from analysis.news_analysis_engine import analyze_news
+from app.research.tw_news_aggregation import TwNewsAggregationSession
 from analysis.news_scoring_engine import calculate_news_score
 from analysis.total_scoring_engine import calculate_total_score
 from analysis.chip.chip_analysis_engine import analyze_chip
@@ -394,6 +395,7 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
             ),
         )
 
+    news_aggregation_session = TwNewsAggregationSession()
     for stock_id in stock_ids:
         stock_id = str(stock_id).zfill(4)
         stock_name_result = resolve_stock_name(stock_id)
@@ -428,7 +430,13 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
             adr_score = calculate_adr_score(adr_result)
 
             report_manual_rerun_stage("news_acquisition", symbol=stock_id)
-            news_bundle = analyze_news(stock_id, stock_name, include_evidence=True)
+            news_bundle = analyze_news(
+                stock_id,
+                stock_name,
+                include_evidence=True,
+                aggregation_session=news_aggregation_session,
+                reference=context["run_date"],
+            )
             report_manual_rerun_stage("news_acquisition", "completed", symbol=stock_id)
             news_result = news_bundle.get("analysis", "")
             news_score_result = calculate_news_score(news_result)
@@ -532,6 +540,8 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
                 ),
             )
             stage_timing.finish(stage_name, status="failed", reason=reason)
+
+    news_aggregation_session.close()
 
     structured_cards = _reconstruct_structured_pre_open_cards(
         structured_card_by_symbol,
