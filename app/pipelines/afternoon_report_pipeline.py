@@ -20,6 +20,7 @@ from app.reports.tw_four_window_decision import aggregate_cards, build_observed_
 from analysis.analysis_engine import analyze_stock
 from analysis.chip.chip_analysis_engine import analyze_chip
 from analysis.news_analysis_engine import analyze_news
+from app.research.tw_news_aggregation import TwNewsAggregationSession
 from analysis.news_scoring_engine import calculate_news_score
 from analysis.total_scoring_engine import calculate_total_score
 from indicators.indicator_engine_v2 import build_indicator_result
@@ -199,6 +200,7 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
     ]
     stock_name_warnings = []
 
+    news_aggregation_session = TwNewsAggregationSession()
     for stock_id in stock_ids:
         stock_id = str(stock_id).zfill(4)
         stock_name_result = resolve_stock_name(stock_id)
@@ -239,11 +241,18 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
 
             try:
                 with timing.stage("news", optional=True):
-                    news_result = analyze_news(stock_id, stock_name)
+                    news_bundle = analyze_news(
+                        stock_id,
+                        stock_name,
+                        include_evidence=True,
+                        aggregation_session=news_aggregation_session,
+                        reference=context["run_date"],
+                    )
+                    news_result = news_bundle.get("analysis", "")
                     news_score_result = calculate_news_score(news_result)
                     news_score = news_score_result.get("score", 50)
             except Exception as exc:
-                news_result, news_score = {"status": "unavailable", "reason": exc.__class__.__name__}, 50
+                news_bundle, news_result, news_score = {}, {"status": "unavailable", "reason": exc.__class__.__name__}, 50
 
             try:
                 with timing.stage("chip", optional=True):
@@ -321,7 +330,7 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
                     "source_revision": int(prior_snapshot.get("revision") or 0),
                     "parent_source_payload_hash": stable_hash(prior_payload),
                 })
-            decision_cards.append(build_observed_card(
+            observed_card = build_observed_card(
                 window=window, setup_card=setup, quote=quote,
                 trading_date=context["run_date"],
                 generated_at=datetime.now(ZoneInfo("Asia/Taipei")).replace(microsecond=0).isoformat(),
@@ -330,12 +339,19 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
                 source_payload_hash=stable_hash(setup_payload) if setup_snapshot else None,
                 prior_card=prior_card or None,
                 lifecycle_timeline=prior_timeline,
-            ))
+            )
+            if isinstance(news_bundle, dict):
+                observed_card["current_news_evidence"] = news_bundle
+                observed_card["current_news_items"] = list(news_bundle.get("items") or [])
+                observed_card["current_news_retrieval"] = dict(news_bundle.get("retrieval") or {})
+            decision_cards.append(observed_card)
 
         except Exception as exc:
             reason = exc.__class__.__name__
             print(f"分析失敗：{stock_name}({stock_id})，原因類型：{reason}")
             failed_reports.append({"stock_id": stock_id, "stock_name": stock_name, "reason": reason})
+
+    news_aggregation_session.close()
 
     if not decision_cards and not dry_run:
         timing.fail(stage="runtime_write", category="runtime_write_failure", reason="no_valid_decision_cards")
