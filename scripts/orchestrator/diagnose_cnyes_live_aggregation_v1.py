@@ -223,20 +223,30 @@ def main() -> int:
     before = _count_orphans()
     payload: dict[str, Any] = {}
     try:
-        symbols = [args.symbol] if args.symbol else _load_watchlist(progress, max(1, args.max_symbols), args.stage_timeout_seconds)
-        symbol = symbols[0]
-        stock_name = _stock_name(symbol)
+        symbols: list[str] = []
+        symbol = args.symbol or ""
+        stock_name = _stock_name(symbol) if symbol else ""
         if args.mode == "watchlist":
+            symbols = [args.symbol] if args.symbol else _load_watchlist(progress, max(1, args.max_symbols), args.stage_timeout_seconds)
             payload = {"symbols": symbols}
         elif args.mode == "google-rss":
+            symbols = [args.symbol] if args.symbol else _load_watchlist(progress, 1, args.stage_timeout_seconds)
+            symbol = symbols[0]
+            stock_name = _stock_name(symbol)
             payload = _run_google_only(progress, symbol, stock_name, args.stage_timeout_seconds)
         elif args.mode == "browser-smoke":
             payload = _run_browser_smoke(progress, args.stage_timeout_seconds)
         elif args.mode == "cnyes-search":
+            symbols = [args.symbol] if args.symbol else _load_watchlist(progress, 1, args.stage_timeout_seconds)
+            symbol = symbols[0]
+            stock_name = _stock_name(symbol)
             payload = _run_cnyes_symbol(progress, symbol, stock_name, args.reference, args.stage_timeout_seconds)
         elif args.mode == "aggregate-one":
+            symbols = [args.symbol] if args.symbol else _load_watchlist(progress, 1, args.stage_timeout_seconds)
+            symbol = symbols[0]
             payload = _run_aggregation(progress, [symbol], args.reference, args.stage_timeout_seconds)
         elif args.mode == "aggregate-multi":
+            symbols = [args.symbol] if args.symbol else _load_watchlist(progress, max(1, args.max_symbols), args.stage_timeout_seconds)
             payload = _run_aggregation(progress, symbols[: max(1, args.max_symbols)], args.reference, args.stage_timeout_seconds)
     except Exception as exc:
         status = "FAIL"
