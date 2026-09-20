@@ -170,6 +170,52 @@ def _browser_factory(timeout_seconds: float) -> Any:
     )
 
 
+class _ProgressBrowserProxy:
+    def __init__(self, browser: Any, progress: Progress, symbol: str) -> None:
+        self._browser = browser
+        self._progress = progress
+        self._symbol = symbol
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._browser, name)
+
+    def open_search(self, url: str) -> None:
+        self._progress.emit("CNYES_OPEN_SEARCH_START", symbol=self._symbol)
+        self._browser.open_search(url)
+        self._progress.emit("CNYES_OPEN_SEARCH_DONE", symbol=self._symbol)
+
+    def wait_results_ready(self) -> None:
+        self._progress.emit("CNYES_RESULTS_READY_START", symbol=self._symbol)
+        self._browser.wait_results_ready()
+        self._progress.emit("CNYES_RESULTS_READY_DONE", symbol=self._symbol)
+
+    def visible_result_cards(self) -> list[dict[str, Any]]:
+        self._progress.emit("CNYES_VISIBLE_CARDS_START", symbol=self._symbol)
+        cards = list(self._browser.visible_result_cards())
+        self._progress.emit("CNYES_VISIBLE_CARDS_DONE", symbol=self._symbol, result_count=len(cards))
+        return cards
+
+    def scroll_for_more(self, current_count: int) -> list[dict[str, Any]]:
+        self._progress.emit("CNYES_SCROLL_START", symbol=self._symbol, current_count=current_count)
+        cards = list(self._browser.scroll_for_more(current_count))
+        self._progress.emit("CNYES_SCROLL_DONE", symbol=self._symbol, result_count=len(cards))
+        return cards
+
+    def open_article(self, url: str) -> None:
+        self._progress.emit("CNYES_ARTICLE_NAVIGATION_START", symbol=self._symbol)
+        self._browser.open_article(url)
+        self._progress.emit("CNYES_ARTICLE_NAVIGATION_DONE", symbol=self._symbol)
+
+    def article_body(self) -> str:
+        self._progress.emit("CNYES_ARTICLE_BODY_START", symbol=self._symbol)
+        body = self._browser.article_body()
+        self._progress.emit("CNYES_ARTICLE_BODY_DONE", symbol=self._symbol, body_length=len(body or ""))
+        return body
+
+    def close(self) -> Any:
+        return self._browser.close()
+
+
 def _run_google_only(progress: Progress, symbol: str, stock_name: str, timeout_seconds: float) -> dict[str, Any]:
     progress.emit("GOOGLE_RSS_START", symbol=symbol)
     items = _timed(progress, "GOOGLE_RSS_DONE", timeout_seconds, lambda: fetch_stock_news(symbol, stock_name), symbol=symbol)
@@ -198,7 +244,7 @@ def _run_cnyes_symbol(progress: Progress, symbol: str, stock_name: str, referenc
         browser = _timed(progress, "CNYES_BROWSER_READY", timeout_seconds, lambda: _browser_factory(timeout_seconds))
         progress.emit("CNYES_BROWSER_READY", status="ok")
         progress.emit("CNYES_SYMBOL_START", symbol=symbol)
-        result = collect_cnyes_browser_news(browser, symbol=symbol, stock_name=stock_name, reference=reference)
+        result = collect_cnyes_browser_news(_ProgressBrowserProxy(browser, progress, symbol), symbol=symbol, stock_name=stock_name, reference=reference)
         progress.emit(
             "CNYES_SEARCH_DONE",
             symbol=symbol,

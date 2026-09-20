@@ -254,6 +254,7 @@ def create_cnyes_selenium_browser(
     options = Options()
     if headless:
         options.add_argument('--headless=new')
+    options.page_load_strategy = 'eager'
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument('--window-size=1280,1800')

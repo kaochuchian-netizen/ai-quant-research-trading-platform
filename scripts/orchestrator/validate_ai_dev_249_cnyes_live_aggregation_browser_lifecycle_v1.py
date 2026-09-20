@@ -184,6 +184,8 @@ def _run() -> dict[str, Any]:
     checks["governance_validator_remains_offline"] = "webdriver.Chrome" not in source_validator and "class _BrowserAdapter" in source_validator
     checks["browser_startup_timeout_contract"] = "CNYES_BROWSER_START" in source_diag and "--stage-timeout-seconds" in source_diag
     checks["live_cnyes_stage_process_boundary"] = "subprocess.Popen" in source_diag and "DIAGNOSTIC_WORKER_TIMEOUT" in source_diag and "_terminate_owned_process_tree(proc.pid" in source_diag
+    checks["method_level_live_progress"] = all(token in source_diag for token in ["CNYES_OPEN_SEARCH_START", "CNYES_RESULTS_READY_START", "CNYES_VISIBLE_CARDS_START", "CNYES_ARTICLE_BODY_DONE"])
+    checks["eager_page_load_strategy"] = "page_load_strategy = 'eager'" in source_browser
 
     details["checked_files"] = [
         "app/research/cnyes_selenium_browser.py",
