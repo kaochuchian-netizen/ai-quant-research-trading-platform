@@ -299,6 +299,7 @@ def _run_aggregation(progress: Progress, symbols: list[str], reference: str, tim
     session = TwNewsAggregationSession(
         browser_factory=lambda: _ProgressBrowserProxy(_browser_factory(timeout_seconds), progress, "aggregation"),
         cnyes_search_config=CnyesSearchConfig(max_article_navigation=1),
+        downstream_fetch_content=False,
     )
     results: list[dict[str, Any]] = []
     try:

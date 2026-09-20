@@ -165,6 +165,7 @@ class TwNewsAggregationSession:
 
     browser_factory: Callable[[], Any] | None = None
     cnyes_search_config: CnyesSearchConfig | None = None
+    downstream_fetch_content: bool = True
     enable_cnyes: bool = True
     browser: Any | None = None
     cnyes_cache: CnyesBrowserContentCache = field(default_factory=CnyesBrowserContentCache)
@@ -268,7 +269,12 @@ def collect_tw_news(
         source_health[CNYES_SOURCE] = {"attempted": False, "status": "skipped", "reason": "DISABLED" if not include_cnyes else "LIVE_NETWORK_DISABLED", "result_count": 0}
 
     deduped = dedupe_news_items(raw_items)
-    deduped, enrichment = enrich_news_items(deduped, stock_id=str(stock_id), stock_name=stock_name, fetch_content=True)
+    deduped, enrichment = enrich_news_items(
+        deduped,
+        stock_id=str(stock_id),
+        stock_name=stock_name,
+        fetch_content=session.downstream_fetch_content,
+    )
     completed_at = _utc_now()
     retrieved_sources = [source for source, health in source_health.items() if health.get("status") in {"success", "degraded"} and health.get("result_count", 0) > 0]
     attempted_sources = [source for source, health in source_health.items() if health.get("attempted") is True]
