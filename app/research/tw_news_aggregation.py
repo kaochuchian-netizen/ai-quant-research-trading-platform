@@ -171,6 +171,9 @@ class TwNewsAggregationSession:
     searches_attempted: int = 0
     articles_navigated: int = 0
     cache_hits: int = 0
+    browser_sessions_closed: int = 0
+    browser_quit_timed_out: bool = False
+    browser_cleanup_pids: list[int] = field(default_factory=list)
 
     def get_browser(self) -> Any:
         if self.browser is None:
@@ -184,7 +187,12 @@ class TwNewsAggregationSession:
         if browser is not None:
             close = getattr(browser, "close", None) or getattr(browser, "quit", None)
             if callable(close):
-                close()
+                lifecycle = close()
+                self.browser_sessions_closed += int(getattr(lifecycle, "sessions_closed", 1) or 0)
+                self.browser_quit_timed_out = bool(getattr(lifecycle, "quit_timed_out", False))
+                cleanup_pids = getattr(lifecycle, "cleanup_pids", None)
+                if isinstance(cleanup_pids, list):
+                    self.browser_cleanup_pids.extend(int(pid) for pid in cleanup_pids if str(pid).isdigit())
 
     def __enter__(self) -> "TwNewsAggregationSession":
         return self
