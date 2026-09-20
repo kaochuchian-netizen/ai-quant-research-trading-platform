@@ -18,7 +18,7 @@ class CnyesBrowserTimeouts:
     script_seconds: float = 5.0
     results_ready_seconds: float = 10.0
     scroll_growth_seconds: float = 6.0
-    article_body_seconds: float = 10.0
+    article_body_seconds: float = 15.0
     quit_seconds: float = 5.0
     process_cleanup_grace_seconds: float = 2.0
 
