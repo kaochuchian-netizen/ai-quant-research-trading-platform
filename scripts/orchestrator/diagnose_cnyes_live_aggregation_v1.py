@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import subprocess
 import sys
 import time
 from dataclasses import dataclass, field
@@ -24,6 +25,7 @@ from analysis.news_fetcher import fetch_stock_news  # noqa: E402
 from app.loaders.google_sheet_loader import load_stock_ids_with_provenance  # noqa: E402
 from app.market.instrument_master import instrument_metadata  # noqa: E402
 from app.research.cnyes_selenium_browser import CnyesBrowserTimeouts, create_cnyes_selenium_browser  # noqa: E402
+from app.research.cnyes_selenium_browser import _terminate_owned_process_tree  # noqa: E402
 from app.research.tw_news_aggregation import TwNewsAggregationSession, collect_tw_news  # noqa: E402
 from app.research.tw_news_content_relevance import collect_cnyes_browser_news  # noqa: E402
 
@@ -109,6 +111,50 @@ def _count_orphans() -> dict[str, int]:
         "chrome_like": sum(1 for name in names if "chrome" in name or "chromium" in name),
         "chromedriver_like": sum(1 for name in names if "chromedriver" in name),
     }
+
+
+def _run_isolated_worker(args: argparse.Namespace, progress: Progress) -> tuple[int, dict[str, Any] | None, str]:
+    command = [
+        sys.executable,
+        str(Path(__file__).resolve()),
+        "--worker",
+        "--mode",
+        args.mode,
+        "--reference",
+        args.reference,
+        "--max-symbols",
+        str(args.max_symbols),
+        "--stage-timeout-seconds",
+        str(args.stage_timeout_seconds),
+    ]
+    if args.symbol:
+        command.extend(["--symbol", args.symbol])
+    worker_timeout = max(5.0, args.stage_timeout_seconds + 8.0)
+    proc = subprocess.Popen(
+        command,
+        cwd=str(ROOT),
+        stdout=subprocess.PIPE,
+        stderr=None,
+        text=True,
+    )
+    try:
+        stdout, _ = proc.communicate(timeout=worker_timeout)
+    except subprocess.TimeoutExpired:
+        killed = _terminate_owned_process_tree(proc.pid, grace_seconds=2.0)
+        progress.emit(
+            "DIAGNOSTIC_WORKER_TIMEOUT",
+            status="timeout",
+            timeout_seconds=worker_timeout,
+            cleanup_pids=killed,
+        )
+        return 124, None, ""
+    stdout = stdout.strip()
+    if not stdout:
+        return proc.returncode or 1, None, ""
+    try:
+        return proc.returncode or 0, json.loads(stdout.splitlines()[-1]), stdout
+    except json.JSONDecodeError:
+        return proc.returncode or 1, None, stdout
 
 
 def _browser_factory(timeout_seconds: float) -> Any:
@@ -218,6 +264,7 @@ def main() -> int:
     parser.add_argument("--reference", default="now")
     parser.add_argument("--max-symbols", type=int, default=1)
     parser.add_argument("--stage-timeout-seconds", type=float, default=35.0)
+    parser.add_argument("--worker", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args()
 
     progress = Progress()
@@ -226,6 +273,40 @@ def main() -> int:
     before = _count_orphans()
     payload: dict[str, Any] = {}
     try:
+        if not args.worker and args.mode in {"cnyes-search", "aggregate-one", "aggregate-multi"}:
+            returncode, worker_result, stdout = _run_isolated_worker(args, progress)
+            if returncode != 0 or worker_result is None or not worker_result.get("ok"):
+                status = "FAIL"
+                error = {
+                    "type": "IsolatedWorkerFailed",
+                    "message": "isolated CNYES worker failed or timed out",
+                    "stage": "CNYES_WORKER",
+                    "returncode": returncode,
+                    "worker_stdout_present": bool(stdout),
+                }
+            else:
+                payload = worker_result.get("payload") or {}
+                payload["worker_elapsed_seconds"] = worker_result.get("elapsed_seconds")
+                payload["worker_process_counts_before"] = worker_result.get("process_counts_before")
+                payload["worker_process_counts_after"] = worker_result.get("process_counts_after")
+            after = _count_orphans()
+            result = {
+                "schema_version": "ai_dev_249_cnyes_live_diagnostic_v1",
+                "status": status,
+                "ok": status == "PASS",
+                "mode": args.mode,
+                "isolated_worker": True,
+                "elapsed_seconds": round(time.monotonic() - progress.started, 4),
+                "payload": payload,
+                "error": error,
+                "events": progress.events,
+                "process_counts_before": before,
+                "process_counts_after": after,
+            }
+            progress.emit("FINAL_JSON", status=status.lower())
+            print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+            return 0 if result["ok"] else 1
+
         symbols: list[str] = []
         symbol = args.symbol or ""
         stock_name = _stock_name(symbol) if symbol else ""
