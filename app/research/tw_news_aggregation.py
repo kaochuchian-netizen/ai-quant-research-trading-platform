@@ -18,6 +18,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 from analysis.news_fetcher import fetch_stock_news
 from app.research.tw_news_content_relevance import (
     CNYES_BROWSER_CONCURRENCY,
+    CnyesSearchConfig,
     CnyesBrowserContentCache,
     collect_cnyes_browser_news,
     enrich_news_items,
@@ -163,6 +164,7 @@ class TwNewsAggregationSession:
     """Batch-scoped state for CNYES browser reuse and transient content cache."""
 
     browser_factory: Callable[[], Any] | None = None
+    cnyes_search_config: CnyesSearchConfig | None = None
     enable_cnyes: bool = True
     browser: Any | None = None
     cnyes_cache: CnyesBrowserContentCache = field(default_factory=CnyesBrowserContentCache)
@@ -241,6 +243,7 @@ def collect_tw_news(
                 stock_name=stock_name,
                 reference=reference,
                 content_cache=session.cnyes_cache,
+                config=session.cnyes_search_config,
             )
             after_cache = len(session.cnyes_cache.content_by_identity)
             attempted = int(cnyes_result.get("article_navigation_attempted") or 0)
