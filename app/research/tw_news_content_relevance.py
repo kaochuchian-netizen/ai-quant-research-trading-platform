@@ -130,6 +130,7 @@ class CnyesSearchConfig:
     max_search_results: int = CNYES_MAX_SEARCH_RESULTS
     max_search_duration_seconds: float = CNYES_MAX_SEARCH_DURATION_SECONDS
     min_boundary_older_results: int = 1
+    max_article_navigation: int = 3
 
 
 @dataclass
@@ -627,10 +628,14 @@ def collect_cnyes_browser_news(
         result["scroll_stop_reason"] = current["scroll_stop_reason"]
     attempted = success = failed = 0
     enriched_articles: list[dict[str, Any]] = []
+    fetch_identities = {
+        str(item.get("article_identity") or cnyes_article_identity(item))
+        for item in result["article_fetch_queue"][: max(0, cfg.max_article_navigation)]
+    }
     for article in result["articles"]:
         item = dict(article)
         identity = str(item.get("article_identity") or cnyes_article_identity(item))
-        if item in result["article_fetch_queue"]:
+        if identity in fetch_identities:
             if identity not in cache.content_by_identity:
                 attempted += 1
                 cache.content_by_identity[identity] = _article_content_from_browser(browser, item)

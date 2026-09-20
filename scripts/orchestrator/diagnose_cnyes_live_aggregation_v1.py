@@ -27,7 +27,7 @@ from app.market.instrument_master import instrument_metadata  # noqa: E402
 from app.research.cnyes_selenium_browser import CnyesBrowserTimeouts, create_cnyes_selenium_browser  # noqa: E402
 from app.research.cnyes_selenium_browser import _terminate_owned_process_tree  # noqa: E402
 from app.research.tw_news_aggregation import TwNewsAggregationSession, collect_tw_news  # noqa: E402
-from app.research.tw_news_content_relevance import collect_cnyes_browser_news  # noqa: E402
+from app.research.tw_news_content_relevance import CnyesSearchConfig, collect_cnyes_browser_news  # noqa: E402
 
 
 EVENTS = (
@@ -244,7 +244,13 @@ def _run_cnyes_symbol(progress: Progress, symbol: str, stock_name: str, referenc
         browser = _timed(progress, "CNYES_BROWSER_READY", timeout_seconds, lambda: _browser_factory(timeout_seconds))
         progress.emit("CNYES_BROWSER_READY", status="ok")
         progress.emit("CNYES_SYMBOL_START", symbol=symbol)
-        result = collect_cnyes_browser_news(_ProgressBrowserProxy(browser, progress, symbol), symbol=symbol, stock_name=stock_name, reference=reference)
+        result = collect_cnyes_browser_news(
+            _ProgressBrowserProxy(browser, progress, symbol),
+            symbol=symbol,
+            stock_name=stock_name,
+            reference=reference,
+            config=CnyesSearchConfig(max_article_navigation=1),
+        )
         progress.emit(
             "CNYES_SEARCH_DONE",
             symbol=symbol,

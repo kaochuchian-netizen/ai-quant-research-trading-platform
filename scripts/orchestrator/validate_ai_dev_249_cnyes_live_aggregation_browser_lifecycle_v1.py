@@ -124,6 +124,7 @@ def _run() -> dict[str, Any]:
 
     source_browser = (ROOT / "app/research/cnyes_selenium_browser.py").read_text(encoding="utf-8")
     source_diag = (ROOT / "scripts/orchestrator/diagnose_cnyes_live_aggregation_v1.py").read_text(encoding="utf-8")
+    source_relevance = (ROOT / "app/research/tw_news_content_relevance.py").read_text(encoding="utf-8")
     source_validator = (ROOT / "scripts/orchestrator/validate_tw_news_content_relevance_materiality_v1.py").read_text(encoding="utf-8")
 
     checks["stage_progress_emitted"] = all(token in source_diag for token in [
@@ -186,6 +187,7 @@ def _run() -> dict[str, Any]:
     checks["live_cnyes_stage_process_boundary"] = "subprocess.Popen" in source_diag and "DIAGNOSTIC_WORKER_TIMEOUT" in source_diag and "_terminate_owned_process_tree(proc.pid" in source_diag
     checks["method_level_live_progress"] = all(token in source_diag for token in ["CNYES_OPEN_SEARCH_START", "CNYES_RESULTS_READY_START", "CNYES_VISIBLE_CARDS_START", "CNYES_ARTICLE_BODY_DONE"])
     checks["eager_page_load_strategy"] = "page_load_strategy = 'eager'" in source_browser
+    checks["article_navigation_bound"] = "max_article_navigation" in source_relevance and "max_article_navigation=1" in source_diag
 
     details["checked_files"] = [
         "app/research/cnyes_selenium_browser.py",
