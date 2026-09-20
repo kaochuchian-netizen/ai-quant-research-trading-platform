@@ -84,6 +84,32 @@ def _timed(progress: Progress, stage: str, timeout_seconds: float, fn: Callable[
     return result
 
 
+def _summarize_text(value: str) -> dict[str, Any]:
+    paragraphs = [line.strip() for line in value.splitlines() if line.strip()]
+    return {
+        "omitted": "diagnostic_text_redacted",
+        "length": len(value),
+        "paragraph_count": len(paragraphs),
+    }
+
+
+def _summarize_payload(value: Any) -> Any:
+    """Keep diagnostic JSON machine-readable without dumping article bodies."""
+    if isinstance(value, dict):
+        summarized: dict[str, Any] = {}
+        for key, item in value.items():
+            if key in {"content", "raw_text_preview"} and isinstance(item, str):
+                summarized[f"{key}_summary"] = _summarize_text(item)
+            else:
+                summarized[key] = _summarize_payload(item)
+        return summarized
+    if isinstance(value, list):
+        return [_summarize_payload(item) for item in value]
+    if isinstance(value, str) and len(value) > 600:
+        return _summarize_text(value)
+    return value
+
+
 def _stock_name(symbol: str) -> str:
     try:
         meta = instrument_metadata("TW", symbol)
@@ -349,7 +375,7 @@ def main() -> int:
                 "mode": args.mode,
                 "isolated_worker": True,
                 "elapsed_seconds": round(time.monotonic() - progress.started, 4),
-                "payload": payload,
+                "payload": _summarize_payload(payload),
                 "error": error,
                 "events": progress.events,
                 "process_counts_before": before,
@@ -400,7 +426,7 @@ def main() -> int:
         "ok": status == "PASS",
         "mode": args.mode,
         "elapsed_seconds": round(time.monotonic() - progress.started, 4),
-        "payload": payload,
+        "payload": _summarize_payload(payload),
         "error": error,
         "events": progress.events,
         "process_counts_before": before,
