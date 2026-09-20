@@ -83,7 +83,10 @@ def _timed(progress: Progress, stage: str, timeout_seconds: float, fn: Callable[
 
 
 def _stock_name(symbol: str) -> str:
-    meta = instrument_metadata(symbol)
+    try:
+        meta = instrument_metadata("TW", symbol)
+    except Exception:
+        meta = {}
     return str(meta.get("name") or meta.get("company_name") or symbol)
 
 
