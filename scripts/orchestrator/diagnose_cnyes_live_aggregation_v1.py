@@ -297,7 +297,7 @@ def _run_cnyes_symbol(progress: Progress, symbol: str, stock_name: str, referenc
 
 def _run_aggregation(progress: Progress, symbols: list[str], reference: str, timeout_seconds: float) -> dict[str, Any]:
     session = TwNewsAggregationSession(
-        browser_factory=lambda: _browser_factory(timeout_seconds),
+        browser_factory=lambda: _ProgressBrowserProxy(_browser_factory(timeout_seconds), progress, "aggregation"),
         cnyes_search_config=CnyesSearchConfig(max_article_navigation=1),
     )
     results: list[dict[str, Any]] = []
