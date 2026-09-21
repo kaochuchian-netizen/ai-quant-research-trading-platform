@@ -1,5 +1,8 @@
 import json
 import os
+import signal
+import sys
+import threading
 from datetime import datetime
 from pathlib import Path
 from time import monotonic
@@ -43,10 +46,94 @@ LINE_BATCH_SIZE = 3
 
 STAGE_TIMING_PATH = Path("artifacts/runtime/pre_open_stage_timing_latest.json")
 PRE_OPEN_RUNTIME_PATH = Path("artifacts/runtime/tw_window_decision/pre_open_0700_latest.json")
+POST_REPORT_SUBSTAGE_TIMEOUT_SECONDS = int(os.environ.get("STOCK_AI_TW_POST_REPORT_SUBSTAGE_TIMEOUT_SECONDS", "45"))
+
+
+class PostReportSubstageTimeout(TimeoutError):
+    pass
 
 
 def _now_taipei():
     return datetime.now(ZoneInfo("Asia/Taipei")).isoformat(timespec="seconds")
+
+
+def _emit_post_report_progress(stage_timing, symbol, substage, status="started", **metadata):
+    payload = {
+        "schema_version": "tw_stock_analysis_post_report_progress_v1",
+        "window": "pre_open_0700",
+        "pipeline_run_id": stage_timing.pipeline_run_id,
+        "symbol": str(symbol),
+        "substage": substage,
+        "status": status,
+        "at": _now_taipei(),
+        **metadata,
+    }
+    print(json.dumps(payload, ensure_ascii=False, sort_keys=True), file=sys.stderr, flush=True)
+    event_name = f"stock_analysis_{symbol}:{substage}"
+    stage_timing.events.append({
+        "stage": event_name,
+        "status": status,
+        "at": payload["at"],
+        **metadata,
+    })
+    stage_timing._write(event_name)
+
+
+class _bounded_post_report_operation:
+    def __init__(self, *, stage_timing, symbol, substage, timeout_seconds=None):
+        self.stage_timing = stage_timing
+        self.symbol = str(symbol)
+        self.substage = substage
+        self.timeout_seconds = int(timeout_seconds or POST_REPORT_SUBSTAGE_TIMEOUT_SECONDS)
+        self.started = None
+        self._previous_handler = None
+        self._previous_timer = None
+        self._armed = False
+
+    def __enter__(self):
+        self.started = monotonic()
+        _emit_post_report_progress(
+            self.stage_timing,
+            self.symbol,
+            self.substage,
+            timeout_seconds=self.timeout_seconds,
+        )
+        if threading.current_thread() is threading.main_thread() and hasattr(signal, "SIGALRM"):
+            self._previous_handler = signal.getsignal(signal.SIGALRM)
+            self._previous_timer = signal.setitimer(signal.ITIMER_REAL, self.timeout_seconds)
+
+            def _raise_timeout(signum, frame):
+                raise PostReportSubstageTimeout(f"{self.substage}_timeout")
+
+            signal.signal(signal.SIGALRM, _raise_timeout)
+            self._armed = True
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        if self._armed:
+            signal.setitimer(signal.ITIMER_REAL, 0)
+            signal.signal(signal.SIGALRM, self._previous_handler)
+            if self._previous_timer and self._previous_timer[0] > 0:
+                signal.setitimer(signal.ITIMER_REAL, self._previous_timer[0], self._previous_timer[1])
+        elapsed = None if self.started is None else round(monotonic() - self.started, 3)
+        if exc is None:
+            _emit_post_report_progress(
+                self.stage_timing,
+                self.symbol,
+                self.substage,
+                status="completed",
+                elapsed_seconds=elapsed,
+            )
+            return False
+        _emit_post_report_progress(
+            self.stage_timing,
+            self.symbol,
+            self.substage,
+            status="failed",
+            elapsed_seconds=elapsed,
+            reason=exc.__class__.__name__,
+        )
+        return False
 
 
 def _store_structured_pre_open_card(card_by_symbol, card):
@@ -472,36 +559,69 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
                 total_score_result=total_score_result,
                 chip_result=chip_result,
             )
+            _emit_post_report_progress(
+                stage_timing,
+                stock_id,
+                "REPORT_GENERATED",
+                status="completed",
+                report_chars=len(report),
+            )
 
             if dry_run:
                 print(f"dry-run 模式：略過 SQLite 寫入：{stock_name}({stock_id})")
             else:
-                save_analysis_result(
-                    stock_id=stock_id,
-                    stock_name=stock_name,
-                    indicator_result=indicator_result,
-                    technical_score=technical_score,
-                    news_score=news_score,
-                    adr_score=adr_score,
-                    chip_score=chip_score,
-                    total_score_result=total_score_result,
-                    report_text=report,
-                    signal_session="pre_open",
-                    pipeline_type=context["pipeline_type"],
-                    pipeline_run_id=context["pipeline_run_id"],
-                    signal_time=datetime.now(
-                        ZoneInfo("Asia/Taipei"),
-                    ).isoformat(timespec="seconds"),
-                    is_backtest_eligible=1,
-                    schema_version=1,
-                )
+                with _bounded_post_report_operation(
+                    stage_timing=stage_timing,
+                    symbol=stock_id,
+                    substage="SQLITE_WRITE",
+                ):
+                    save_analysis_result(
+                        stock_id=stock_id,
+                        stock_name=stock_name,
+                        indicator_result=indicator_result,
+                        technical_score=technical_score,
+                        news_score=news_score,
+                        adr_score=adr_score,
+                        chip_score=chip_score,
+                        total_score_result=total_score_result,
+                        report_text=report,
+                        signal_session="pre_open",
+                        pipeline_type=context["pipeline_type"],
+                        pipeline_run_id=context["pipeline_run_id"],
+                        signal_time=datetime.now(
+                            ZoneInfo("Asia/Taipei"),
+                        ).isoformat(timespec="seconds"),
+                        is_backtest_eligible=1,
+                        schema_version=1,
+                    )
 
                 print(f"SQLite 已寫入：{stock_name}({stock_id})")
+            _emit_post_report_progress(
+                stage_timing,
+                stock_id,
+                "SQLITE_WRITE_DONE",
+                status="completed",
+                dry_run=bool(dry_run),
+            )
             print(report, flush=True)
             daily_reports.append(report)
-            _store_structured_pre_open_card(
-                structured_card_by_symbol,
-                build_pre_open_card(
+            _emit_post_report_progress(stage_timing, stock_id, "STRUCTURED_CARD_START")
+
+            def _card_progress(substage, status="started", **metadata):
+                _emit_post_report_progress(
+                    stage_timing,
+                    stock_id,
+                    substage,
+                    status=status,
+                    **metadata,
+                )
+
+            with _bounded_post_report_operation(
+                stage_timing=stage_timing,
+                symbol=stock_id,
+                substage="STRUCTURED_CARD_BUILD",
+            ):
+                structured_card = build_pre_open_card(
                     symbol=stock_id,
                     name=stock_name,
                     trading_date=context["run_date"],
@@ -521,9 +641,27 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
                         )
                         if source_value in (None, [], {})
                     ],
-                ),
-            )
-            report_manual_rerun_stage("prediction_projection", "completed", symbol=stock_id)
+                    progress_hook=_card_progress,
+                )
+            _emit_post_report_progress(stage_timing, stock_id, "STRUCTURED_CARD_DONE", status="completed")
+            _emit_post_report_progress(stage_timing, stock_id, "ARTIFACT_WRITE_START")
+            with _bounded_post_report_operation(
+                stage_timing=stage_timing,
+                symbol=stock_id,
+                substage="ARTIFACT_WRITE",
+            ):
+                _store_structured_pre_open_card(
+                    structured_card_by_symbol,
+                    structured_card,
+                )
+            _emit_post_report_progress(stage_timing, stock_id, "ARTIFACT_WRITE_DONE", status="completed")
+            with _bounded_post_report_operation(
+                stage_timing=stage_timing,
+                symbol=stock_id,
+                substage="MANUAL_PROGRESS_WRITE",
+            ):
+                report_manual_rerun_stage("prediction_projection", "completed", symbol=stock_id)
+            _emit_post_report_progress(stage_timing, stock_id, "STOCK_ANALYSIS_DONE", status="completed")
             stage_timing.finish(stage_name, report_ready=True)
 
         except Exception as e:
