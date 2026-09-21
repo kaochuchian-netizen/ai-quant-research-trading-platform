@@ -18,6 +18,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 from analysis.news_fetcher import fetch_stock_news
 from app.research.tw_news_content_relevance import (
     CNYES_BROWSER_CONCURRENCY,
+    CnyesSearchConfig,
     CnyesBrowserContentCache,
     collect_cnyes_browser_news,
     enrich_news_items,
@@ -163,6 +164,8 @@ class TwNewsAggregationSession:
     """Batch-scoped state for CNYES browser reuse and transient content cache."""
 
     browser_factory: Callable[[], Any] | None = None
+    cnyes_search_config: CnyesSearchConfig | None = None
+    downstream_fetch_content: bool = True
     enable_cnyes: bool = True
     browser: Any | None = None
     cnyes_cache: CnyesBrowserContentCache = field(default_factory=CnyesBrowserContentCache)
@@ -171,6 +174,9 @@ class TwNewsAggregationSession:
     searches_attempted: int = 0
     articles_navigated: int = 0
     cache_hits: int = 0
+    browser_sessions_closed: int = 0
+    browser_quit_timed_out: bool = False
+    browser_cleanup_pids: list[int] = field(default_factory=list)
 
     def get_browser(self) -> Any:
         if self.browser is None:
@@ -184,7 +190,12 @@ class TwNewsAggregationSession:
         if browser is not None:
             close = getattr(browser, "close", None) or getattr(browser, "quit", None)
             if callable(close):
-                close()
+                lifecycle = close()
+                self.browser_sessions_closed += int(getattr(lifecycle, "sessions_closed", 1) or 0)
+                self.browser_quit_timed_out = bool(getattr(lifecycle, "quit_timed_out", False))
+                cleanup_pids = getattr(lifecycle, "cleanup_pids", None)
+                if isinstance(cleanup_pids, list):
+                    self.browser_cleanup_pids.extend(int(pid) for pid in cleanup_pids if str(pid).isdigit())
 
     def __enter__(self) -> "TwNewsAggregationSession":
         return self
@@ -233,6 +244,7 @@ def collect_tw_news(
                 stock_name=stock_name,
                 reference=reference,
                 content_cache=session.cnyes_cache,
+                config=session.cnyes_search_config,
             )
             after_cache = len(session.cnyes_cache.content_by_identity)
             attempted = int(cnyes_result.get("article_navigation_attempted") or 0)
@@ -257,7 +269,12 @@ def collect_tw_news(
         source_health[CNYES_SOURCE] = {"attempted": False, "status": "skipped", "reason": "DISABLED" if not include_cnyes else "LIVE_NETWORK_DISABLED", "result_count": 0}
 
     deduped = dedupe_news_items(raw_items)
-    deduped, enrichment = enrich_news_items(deduped, stock_id=str(stock_id), stock_name=stock_name, fetch_content=True)
+    deduped, enrichment = enrich_news_items(
+        deduped,
+        stock_id=str(stock_id),
+        stock_name=stock_name,
+        fetch_content=session.downstream_fetch_content,
+    )
     completed_at = _utc_now()
     retrieved_sources = [source for source, health in source_health.items() if health.get("status") in {"success", "degraded"} and health.get("result_count", 0) > 0]
     attempted_sources = [source for source, health in source_health.items() if health.get("attempted") is True]
