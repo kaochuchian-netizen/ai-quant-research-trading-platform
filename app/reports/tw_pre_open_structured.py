@@ -110,7 +110,7 @@ def _market_bias(coverage: dict[str, dict[str, int]], cards: list[dict[str, Any]
     return {"market_bias": bias, "market_bias_confidence": canonical["level"], "market_bias_reason_codes": canonical["reason_codes"], "market_confidence": canonical}
 
 
-def build_card(*, symbol: str, name: str, trading_date: str, indicator: dict[str, Any] | None = None, adr: dict[str, Any] | None = None, news: Any = None, chip: dict[str, Any] | None = None, score: dict[str, Any] | None = None, analysis: Any = None, tactical: dict[str, Any] | None = None, source_revision: int = 1, missing_fields: list[str] | None = None, generated_at: str | None = None) -> dict[str, Any]:
+def build_card(*, symbol: str, name: str, trading_date: str, indicator: dict[str, Any] | None = None, adr: dict[str, Any] | None = None, news: Any = None, chip: dict[str, Any] | None = None, score: dict[str, Any] | None = None, analysis: Any = None, tactical: dict[str, Any] | None = None, source_revision: int = 1, missing_fields: list[str] | None = None, generated_at: str | None = None, progress_hook: Any = None) -> dict[str, Any]:
     indicator, adr, chip, score = indicator or {}, adr or {}, chip or {}, score or {}
     missing = sorted(set(missing_fields or []))
     basic_available = bool(indicator) and _first(indicator, "close", "date") is not None
@@ -127,7 +127,11 @@ def build_card(*, symbol: str, name: str, trading_date: str, indicator: dict[str
     entry_readiness = "ready_for_open_confirmation" if group == "opportunity" and numeric_score >= 65 else "wait" if group in {"opportunity", "watch"} else "no_trade" if group == "no_trade" else "unavailable"
     generated_at = generated_at or datetime.now(TAIPEI).replace(microsecond=0).isoformat()
     technical_as_of = _first(indicator, "date", "source_data_date")
+    if progress_hook:
+        progress_hook("NEWS_EVIDENCE_START")
     canonical_news = news_contract(news, generated_at=generated_at, target_symbol=str(symbol), target_name=name)
+    if progress_hook:
+        progress_hook("NEWS_EVIDENCE_DONE", status="completed")
     card: dict[str, Any] = {
         "symbol": str(symbol), "stock_id": str(symbol), "name": name, "stock_name": name,
         "market": MARKET, "window": WINDOW, "trading_date": trading_date,
