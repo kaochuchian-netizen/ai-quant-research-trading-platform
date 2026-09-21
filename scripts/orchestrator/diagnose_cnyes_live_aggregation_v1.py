@@ -155,6 +155,8 @@ def _run_isolated_worker(args: argparse.Namespace, progress: Progress) -> tuple[
     ]
     if args.symbol:
         command.extend(["--symbol", args.symbol])
+    if args.symbols:
+        command.extend(["--symbols", args.symbols])
     worker_timeout = max(5.0, args.stage_timeout_seconds + 8.0)
     proc = subprocess.Popen(
         command,
