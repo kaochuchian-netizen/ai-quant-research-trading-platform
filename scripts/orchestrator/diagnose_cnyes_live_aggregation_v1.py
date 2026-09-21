@@ -343,6 +343,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=["watchlist", "google-rss", "browser-smoke", "cnyes-search", "aggregate-one", "aggregate-multi"], required=True)
     parser.add_argument("--symbol")
+    parser.add_argument("--symbols", help="Comma-separated explicit symbols for isolated multi-symbol diagnostics.")
     parser.add_argument("--reference", default="now")
     parser.add_argument("--max-symbols", type=int, default=1)
     parser.add_argument("--stage-timeout-seconds", type=float, default=35.0)
@@ -392,8 +393,9 @@ def main() -> int:
         symbols: list[str] = []
         symbol = args.symbol or ""
         stock_name = _stock_name(symbol) if symbol else ""
+        explicit_symbols = [part.strip() for part in str(args.symbols or "").split(",") if part.strip()]
         if args.mode == "watchlist":
-            symbols = [args.symbol] if args.symbol else _load_watchlist(progress, max(1, args.max_symbols), args.stage_timeout_seconds)
+            symbols = explicit_symbols or ([args.symbol] if args.symbol else _load_watchlist(progress, max(1, args.max_symbols), args.stage_timeout_seconds))
             payload = {"symbols": symbols}
         elif args.mode == "google-rss":
             symbols = [args.symbol] if args.symbol else _load_watchlist(progress, 1, args.stage_timeout_seconds)
@@ -412,7 +414,7 @@ def main() -> int:
             symbol = symbols[0]
             payload = _run_aggregation(progress, [symbol], args.reference, args.stage_timeout_seconds)
         elif args.mode == "aggregate-multi":
-            symbols = [args.symbol] if args.symbol else _load_watchlist(progress, max(1, args.max_symbols), args.stage_timeout_seconds)
+            symbols = explicit_symbols or ([args.symbol] if args.symbol else _load_watchlist(progress, max(1, args.max_symbols), args.stage_timeout_seconds))
             payload = _run_aggregation(progress, symbols[: max(1, args.max_symbols)], args.reference, args.stage_timeout_seconds)
     except Exception as exc:
         status = "FAIL"
