@@ -13,9 +13,21 @@ modules = {name: ModuleType(name) for name in ('selenium','selenium.webdriver','
 
 class FakeChrome:
     def __init__(self, **_):
-        self.child = subprocess.Popen([sys.executable,'-c','import time; time.sleep(60)'],start_new_session=True)
+        # Model ChromeDriver -> detached Chrome/crashpad. In the success case
+        # the service exits BEFORE cleanup, forcing subreaper adoption.
+        spawn_tree = """
+import os, subprocess, sys, time
+from pathlib import Path
+child = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'], start_new_session=True)
+Path(sys.argv[1]).write_text(str(os.getpid()) + '\\n' + str(child.pid))
+if sys.argv[2] != 'success': time.sleep(60)
+"""
+        self.child = subprocess.Popen([sys.executable, '-c', spawn_tree, pid_record, mode], start_new_session=True)
         self.service = SimpleNamespace(process=self.child)
-        Path(pid_record).write_text(str(self.child.pid))
+        limit = time.monotonic() + 1
+        while not Path(pid_record).exists() and time.monotonic() < limit:
+            time.sleep(.01)
+        if mode == 'success': self.child.wait(timeout=1)
         if mode == 'partial': raise ValueError('partial constructor')
         if mode == 'creation_hang': time.sleep(60)
     def set_page_load_timeout(self, _): pass
