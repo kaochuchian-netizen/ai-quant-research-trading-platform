@@ -4,7 +4,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 import os
 import signal
-import subprocess
 import threading
 import time
 from typing import Any
@@ -14,6 +13,8 @@ from app.research.tw_news_content_relevance import cnyes_search_result_from_dom,
 
 @dataclass(frozen=True)
 class CnyesBrowserTimeouts:
+    creation_seconds: float = 25.0
+    overall_seconds: float = 180.0
     page_load_seconds: float = 12.0
     script_seconds: float = 5.0
     results_ready_seconds: float = 10.0
@@ -31,6 +32,8 @@ class CnyesBrowserLifecycle:
     cleanup_attempted: bool = False
     cleanup_pids: list[int] = field(default_factory=list)
     service_pid: int | None = None
+    quit_attempted: bool = False
+    cleanup_errors: list[str] = field(default_factory=list)
 
 
 class CnyesBrowserTimeoutError(TimeoutError):
@@ -50,58 +53,23 @@ def _driver_service_pid(driver: Any) -> int | None:
         return None
 
 
-def _process_exists(pid: int) -> bool:
-    try:
-        os.kill(pid, 0)
-        return True
-    except OSError:
-        return False
-
-
-def _descendant_pids(root_pid: int) -> list[int]:
-    try:
-        output = subprocess.check_output(["ps", "-eo", "pid=,ppid="], text=True, timeout=2)
-    except Exception:
-        return []
-    children: dict[int, list[int]] = {}
-    for line in output.splitlines():
-        parts = line.split()
-        if len(parts) != 2:
-            continue
-        try:
-            pid, ppid = int(parts[0]), int(parts[1])
-        except ValueError:
-            continue
-        children.setdefault(ppid, []).append(pid)
-    result: list[int] = []
-    stack = list(children.get(root_pid, []))
-    while stack:
-        pid = stack.pop()
-        if pid in result:
-            continue
-        result.append(pid)
-        stack.extend(children.get(pid, []))
-    return result
-
-
 def _terminate_owned_process_tree(root_pid: int, *, grace_seconds: float) -> list[int]:
-    """Terminate only the WebDriver-owned process tree rooted at ``root_pid``."""
-    pids = [pid for pid in _descendant_pids(root_pid) + [root_pid] if pid > 1 and _process_exists(pid)]
-    for pid in pids:
-        try:
-            os.kill(pid, signal.SIGTERM)
-        except OSError:
-            pass
-    deadline = time.monotonic() + max(0.1, grace_seconds)
-    while time.monotonic() < deadline and any(_process_exists(pid) for pid in pids):
-        time.sleep(0.05)
-    for pid in pids:
-        if _process_exists(pid):
-            try:
-                os.kill(pid, signal.SIGKILL)
-            except OSError:
-                pass
-    return pids
+    """Identity-bound cleanup; managed workers additionally reap detached children."""
+    from app.research.browser_lifecycle import owned_processes, process_table, signal_owned
+    table = process_table()
+    # A stale service PID must never acquire ownership of an unrelated process.
+    if root_pid not in owned_processes(os.getpid(), table):
+        return []
+    owned = owned_processes(root_pid, table)
+    if root_pid in table:
+        owned[root_pid] = table[root_pid][1]
+    for pid, birth in owned.items():
+        signal_owned(pid, birth, signal.SIGTERM)
+    if owned:
+        time.sleep(max(0, grace_seconds))
+    for pid, birth in owned.items():
+        signal_owned(pid, birth, signal.SIGKILL)
+    return list(owned)
 
 
 class CnyesSeleniumBrowser:
@@ -113,6 +81,7 @@ class CnyesSeleniumBrowser:
         timeouts: CnyesBrowserTimeouts | None = None,
         lifecycle: CnyesBrowserLifecycle | None = None,
     ) -> None:
+        self._closed = False
         self.driver = driver
         self.reference = reference
         self.timeouts = timeouts or CnyesBrowserTimeouts()
@@ -120,7 +89,11 @@ class CnyesSeleniumBrowser:
         self.lifecycle.sessions_created += 1
         self.lifecycle.service_pid = _driver_service_pid(driver)
         self._last_count = 0
-        self._configure_driver_timeouts()
+        try:
+            self._configure_driver_timeouts()
+        except BaseException:
+            self.close()
+            raise
 
     def _configure_driver_timeouts(self) -> None:
         page = getattr(self.driver, "set_page_load_timeout", None)
@@ -217,40 +190,63 @@ class CnyesSeleniumBrowser:
         return normalize_text(self.driver.find_element(By.TAG_NAME, 'body').text)
 
     def close(self) -> CnyesBrowserLifecycle:
+        if self._closed:
+            return self.lifecycle
+        self._closed = True
         error: list[BaseException] = []
 
         def _quit() -> None:
             try:
+                self.lifecycle.quit_attempted = True
                 self.driver.quit()
-            except BaseException as exc:  # pragma: no cover - preserved for lifecycle evidence
+            except BaseException as exc:
                 error.append(exc)
 
         thread = threading.Thread(target=_quit, name="cnyes-selenium-quit", daemon=True)
         thread.start()
         thread.join(self.timeouts.quit_seconds)
-        if thread.is_alive():
-            self.lifecycle.quit_timed_out = True
+        self.lifecycle.quit_timed_out = thread.is_alive()
+        if error or thread.is_alive():
+            from app.research.browser_lifecycle import audit
+            self.lifecycle.cleanup_errors.extend(type(exc).__name__ for exc in error)
+            audit("quit_failed", timed_out=thread.is_alive(), errors=self.lifecycle.cleanup_errors)
             root_pid = self.lifecycle.service_pid or _driver_service_pid(self.driver)
             if root_pid:
                 self.lifecycle.cleanup_attempted = True
-                self.lifecycle.cleanup_pids = _terminate_owned_process_tree(
-                    root_pid,
-                    grace_seconds=self.timeouts.process_cleanup_grace_seconds,
-                )
+                try:
+                    self.lifecycle.cleanup_pids = _terminate_owned_process_tree(
+                        root_pid, grace_seconds=self.timeouts.process_cleanup_grace_seconds,
+                    )
+                except BaseException as exc:
+                    self.lifecycle.cleanup_errors.append(type(exc).__name__)
+                    audit("tree_cleanup_failed", error=type(exc).__name__)
         else:
             self.lifecycle.sessions_closed += 1
-        if error:
-            raise error[0]
         return self.lifecycle
 
 
 def create_cnyes_selenium_browser(
-    *,
-    headless: bool = True,
-    timeouts: CnyesBrowserTimeouts | None = None,
-) -> CnyesSeleniumBrowser:
+    *, headless: bool = True, timeouts: CnyesBrowserTimeouts | None = None,
+):
+    from app.research.browser_lifecycle import ManagedBrowser
+    return ManagedBrowser(headless=headless, timeouts=timeouts)
+
+
+def _create_local_browser(*, headless, timeouts, profile, lifecycle):
+    """Worker only: retain an object even if Selenium __init__ fails halfway."""
     from selenium import webdriver
     from selenium.webdriver.chrome.options import Options
+
+    class OnceChrome(webdriver.Chrome):
+        _quit_once = False
+
+        def quit(self):
+            if self._quit_once:
+                return
+            self._quit_once = True
+            lifecycle.quit_attempted = True
+            return super().quit()
+
     options = Options()
     if headless:
         options.add_argument('--headless=new')
@@ -258,5 +254,20 @@ def create_cnyes_selenium_browser(
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument('--window-size=1280,1800')
-    driver = webdriver.Chrome(options=options)
-    return CnyesSeleniumBrowser(driver, timeouts=timeouts)
+    options.add_argument('--user-data-dir=' + profile + '/profile')
+    options.add_argument('--disable-breakpad')
+    driver = OnceChrome.__new__(OnceChrome)
+    try:
+        driver.__init__(options=options)
+        return CnyesSeleniumBrowser(driver, timeouts=timeouts, lifecycle=lifecycle)
+    except BaseException:
+        # Constructor/setup exceptions must retain their original identity.
+        wrapper = CnyesSeleniumBrowser.__new__(CnyesSeleniumBrowser)
+        wrapper.driver, wrapper.timeouts, wrapper.lifecycle = driver, timeouts, lifecycle
+        wrapper._closed = False
+        try:
+            wrapper.close()
+        except BaseException as cleanup_error:
+            from app.research.browser_lifecycle import audit
+            audit("partial_cleanup_failed", error=type(cleanup_error).__name__)
+        raise
