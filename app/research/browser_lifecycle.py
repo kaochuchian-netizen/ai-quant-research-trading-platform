@@ -252,7 +252,16 @@ class ManagedBrowser:
                 raise BrowserUnavailable(self.fallback_reason or 'BROWSER_CLOSED')
             try:
                 send(self._sock, {'method': method, 'args': args, 'reference': str(self.reference) if self.reference else None})
-                return self._check(receive(self._sock, max(0.001, self._end-time.monotonic())))
+                budget = {
+                    'open_search': self.timeouts.page_load_seconds,
+                    'open_article': self.timeouts.page_load_seconds,
+                    'wait_results_ready': self.timeouts.results_ready_seconds,
+                    'visible_result_cards': self.timeouts.script_seconds,
+                    'scroll_for_more': self.timeouts.script_seconds + self.timeouts.scroll_growth_seconds,
+                    'article_body': self.timeouts.article_body_seconds + self.timeouts.script_seconds,
+                }[method]
+                remaining = min(budget + 0.25, self._end-time.monotonic())
+                return self._check(receive(self._sock, max(0.001, remaining)))
             except BaseException as exc:
                 self.fallback_reason = getattr(exc, "reason", type(exc).__name__)
                 self.close()
@@ -281,9 +290,10 @@ class ManagedBrowser:
                     if self._process.poll() is None:
                         self._process.terminate()
                     try:
-                        response = receive(self._sock, self.timeouts.quit_seconds + 3)
+                        close_end = time.monotonic() + self.timeouts.quit_seconds + self.timeouts.process_cleanup_grace_seconds + 3
+                        response = receive(self._sock, close_end-time.monotonic())
                         while 'closed' not in response:
-                            response = receive(self._sock, self.timeouts.quit_seconds + 3)
+                            response = receive(self._sock, max(0.001, close_end-time.monotonic()))
                         for key, value in response['closed'].items():
                             if hasattr(self.lifecycle, key):
                                 setattr(self.lifecycle, key, value)
@@ -303,14 +313,20 @@ class ManagedBrowser:
                                     audit('forced_cleanup_failed', error=type(kill_error).__name__)
                             os.killpg(self._process.pid, signal.SIGKILL)
                             self._process.wait(timeout=2)
-                if self._temp:
-                    self._temp.cleanup()
             except BaseException as exc:
                 audit('cleanup_failed', error=type(exc).__name__)
             finally:
-                if self._sock:
-                    self._sock.close()
-                self._admission.release()
+                for resource, cleanup in (
+                    ('profile', self._temp.cleanup if self._temp else None),
+                    ('ipc', self._sock.close if self._sock else None),
+                    ('admission', self._admission.release),
+                ):
+                    if cleanup:
+                        try:
+                            cleanup()
+                        except BaseException as exc:
+                            self.lifecycle.cleanup_errors.append(type(exc).__name__)
+                            audit('resource_cleanup_failed', resource=resource, error=type(exc).__name__)
                 audit('closed', **asdict(self.lifecycle))
             return self.lifecycle
 
@@ -354,7 +370,11 @@ def worker(sock: socket.socket, profile: str, timeouts, headless: bool) -> None:
     finally:
         signal.signal(signal.SIGTERM, signal.SIG_IGN)
         if browser:
-            browser.close()
+            try:
+                browser.close()
+            except BaseException as exc:
+                lifecycle.cleanup_errors.append(type(exc).__name__)
+                audit('adapter_cleanup_failed', error=type(exc).__name__)
         try:
             lifecycle.cleanup_attempted = True
             lifecycle.cleanup_pids = cleanup_children(os.getpid(), timeouts.process_cleanup_grace_seconds)

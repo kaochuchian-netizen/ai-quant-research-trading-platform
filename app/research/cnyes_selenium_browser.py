@@ -92,7 +92,11 @@ class CnyesSeleniumBrowser:
         try:
             self._configure_driver_timeouts()
         except BaseException:
-            self.close()
+            try:
+                self.close()
+            except BaseException as cleanup_error:
+                from app.research.browser_lifecycle import audit
+                audit("setup_cleanup_failed", error=type(cleanup_error).__name__)
             raise
 
     def _configure_driver_timeouts(self) -> None:

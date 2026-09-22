@@ -223,6 +223,38 @@ class LifecycleTests(unittest.TestCase):
             with self.assertRaises(KeyboardInterrupt): collect_tw_news('2330','台積電',google_fetcher=lambda *_:[])
         browser.close.assert_called_once()
 
+    def test_each_resource_cleanup_attempted_without_masking(self):
+        browser = life.ManagedBrowser.__new__(life.ManagedBrowser)
+        browser._lock = threading.RLock()
+        browser._closed = False
+        browser._timer = browser._process = None
+        browser._end = time.monotonic()+30
+        browser.lifecycle = CnyesBrowserLifecycle()
+        browser._temp = SimpleNamespace(cleanup=Mock(side_effect=OSError('profile')))
+        browser._sock = SimpleNamespace(close=Mock(side_effect=OSError('socket')))
+        browser._admission = SimpleNamespace(release=Mock(side_effect=OSError('lock')))
+        with self.assertLogs('app.research.browser_lifecycle',level='WARNING') as logs:
+            with self.assertRaisesRegex(ValueError, 'original'):
+                try: raise ValueError('original')
+                finally: browser.close()
+        browser._temp.cleanup.assert_called_once()
+        browser._sock.close.assert_called_once()
+        browser._admission.release.assert_called_once()
+        self.assertEqual(len(browser.lifecycle.cleanup_errors), 3)
+        self.assertIn('resource_cleanup_failed', '\n'.join(logs.output))
+
+    def test_rpc_page_budget_independent_of_overall(self):
+        browser = life.ManagedBrowser.__new__(life.ManagedBrowser)
+        browser._lock = threading.RLock()
+        browser._closed = False
+        browser._sock = object()
+        browser.reference = None
+        browser._end = time.monotonic()+100
+        browser.timeouts = CnyesBrowserTimeouts(page_load_seconds=.01)
+        with patch.object(life,'send'), patch.object(life,'receive',return_value={'result':None}) as receive:
+            browser.open_article('fixture')
+        self.assertAlmostEqual(receive.call_args.args[1], .26)
+
     def test_ipc_timeout_is_bounded(self):
         a,b = socket.socketpair()
         try:
