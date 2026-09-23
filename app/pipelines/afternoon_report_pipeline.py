@@ -201,157 +201,159 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
     stock_name_warnings = []
 
     news_aggregation_session = TwNewsAggregationSession()
-    for stock_id in stock_ids:
-        stock_id = str(stock_id).zfill(4)
-        stock_name_result = resolve_stock_name(stock_id)
-        stock_name = str(stock_name_result["stock_name"])
-        if stock_name_result.get("warning"):
-            stock_name_warnings.append(
-                {
-                    "stock_id": stock_id,
-                    "source": stock_name_result["source"],
-                    "warning": stock_name_result["warning"],
-                }
-            )
-            print(
-                f"{pipeline_type} stock name fallback for {stock_id}: "
-                f"{stock_name_result['warning']}"
-            )
-        print(f"開始分析股票：{stock_name}({stock_id})")
+    try:
+        for stock_id in stock_ids:
+            stock_id = str(stock_id).zfill(4)
+            stock_name_result = resolve_stock_name(stock_id)
+            stock_name = str(stock_name_result["stock_name"])
+            if stock_name_result.get("warning"):
+                stock_name_warnings.append(
+                    {
+                        "stock_id": stock_id,
+                        "source": stock_name_result["source"],
+                        "warning": stock_name_result["warning"],
+                    }
+                )
+                print(
+                    f"{pipeline_type} stock name fallback for {stock_id}: "
+                    f"{stock_name_result['warning']}"
+                )
+            print(f"開始分析股票：{stock_name}({stock_id})")
 
-        csv_path = f"data/historical/{stock_id}_daily.csv"
-        if not os.path.exists(csv_path):
-            reason = f"找不到歷史資料 {csv_path}"
-            print(f"略過股票 {stock_name}({stock_id})：{reason}")
-            failed_reports.append({"stock_id": stock_id, "stock_name": stock_name, "reason": reason})
-            continue
-
-        try:
-            timing.heartbeat("technical", stock_id)
-            with timing.stage("technical"):
-                indicator_result = build_indicator_result(stock_id, csv_path)
-            technical_score = indicator_result.get("score", {}).get("bullish_score", 50)
+            csv_path = f"data/historical/{stock_id}_daily.csv"
+            if not os.path.exists(csv_path):
+                reason = f"找不到歷史資料 {csv_path}"
+                print(f"略過股票 {stock_name}({stock_id})：{reason}")
+                failed_reports.append({"stock_id": stock_id, "stock_name": stock_name, "reason": reason})
+                continue
 
             try:
-                with timing.stage("adr", optional=True):
-                    adr_result = get_adr_result(stock_id)
-                    adr_score = calculate_adr_score(adr_result)
-            except Exception as exc:
-                adr_result, adr_score = {"status": "unavailable", "reason": exc.__class__.__name__}, 50
+                timing.heartbeat("technical", stock_id)
+                with timing.stage("technical"):
+                    indicator_result = build_indicator_result(stock_id, csv_path)
+                technical_score = indicator_result.get("score", {}).get("bullish_score", 50)
 
-            try:
-                with timing.stage("news", optional=True):
-                    news_bundle = analyze_news(
-                        stock_id,
-                        stock_name,
-                        include_evidence=True,
-                        aggregation_session=news_aggregation_session,
-                        reference=context["run_date"],
+                try:
+                    with timing.stage("adr", optional=True):
+                        adr_result = get_adr_result(stock_id)
+                        adr_score = calculate_adr_score(adr_result)
+                except Exception as exc:
+                    adr_result, adr_score = {"status": "unavailable", "reason": exc.__class__.__name__}, 50
+
+                try:
+                    with timing.stage("news", optional=True):
+                        news_bundle = analyze_news(
+                            stock_id,
+                            stock_name,
+                            include_evidence=True,
+                            aggregation_session=news_aggregation_session,
+                            reference=context["run_date"],
+                        )
+                        news_result = news_bundle.get("analysis", "")
+                        news_score_result = calculate_news_score(news_result)
+                        news_score = news_score_result.get("score", 50)
+                except Exception as exc:
+                    news_bundle, news_result, news_score = {}, {"status": "unavailable", "reason": exc.__class__.__name__}, 50
+
+                try:
+                    with timing.stage("chip", optional=True):
+                        chip_result = analyze_chip(stock_id)
+                        chip_score = chip_result.get("chip_score", 50)
+                except Exception as exc:
+                    chip_result, chip_score = {"status": "unavailable", "reason": exc.__class__.__name__}, 50
+
+                with timing.stage("strategy"):
+                    total_score_result = calculate_total_score(
+                        technical_score=technical_score,
+                        news_score=news_score,
+                        adr_score=adr_score,
+                        chip_score=chip_score,
                     )
-                    news_result = news_bundle.get("analysis", "")
-                    news_score_result = calculate_news_score(news_result)
-                    news_score = news_score_result.get("score", 50)
+
+                with timing.stage("prediction", optional=True):
+                    ai_analysis = analyze_stock(
+                        indicator_result=indicator_result,
+                        adr_result=adr_result,
+                        news_result=news_result,
+                    )
+
+                with timing.stage("formatter"):
+                    report = format_stock_report_v2(
+                        stock_id=stock_id,
+                        stock_name=stock_name,
+                        indicator_result=indicator_result,
+                        ai_analysis=ai_analysis,
+                        adr_result=adr_result,
+                        news_result=news_result,
+                        total_score_result=total_score_result,
+                        chip_result=chip_result,
+                    )
+
+                if dry_run:
+                    print(f"dry-run 模式：略過 SQLite 寫入：{stock_name}({stock_id})")
+                else:
+                    save_analysis_result(
+                        stock_id=stock_id,
+                        stock_name=stock_name,
+                        indicator_result=indicator_result,
+                        technical_score=technical_score,
+                        news_score=news_score,
+                        adr_score=adr_score,
+                        chip_score=chip_score,
+                        total_score_result=total_score_result,
+                        report_text=report,
+                        signal_session=pipeline_type,
+                        pipeline_type=context["pipeline_type"],
+                        pipeline_run_id=context["pipeline_run_id"],
+                        signal_time=datetime.now(ZoneInfo("Asia/Taipei")).isoformat(timespec="seconds"),
+                        is_backtest_eligible=0,
+                        schema_version=1,
+                    )
+                    print(f"SQLite 已寫入：{stock_name}({stock_id})")
+
+                print(report)
+                daily_reports.append(report)
+                setup = setups_by_symbol.get(stock_id) or {
+                    "symbol": stock_id, "stock_id": stock_id, "name": stock_name,
+                    "stock_name": stock_name, "trading_date": context["run_date"],
+                    "setup_id": None, "entry_readiness": "unavailable", "strategy_type": "unavailable",
+                    "missing_fields": ["same_day_admitted_pre_open_setup"], "strategies": {"daily_tactical": {}},
+                }
+                quote = dict(quotes_by_symbol.get(stock_id) or {})
+                if not quote and quote_failure:
+                    quote["source_error_category"] = quote_failure
+                prior_card = dict(prior_by_symbol.get(stock_id) or {})
+                prior_timeline = prior_card.get("lifecycle_timeline") if isinstance(prior_card.get("lifecycle_timeline"), list) else None
+                if prior_card and prior_snapshot:
+                    prior_card.update({
+                        "window": prior_window,
+                        "source_snapshot_id": prior_snapshot.get("snapshot_id"),
+                        "source_revision": int(prior_snapshot.get("revision") or 0),
+                        "parent_source_payload_hash": stable_hash(prior_payload),
+                    })
+                observed_card = build_observed_card(
+                    window=window, setup_card=setup, quote=quote,
+                    trading_date=context["run_date"],
+                    generated_at=datetime.now(ZoneInfo("Asia/Taipei")).replace(microsecond=0).isoformat(),
+                    source_snapshot_id=setup_snapshot.get("snapshot_id") if setup_snapshot else None,
+                    source_revision=int(setup_snapshot.get("revision") or 0) if setup_snapshot else 0,
+                    source_payload_hash=stable_hash(setup_payload) if setup_snapshot else None,
+                    prior_card=prior_card or None,
+                    lifecycle_timeline=prior_timeline,
+                )
+                if isinstance(news_bundle, dict):
+                    observed_card["current_news_evidence"] = news_bundle
+                    observed_card["current_news_items"] = list(news_bundle.get("items") or [])
+                    observed_card["current_news_retrieval"] = dict(news_bundle.get("retrieval") or {})
+                decision_cards.append(observed_card)
+
             except Exception as exc:
-                news_bundle, news_result, news_score = {}, {"status": "unavailable", "reason": exc.__class__.__name__}, 50
+                reason = exc.__class__.__name__
+                print(f"分析失敗：{stock_name}({stock_id})，原因類型：{reason}")
+                failed_reports.append({"stock_id": stock_id, "stock_name": stock_name, "reason": reason})
 
-            try:
-                with timing.stage("chip", optional=True):
-                    chip_result = analyze_chip(stock_id)
-                    chip_score = chip_result.get("chip_score", 50)
-            except Exception as exc:
-                chip_result, chip_score = {"status": "unavailable", "reason": exc.__class__.__name__}, 50
-
-            with timing.stage("strategy"):
-                total_score_result = calculate_total_score(
-                    technical_score=technical_score,
-                    news_score=news_score,
-                    adr_score=adr_score,
-                    chip_score=chip_score,
-                )
-
-            with timing.stage("prediction", optional=True):
-                ai_analysis = analyze_stock(
-                    indicator_result=indicator_result,
-                    adr_result=adr_result,
-                    news_result=news_result,
-                )
-
-            with timing.stage("formatter"):
-                report = format_stock_report_v2(
-                    stock_id=stock_id,
-                    stock_name=stock_name,
-                    indicator_result=indicator_result,
-                    ai_analysis=ai_analysis,
-                    adr_result=adr_result,
-                    news_result=news_result,
-                    total_score_result=total_score_result,
-                    chip_result=chip_result,
-                )
-
-            if dry_run:
-                print(f"dry-run 模式：略過 SQLite 寫入：{stock_name}({stock_id})")
-            else:
-                save_analysis_result(
-                    stock_id=stock_id,
-                    stock_name=stock_name,
-                    indicator_result=indicator_result,
-                    technical_score=technical_score,
-                    news_score=news_score,
-                    adr_score=adr_score,
-                    chip_score=chip_score,
-                    total_score_result=total_score_result,
-                    report_text=report,
-                    signal_session=pipeline_type,
-                    pipeline_type=context["pipeline_type"],
-                    pipeline_run_id=context["pipeline_run_id"],
-                    signal_time=datetime.now(ZoneInfo("Asia/Taipei")).isoformat(timespec="seconds"),
-                    is_backtest_eligible=0,
-                    schema_version=1,
-                )
-                print(f"SQLite 已寫入：{stock_name}({stock_id})")
-
-            print(report)
-            daily_reports.append(report)
-            setup = setups_by_symbol.get(stock_id) or {
-                "symbol": stock_id, "stock_id": stock_id, "name": stock_name,
-                "stock_name": stock_name, "trading_date": context["run_date"],
-                "setup_id": None, "entry_readiness": "unavailable", "strategy_type": "unavailable",
-                "missing_fields": ["same_day_admitted_pre_open_setup"], "strategies": {"daily_tactical": {}},
-            }
-            quote = dict(quotes_by_symbol.get(stock_id) or {})
-            if not quote and quote_failure:
-                quote["source_error_category"] = quote_failure
-            prior_card = dict(prior_by_symbol.get(stock_id) or {})
-            prior_timeline = prior_card.get("lifecycle_timeline") if isinstance(prior_card.get("lifecycle_timeline"), list) else None
-            if prior_card and prior_snapshot:
-                prior_card.update({
-                    "window": prior_window,
-                    "source_snapshot_id": prior_snapshot.get("snapshot_id"),
-                    "source_revision": int(prior_snapshot.get("revision") or 0),
-                    "parent_source_payload_hash": stable_hash(prior_payload),
-                })
-            observed_card = build_observed_card(
-                window=window, setup_card=setup, quote=quote,
-                trading_date=context["run_date"],
-                generated_at=datetime.now(ZoneInfo("Asia/Taipei")).replace(microsecond=0).isoformat(),
-                source_snapshot_id=setup_snapshot.get("snapshot_id") if setup_snapshot else None,
-                source_revision=int(setup_snapshot.get("revision") or 0) if setup_snapshot else 0,
-                source_payload_hash=stable_hash(setup_payload) if setup_snapshot else None,
-                prior_card=prior_card or None,
-                lifecycle_timeline=prior_timeline,
-            )
-            if isinstance(news_bundle, dict):
-                observed_card["current_news_evidence"] = news_bundle
-                observed_card["current_news_items"] = list(news_bundle.get("items") or [])
-                observed_card["current_news_retrieval"] = dict(news_bundle.get("retrieval") or {})
-            decision_cards.append(observed_card)
-
-        except Exception as exc:
-            reason = exc.__class__.__name__
-            print(f"分析失敗：{stock_name}({stock_id})，原因類型：{reason}")
-            failed_reports.append({"stock_id": stock_id, "stock_name": stock_name, "reason": reason})
-
-    news_aggregation_session.close()
+    finally:
+        news_aggregation_session.close()
 
     if not decision_cards and not dry_run:
         timing.fail(stage="runtime_write", category="runtime_write_failure", reason="no_valid_decision_cards")

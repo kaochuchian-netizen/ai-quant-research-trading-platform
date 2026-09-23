@@ -10,6 +10,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import hashlib
+import logging
+import threading
 import os
 import re
 from typing import Any, Callable
@@ -178,24 +180,51 @@ class TwNewsAggregationSession:
     browser_quit_timed_out: bool = False
     browser_cleanup_pids: list[int] = field(default_factory=list)
 
+    _browser_attempted: bool = False
+    _closed: bool = False
+    _fallback_reason: str = "BROWSER_ALREADY_ATTEMPTED"
+    _browser_lock: Any = field(default_factory=threading.RLock, repr=False)
+
     def get_browser(self) -> Any:
+        with self._browser_lock:
+            return self._get_browser()
+
+    def _get_browser(self) -> Any:
+        from app.research.browser_lifecycle import BrowserUnavailable
+        if self._closed:
+            raise BrowserUnavailable("SESSION_CLOSED")
         if self.browser is None:
+            if self._browser_attempted:
+                raise BrowserUnavailable(self._fallback_reason)
+            self._browser_attempted = True
             factory = self.browser_factory or _default_cnyes_browser_factory
-            self.browser = factory()
+            try:
+                self.browser = factory()
+            except BaseException as exc:
+                self._fallback_reason = getattr(exc, "reason", type(exc).__name__)
+                raise
             self.browser_launches += 1
         return self.browser
 
     def close(self) -> None:
+        with self._browser_lock:
+            self._close()
+
+    def _close(self) -> None:
+        self._closed = True
         browser, self.browser = self.browser, None
         if browser is not None:
             close = getattr(browser, "close", None) or getattr(browser, "quit", None)
             if callable(close):
-                lifecycle = close()
-                self.browser_sessions_closed += int(getattr(lifecycle, "sessions_closed", 1) or 0)
-                self.browser_quit_timed_out = bool(getattr(lifecycle, "quit_timed_out", False))
-                cleanup_pids = getattr(lifecycle, "cleanup_pids", None)
-                if isinstance(cleanup_pids, list):
-                    self.browser_cleanup_pids.extend(int(pid) for pid in cleanup_pids if str(pid).isdigit())
+                try:
+                    lifecycle = close()
+                    self.browser_sessions_closed += int(getattr(lifecycle, "sessions_closed", 1) or 0)
+                    self.browser_quit_timed_out = bool(getattr(lifecycle, "quit_timed_out", False))
+                    cleanup_pids = getattr(lifecycle, "cleanup_pids", None)
+                    if isinstance(cleanup_pids, list):
+                        self.browser_cleanup_pids.extend(int(pid) for pid in cleanup_pids if str(pid).isdigit())
+                except BaseException as exc:
+                    logging.getLogger(__name__).warning("browser_lifecycle session_cleanup_failed error=%s", type(exc).__name__)
 
     def __enter__(self) -> "TwNewsAggregationSession":
         return self
@@ -220,7 +249,10 @@ def collect_tw_news(
 ) -> dict[str, Any]:
     started_at = _utc_now()
     reference = reference or started_at
-    session = session or TwNewsAggregationSession()
+    if session is None:
+        with TwNewsAggregationSession() as owned_session:
+            return collect_tw_news(stock_id, stock_name, reference=reference, session=owned_session,
+                                   google_fetcher=google_fetcher, include_cnyes=include_cnyes)
     include_cnyes = session.enable_cnyes if include_cnyes is None else include_cnyes
     source_health: dict[str, dict[str, Any]] = {}
     raw_items: list[dict[str, Any]] = []
@@ -231,7 +263,7 @@ def collect_tw_news(
         source_health[GOOGLE_SOURCE] = {"attempted": True, "status": "success" if google_items else "degraded", "result_count": len(google_items)}
         raw_items.extend(_normalize_google_item(item, stock_id=str(stock_id), stock_name=stock_name) for item in google_items)
     except Exception as exc:
-        source_health[GOOGLE_SOURCE] = {"attempted": True, "status": "failed", "reason": exc.__class__.__name__, "result_count": 0}
+        source_health[GOOGLE_SOURCE] = {"attempted": True, "status": "failed", "reason": getattr(exc, "reason", exc.__class__.__name__), "result_count": 0}
 
     if include_cnyes and os.environ.get("STOCK_AI_DISABLE_LIVE_NEWS_NETWORK") != "1":
         try:
@@ -253,6 +285,7 @@ def collect_tw_news(
             cnyes_articles = [_normalize_cnyes_item(item, stock_id=str(stock_id), stock_name=stock_name) for item in cnyes_result.get("articles", [])]
             raw_items.extend(cnyes_articles)
             degraded_reason = cnyes_result.get("scroll_stop_reason") if cnyes_result.get("scroll_stop_reason") in {"PROTECTION_BLOCKED", "BROWSER_TIMEOUT", "BROWSER_CRASH"} else None
+            degraded_reason = getattr(session.browser, "fallback_reason", None) or degraded_reason
             source_health[CNYES_SOURCE] = {
                 "attempted": True,
                 "status": "degraded" if degraded_reason else "success",
@@ -264,7 +297,7 @@ def collect_tw_news(
                 "browser_concurrency": CNYES_BROWSER_CONCURRENCY,
             }
         except Exception as exc:
-            source_health[CNYES_SOURCE] = {"attempted": True, "status": "degraded", "reason": exc.__class__.__name__, "result_count": 0}
+            source_health[CNYES_SOURCE] = {"attempted": True, "status": "degraded", "reason": getattr(exc, "reason", exc.__class__.__name__), "result_count": 0}
     else:
         source_health[CNYES_SOURCE] = {"attempted": False, "status": "skipped", "reason": "DISABLED" if not include_cnyes else "LIVE_NETWORK_DISABLED", "result_count": 0}
 

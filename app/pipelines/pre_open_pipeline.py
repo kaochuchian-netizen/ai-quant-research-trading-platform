@@ -483,203 +483,205 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
         )
 
     news_aggregation_session = TwNewsAggregationSession()
-    for stock_id in stock_ids:
-        stock_id = str(stock_id).zfill(4)
-        stock_name_result = resolve_stock_name(stock_id)
-        stock_name = str(stock_name_result["stock_name"])
-        if stock_name_result.get("warning"):
-            warning = {
-                "stock_id": stock_id,
-                "source": stock_name_result["source"],
-                "warning": stock_name_result["warning"],
-            }
-            stock_name_warnings.append(warning)
-            print(
-                f"pre_open stock name fallback for {stock_id}: "
-                f"{stock_name_result['warning']}"
-            )
+    try:
+        for stock_id in stock_ids:
+            stock_id = str(stock_id).zfill(4)
+            stock_name_result = resolve_stock_name(stock_id)
+            stock_name = str(stock_name_result["stock_name"])
+            if stock_name_result.get("warning"):
+                warning = {
+                    "stock_id": stock_id,
+                    "source": stock_name_result["source"],
+                    "warning": stock_name_result["warning"],
+                }
+                stock_name_warnings.append(warning)
+                print(
+                    f"pre_open stock name fallback for {stock_id}: "
+                    f"{stock_name_result['warning']}"
+                )
 
-        stage_name = f"stock_analysis_{stock_id}"
-        stage_timing.start(stage_name, stock_id=stock_id, stock_name=stock_name)
-        print(f"開始分析股票：{stock_name}({stock_id})", flush=True)
+            stage_name = f"stock_analysis_{stock_id}"
+            stage_timing.start(stage_name, stock_id=stock_id, stock_name=stock_name)
+            print(f"開始分析股票：{stock_name}({stock_id})", flush=True)
 
-        csv_path = f"data/historical/{stock_id}_daily.csv"
+            csv_path = f"data/historical/{stock_id}_daily.csv"
 
-        try:
-            indicator_result = build_indicator_result(stock_id, csv_path)
+            try:
+                indicator_result = build_indicator_result(stock_id, csv_path)
 
-            technical_score = indicator_result.get("score", {}).get(
-                "bullish_score",
-                50,
-            )
+                technical_score = indicator_result.get("score", {}).get(
+                    "bullish_score",
+                    50,
+                )
 
-            adr_result = get_adr_result(stock_id)
-            adr_score = calculate_adr_score(adr_result)
+                adr_result = get_adr_result(stock_id)
+                adr_score = calculate_adr_score(adr_result)
 
-            report_manual_rerun_stage("news_acquisition", symbol=stock_id)
-            news_bundle = analyze_news(
-                stock_id,
-                stock_name,
-                include_evidence=True,
-                aggregation_session=news_aggregation_session,
-                reference=context["run_date"],
-            )
-            report_manual_rerun_stage("news_acquisition", "completed", symbol=stock_id)
-            news_result = news_bundle.get("analysis", "")
-            news_score_result = calculate_news_score(news_result)
-            news_score = news_score_result.get("score", 50)
+                report_manual_rerun_stage("news_acquisition", symbol=stock_id)
+                news_bundle = analyze_news(
+                    stock_id,
+                    stock_name,
+                    include_evidence=True,
+                    aggregation_session=news_aggregation_session,
+                    reference=context["run_date"],
+                )
+                report_manual_rerun_stage("news_acquisition", "completed", symbol=stock_id)
+                news_result = news_bundle.get("analysis", "")
+                news_score_result = calculate_news_score(news_result)
+                news_score = news_score_result.get("score", 50)
 
-            chip_result = analyze_chip(stock_id)
-            chip_score = chip_result.get("chip_score", 50)
+                chip_result = analyze_chip(stock_id)
+                chip_score = chip_result.get("chip_score", 50)
 
 
-            total_score_result = calculate_total_score(
-                technical_score=technical_score,
-                news_score=news_score,
-                adr_score=adr_score,
-                chip_score=chip_score,
-            )
+                total_score_result = calculate_total_score(
+                    technical_score=technical_score,
+                    news_score=news_score,
+                    adr_score=adr_score,
+                    chip_score=chip_score,
+                )
 
-            report_manual_rerun_stage("research_rre", symbol=stock_id)
-            ai_analysis = analyze_stock(
-                indicator_result=indicator_result,
-                adr_result=adr_result,
-                news_result=news_result,
-            )
+                report_manual_rerun_stage("research_rre", symbol=stock_id)
+                ai_analysis = analyze_stock(
+                    indicator_result=indicator_result,
+                    adr_result=adr_result,
+                    news_result=news_result,
+                )
 
-            report_manual_rerun_stage("research_rre", "completed", symbol=stock_id)
-            report_manual_rerun_stage("prediction_projection", symbol=stock_id)
-            report = format_stock_report_v2(
-                stock_id=stock_id,
-                stock_name=stock_name,
-                indicator_result=indicator_result,
-                ai_analysis=ai_analysis,
-                adr_result=adr_result,
-                news_result=news_result,
-                total_score_result=total_score_result,
-                chip_result=chip_result,
-            )
-            _emit_post_report_progress(
-                stage_timing,
-                stock_id,
-                "REPORT_GENERATED",
-                status="completed",
-                report_chars=len(report),
-            )
-
-            if dry_run:
-                print(f"dry-run 模式：略過 SQLite 寫入：{stock_name}({stock_id})")
-            else:
-                with _bounded_post_report_operation(
-                    stage_timing=stage_timing,
-                    symbol=stock_id,
-                    substage="SQLITE_WRITE",
-                ):
-                    save_analysis_result(
-                        stock_id=stock_id,
-                        stock_name=stock_name,
-                        indicator_result=indicator_result,
-                        technical_score=technical_score,
-                        news_score=news_score,
-                        adr_score=adr_score,
-                        chip_score=chip_score,
-                        total_score_result=total_score_result,
-                        report_text=report,
-                        signal_session="pre_open",
-                        pipeline_type=context["pipeline_type"],
-                        pipeline_run_id=context["pipeline_run_id"],
-                        signal_time=datetime.now(
-                            ZoneInfo("Asia/Taipei"),
-                        ).isoformat(timespec="seconds"),
-                        is_backtest_eligible=1,
-                        schema_version=1,
-                    )
-
-                print(f"SQLite 已寫入：{stock_name}({stock_id})")
-            _emit_post_report_progress(
-                stage_timing,
-                stock_id,
-                "SQLITE_WRITE_DONE",
-                status="completed",
-                dry_run=bool(dry_run),
-            )
-            print(report, flush=True)
-            daily_reports.append(report)
-            _emit_post_report_progress(stage_timing, stock_id, "STRUCTURED_CARD_START")
-
-            def _card_progress(substage, status="started", **metadata):
+                report_manual_rerun_stage("research_rre", "completed", symbol=stock_id)
+                report_manual_rerun_stage("prediction_projection", symbol=stock_id)
+                report = format_stock_report_v2(
+                    stock_id=stock_id,
+                    stock_name=stock_name,
+                    indicator_result=indicator_result,
+                    ai_analysis=ai_analysis,
+                    adr_result=adr_result,
+                    news_result=news_result,
+                    total_score_result=total_score_result,
+                    chip_result=chip_result,
+                )
                 _emit_post_report_progress(
                     stage_timing,
                     stock_id,
-                    substage,
-                    status=status,
-                    **metadata,
+                    "REPORT_GENERATED",
+                    status="completed",
+                    report_chars=len(report),
                 )
 
-            with _bounded_post_report_operation(
-                stage_timing=stage_timing,
-                symbol=stock_id,
-                substage="STRUCTURED_CARD_BUILD",
-            ):
-                structured_card = build_pre_open_card(
-                    symbol=stock_id,
-                    name=stock_name,
-                    trading_date=context["run_date"],
-                    indicator=indicator_result,
-                    adr=adr_result,
-                    news=news_bundle,
-                    chip=chip_result,
-                    score=total_score_result,
-                    analysis=ai_analysis,
-                    tactical=tactical_by_symbol.get(stock_id),
-                    missing_fields=[
-                        source_name
-                        for source_name, source_value in (
-                            ("adr", adr_result),
-                            ("news", news_result),
-                            ("chip", chip_result),
+                if dry_run:
+                    print(f"dry-run 模式：略過 SQLite 寫入：{stock_name}({stock_id})")
+                else:
+                    with _bounded_post_report_operation(
+                        stage_timing=stage_timing,
+                        symbol=stock_id,
+                        substage="SQLITE_WRITE",
+                    ):
+                        save_analysis_result(
+                            stock_id=stock_id,
+                            stock_name=stock_name,
+                            indicator_result=indicator_result,
+                            technical_score=technical_score,
+                            news_score=news_score,
+                            adr_score=adr_score,
+                            chip_score=chip_score,
+                            total_score_result=total_score_result,
+                            report_text=report,
+                            signal_session="pre_open",
+                            pipeline_type=context["pipeline_type"],
+                            pipeline_run_id=context["pipeline_run_id"],
+                            signal_time=datetime.now(
+                                ZoneInfo("Asia/Taipei"),
+                            ).isoformat(timespec="seconds"),
+                            is_backtest_eligible=1,
+                            schema_version=1,
                         )
-                        if source_value in (None, [], {})
-                    ],
-                    progress_hook=_card_progress,
+
+                    print(f"SQLite 已寫入：{stock_name}({stock_id})")
+                _emit_post_report_progress(
+                    stage_timing,
+                    stock_id,
+                    "SQLITE_WRITE_DONE",
+                    status="completed",
+                    dry_run=bool(dry_run),
                 )
-            _emit_post_report_progress(stage_timing, stock_id, "STRUCTURED_CARD_DONE", status="completed")
-            _emit_post_report_progress(stage_timing, stock_id, "ARTIFACT_WRITE_START")
-            with _bounded_post_report_operation(
-                stage_timing=stage_timing,
-                symbol=stock_id,
-                substage="ARTIFACT_WRITE",
-            ):
+                print(report, flush=True)
+                daily_reports.append(report)
+                _emit_post_report_progress(stage_timing, stock_id, "STRUCTURED_CARD_START")
+
+                def _card_progress(substage, status="started", **metadata):
+                    _emit_post_report_progress(
+                        stage_timing,
+                        stock_id,
+                        substage,
+                        status=status,
+                        **metadata,
+                    )
+
+                with _bounded_post_report_operation(
+                    stage_timing=stage_timing,
+                    symbol=stock_id,
+                    substage="STRUCTURED_CARD_BUILD",
+                ):
+                    structured_card = build_pre_open_card(
+                        symbol=stock_id,
+                        name=stock_name,
+                        trading_date=context["run_date"],
+                        indicator=indicator_result,
+                        adr=adr_result,
+                        news=news_bundle,
+                        chip=chip_result,
+                        score=total_score_result,
+                        analysis=ai_analysis,
+                        tactical=tactical_by_symbol.get(stock_id),
+                        missing_fields=[
+                            source_name
+                            for source_name, source_value in (
+                                ("adr", adr_result),
+                                ("news", news_result),
+                                ("chip", chip_result),
+                            )
+                            if source_value in (None, [], {})
+                        ],
+                        progress_hook=_card_progress,
+                    )
+                _emit_post_report_progress(stage_timing, stock_id, "STRUCTURED_CARD_DONE", status="completed")
+                _emit_post_report_progress(stage_timing, stock_id, "ARTIFACT_WRITE_START")
+                with _bounded_post_report_operation(
+                    stage_timing=stage_timing,
+                    symbol=stock_id,
+                    substage="ARTIFACT_WRITE",
+                ):
+                    _store_structured_pre_open_card(
+                        structured_card_by_symbol,
+                        structured_card,
+                    )
+                _emit_post_report_progress(stage_timing, stock_id, "ARTIFACT_WRITE_DONE", status="completed")
+                with _bounded_post_report_operation(
+                    stage_timing=stage_timing,
+                    symbol=stock_id,
+                    substage="MANUAL_PROGRESS_WRITE",
+                ):
+                    report_manual_rerun_stage("prediction_projection", "completed", symbol=stock_id)
+                _emit_post_report_progress(stage_timing, stock_id, "STOCK_ANALYSIS_DONE", status="completed")
+                stage_timing.finish(stage_name, report_ready=True)
+
+            except Exception as e:
+                reason = e.__class__.__name__
+                print(f"分析失敗：{stock_name}({stock_id})，原因類型：{reason}", flush=True)
+                failed_reports.append({"stock_id": stock_id, "stock_name": stock_name, "reason": reason})
                 _store_structured_pre_open_card(
                     structured_card_by_symbol,
-                    structured_card,
+                    build_unavailable_pre_open_card(
+                        stock_id,
+                        stock_name,
+                        context["run_date"],
+                        f"analysis_failed:{reason}",
+                    ),
                 )
-            _emit_post_report_progress(stage_timing, stock_id, "ARTIFACT_WRITE_DONE", status="completed")
-            with _bounded_post_report_operation(
-                stage_timing=stage_timing,
-                symbol=stock_id,
-                substage="MANUAL_PROGRESS_WRITE",
-            ):
-                report_manual_rerun_stage("prediction_projection", "completed", symbol=stock_id)
-            _emit_post_report_progress(stage_timing, stock_id, "STOCK_ANALYSIS_DONE", status="completed")
-            stage_timing.finish(stage_name, report_ready=True)
+                stage_timing.finish(stage_name, status="failed", reason=reason)
 
-        except Exception as e:
-            reason = e.__class__.__name__
-            print(f"分析失敗：{stock_name}({stock_id})，原因類型：{reason}", flush=True)
-            failed_reports.append({"stock_id": stock_id, "stock_name": stock_name, "reason": reason})
-            _store_structured_pre_open_card(
-                structured_card_by_symbol,
-                build_unavailable_pre_open_card(
-                    stock_id,
-                    stock_name,
-                    context["run_date"],
-                    f"analysis_failed:{reason}",
-                ),
-            )
-            stage_timing.finish(stage_name, status="failed", reason=reason)
-
-    news_aggregation_session.close()
+    finally:
+        news_aggregation_session.close()
 
     structured_cards = _reconstruct_structured_pre_open_cards(
         structured_card_by_symbol,
