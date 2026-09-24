@@ -50,8 +50,10 @@ The JSON entity schemas describe metadata/reference **views**, not raw payload c
 - **strategy.relative_market**: clip(50 + 50 * (hypothetical net return - matched benchmark total return) / frozen ATR14-percent, 0, 100). Match currency/session/exposure conventions; missing/nonpositive scale => PENDING.
 - **aggregation**: Per-window category weighted sum with the frozen component weights, then 35% last-3-session category + 65% last-10-session category, then 40% prediction +20% improvement +40% strategy. Overlap of the last 3 sessions is intentional. Missing any required component/window, or improvement N/A => PENDING/null; no reweighting.
 
+- **improvement.interpretation (251B clarification)**: improvement_accuracy_score measures regression verification and improvement-loop quality, not prediction-score uplift alone. 50 means no net evidence of loop effectiveness; >50 means positive loop evidence. Always expose diagnosis_effect, realized_prediction_effect and recurrence_effect separately. Components 100/50/50/100 yield 70 with DIAGNOSIS_POSITIVE_EFFECT_NEUTRAL and realized_prediction_effect=NEUTRAL; never claim prediction accuracy improved in this case. Preserve all four component scores internally and a plain-language explanation with the user-facing score. No weights or formulas change.
+
 <!-- BEGIN CANONICAL CONTRACT -->
-Canonical JSON SHA-256: `ed8f41ea4622394aa4007dbce390dfbc3d5c2aedbf56c3378a2ab0c0c0505590`
+Canonical JSON SHA-256: `07f1024c5e42a4888afeeca38402e77f5030c7c7221f1d74b1bc80f58c117aff`
 
 ### Frozen v1 weights (percent)
 
