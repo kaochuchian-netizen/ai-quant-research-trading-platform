@@ -14,7 +14,7 @@ def main():
     suite = unittest.defaultTestLoader.discover(str(ROOT / "tests"), pattern="test_offline_review_evaluators.py")
     output = io.StringIO()
     result = unittest.TextTestRunner(stream=output, verbosity=2).run(suite)
-    ok = result.wasSuccessful() and not result.skipped and result.testsRun >= 90
+    ok = result.wasSuccessful() and not result.skipped and result.testsRun >= 92
     print(json.dumps({"schema_version": "ai_dev_251b_offline_evaluators_v1",
                       "status": "PASS" if ok else "FAIL", "tests_run": result.testsRun,
                       "failures": [] if ok else [output.getvalue()],

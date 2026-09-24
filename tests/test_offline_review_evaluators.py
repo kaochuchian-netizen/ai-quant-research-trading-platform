@@ -464,6 +464,20 @@ class ImprovementAndPresentationTests(unittest.TestCase):
         self.assertEqual(block["effect_summary"]["realized_prediction_effect"], "REGRESSED")
         self.assertIn("退步", block["explanation"])
 
+    def test_total_50_is_no_net_evidence_not_prediction_neutral(self):
+        self.change("post_fix_cohort", lambda v: [r.update(score=45) for r in v])
+        self.change("recurrence", lambda v: [r.update(observable_opportunities=3, recurrence_count=1) for r in v])
+        result = self.result()
+        self.assertEqual(result["score"], 50)
+        self.assertEqual(result["status"], "NO_NET_EVIDENCE")
+        self.assertEqual(result["effect_summary"]["realized_prediction_effect"], "REGRESSED")
+
+    def test_total_below_50_is_negative(self):
+        self.change("post_fix_cohort", lambda v: [r.update(score=40) for r in v])
+        self.change("recurrence", lambda v: [r.update(observable_opportunities=3, recurrence_count=1) for r in v])
+        self.assertEqual(self.result()["score"], 47)
+        self.assertEqual(self.result()["status"], "NEGATIVE")
+
     def test_us_improvement(self):
         self.context.update(market="US", symbol="SYNTHETIC_US")
         self.assertEqual(self.result()["score"], 70)
