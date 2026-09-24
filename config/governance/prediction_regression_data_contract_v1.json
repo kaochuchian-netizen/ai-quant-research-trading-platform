@@ -1,0 +1,3190 @@
+{
+  "contract_version": "prediction_regression_data_contract_v1",
+  "program_id": "AI-DEV-251",
+  "phase": "A",
+  "scope": "contract_and_inventory_only",
+  "inventory_path": "docs/governance/prediction_regression_inventory_v1.json",
+  "document_path": "docs/governance/prediction_regression_strategy_review_v1.md",
+  "namespace_check": {
+    "base_sha": "e3bdafdaacbb6472eaca911942b24cbd571cc68b",
+    "checked": [
+      "validator registry",
+      "scripts/docs IDs",
+      "local branches",
+      "git ls-remote --heads",
+      "all-state GitHub PR/issue search AI-DEV-251 and 251 in:title",
+      "git log --all completed subjects"
+    ],
+    "result": "251A-251E unused; existing AI-DEV-250 untouched"
+  },
+  "weights_percent": {
+    "prediction": {
+      "trend": 45,
+      "atr_target": 35,
+      "range_coverage": 10,
+      "confidence_calibration": 10
+    },
+    "improvement": {
+      "finding_confirmed": 25,
+      "d3_effect": 20,
+      "d10_effect": 40,
+      "non_recurrence": 15
+    },
+    "strategy": {
+      "direction_exposure": 25,
+      "opportunity_capture": 25,
+      "risk_avoidance": 25,
+      "entry_hedge_timing": 15,
+      "relative_market": 10
+    },
+    "time": {
+      "last_3_sessions": 35,
+      "last_10_sessions": 65
+    },
+    "composite": {
+      "prediction": 40,
+      "improvement": 20,
+      "strategy": 40
+    }
+  },
+  "entities": {
+    "prediction_snapshot": {
+      "canonical_schema_owner": "app/prediction/schemas.py",
+      "canonical_storage_owner": "app/dashboard/window_snapshot_archive.py",
+      "binding": "projection",
+      "semantics": "Retain original TW prediction_snapshot_v2/formal runtime or US prediction, with explicit adapters; never regenerate old predictions.",
+      "data_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "market",
+          "symbol",
+          "strategy_id",
+          "prediction_id",
+          "generated_at",
+          "session_date",
+          "window",
+          "horizon_sessions",
+          "feature_ref",
+          "trend",
+          "target_price",
+          "range_low",
+          "range_high",
+          "confidence",
+          "confidence_event",
+          "reference_price",
+          "atr_at_prediction",
+          "model_version",
+          "git_sha",
+          "status",
+          "reason_codes"
+        ],
+        "properties": {
+          "market": {
+            "type": "string",
+            "enum": [
+              "TW",
+              "US"
+            ]
+          },
+          "symbol": {
+            "type": "string",
+            "minLength": 1
+          },
+          "strategy_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "prediction_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "generated_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "session_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "window": {
+            "type": "string",
+            "minLength": 1
+          },
+          "horizon_sessions": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "feature_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "trend": {
+            "type": "string",
+            "enum": [
+              "UP",
+              "DOWN",
+              "FLAT",
+              "UNKNOWN"
+            ]
+          },
+          "target_price": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "range_low": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "range_high": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "confidence": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1
+          },
+          "confidence_event": {
+            "type": "string",
+            "enum": [
+              "direction_correct",
+              "UNMAPPED"
+            ]
+          },
+          "reference_price": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "atr_at_prediction": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "model_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "git_sha": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{40}$"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ELIGIBLE",
+              "PENDING",
+              "EXCLUDED"
+            ]
+          },
+          "reason_codes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "feature_snapshot": {
+      "canonical_schema_owner": "app/history/schemas.py",
+      "canonical_storage_owner": "app/history/historical_store.py",
+      "binding": "extension",
+      "semantics": "Evidence references to existing TW/US evidence ledgers; no copy of source payload.",
+      "data_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "market",
+          "symbol",
+          "strategy_id",
+          "prediction_id",
+          "prediction_at",
+          "as_of",
+          "available_at",
+          "input_version",
+          "technical_refs",
+          "news_refs",
+          "chip_refs",
+          "market_refs",
+          "missing_fields",
+          "fallback_reason",
+          "latency_ms",
+          "status"
+        ],
+        "properties": {
+          "market": {
+            "type": "string",
+            "enum": [
+              "TW",
+              "US"
+            ]
+          },
+          "symbol": {
+            "type": "string",
+            "minLength": 1
+          },
+          "strategy_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "prediction_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "prediction_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "as_of": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "available_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "input_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "technical_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "news_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "chip_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "market_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "missing_fields": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "fallback_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "latency_ms": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ELIGIBLE",
+              "PENDING",
+              "EXCLUDED"
+            ]
+          }
+        }
+      }
+    },
+    "market_outcome": {
+      "canonical_schema_owner": "app/evaluation/schemas.py",
+      "canonical_storage_owner": "app/evaluation/actual_outcome.py",
+      "binding": "projection",
+      "semantics": "ActualOutcome plus session/path/corporate-action provenance; daily bars do not establish intraday ordering.",
+      "data_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "market",
+          "symbol",
+          "strategy_id",
+          "session_date",
+          "session_close_at",
+          "observed_at",
+          "available_at",
+          "open",
+          "high",
+          "low",
+          "close",
+          "price_path_ref",
+          "corporate_action_basis",
+          "status",
+          "reason_codes"
+        ],
+        "properties": {
+          "market": {
+            "type": "string",
+            "enum": [
+              "TW",
+              "US"
+            ]
+          },
+          "symbol": {
+            "type": "string",
+            "minLength": 1
+          },
+          "strategy_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "session_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "session_close_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "observed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "available_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "open": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "high": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "low": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "close": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "price_path_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "corporate_action_basis": {
+            "type": "string",
+            "enum": [
+              "UNADJUSTED",
+              "POINT_IN_TIME_ADJUSTED",
+              "UNKNOWN"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "COMPLETE",
+              "PENDING",
+              "EXCLUDED"
+            ]
+          },
+          "reason_codes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "forecast_evaluation": {
+      "canonical_schema_owner": "app/evaluation/schemas.py",
+      "canonical_storage_owner": "app/evaluation/evaluator.py",
+      "binding": "projection",
+      "semantics": "Link existing EvaluationResult, formal review and review records; no alternate metric store.",
+      "data_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "market",
+          "symbol",
+          "strategy_id",
+          "prediction_ref",
+          "outcome_ref",
+          "evaluated_at",
+          "metric_spec_version",
+          "status",
+          "reason_codes"
+        ],
+        "properties": {
+          "market": {
+            "type": "string",
+            "enum": [
+              "TW",
+              "US"
+            ]
+          },
+          "symbol": {
+            "type": "string",
+            "minLength": 1
+          },
+          "strategy_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "prediction_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "outcome_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evaluated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "metric_spec_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "ELIGIBLE",
+              "EXCLUDED"
+            ]
+          },
+          "reason_codes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "strategy_counterfactual": {
+      "canonical_schema_owner": "app/history/schemas.py",
+      "canonical_storage_owner": "app/history/historical_store.py",
+      "binding": "extension",
+      "semantics": "Research-only derived metadata, references existing backtest outcomes; not executed trades.",
+      "data_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "market",
+          "symbol",
+          "strategy_id",
+          "prediction_ref",
+          "outcome_refs",
+          "frozen_signal_refs",
+          "hindsight_evidence_refs",
+          "assumption_version",
+          "benchmark_ref",
+          "cost_basis_ref",
+          "path_resolution",
+          "auto_apply",
+          "status",
+          "reason_codes"
+        ],
+        "properties": {
+          "market": {
+            "type": "string",
+            "enum": [
+              "TW",
+              "US"
+            ]
+          },
+          "symbol": {
+            "type": "string",
+            "minLength": 1
+          },
+          "strategy_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "prediction_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "outcome_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "frozen_signal_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "hindsight_evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "assumption_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "benchmark_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cost_basis_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "path_resolution": {
+            "type": "string",
+            "enum": [
+              "INTRADAY",
+              "DAILY_ONLY",
+              "UNKNOWN"
+            ]
+          },
+          "auto_apply": {
+            "type": "boolean",
+            "const": false
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "ELIGIBLE",
+              "EXCLUDED"
+            ]
+          },
+          "reason_codes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "finding_ledger": {
+      "canonical_schema_owner": "app/calibration/schemas.py",
+      "canonical_storage_owner": "app/history/historical_store.py",
+      "binding": "extension",
+      "semantics": "Extend CalibrationFinding identity/lifecycle, do not duplicate source evidence ledgers.",
+      "data_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "market",
+          "symbol",
+          "strategy_id",
+          "finding_id",
+          "evaluation_refs",
+          "detected_at",
+          "category",
+          "status",
+          "confirmed_at",
+          "evidence_refs"
+        ],
+        "properties": {
+          "market": {
+            "type": "string",
+            "enum": [
+              "TW",
+              "US"
+            ]
+          },
+          "symbol": {
+            "type": "string",
+            "minLength": 1
+          },
+          "strategy_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "finding_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evaluation_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "detected_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "PREDICTION",
+              "IMPROVEMENT",
+              "STRATEGY"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PROPOSED",
+              "CONFIRMED",
+              "REJECTED"
+            ]
+          },
+          "confirmed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "fix_ledger": {
+      "canonical_schema_owner": "app/calibration/schemas.py",
+      "canonical_storage_owner": "app/history/historical_store.py",
+      "binding": "extension",
+      "semantics": "Extend CalibrationRecommendation with approval/effective-date events; currently no operational fix ledger.",
+      "data_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "market",
+          "symbol",
+          "strategy_id",
+          "fix_id",
+          "finding_ref",
+          "proposed_at",
+          "approved_at",
+          "effective_at",
+          "baseline_refs",
+          "change_ref",
+          "status",
+          "auto_apply"
+        ],
+        "properties": {
+          "market": {
+            "type": "string",
+            "enum": [
+              "TW",
+              "US"
+            ]
+          },
+          "symbol": {
+            "type": "string",
+            "minLength": 1
+          },
+          "strategy_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fix_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "finding_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "proposed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "approved_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "effective_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "baseline_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "change_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PROPOSED",
+              "APPROVED",
+              "IMPLEMENTED",
+              "REJECTED"
+            ]
+          },
+          "auto_apply": {
+            "type": "boolean",
+            "const": false
+          }
+        }
+      }
+    },
+    "fix_evaluation": {
+      "canonical_schema_owner": "app/evaluation/schemas.py",
+      "canonical_storage_owner": "app/history/historical_store.py",
+      "binding": "extension",
+      "semantics": "Derived reference records only; D+3/D+10 maturity required.",
+      "data_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "market",
+          "symbol",
+          "strategy_id",
+          "fix_ref",
+          "evaluated_at",
+          "d3_session",
+          "d10_session",
+          "d3_status",
+          "d10_status",
+          "recurrence_evidence_refs",
+          "status",
+          "reason_codes"
+        ],
+        "properties": {
+          "market": {
+            "type": "string",
+            "enum": [
+              "TW",
+              "US"
+            ]
+          },
+          "symbol": {
+            "type": "string",
+            "minLength": 1
+          },
+          "strategy_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fix_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evaluated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "d3_session": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "d10_session": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "d3_status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "ELIGIBLE",
+              "N/A"
+            ]
+          },
+          "d10_status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "ELIGIBLE",
+              "N/A"
+            ]
+          },
+          "recurrence_evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "ELIGIBLE",
+              "N/A"
+            ]
+          },
+          "reason_codes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "daily_scorecard": {
+      "canonical_schema_owner": "app/history/schemas.py",
+      "canonical_storage_owner": "app/history/historical_store.py",
+      "binding": "extension",
+      "semantics": "Derived 251B output; no scores implemented in 251A.",
+      "data_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "market",
+          "symbol",
+          "strategy_id",
+          "report_date",
+          "cutoff_at",
+          "three_session_dates",
+          "ten_session_dates",
+          "prediction_status",
+          "improvement_status",
+          "strategy_status",
+          "composite_status",
+          "composite_score",
+          "next_actions",
+          "reason_codes"
+        ],
+        "properties": {
+          "market": {
+            "type": "string",
+            "enum": [
+              "TW",
+              "US"
+            ]
+          },
+          "symbol": {
+            "type": "string",
+            "minLength": 1
+          },
+          "strategy_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "report_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "cutoff_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "three_session_dates": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "ten_session_dates": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "prediction_status": {
+            "type": "string",
+            "enum": [
+              "ELIGIBLE",
+              "PENDING",
+              "N/A"
+            ]
+          },
+          "improvement_status": {
+            "type": "string",
+            "enum": [
+              "ELIGIBLE",
+              "PENDING",
+              "N/A"
+            ]
+          },
+          "strategy_status": {
+            "type": "string",
+            "enum": [
+              "ELIGIBLE",
+              "PENDING",
+              "N/A"
+            ]
+          },
+          "composite_status": {
+            "type": "string",
+            "enum": [
+              "ELIGIBLE",
+              "PENDING"
+            ]
+          },
+          "composite_score": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "next_actions": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "prediction",
+              "improvement",
+              "strategy"
+            ],
+            "properties": {
+              "prediction": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "improvement": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "strategy": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "reason_codes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "report_manifest": {
+      "canonical_schema_owner": "app/runtime/batch_audit_bundle.py",
+      "canonical_storage_owner": "app/dashboard/window_snapshot_archive.py",
+      "binding": "extension",
+      "semantics": "Extend existing manifest/archive identity with daily predecessor chain; no independent raw report store.",
+      "data_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "report_id",
+          "report_date",
+          "cutoff_at",
+          "predecessor_report_id",
+          "predecessor_hash",
+          "predecessor_report_date",
+          "chain_status",
+          "scorecard_refs",
+          "market_session_dates",
+          "calendar_ref",
+          "calendar_hash",
+          "calendar_coverage_through",
+          "as_of_cutoff",
+          "status"
+        ],
+        "properties": {
+          "report_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "report_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "cutoff_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "predecessor_report_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "predecessor_hash": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "predecessor_report_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "chain_status": {
+            "type": "string",
+            "enum": [
+              "GENESIS",
+              "LINKED",
+              "MISSING_PREDECESSOR"
+            ]
+          },
+          "scorecard_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "market_session_dates": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "TW",
+              "US"
+            ],
+            "properties": {
+              "TW": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date"
+              },
+              "US": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date"
+              }
+            }
+          },
+          "calendar_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "calendar_hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "calendar_coverage_through": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "as_of_cutoff": {
+            "type": "boolean",
+            "const": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "READY",
+              "PENDING"
+            ]
+          }
+        }
+      }
+    },
+    "delivery_ledger": {
+      "canonical_schema_owner": "app/runtime/batch_audit_bundle.py",
+      "canonical_storage_owner": "app/runtime/batch_audit_bundle.py",
+      "binding": "projection",
+      "semantics": "Reuse delivery_status and delivery receipts/provenance; independent channel/attempt results, never regenerate deliveries.",
+      "data_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "report_ref",
+          "report_hash",
+          "channel",
+          "attempt_id",
+          "attempted_at",
+          "result",
+          "receipt_ref",
+          "presentation_hash"
+        ],
+        "properties": {
+          "report_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "report_hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "LINE",
+              "EMAIL",
+              "DASHBOARD"
+            ]
+          },
+          "attempt_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "attempted_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "SENT",
+              "FAILED",
+              "SKIPPED"
+            ]
+          },
+          "receipt_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "presentation_hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    }
+  },
+  "envelope_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "entity",
+      "record_id",
+      "schema_version",
+      "revision",
+      "supersedes_hash",
+      "content_hash",
+      "source_refs",
+      "data"
+    ],
+    "properties": {
+      "entity": {
+        "type": "string",
+        "enum": [
+          "prediction_snapshot",
+          "feature_snapshot",
+          "market_outcome",
+          "forecast_evaluation",
+          "strategy_counterfactual",
+          "finding_ledger",
+          "fix_ledger",
+          "fix_evaluation",
+          "daily_scorecard",
+          "report_manifest",
+          "delivery_ledger"
+        ]
+      },
+      "record_id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "schema_version": {
+        "type": "string",
+        "const": "prediction_regression_data_contract_v1"
+      },
+      "revision": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "supersedes_hash": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "pattern": "^[0-9a-f]{64}$"
+      },
+      "content_hash": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      },
+      "source_refs": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source_path",
+            "source_record_id",
+            "source_schema",
+            "content_hash"
+          ],
+          "properties": {
+            "source_path": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_record_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "content_hash": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        }
+      },
+      "data": {
+        "type": "object"
+      }
+    }
+  },
+  "requirements": [
+    {
+      "market": "TW",
+      "field": "atr_at_prediction",
+      "classification": "MISSING",
+      "source": "artifacts/archive/window_snapshots/tw::payload.structured_pre_open_cards.atr_at_prediction",
+      "timezone": "Asia/Taipei",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-15",
+        "2026-09-24"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "TW_window_snapshots.fields.atr_at_prediction",
+      "missingness": {
+        "denominator": 382,
+        "missing_count": 382,
+        "missing_rate": 1.0,
+        "path": "atr_at_prediction"
+      },
+      "gap": "No per-row frozen provenance at audited path; do not reconstruct as contemporaneous evidence."
+    },
+    {
+      "market": "TW",
+      "field": "chip",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/tw::payload.structured_pre_open_cards.chip_summary",
+      "timezone": "Asia/Taipei",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-15",
+        "2026-09-24"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "TW_window_snapshots.fields.chip",
+      "missingness": {
+        "denominator": 382,
+        "missing_count": 0,
+        "missing_rate": 0.0,
+        "path": "chip_summary"
+      },
+      "gap": "Container/text/reference is structurally present; usable values, source freshness and point-in-time availability are not certified by this metadata-only inventory."
+    },
+    {
+      "market": "TW",
+      "field": "confidence",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/tw::payload.structured_pre_open_cards.prediction_snapshot_v2.confidence",
+      "timezone": "Asia/Taipei",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-15",
+        "2026-09-24"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "TW_window_snapshots.fields.confidence",
+      "missingness": {
+        "denominator": 382,
+        "missing_count": 193,
+        "missing_rate": 0.505236,
+        "path": "prediction_snapshot_v2.confidence"
+      },
+      "gap": "Structural presence only; complete point-in-time semantics/coverage must be validated."
+    },
+    {
+      "market": "TW",
+      "field": "fallback",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/tw::payload.structured_pre_open_cards.technical_data.history_fallback.used",
+      "timezone": "Asia/Taipei",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-15",
+        "2026-09-24"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "TW_window_snapshots.fields.fallback",
+      "missingness": {
+        "denominator": 382,
+        "missing_count": 103,
+        "missing_rate": 0.269634,
+        "path": "technical_data.history_fallback.used"
+      },
+      "gap": "No-error/false and fallback-not-recorded must not be conflated; source-specific reason semantics differ."
+    },
+    {
+      "market": "TW",
+      "field": "feature_as_of",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/tw::payload.structured_pre_open_cards.prediction_snapshot_v2.no_lookahead.last_input_market_timestamp",
+      "timezone": "Asia/Taipei",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-15",
+        "2026-09-24"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "TW_window_snapshots.fields.feature_as_of",
+      "missingness": {
+        "denominator": 382,
+        "missing_count": 202,
+        "missing_rate": 0.528796,
+        "path": "prediction_snapshot_v2.no_lookahead.last_input_market_timestamp"
+      },
+      "gap": "Structural presence only; complete point-in-time semantics/coverage must be validated."
+    },
+    {
+      "market": "TW",
+      "field": "feature_available_at",
+      "classification": "MISSING",
+      "source": "artifacts/archive/window_snapshots/tw::payload.structured_pre_open_cards.feature_available_at",
+      "timezone": "Asia/Taipei",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-15",
+        "2026-09-24"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "TW_window_snapshots.fields.feature_available_at",
+      "missingness": {
+        "denominator": 382,
+        "missing_count": 382,
+        "missing_rate": 1.0,
+        "path": "feature_available_at"
+      },
+      "gap": "No per-row frozen provenance at audited path; do not reconstruct as contemporaneous evidence."
+    },
+    {
+      "market": "TW",
+      "field": "generated_at",
+      "classification": "AMBIGUOUS",
+      "source": "artifacts/archive/window_snapshots/tw::payload.structured_pre_open_cards.prediction_snapshot_v2.generated_at",
+      "timezone": "Asia/Taipei",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-15",
+        "2026-09-24"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "TW_window_snapshots.fields.generated_at",
+      "missingness": {
+        "denominator": 382,
+        "missing_count": 382,
+        "missing_rate": 1.0,
+        "path": "prediction_snapshot_v2.generated_at"
+      },
+      "gap": "Field declared but null in prediction_snapshot_v2; archive/admission time must not be relabeled as original prediction generation time."
+    },
+    {
+      "market": "TW",
+      "field": "git_sha",
+      "classification": "MISSING",
+      "source": "artifacts/archive/window_snapshots/tw::payload.structured_pre_open_cards.git_sha",
+      "timezone": "Asia/Taipei",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-15",
+        "2026-09-24"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "TW_window_snapshots.fields.git_sha",
+      "missingness": {
+        "denominator": 382,
+        "missing_count": 382,
+        "missing_rate": 1.0,
+        "path": "git_sha"
+      },
+      "gap": "No per-row frozen provenance at audited path; do not reconstruct as contemporaneous evidence."
+    },
+    {
+      "market": "TW",
+      "field": "latency",
+      "classification": "MISSING",
+      "source": "artifacts/archive/window_snapshots/tw::payload.structured_pre_open_cards.latency_ms",
+      "timezone": "Asia/Taipei",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-15",
+        "2026-09-24"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "TW_window_snapshots.fields.latency",
+      "missingness": {
+        "denominator": 382,
+        "missing_count": 382,
+        "missing_rate": 1.0,
+        "path": "latency_ms"
+      },
+      "gap": "No per-row frozen provenance at audited path; do not reconstruct as contemporaneous evidence."
+    },
+    {
+      "market": "TW",
+      "field": "market_features",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/tw::payload.structured_pre_open_cards.market_context",
+      "timezone": "Asia/Taipei",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-15",
+        "2026-09-24"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "TW_window_snapshots.fields.market_features",
+      "missingness": {
+        "denominator": 382,
+        "missing_count": 0,
+        "missing_rate": 0.0,
+        "path": "market_context"
+      },
+      "gap": "Container/text/reference is structurally present; usable values, source freshness and point-in-time availability are not certified by this metadata-only inventory."
+    },
+    {
+      "market": "TW",
+      "field": "missingness",
+      "classification": "AVAILABLE",
+      "source": "artifacts/archive/window_snapshots/tw::payload.structured_pre_open_cards.missing_fields",
+      "timezone": "Asia/Taipei",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-15",
+        "2026-09-24"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "TW_window_snapshots.fields.missingness",
+      "missingness": {
+        "denominator": 382,
+        "missing_count": 0,
+        "missing_rate": 0.0,
+        "path": "missing_fields"
+      },
+      "gap": "Source field exists in sampled rows; content completeness is not implied."
+    },
+    {
+      "market": "TW",
+      "field": "model_version",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/tw::payload.structured_pre_open_cards.prediction_snapshot_v2.method_version",
+      "timezone": "Asia/Taipei",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-15",
+        "2026-09-24"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "TW_window_snapshots.fields.model_version",
+      "missingness": {
+        "denominator": 382,
+        "missing_count": 193,
+        "missing_rate": 0.505236,
+        "path": "prediction_snapshot_v2.method_version"
+      },
+      "gap": "Structural presence only; complete point-in-time semantics/coverage must be validated."
+    },
+    {
+      "market": "TW",
+      "field": "news",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/tw::payload.structured_pre_open_cards.news_evidence",
+      "timezone": "Asia/Taipei",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-15",
+        "2026-09-24"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "TW_window_snapshots.fields.news",
+      "missingness": {
+        "denominator": 382,
+        "missing_count": 54,
+        "missing_rate": 0.141361,
+        "path": "news_evidence"
+      },
+      "gap": "Structural presence only; complete point-in-time semantics/coverage must be validated."
+    },
+    {
+      "market": "TW",
+      "field": "prediction_id",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/tw::payload.structured_pre_open_cards.prediction_snapshot_v2.prediction_identity",
+      "timezone": "Asia/Taipei",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-15",
+        "2026-09-24"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "TW_window_snapshots.fields.prediction_id",
+      "missingness": {
+        "denominator": 382,
+        "missing_count": 193,
+        "missing_rate": 0.505236,
+        "path": "prediction_snapshot_v2.prediction_identity"
+      },
+      "gap": "Structural presence only; complete point-in-time semantics/coverage must be validated."
+    },
+    {
+      "market": "TW",
+      "field": "range_high",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/tw::payload.structured_pre_open_cards.prediction_snapshot_v2.range_forecast.high",
+      "timezone": "Asia/Taipei",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-15",
+        "2026-09-24"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "TW_window_snapshots.fields.range_high",
+      "missingness": {
+        "denominator": 382,
+        "missing_count": 193,
+        "missing_rate": 0.505236,
+        "path": "prediction_snapshot_v2.range_forecast.high"
+      },
+      "gap": "Structural presence only; complete point-in-time semantics/coverage must be validated."
+    },
+    {
+      "market": "TW",
+      "field": "range_low",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/tw::payload.structured_pre_open_cards.prediction_snapshot_v2.range_forecast.low",
+      "timezone": "Asia/Taipei",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-15",
+        "2026-09-24"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "TW_window_snapshots.fields.range_low",
+      "missingness": {
+        "denominator": 382,
+        "missing_count": 193,
+        "missing_rate": 0.505236,
+        "path": "prediction_snapshot_v2.range_forecast.low"
+      },
+      "gap": "Structural presence only; complete point-in-time semantics/coverage must be validated."
+    },
+    {
+      "market": "TW",
+      "field": "schema_version",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/tw::payload.structured_pre_open_cards.prediction_snapshot_v2.schema_version",
+      "timezone": "Asia/Taipei",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-15",
+        "2026-09-24"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "TW_window_snapshots.fields.schema_version",
+      "missingness": {
+        "denominator": 382,
+        "missing_count": 193,
+        "missing_rate": 0.505236,
+        "path": "prediction_snapshot_v2.schema_version"
+      },
+      "gap": "Structural presence only; complete point-in-time semantics/coverage must be validated."
+    },
+    {
+      "market": "TW",
+      "field": "session",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/tw::payload.structured_pre_open_cards.prediction_snapshot_v2.effective_trading_date",
+      "timezone": "Asia/Taipei",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-15",
+        "2026-09-24"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "TW_window_snapshots.fields.session",
+      "missingness": {
+        "denominator": 382,
+        "missing_count": 193,
+        "missing_rate": 0.505236,
+        "path": "prediction_snapshot_v2.effective_trading_date"
+      },
+      "gap": "Structural presence only; complete point-in-time semantics/coverage must be validated."
+    },
+    {
+      "market": "TW",
+      "field": "strategy",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/tw::payload.structured_pre_open_cards.strategies.daily_tactical.strategy_type",
+      "timezone": "Asia/Taipei",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-15",
+        "2026-09-24"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "TW_window_snapshots.fields.strategy",
+      "missingness": {
+        "denominator": 382,
+        "missing_count": 58,
+        "missing_rate": 0.151832,
+        "path": "strategies.daily_tactical.strategy_type"
+      },
+      "gap": "Structural presence only; complete point-in-time semantics/coverage must be validated."
+    },
+    {
+      "market": "TW",
+      "field": "target_price",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/tw::payload.structured_pre_open_cards.prediction_snapshot_v2.point_forecast.price",
+      "timezone": "Asia/Taipei",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-15",
+        "2026-09-24"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "TW_window_snapshots.fields.target_price",
+      "missingness": {
+        "denominator": 382,
+        "missing_count": 229,
+        "missing_rate": 0.599476,
+        "path": "prediction_snapshot_v2.point_forecast.price"
+      },
+      "gap": "Structural presence only; complete point-in-time semantics/coverage must be validated."
+    },
+    {
+      "market": "TW",
+      "field": "technical",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/tw::payload.structured_pre_open_cards.technical_data",
+      "timezone": "Asia/Taipei",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-15",
+        "2026-09-24"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "TW_window_snapshots.fields.technical",
+      "missingness": {
+        "denominator": 382,
+        "missing_count": 103,
+        "missing_rate": 0.269634,
+        "path": "technical_data"
+      },
+      "gap": "Structural presence only; complete point-in-time semantics/coverage must be validated."
+    },
+    {
+      "market": "TW",
+      "field": "trend",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/tw::payload.structured_pre_open_cards.prediction_snapshot_v2.direction_forecast",
+      "timezone": "Asia/Taipei",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-15",
+        "2026-09-24"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "TW_window_snapshots.fields.trend",
+      "missingness": {
+        "denominator": 382,
+        "missing_count": 193,
+        "missing_rate": 0.505236,
+        "path": "prediction_snapshot_v2.direction_forecast"
+      },
+      "gap": "Structural presence only; complete point-in-time semantics/coverage must be validated."
+    },
+    {
+      "market": "TW",
+      "field": "window",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/tw::payload.structured_pre_open_cards.prediction_snapshot_v2.window",
+      "timezone": "Asia/Taipei",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-15",
+        "2026-09-24"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "TW_window_snapshots.fields.window",
+      "missingness": {
+        "denominator": 382,
+        "missing_count": 193,
+        "missing_rate": 0.505236,
+        "path": "prediction_snapshot_v2.window"
+      },
+      "gap": "Structural presence only; complete point-in-time semantics/coverage must be validated."
+    },
+    {
+      "market": "TW",
+      "field": "realized_prices",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/formal_forecast_snapshots/actual_outcome",
+      "timezone": "Asia/Taipei",
+      "frequency": "per completed market session or retained window",
+      "historical_range": [
+        "2026-07-06",
+        "2026-09-24"
+      ],
+      "join_key": [
+        "market",
+        "symbol",
+        "session_date",
+        "source_revision"
+      ],
+      "confidence": "LIMITED; aggregate file existence is not semantic availability",
+      "inventory_ref": "formal_outcome",
+      "missingness": {
+        "denominator": null,
+        "missing_count": null,
+        "missing_rate": null
+      },
+      "gap": "TW archived OHLCV or US quote snapshots are not uniformly certified final session bars."
+    },
+    {
+      "market": "TW",
+      "field": "subsequent_price_path",
+      "classification": "PARTIAL",
+      "source": "data/historical/*_daily.csv",
+      "timezone": "Asia/Taipei",
+      "frequency": "per completed market session or retained window",
+      "historical_range": [
+        "2025-12-04",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "symbol",
+        "session_date",
+        "source_revision"
+      ],
+      "confidence": "LIMITED; aggregate file existence is not semantic availability",
+      "inventory_ref": "historical_ohlcv",
+      "missingness": {
+        "denominator": null,
+        "missing_count": null,
+        "missing_rate": null
+      },
+      "gap": "Daily prices do not establish within-bar target/stop ordering; US retained history not proven by quote snapshots."
+    },
+    {
+      "market": "TW",
+      "field": "notification_artifacts",
+      "classification": "PARTIAL",
+      "source": "artifacts/runtime/delivery_provenance",
+      "timezone": "Asia/Taipei",
+      "frequency": "per completed market session or retained window",
+      "historical_range": [
+        "2026-09-23",
+        "2026-09-24"
+      ],
+      "join_key": [
+        "market",
+        "symbol",
+        "session_date",
+        "source_revision"
+      ],
+      "confidence": "LIMITED; aggregate file existence is not semantic availability",
+      "inventory_ref": "delivery_provenance_tw",
+      "missingness": {
+        "denominator": null,
+        "missing_count": null,
+        "missing_rate": null
+      },
+      "gap": "Latest channel receipts are not full historical daily-report delivery coverage."
+    },
+    {
+      "market": "TW",
+      "field": "report_artifacts",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/tw",
+      "timezone": "Asia/Taipei",
+      "frequency": "per completed market session or retained window",
+      "historical_range": [
+        "2026-07-15",
+        "2026-09-24"
+      ],
+      "join_key": [
+        "market",
+        "symbol",
+        "session_date",
+        "source_revision"
+      ],
+      "confidence": "LIMITED; aggregate file existence is not semantic availability",
+      "inventory_ref": "TW_window_snapshots",
+      "missingness": {
+        "denominator": null,
+        "missing_count": null,
+        "missing_rate": null
+      },
+      "gap": "Immutable window revisions exist; no 17:00 predecessor/hash daily-report chain."
+    },
+    {
+      "market": "TW",
+      "field": "finding_tracking",
+      "classification": "PARTIAL",
+      "source": "artifacts/runtime/tw/evidence_regression_ledger/v1",
+      "timezone": "Asia/Taipei",
+      "frequency": "per completed market session or retained window",
+      "historical_range": [
+        "2026-08-31",
+        "2026-09-24"
+      ],
+      "join_key": [
+        "market",
+        "symbol",
+        "session_date",
+        "source_revision"
+      ],
+      "confidence": "LIMITED; aggregate file existence is not semantic availability",
+      "inventory_ref": "evidence_tw",
+      "missingness": {
+        "denominator": null,
+        "missing_count": null,
+        "missing_rate": null
+      },
+      "gap": "CalibrationFinding and evidence ledgers exist but no confirmed issue lifecycle linked to interventions."
+    },
+    {
+      "market": "TW",
+      "field": "fix_tracking",
+      "classification": "MISSING",
+      "source": "artifacts/runtime/tw/evidence_regression_ledger/v1",
+      "timezone": "Asia/Taipei",
+      "frequency": "per completed market session or retained window",
+      "historical_range": [
+        "2026-08-31",
+        "2026-09-24"
+      ],
+      "join_key": [
+        "market",
+        "symbol",
+        "session_date",
+        "source_revision"
+      ],
+      "confidence": "LIMITED; aggregate file existence is not semantic availability",
+      "inventory_ref": "evidence_tw",
+      "missingness": {
+        "denominator": null,
+        "missing_count": null,
+        "missing_rate": null
+      },
+      "gap": "No approved/effective fix ledger with frozen pre-fix cohort and D+3/D+10 outcomes."
+    },
+    {
+      "market": "TW",
+      "field": "benchmark_cost_basis",
+      "classification": "MISSING",
+      "source": "data/historical/*_daily.csv",
+      "timezone": "Asia/Taipei",
+      "frequency": "per completed market session or retained window",
+      "historical_range": [
+        "2025-12-04",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "symbol",
+        "session_date",
+        "source_revision"
+      ],
+      "confidence": "LIMITED; aggregate file existence is not semantic availability",
+      "inventory_ref": "historical_ohlcv",
+      "missingness": {
+        "denominator": null,
+        "missing_count": null,
+        "missing_rate": null
+      },
+      "gap": "Point-in-time benchmark/corporate actions/fees/slippage/exposure assumptions not audited as a joined source."
+    },
+    {
+      "market": "TW",
+      "field": "trading_calendar",
+      "classification": "MISSING",
+      "source": "artifacts/archive/window_snapshots/tw",
+      "timezone": "Asia/Taipei",
+      "frequency": "per completed market session or retained window",
+      "historical_range": [
+        "2026-07-15",
+        "2026-09-24"
+      ],
+      "join_key": [
+        "market",
+        "symbol",
+        "session_date",
+        "source_revision"
+      ],
+      "confidence": "LIMITED; aggregate file existence is not semantic availability",
+      "inventory_ref": "TW_window_snapshots",
+      "missingness": {
+        "denominator": null,
+        "missing_count": null,
+        "missing_rate": null
+      },
+      "gap": "US trading_calendar.py provides holidays but not exchange-complete closures/early closes; TW authoritative calendar adapter absent."
+    },
+    {
+      "market": "US",
+      "field": "atr_at_prediction",
+      "classification": "MISSING",
+      "source": "artifacts/archive/window_snapshots/us::payload.items.atr_at_prediction",
+      "timezone": "America/New_York; generation offsets must be preserved",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-14",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "US_window_snapshots.fields.atr_at_prediction",
+      "missingness": {
+        "denominator": 810,
+        "missing_count": 810,
+        "missing_rate": 1.0,
+        "path": "atr_at_prediction"
+      },
+      "gap": "No per-row frozen provenance at audited path; do not reconstruct as contemporaneous evidence."
+    },
+    {
+      "market": "US",
+      "field": "chip",
+      "classification": "MISSING",
+      "source": "artifacts/archive/window_snapshots/us::payload.items.chip_summary",
+      "timezone": "America/New_York; generation offsets must be preserved",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-14",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "US_window_snapshots.fields.chip",
+      "missingness": {
+        "denominator": 810,
+        "missing_count": 810,
+        "missing_rate": 1.0,
+        "path": "chip_summary"
+      },
+      "gap": "Structural presence only; complete point-in-time semantics/coverage must be validated."
+    },
+    {
+      "market": "US",
+      "field": "confidence",
+      "classification": "AMBIGUOUS",
+      "source": "artifacts/archive/window_snapshots/us::payload.items.strategies.daily_tactical.confidence",
+      "timezone": "America/New_York; generation offsets must be preserved",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-14",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "US_window_snapshots.fields.confidence",
+      "missingness": {
+        "denominator": 810,
+        "missing_count": 0,
+        "missing_rate": 0.0,
+        "path": "strategies.daily_tactical.confidence"
+      },
+      "gap": "Strategy confidence is not a calibrated forecast-event probability."
+    },
+    {
+      "market": "US",
+      "field": "fallback",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/us::payload.items.fetch_error",
+      "timezone": "America/New_York; generation offsets must be preserved",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-14",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "US_window_snapshots.fields.fallback",
+      "missingness": {
+        "denominator": 810,
+        "missing_count": 810,
+        "missing_rate": 1.0,
+        "path": "fetch_error"
+      },
+      "gap": "No-error/false and fallback-not-recorded must not be conflated; source-specific reason semantics differ."
+    },
+    {
+      "market": "US",
+      "field": "feature_as_of",
+      "classification": "AMBIGUOUS",
+      "source": "artifacts/archive/window_snapshots/us::payload.items.source_timestamp",
+      "timezone": "America/New_York; generation offsets must be preserved",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-14",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "US_window_snapshots.fields.feature_as_of",
+      "missingness": {
+        "denominator": 810,
+        "missing_count": 0,
+        "missing_rate": 0.0,
+        "path": "source_timestamp"
+      },
+      "gap": "source_timestamp does not prove each feature became available before prediction."
+    },
+    {
+      "market": "US",
+      "field": "feature_available_at",
+      "classification": "MISSING",
+      "source": "artifacts/archive/window_snapshots/us::payload.items.feature_available_at",
+      "timezone": "America/New_York; generation offsets must be preserved",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-14",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "US_window_snapshots.fields.feature_available_at",
+      "missingness": {
+        "denominator": 810,
+        "missing_count": 810,
+        "missing_rate": 1.0,
+        "path": "feature_available_at"
+      },
+      "gap": "No per-row frozen provenance at audited path; do not reconstruct as contemporaneous evidence."
+    },
+    {
+      "market": "US",
+      "field": "generated_at",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/us::payload.items.strategies.daily_tactical.generated_at",
+      "timezone": "America/New_York; generation offsets must be preserved",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-14",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "US_window_snapshots.fields.generated_at",
+      "missingness": {
+        "denominator": 810,
+        "missing_count": 0,
+        "missing_rate": 0.0,
+        "path": "strategies.daily_tactical.generated_at"
+      },
+      "gap": "Structural presence only; complete point-in-time semantics/coverage must be validated."
+    },
+    {
+      "market": "US",
+      "field": "git_sha",
+      "classification": "MISSING",
+      "source": "artifacts/archive/window_snapshots/us::payload.items.git_sha",
+      "timezone": "America/New_York; generation offsets must be preserved",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-14",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "US_window_snapshots.fields.git_sha",
+      "missingness": {
+        "denominator": 810,
+        "missing_count": 810,
+        "missing_rate": 1.0,
+        "path": "git_sha"
+      },
+      "gap": "No per-row frozen provenance at audited path; do not reconstruct as contemporaneous evidence."
+    },
+    {
+      "market": "US",
+      "field": "latency",
+      "classification": "MISSING",
+      "source": "artifacts/archive/window_snapshots/us::payload.items.latency_ms",
+      "timezone": "America/New_York; generation offsets must be preserved",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-14",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "US_window_snapshots.fields.latency",
+      "missingness": {
+        "denominator": 810,
+        "missing_count": 810,
+        "missing_rate": 1.0,
+        "path": "latency_ms"
+      },
+      "gap": "No per-row frozen provenance at audited path; do not reconstruct as contemporaneous evidence."
+    },
+    {
+      "market": "US",
+      "field": "market_features",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/us::payload.items.market_context_ref",
+      "timezone": "America/New_York; generation offsets must be preserved",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-14",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "US_window_snapshots.fields.market_features",
+      "missingness": {
+        "denominator": 810,
+        "missing_count": 0,
+        "missing_rate": 0.0,
+        "path": "market_context_ref"
+      },
+      "gap": "Container/text/reference is structurally present; usable values, source freshness and point-in-time availability are not certified by this metadata-only inventory."
+    },
+    {
+      "market": "US",
+      "field": "missingness",
+      "classification": "AVAILABLE",
+      "source": "artifacts/archive/window_snapshots/us::payload.items.prediction.missing_fields",
+      "timezone": "America/New_York; generation offsets must be preserved",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-14",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "US_window_snapshots.fields.missingness",
+      "missingness": {
+        "denominator": 810,
+        "missing_count": 0,
+        "missing_rate": 0.0,
+        "path": "prediction.missing_fields"
+      },
+      "gap": "Source field exists in sampled rows; content completeness is not implied."
+    },
+    {
+      "market": "US",
+      "field": "model_version",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/us::payload.items.prediction.model_version",
+      "timezone": "America/New_York; generation offsets must be preserved",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-14",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "US_window_snapshots.fields.model_version",
+      "missingness": {
+        "denominator": 810,
+        "missing_count": 0,
+        "missing_rate": 0.0,
+        "path": "prediction.model_version"
+      },
+      "gap": "Structural presence only; complete point-in-time semantics/coverage must be validated."
+    },
+    {
+      "market": "US",
+      "field": "news",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/us::payload.items.news",
+      "timezone": "America/New_York; generation offsets must be preserved",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-14",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "US_window_snapshots.fields.news",
+      "missingness": {
+        "denominator": 810,
+        "missing_count": 0,
+        "missing_rate": 0.0,
+        "path": "news"
+      },
+      "gap": "Structural presence only; complete point-in-time semantics/coverage must be validated."
+    },
+    {
+      "market": "US",
+      "field": "prediction_id",
+      "classification": "MISSING",
+      "source": "artifacts/archive/window_snapshots/us::payload.items.prediction.prediction_identity",
+      "timezone": "America/New_York; generation offsets must be preserved",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-14",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "US_window_snapshots.fields.prediction_id",
+      "missingness": {
+        "denominator": 810,
+        "missing_count": 810,
+        "missing_rate": 1.0,
+        "path": "prediction.prediction_identity"
+      },
+      "gap": "Structural presence only; complete point-in-time semantics/coverage must be validated."
+    },
+    {
+      "market": "US",
+      "field": "range_high",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/us::payload.items.prediction.predicted_session_high",
+      "timezone": "America/New_York; generation offsets must be preserved",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-14",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "US_window_snapshots.fields.range_high",
+      "missingness": {
+        "denominator": 810,
+        "missing_count": 0,
+        "missing_rate": 0.0,
+        "path": "prediction.predicted_session_high"
+      },
+      "gap": "Structural presence only; complete point-in-time semantics/coverage must be validated."
+    },
+    {
+      "market": "US",
+      "field": "range_low",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/us::payload.items.prediction.predicted_session_low",
+      "timezone": "America/New_York; generation offsets must be preserved",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-14",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "US_window_snapshots.fields.range_low",
+      "missingness": {
+        "denominator": 810,
+        "missing_count": 0,
+        "missing_rate": 0.0,
+        "path": "prediction.predicted_session_low"
+      },
+      "gap": "Structural presence only; complete point-in-time semantics/coverage must be validated."
+    },
+    {
+      "market": "US",
+      "field": "schema_version",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/us::payload.items.schema_version",
+      "timezone": "America/New_York; generation offsets must be preserved",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-14",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "US_window_snapshots.fields.schema_version",
+      "missingness": {
+        "denominator": 810,
+        "missing_count": 810,
+        "missing_rate": 1.0,
+        "path": "schema_version"
+      },
+      "gap": "Available on archive/payload envelope, not on prediction row; explicit envelope adapter required."
+    },
+    {
+      "market": "US",
+      "field": "session",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/us::payload.items.prediction.effective_trading_date",
+      "timezone": "America/New_York; generation offsets must be preserved",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-14",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "US_window_snapshots.fields.session",
+      "missingness": {
+        "denominator": 810,
+        "missing_count": 810,
+        "missing_rate": 1.0,
+        "path": "prediction.effective_trading_date"
+      },
+      "gap": "Available on archive/payload envelope, not on prediction row; explicit envelope adapter required."
+    },
+    {
+      "market": "US",
+      "field": "strategy",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/us::payload.items.strategies.daily_tactical.strategy_type",
+      "timezone": "America/New_York; generation offsets must be preserved",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-14",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "US_window_snapshots.fields.strategy",
+      "missingness": {
+        "denominator": 810,
+        "missing_count": 0,
+        "missing_rate": 0.0,
+        "path": "strategies.daily_tactical.strategy_type"
+      },
+      "gap": "Structural presence only; complete point-in-time semantics/coverage must be validated."
+    },
+    {
+      "market": "US",
+      "field": "target_price",
+      "classification": "MISSING",
+      "source": "artifacts/archive/window_snapshots/us::payload.items.prediction.point_forecast.price",
+      "timezone": "America/New_York; generation offsets must be preserved",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-14",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "US_window_snapshots.fields.target_price",
+      "missingness": {
+        "denominator": 810,
+        "missing_count": 810,
+        "missing_rate": 1.0,
+        "path": "prediction.point_forecast.price"
+      },
+      "gap": "Structural presence only; complete point-in-time semantics/coverage must be validated."
+    },
+    {
+      "market": "US",
+      "field": "technical",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/us::payload.items.technical",
+      "timezone": "America/New_York; generation offsets must be preserved",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-14",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "US_window_snapshots.fields.technical",
+      "missingness": {
+        "denominator": 810,
+        "missing_count": 0,
+        "missing_rate": 0.0,
+        "path": "technical"
+      },
+      "gap": "Structural presence only; complete point-in-time semantics/coverage must be validated."
+    },
+    {
+      "market": "US",
+      "field": "trend",
+      "classification": "AMBIGUOUS",
+      "source": "artifacts/archive/window_snapshots/us::payload.items.prediction.one_month_trend",
+      "timezone": "America/New_York; generation offsets must be preserved",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-14",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "US_window_snapshots.fields.trend",
+      "missingness": {
+        "denominator": 810,
+        "missing_count": 0,
+        "missing_rate": 0.0,
+        "path": "prediction.one_month_trend"
+      },
+      "gap": "one_month_trend cannot stand in for session direction."
+    },
+    {
+      "market": "US",
+      "field": "window",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/us::payload.items.prediction.window",
+      "timezone": "America/New_York; generation offsets must be preserved",
+      "frequency": "natural market windows; retained revisions",
+      "historical_range": [
+        "2026-07-14",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "effective_trading_date",
+        "window",
+        "revision",
+        "symbol",
+        "strategy_id",
+        "prediction_id/horizon"
+      ],
+      "confidence": "HIGH for structural counts; semantic limitations explicit",
+      "inventory_ref": "US_window_snapshots.fields.window",
+      "missingness": {
+        "denominator": 810,
+        "missing_count": 810,
+        "missing_rate": 1.0,
+        "path": "prediction.window"
+      },
+      "gap": "Available on archive/payload envelope, not on prediction row; explicit envelope adapter required."
+    },
+    {
+      "market": "US",
+      "field": "realized_prices",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/us",
+      "timezone": "America/New_York",
+      "frequency": "per completed market session or retained window",
+      "historical_range": [
+        "2026-07-14",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "symbol",
+        "session_date",
+        "source_revision"
+      ],
+      "confidence": "LIMITED; aggregate file existence is not semantic availability",
+      "inventory_ref": "US_window_snapshots",
+      "missingness": {
+        "denominator": null,
+        "missing_count": null,
+        "missing_rate": null
+      },
+      "gap": "TW archived OHLCV or US quote snapshots are not uniformly certified final session bars."
+    },
+    {
+      "market": "US",
+      "field": "subsequent_price_path",
+      "classification": "MISSING",
+      "source": "artifacts/archive/window_snapshots/us",
+      "timezone": "America/New_York",
+      "frequency": "per completed market session or retained window",
+      "historical_range": [
+        "2026-07-14",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "symbol",
+        "session_date",
+        "source_revision"
+      ],
+      "confidence": "LIMITED; aggregate file existence is not semantic availability",
+      "inventory_ref": "US_window_snapshots",
+      "missingness": {
+        "denominator": null,
+        "missing_count": null,
+        "missing_rate": null
+      },
+      "gap": "Daily prices do not establish within-bar target/stop ordering; US retained history not proven by quote snapshots."
+    },
+    {
+      "market": "US",
+      "field": "notification_artifacts",
+      "classification": "PARTIAL",
+      "source": "artifacts/runtime/us_stock/delivery_provenance",
+      "timezone": "America/New_York",
+      "frequency": "per completed market session or retained window",
+      "historical_range": [
+        "2026-09-23",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "symbol",
+        "session_date",
+        "source_revision"
+      ],
+      "confidence": "LIMITED; aggregate file existence is not semantic availability",
+      "inventory_ref": "delivery_provenance_us",
+      "missingness": {
+        "denominator": null,
+        "missing_count": null,
+        "missing_rate": null
+      },
+      "gap": "Latest channel receipts are not full historical daily-report delivery coverage."
+    },
+    {
+      "market": "US",
+      "field": "report_artifacts",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/us",
+      "timezone": "America/New_York",
+      "frequency": "per completed market session or retained window",
+      "historical_range": [
+        "2026-07-14",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "symbol",
+        "session_date",
+        "source_revision"
+      ],
+      "confidence": "LIMITED; aggregate file existence is not semantic availability",
+      "inventory_ref": "US_window_snapshots",
+      "missingness": {
+        "denominator": null,
+        "missing_count": null,
+        "missing_rate": null
+      },
+      "gap": "Immutable window revisions exist; no 17:00 predecessor/hash daily-report chain."
+    },
+    {
+      "market": "US",
+      "field": "finding_tracking",
+      "classification": "PARTIAL",
+      "source": "artifacts/runtime/us_stock/evidence_regression_ledger/v1",
+      "timezone": "America/New_York",
+      "frequency": "per completed market session or retained window",
+      "historical_range": [
+        "2026-08-28",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "symbol",
+        "session_date",
+        "source_revision"
+      ],
+      "confidence": "LIMITED; aggregate file existence is not semantic availability",
+      "inventory_ref": "evidence_us",
+      "missingness": {
+        "denominator": null,
+        "missing_count": null,
+        "missing_rate": null
+      },
+      "gap": "CalibrationFinding and evidence ledgers exist but no confirmed issue lifecycle linked to interventions."
+    },
+    {
+      "market": "US",
+      "field": "fix_tracking",
+      "classification": "MISSING",
+      "source": "artifacts/runtime/us_stock/evidence_regression_ledger/v1",
+      "timezone": "America/New_York",
+      "frequency": "per completed market session or retained window",
+      "historical_range": [
+        "2026-08-28",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "symbol",
+        "session_date",
+        "source_revision"
+      ],
+      "confidence": "LIMITED; aggregate file existence is not semantic availability",
+      "inventory_ref": "evidence_us",
+      "missingness": {
+        "denominator": null,
+        "missing_count": null,
+        "missing_rate": null
+      },
+      "gap": "No approved/effective fix ledger with frozen pre-fix cohort and D+3/D+10 outcomes."
+    },
+    {
+      "market": "US",
+      "field": "benchmark_cost_basis",
+      "classification": "MISSING",
+      "source": "artifacts/archive/window_snapshots/us",
+      "timezone": "America/New_York",
+      "frequency": "per completed market session or retained window",
+      "historical_range": [
+        "2026-07-14",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "symbol",
+        "session_date",
+        "source_revision"
+      ],
+      "confidence": "LIMITED; aggregate file existence is not semantic availability",
+      "inventory_ref": "US_window_snapshots",
+      "missingness": {
+        "denominator": null,
+        "missing_count": null,
+        "missing_rate": null
+      },
+      "gap": "Point-in-time benchmark/corporate actions/fees/slippage/exposure assumptions not audited as a joined source."
+    },
+    {
+      "market": "US",
+      "field": "trading_calendar",
+      "classification": "PARTIAL",
+      "source": "artifacts/archive/window_snapshots/us",
+      "timezone": "America/New_York",
+      "frequency": "per completed market session or retained window",
+      "historical_range": [
+        "2026-07-14",
+        "2026-09-23"
+      ],
+      "join_key": [
+        "market",
+        "symbol",
+        "session_date",
+        "source_revision"
+      ],
+      "confidence": "LIMITED; aggregate file existence is not semantic availability",
+      "inventory_ref": "US_window_snapshots",
+      "missingness": {
+        "denominator": null,
+        "missing_count": null,
+        "missing_rate": null
+      },
+      "gap": "US trading_calendar.py provides holidays but not exchange-complete closures/early closes; TW authoritative calendar adapter absent."
+    }
+  ],
+  "policies": {
+    "report_timezone": "Asia/Taipei",
+    "report_time": "17:00:00",
+    "report_frequency": "daily calendar-date manifest; market evaluation uses completed trading sessions only",
+    "calendar": "Explicit versioned exchange session table with aware opens/closes, coverage_through and hash; fail closed without coverage. Existing US holiday helper is not sufficient authority for exceptional/early closes.",
+    "tw_cutoff": "Only report-date TW session if officially completed by cutoff; on closed days carry prior completed session explicitly, never duplicate observations.",
+    "us_cutoff": "Latest US session actually completed by cutoff, not the NY wall date; honor America/New_York DST and early closes.",
+    "rolling": "Last 3 and last 10 distinct eligible market sessions ending at cutoff; the windows overlap by design. Never calendar-day subtraction or repeat stale sessions.",
+    "predecessor": "Previous calendar report date exact ID and SHA-256 of full immutable envelope excluding content_hash; first report explicit GENESIS. Missing predecessor => PENDING; never silently skip a missing day.",
+    "revision": "Logical record_id stable; positive revision increments by exactly one; supersedes_hash binds prior version. Append-only exclusive create; same identity/hash idempotent, different content forbidden. Daily predecessor and same-day supersedes are different links.",
+    "leakage": "For every feature: event as_of <= available_at <= prediction_at. Late corrected features create research revisions, cannot enter frozen prediction. Outcomes observed after session close, available by review cutoff. Missing timezone or available_at blocks ELIGIBLE.",
+    "hindsight": "Counterfactual hindsight_evidence_refs never enter feature_snapshot/frozen_signal_refs; freeze benchmark, costs, horizon, exposure and tie-break rules before comparison. No execution claims from recommendations.",
+    "sample_policy": "3/3 and 10/10 distinct completed session coverage required for their respective aggregates; missing/excluded samples remain in denominators. Calibration requires 3 paired event probabilities for the 3-session window and 10 for the 10-session window per stock/strategy/horizon; disclose count and descriptive-only small-sample status; statistical strength is not implied. Preserve existing 30/100 model-change gates.",
+    "na_policy": "No eligible implemented fix => improvement N/A and composite PENDING/null. Immature D+3/D+10 => PENDING/null. Any unavailable required component => PENDING/null; never redistribute weights or convert missing to zero.",
+    "reason_codes": [
+      "MISSING_PREDICTION",
+      "MISSING_FEATURE_AS_OF",
+      "MISSING_AVAILABLE_AT",
+      "MISSING_ATR",
+      "UNMAPPED_CONFIDENCE",
+      "HORIZON_MISMATCH",
+      "MISSING_OUTCOME",
+      "IMMATURE_D3",
+      "IMMATURE_D10",
+      "NO_IMPLEMENTED_FIX",
+      "INSUFFICIENT_SESSIONS",
+      "LOW_MEMORY",
+      "BROWSER_BUSY",
+      "SOURCE_FALLBACK",
+      "STALE_SOURCE",
+      "UNKNOWN_CALENDAR",
+      "SUSPENDED",
+      "CORPORATE_ACTION_UNKNOWN",
+      "AMBIGUOUS_INTRABAR_ORDER",
+      "MISSING_PREDECESSOR",
+      "MISSING_BENCHMARK_COSTS"
+    ],
+    "system_vs_user": "System retains source hashes, provenance, calendar/version, findings/fix events, exclusions and all revisions; LINE/Email expose only 3 scores/statuses, sample counts, three next-action categories and report ID/hash/link. No raw features, positions, recipient identifiers or source documents.",
+    "retention": "Reuse immutable window/formal archives as authorities; hot indexes are rebuildable references. Warm compressed content-addressed evidence, cold large raw/provider data outside Git with checksum/ACL/retention/legal policy approval. Never copy raw into contracts, never delete/move production artifacts in A. Exact retention durations require owner approval in E.",
+    "automation": "No scoring engine, scheduler, delivery, deployment, model/weight/strategy mutation or production DB integration in A."
+  },
+  "metric_specs_v1": {
+    "common": "All eligible components are 0..100. Compute per market/symbol/strategy/horizon; never mix daily tactical and research-position horizons. Report exclusions and eligible/expected counts. No engine is implemented in A.",
+    "prediction.trend": "100 for matching frozen UP/DOWN/FLAT label, otherwise 0. Realized close minus frozen reference price is FLAT within +/-0.1 frozen ATR14; outside that band UP/DOWN. Horizon must match. No same-day proxy for a one-month prediction.",
+    "prediction.atr_target": "100 * max(0, 1 - abs(frozen forecast target - horizon final close) / frozen ATR14). ATR14 is Wilder ATR from 14 completed pre-prediction sessions with point-in-time corporate-action basis. Missing/nonpositive ATR => PENDING. Execution targets/support/resistance must never masquerade as forecast targets.",
+    "prediction.range_coverage": "100 if the full realized horizon low/high lies within the frozen predicted interval, otherwise 0. Missing intrahorizon extrema => PENDING; disclose interval width relative to ATR so wide intervals cannot hide poor precision.",
+    "prediction.confidence_calibration": "100 * (1 - mean((p - y)^2)), Brier complement, p is explicitly probability of the same direction-correct event and y is that event 0/1. Require 3 pairs for the 3-session window and 10 for the 10-session window per stock/strategy/horizon; small samples are descriptive only; strategy confidence or textual confidence is UNMAPPED until an approved adapter establishes semantics.",
+    "improvement.finding_confirmed": "100 only when the linked finding is CONFIRMED with immutable error evidence and a dated confirmation; PROPOSED/PENDING cannot count as confirmation.",
+    "improvement.d3_effect": "At fix effective session +3 completed trading sessions, compare eligible post-fix prediction metric to frozen matched pre-fix cohort using delta S; score clip(50 + delta S, 0, 100). Require all 3 sessions and matched market/symbol/strategy/horizon/regime, disclose cohort size and no causal claim without a control.",
+    "improvement.d10_effect": "Same matched-cohort specification at +10 completed trading sessions; immature or missing baseline => PENDING, not zero.",
+    "improvement.non_recurrence": "100 * (1 - recurrence_count / observable_opportunities) over the 10 completed post-fix sessions, using the same predeclared finding detector/version; no observable opportunities => N/A, composite PENDING.",
+    "strategy.common": "Advisory hypothetical exposure only, never actual holdings. Freeze entry/exit/hedge, benchmark, fees, slippage, session horizon, corporate-action basis and assumptions before evaluation. Missing inputs => PENDING; missing intraday order => EXCLUDED AMBIGUOUS_INTRABAR_ORDER. No automatic changes.",
+    "strategy.direction_exposure": "100 * clip(1 - abs(frozen recommended signed normalized exposure - hindsight best permitted signed normalized exposure) / 2, 0, 1), using exposure domain [-1,1] and the same declared allowed-position universe. Unavailable exposure mapping => PENDING.",
+    "strategy.opportunity_capture": "100 * clip(hypothetical net profit / best feasible positive net profit within the frozen opportunity/constraint set, 0, 1). No positive feasible opportunity => N/A; do not invent an entry from future prices.",
+    "strategy.risk_avoidance": "100 * clip(1 - hypothetical MAE / frozen risk budget, 0, 1). Budget must be positive and fixed before prediction; no path/budget => PENDING. Include avoided-loss evidence for a no-trade recommendation.",
+    "strategy.entry_hedge_timing": "100 * clip(1 - abs(actual hypothetical entry-or-hedge execution price - hindsight best feasible price) / frozen ATR14, 0, 1). Apply the predeclared trigger/fill model and average required event scores; unobserved event order or absent benchmark => PENDING.",
+    "strategy.relative_market": "clip(50 + 50 * (hypothetical net return - matched benchmark total return) / frozen ATR14-percent, 0, 100). Match currency/session/exposure conventions; missing/nonpositive scale => PENDING.",
+    "aggregation": "Per-window category weighted sum with the frozen component weights, then 35% last-3-session category + 65% last-10-session category, then 40% prediction +20% improvement +40% strategy. Overlap of the last 3 sessions is intentional. Missing any required component/window, or improvement N/A => PENDING/null; no reweighting."
+  }
+}

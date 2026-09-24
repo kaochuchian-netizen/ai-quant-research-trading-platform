@@ -1,0 +1,558 @@
+{
+  "aggregate_only": true,
+  "families": {
+    "TW_window_snapshots": {
+      "admitted_files": 137,
+      "date_range": [
+        "2026-07-15",
+        "2026-09-24"
+      ],
+      "fields": {
+        "atr_at_prediction": {
+          "denominator": 382,
+          "missing_count": 382,
+          "missing_rate": 1.0,
+          "path": "atr_at_prediction"
+        },
+        "chip": {
+          "denominator": 382,
+          "missing_count": 0,
+          "missing_rate": 0.0,
+          "path": "chip_summary"
+        },
+        "confidence": {
+          "denominator": 382,
+          "missing_count": 193,
+          "missing_rate": 0.505236,
+          "path": "prediction_snapshot_v2.confidence"
+        },
+        "fallback": {
+          "denominator": 382,
+          "missing_count": 103,
+          "missing_rate": 0.269634,
+          "path": "technical_data.history_fallback.used"
+        },
+        "feature_as_of": {
+          "denominator": 382,
+          "missing_count": 202,
+          "missing_rate": 0.528796,
+          "path": "prediction_snapshot_v2.no_lookahead.last_input_market_timestamp"
+        },
+        "feature_available_at": {
+          "denominator": 382,
+          "missing_count": 382,
+          "missing_rate": 1.0,
+          "path": "feature_available_at"
+        },
+        "generated_at": {
+          "denominator": 382,
+          "missing_count": 382,
+          "missing_rate": 1.0,
+          "path": "prediction_snapshot_v2.generated_at"
+        },
+        "git_sha": {
+          "denominator": 382,
+          "missing_count": 382,
+          "missing_rate": 1.0,
+          "path": "git_sha"
+        },
+        "latency": {
+          "denominator": 382,
+          "missing_count": 382,
+          "missing_rate": 1.0,
+          "path": "latency_ms"
+        },
+        "market_features": {
+          "denominator": 382,
+          "missing_count": 0,
+          "missing_rate": 0.0,
+          "path": "market_context"
+        },
+        "missingness": {
+          "denominator": 382,
+          "missing_count": 0,
+          "missing_rate": 0.0,
+          "path": "missing_fields"
+        },
+        "model_version": {
+          "denominator": 382,
+          "missing_count": 193,
+          "missing_rate": 0.505236,
+          "path": "prediction_snapshot_v2.method_version"
+        },
+        "news": {
+          "denominator": 382,
+          "missing_count": 54,
+          "missing_rate": 0.141361,
+          "path": "news_evidence"
+        },
+        "prediction_id": {
+          "denominator": 382,
+          "missing_count": 193,
+          "missing_rate": 0.505236,
+          "path": "prediction_snapshot_v2.prediction_identity"
+        },
+        "range_high": {
+          "denominator": 382,
+          "missing_count": 193,
+          "missing_rate": 0.505236,
+          "path": "prediction_snapshot_v2.range_forecast.high"
+        },
+        "range_low": {
+          "denominator": 382,
+          "missing_count": 193,
+          "missing_rate": 0.505236,
+          "path": "prediction_snapshot_v2.range_forecast.low"
+        },
+        "schema_version": {
+          "denominator": 382,
+          "missing_count": 193,
+          "missing_rate": 0.505236,
+          "path": "prediction_snapshot_v2.schema_version"
+        },
+        "session": {
+          "denominator": 382,
+          "missing_count": 193,
+          "missing_rate": 0.505236,
+          "path": "prediction_snapshot_v2.effective_trading_date"
+        },
+        "strategy": {
+          "denominator": 382,
+          "missing_count": 58,
+          "missing_rate": 0.151832,
+          "path": "strategies.daily_tactical.strategy_type"
+        },
+        "target_price": {
+          "denominator": 382,
+          "missing_count": 229,
+          "missing_rate": 0.599476,
+          "path": "prediction_snapshot_v2.point_forecast.price"
+        },
+        "technical": {
+          "denominator": 382,
+          "missing_count": 103,
+          "missing_rate": 0.269634,
+          "path": "technical_data"
+        },
+        "trend": {
+          "denominator": 382,
+          "missing_count": 193,
+          "missing_rate": 0.505236,
+          "path": "prediction_snapshot_v2.direction_forecast"
+        },
+        "window": {
+          "denominator": 382,
+          "missing_count": 193,
+          "missing_rate": 0.505236,
+          "path": "prediction_snapshot_v2.window"
+        }
+      },
+      "files": 138,
+      "malformed_files": 0,
+      "row_selection": "payload.structured_pre_open_cards",
+      "rows": 382,
+      "source": "artifacts/archive/window_snapshots/tw"
+    },
+    "US_window_snapshots": {
+      "admitted_files": 133,
+      "date_range": [
+        "2026-07-14",
+        "2026-09-23"
+      ],
+      "fields": {
+        "atr_at_prediction": {
+          "denominator": 810,
+          "missing_count": 810,
+          "missing_rate": 1.0,
+          "path": "atr_at_prediction"
+        },
+        "chip": {
+          "denominator": 810,
+          "missing_count": 810,
+          "missing_rate": 1.0,
+          "path": "chip_summary"
+        },
+        "confidence": {
+          "denominator": 810,
+          "missing_count": 0,
+          "missing_rate": 0.0,
+          "path": "strategies.daily_tactical.confidence"
+        },
+        "fallback": {
+          "denominator": 810,
+          "missing_count": 810,
+          "missing_rate": 1.0,
+          "path": "fetch_error"
+        },
+        "feature_as_of": {
+          "denominator": 810,
+          "missing_count": 0,
+          "missing_rate": 0.0,
+          "path": "source_timestamp"
+        },
+        "feature_available_at": {
+          "denominator": 810,
+          "missing_count": 810,
+          "missing_rate": 1.0,
+          "path": "feature_available_at"
+        },
+        "generated_at": {
+          "denominator": 810,
+          "missing_count": 0,
+          "missing_rate": 0.0,
+          "path": "strategies.daily_tactical.generated_at"
+        },
+        "git_sha": {
+          "denominator": 810,
+          "missing_count": 810,
+          "missing_rate": 1.0,
+          "path": "git_sha"
+        },
+        "latency": {
+          "denominator": 810,
+          "missing_count": 810,
+          "missing_rate": 1.0,
+          "path": "latency_ms"
+        },
+        "market_features": {
+          "denominator": 810,
+          "missing_count": 0,
+          "missing_rate": 0.0,
+          "path": "market_context_ref"
+        },
+        "missingness": {
+          "denominator": 810,
+          "missing_count": 0,
+          "missing_rate": 0.0,
+          "path": "prediction.missing_fields"
+        },
+        "model_version": {
+          "denominator": 810,
+          "missing_count": 0,
+          "missing_rate": 0.0,
+          "path": "prediction.model_version"
+        },
+        "news": {
+          "denominator": 810,
+          "missing_count": 0,
+          "missing_rate": 0.0,
+          "path": "news"
+        },
+        "prediction_id": {
+          "denominator": 810,
+          "missing_count": 810,
+          "missing_rate": 1.0,
+          "path": "prediction.prediction_identity"
+        },
+        "range_high": {
+          "denominator": 810,
+          "missing_count": 0,
+          "missing_rate": 0.0,
+          "path": "prediction.predicted_session_high"
+        },
+        "range_low": {
+          "denominator": 810,
+          "missing_count": 0,
+          "missing_rate": 0.0,
+          "path": "prediction.predicted_session_low"
+        },
+        "schema_version": {
+          "denominator": 810,
+          "missing_count": 810,
+          "missing_rate": 1.0,
+          "path": "schema_version"
+        },
+        "session": {
+          "denominator": 810,
+          "missing_count": 810,
+          "missing_rate": 1.0,
+          "path": "prediction.effective_trading_date"
+        },
+        "strategy": {
+          "denominator": 810,
+          "missing_count": 0,
+          "missing_rate": 0.0,
+          "path": "strategies.daily_tactical.strategy_type"
+        },
+        "target_price": {
+          "denominator": 810,
+          "missing_count": 810,
+          "missing_rate": 1.0,
+          "path": "prediction.point_forecast.price"
+        },
+        "technical": {
+          "denominator": 810,
+          "missing_count": 0,
+          "missing_rate": 0.0,
+          "path": "technical"
+        },
+        "trend": {
+          "denominator": 810,
+          "missing_count": 0,
+          "missing_rate": 0.0,
+          "path": "prediction.one_month_trend"
+        },
+        "window": {
+          "denominator": 810,
+          "missing_count": 810,
+          "missing_rate": 1.0,
+          "path": "prediction.window"
+        }
+      },
+      "files": 135,
+      "malformed_files": 0,
+      "row_selection": "payload.items",
+      "rows": 810,
+      "source": "artifacts/archive/window_snapshots/us"
+    },
+    "delivery_provenance_tw": {
+      "date_range": [
+        "2026-09-23",
+        "2026-09-24"
+      ],
+      "fields": {
+        "generated_at": {
+          "denominator": 8,
+          "missing_count": 8,
+          "missing_rate": 1.0
+        },
+        "schema_version": {
+          "denominator": 8,
+          "missing_count": 0,
+          "missing_rate": 0.0
+        }
+      },
+      "files": 8,
+      "malformed_files": 0,
+      "rows": 8,
+      "source": "artifacts/runtime/delivery_provenance"
+    },
+    "delivery_provenance_us": {
+      "date_range": [
+        "2026-09-23",
+        "2026-09-23"
+      ],
+      "fields": {
+        "generated_at": {
+          "denominator": 6,
+          "missing_count": 6,
+          "missing_rate": 1.0
+        },
+        "schema_version": {
+          "denominator": 6,
+          "missing_count": 0,
+          "missing_rate": 0.0
+        }
+      },
+      "files": 6,
+      "malformed_files": 0,
+      "rows": 6,
+      "source": "artifacts/runtime/us_stock/delivery_provenance"
+    },
+    "delivery_receipts": {
+      "date_range": null,
+      "fields": {
+        "generated_at": {
+          "denominator": 18,
+          "missing_count": 18,
+          "missing_rate": 1.0
+        },
+        "schema_version": {
+          "denominator": 18,
+          "missing_count": 0,
+          "missing_rate": 0.0
+        }
+      },
+      "files": 18,
+      "malformed_files": 0,
+      "rows": 18,
+      "source": "artifacts/runtime/delivery_receipts"
+    },
+    "evidence_tw": {
+      "date_range": [
+        "2026-08-31",
+        "2026-09-24"
+      ],
+      "fields": {
+        "generated_at": {
+          "denominator": 307,
+          "missing_count": 307,
+          "missing_rate": 1.0
+        },
+        "schema_version": {
+          "denominator": 307,
+          "missing_count": 307,
+          "missing_rate": 1.0
+        }
+      },
+      "files": 307,
+      "malformed_files": 0,
+      "rows": 307,
+      "source": "artifacts/runtime/tw/evidence_regression_ledger/v1"
+    },
+    "evidence_us": {
+      "date_range": [
+        "2026-08-28",
+        "2026-09-23"
+      ],
+      "fields": {
+        "generated_at": {
+          "denominator": 2340,
+          "missing_count": 2340,
+          "missing_rate": 1.0
+        },
+        "schema_version": {
+          "denominator": 2340,
+          "missing_count": 2340,
+          "missing_rate": 1.0
+        }
+      },
+      "files": 2340,
+      "malformed_files": 0,
+      "rows": 2340,
+      "source": "artifacts/runtime/us_stock/evidence_regression_ledger/v1"
+    },
+    "formal_outcome": {
+      "date_range": [
+        "2026-07-06",
+        "2026-09-24"
+      ],
+      "fields": {
+        "actual_close": {
+          "denominator": 443,
+          "missing_count": 434,
+          "missing_rate": 0.979684
+        },
+        "actual_high": {
+          "denominator": 443,
+          "missing_count": 434,
+          "missing_rate": 0.979684
+        },
+        "actual_low": {
+          "denominator": 443,
+          "missing_count": 434,
+          "missing_rate": 0.979684
+        },
+        "actual_open": {
+          "denominator": 443,
+          "missing_count": 434,
+          "missing_rate": 0.979684
+        },
+        "actual_volume": {
+          "denominator": 443,
+          "missing_count": 434,
+          "missing_rate": 0.979684
+        }
+      },
+      "files": 48,
+      "malformed_files": 0,
+      "rows": 443,
+      "source": "artifacts/archive/formal_forecast_snapshots/actual_outcome"
+    },
+    "formal_prediction": {
+      "date_range": [
+        "2026-07-06",
+        "2026-09-24"
+      ],
+      "fields": {
+        "confidence_score": {
+          "denominator": 443,
+          "missing_count": 144,
+          "missing_rate": 0.325056
+        },
+        "model_version": {
+          "denominator": 443,
+          "missing_count": 0,
+          "missing_rate": 0.0
+        },
+        "same_day_high_prediction": {
+          "denominator": 443,
+          "missing_count": 144,
+          "missing_rate": 0.325056
+        },
+        "same_day_low_prediction": {
+          "denominator": 443,
+          "missing_count": 144,
+          "missing_rate": 0.325056
+        }
+      },
+      "files": 48,
+      "malformed_files": 0,
+      "rows": 443,
+      "source": "artifacts/archive/formal_forecast_snapshots/prediction"
+    },
+    "formal_review": {
+      "date_range": [
+        "2026-07-06",
+        "2026-09-24"
+      ],
+      "fields": {
+        "generated_at": {
+          "denominator": 443,
+          "missing_count": 443,
+          "missing_rate": 1.0
+        },
+        "schema_version": {
+          "denominator": 443,
+          "missing_count": 0,
+          "missing_rate": 0.0
+        }
+      },
+      "files": 48,
+      "malformed_files": 0,
+      "rows": 443,
+      "source": "artifacts/archive/formal_forecast_snapshots/review"
+    },
+    "historical_ohlcv": {
+      "date_range": [
+        "2025-12-04",
+        "2026-09-23"
+      ],
+      "fields": {
+        "close": {
+          "denominator": 1472,
+          "missing_count": 0,
+          "missing_rate": 0.0
+        },
+        "date": {
+          "denominator": 1472,
+          "missing_count": 0,
+          "missing_rate": 0.0
+        },
+        "high": {
+          "denominator": 1472,
+          "missing_count": 0,
+          "missing_rate": 0.0
+        },
+        "low": {
+          "denominator": 1472,
+          "missing_count": 0,
+          "missing_rate": 0.0
+        },
+        "open": {
+          "denominator": 1472,
+          "missing_count": 0,
+          "missing_rate": 0.0
+        },
+        "volume": {
+          "denominator": 1472,
+          "missing_count": 0,
+          "missing_rate": 0.0
+        }
+      },
+      "files": 12,
+      "rows": 1472,
+      "source": "data/historical/*_daily.csv"
+    }
+  },
+  "observation": {
+    "atomic_snapshot": false,
+    "completed_at": "2026-09-24T09:37:57+08:00",
+    "production_head": "e3bdafdaacbb6472eaca911942b24cbd571cc68b",
+    "read_only": true,
+    "symbols_and_payloads_omitted": true
+  },
+  "production_mutation": "NONE",
+  "schema_version": "prediction_regression_inventory_v1",
+  "scope": "allowlisted on-disk artifacts; not a claim of complete production history"
+}
