@@ -1,0 +1,406 @@
+{
+  "schema_version": "ai_dev_251c_offline_report_projection_v1",
+  "task_id": "AI-DEV-251C",
+  "report_version": "offline_evaluation_report_v1",
+  "projection_version": "offline_report_comparison_v1",
+  "canonical_scoring_contract": "config/governance/prediction_regression_data_contract_v1.json",
+  "report_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "schema_version",
+      "contract_version",
+      "evaluator_version",
+      "report_id",
+      "revision",
+      "supersedes_hash",
+      "report_date",
+      "identity",
+      "input_digest",
+      "evaluation",
+      "evidence_records",
+      "linkage_refs",
+      "content_hash",
+      "contract_digest"
+    ],
+    "properties": {
+      "schema_version": {
+        "type": "string",
+        "const": "offline_evaluation_report_v1"
+      },
+      "contract_version": {
+        "type": "string",
+        "const": "ai_dev_251c_offline_report_projection_v1"
+      },
+      "evaluator_version": {
+        "type": "string",
+        "const": "ai_dev_251b_offline_evaluators_v1"
+      },
+      "report_id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "revision": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "supersedes_hash": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "pattern": "^[0-9a-f]{64}$"
+      },
+      "report_date": {
+        "type": "string",
+        "format": "date"
+      },
+      "identity": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "market",
+          "symbol",
+          "strategy_id",
+          "horizon_sessions"
+        ],
+        "properties": {
+          "market": {
+            "type": "string",
+            "enum": [
+              "TW",
+              "US"
+            ]
+          },
+          "symbol": {
+            "type": "string",
+            "minLength": 1
+          },
+          "strategy_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "horizon_sessions": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "input_digest": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      },
+      "evaluation": {
+        "type": "object"
+      },
+      "evidence_records": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        }
+      },
+      "linkage_refs": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "finding",
+          "fix",
+          "evaluation"
+        ],
+        "properties": {
+          "finding": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "fix": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "evaluation": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      },
+      "content_hash": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      },
+      "contract_digest": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      }
+    }
+  },
+  "reference_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "report_id",
+      "revision",
+      "schema_version",
+      "content_hash"
+    ],
+    "properties": {
+      "report_id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "revision": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "schema_version": {
+        "type": "string",
+        "const": "offline_evaluation_report_v1"
+      },
+      "content_hash": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      }
+    }
+  },
+  "effect_mapping": {
+    "IMPROVED": "POSITIVE",
+    "NEUTRAL": "NEUTRAL",
+    "REGRESSED": "NEGATIVE",
+    "MIXED": "INSUFFICIENT_EVIDENCE",
+    "PENDING": "INSUFFICIENT_EVIDENCE"
+  },
+  "chain_states": [
+    "COMPLETE",
+    "INCOMPLETE"
+  ],
+  "relationship": "PREVIOUS_CALENDAR_REPORT",
+  "completion_meaning": "Required finding -> fix -> evaluation references and immutable digests are complete; never success, resolution, deployment approval or production safety.",
+  "lifecycle_mutation": false,
+  "production_ready": false,
+  "integrity": "Strict report schema, immutable digest, exact 251B replay from supplied inputs; preserve component evidence verbatim. Never admit these reports as 251A envelopes.",
+  "owners": {
+    "evaluator": "app/evaluation",
+    "history": "app/history/historical_store.py",
+    "report_manifest": "app/runtime/batch_audit_bundle.py"
+  },
+  "storage": "Pure in-memory projection only; no new source of truth, ingestion, persisted ledger or file writer.",
+  "projection_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "schema_version",
+      "contract_version",
+      "status",
+      "reason_codes",
+      "current_ref",
+      "predecessor_ref",
+      "relationship",
+      "comparison",
+      "evidence_chain",
+      "realized_effect",
+      "component_evidence",
+      "linkage_evidence",
+      "lifecycle_mutation",
+      "production_ready",
+      "content_hash",
+      "contract_digest"
+    ],
+    "properties": {
+      "schema_version": {
+        "type": "string",
+        "const": "offline_report_comparison_v1"
+      },
+      "contract_version": {
+        "type": "string",
+        "const": "ai_dev_251c_offline_report_projection_v1"
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "COMPARABLE",
+          "NO_PREDECESSOR",
+          "INSUFFICIENT_COMPARISON"
+        ]
+      },
+      "reason_codes": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "current_ref": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "report_id",
+          "revision",
+          "schema_version",
+          "content_hash"
+        ],
+        "properties": {
+          "report_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "schema_version": {
+            "type": "string",
+            "const": "offline_evaluation_report_v1"
+          },
+          "content_hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      },
+      "predecessor_ref": {
+        "type": [
+          "object",
+          "null"
+        ]
+      },
+      "relationship": {
+        "type": "string",
+        "const": "PREVIOUS_CALENDAR_REPORT"
+      },
+      "comparison": {
+        "type": [
+          "object",
+          "null"
+        ]
+      },
+      "evidence_chain": {
+        "type": "object"
+      },
+      "realized_effect": {
+        "type": "object"
+      },
+      "component_evidence": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "current",
+          "predecessor"
+        ],
+        "properties": {
+          "current": {
+            "type": "object"
+          },
+          "predecessor": {
+            "type": [
+              "object",
+              "null"
+            ]
+          }
+        }
+      },
+      "linkage_evidence": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "current",
+          "predecessor"
+        ],
+        "properties": {
+          "current": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "predecessor": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "lifecycle_mutation": {
+        "type": "boolean",
+        "const": false
+      },
+      "production_ready": {
+        "type": "boolean",
+        "const": false
+      },
+      "content_hash": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      },
+      "contract_digest": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      }
+    }
+  },
+  "rejected_projection_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "schema_version",
+      "contract_version",
+      "status",
+      "reason_codes",
+      "comparison",
+      "lifecycle_mutation",
+      "production_ready",
+      "content_hash",
+      "contract_digest"
+    ],
+    "properties": {
+      "schema_version": {
+        "type": "string",
+        "const": "offline_report_comparison_v1"
+      },
+      "contract_version": {
+        "type": "string",
+        "const": "ai_dev_251c_offline_report_projection_v1"
+      },
+      "status": {
+        "type": "string",
+        "const": "REJECTED"
+      },
+      "reason_codes": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "comparison": {
+        "type": "null"
+      },
+      "lifecycle_mutation": {
+        "type": "boolean",
+        "const": false
+      },
+      "production_ready": {
+        "type": "boolean",
+        "const": false
+      },
+      "content_hash": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      },
+      "contract_digest": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      }
+    }
+  }
+}
