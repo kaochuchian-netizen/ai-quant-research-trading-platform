@@ -1,0 +1,375 @@
+{
+  "fixture_only": true,
+  "sessions": [
+    {
+      "market": "TW",
+      "session_date": "2026-09-23",
+      "open_at": "2026-09-23T09:00:00+08:00",
+      "close_at": "2026-09-23T13:30:00+08:00"
+    },
+    {
+      "market": "US",
+      "session_date": "2026-09-22",
+      "open_at": "2026-09-22T09:30:00-04:00",
+      "close_at": "2026-09-22T16:00:00-04:00"
+    },
+    {
+      "market": "US",
+      "session_date": "2026-09-23",
+      "open_at": "2026-09-23T09:30:00-04:00",
+      "close_at": "2026-09-23T16:00:00-04:00"
+    }
+  ],
+  "records": [
+    {
+      "entity": "prediction_snapshot",
+      "record_id": "synthetic-prediction_snapshot",
+      "schema_version": "prediction_regression_data_contract_v1",
+      "revision": 1,
+      "supersedes_hash": null,
+      "source_refs": [
+        {
+          "source_path": "fixtures/synthetic-only.json",
+          "source_record_id": "synthetic-source",
+          "source_schema": "fixture_v1",
+          "content_hash": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      ],
+      "data": {
+        "market": "TW",
+        "symbol": "synthetic-fixture",
+        "strategy_id": "synthetic-fixture",
+        "prediction_id": "synthetic-fixture",
+        "generated_at": "2026-09-23T07:00:00+08:00",
+        "session_date": "2026-09-23",
+        "window": "synthetic-fixture",
+        "horizon_sessions": 1,
+        "feature_ref": "synthetic-fixture",
+        "trend": "UP",
+        "target_price": null,
+        "range_low": null,
+        "range_high": null,
+        "confidence": null,
+        "confidence_event": "direction_correct",
+        "reference_price": null,
+        "atr_at_prediction": null,
+        "model_version": "synthetic-fixture",
+        "git_sha": null,
+        "status": "PENDING",
+        "reason_codes": []
+      },
+      "content_hash": "d60f6d45fea3ae011ad212c683bd6914be40dae342536af212f8adc10a6cbc30"
+    },
+    {
+      "entity": "feature_snapshot",
+      "record_id": "synthetic-feature_snapshot",
+      "schema_version": "prediction_regression_data_contract_v1",
+      "revision": 1,
+      "supersedes_hash": null,
+      "source_refs": [
+        {
+          "source_path": "fixtures/synthetic-only.json",
+          "source_record_id": "synthetic-source",
+          "source_schema": "fixture_v1",
+          "content_hash": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      ],
+      "data": {
+        "market": "TW",
+        "symbol": "synthetic-fixture",
+        "strategy_id": "synthetic-fixture",
+        "prediction_id": "synthetic-fixture",
+        "prediction_at": "2026-09-23T07:00:00+08:00",
+        "as_of": "2026-09-23T06:00:00+08:00",
+        "available_at": "2026-09-23T06:30:00+08:00",
+        "input_version": "synthetic-fixture",
+        "technical_refs": [],
+        "news_refs": [],
+        "chip_refs": [],
+        "market_refs": [],
+        "missing_fields": [],
+        "fallback_reason": null,
+        "latency_ms": null,
+        "status": "PENDING"
+      },
+      "content_hash": "f24bb1579c57a4423b75cb332452cc15b7c684320cbca17b3ef84b5c2a6bf881"
+    },
+    {
+      "entity": "market_outcome",
+      "record_id": "synthetic-market_outcome",
+      "schema_version": "prediction_regression_data_contract_v1",
+      "revision": 1,
+      "supersedes_hash": null,
+      "source_refs": [
+        {
+          "source_path": "fixtures/synthetic-only.json",
+          "source_record_id": "synthetic-source",
+          "source_schema": "fixture_v1",
+          "content_hash": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      ],
+      "data": {
+        "market": "TW",
+        "symbol": "synthetic-fixture",
+        "strategy_id": "synthetic-fixture",
+        "session_date": "2026-09-23",
+        "session_close_at": "2026-09-23T13:30:00+08:00",
+        "observed_at": "2026-09-23T14:00:00+08:00",
+        "available_at": "2026-09-23T14:01:00+08:00",
+        "open": null,
+        "high": null,
+        "low": null,
+        "close": null,
+        "price_path_ref": null,
+        "corporate_action_basis": "UNADJUSTED",
+        "status": "PENDING",
+        "reason_codes": []
+      },
+      "content_hash": "672ba75ba4279fe76bf7f0f9d73c2dd8756d74d95978bd791626f813aefca70a"
+    },
+    {
+      "entity": "forecast_evaluation",
+      "record_id": "synthetic-forecast_evaluation",
+      "schema_version": "prediction_regression_data_contract_v1",
+      "revision": 1,
+      "supersedes_hash": null,
+      "source_refs": [
+        {
+          "source_path": "fixtures/synthetic-only.json",
+          "source_record_id": "synthetic-source",
+          "source_schema": "fixture_v1",
+          "content_hash": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      ],
+      "data": {
+        "market": "TW",
+        "symbol": "synthetic-fixture",
+        "strategy_id": "synthetic-fixture",
+        "prediction_ref": "synthetic-fixture",
+        "outcome_ref": "synthetic-fixture",
+        "evaluated_at": "2026-09-23T07:00:00+08:00",
+        "metric_spec_version": "synthetic-fixture",
+        "status": "PENDING",
+        "reason_codes": []
+      },
+      "content_hash": "8477d63cdd043497d9b25c6168c394a498f8e4f76dd21e9fe15691fe1edc51f4"
+    },
+    {
+      "entity": "strategy_counterfactual",
+      "record_id": "synthetic-strategy_counterfactual",
+      "schema_version": "prediction_regression_data_contract_v1",
+      "revision": 1,
+      "supersedes_hash": null,
+      "source_refs": [
+        {
+          "source_path": "fixtures/synthetic-only.json",
+          "source_record_id": "synthetic-source",
+          "source_schema": "fixture_v1",
+          "content_hash": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      ],
+      "data": {
+        "market": "TW",
+        "symbol": "synthetic-fixture",
+        "strategy_id": "synthetic-fixture",
+        "prediction_ref": "synthetic-fixture",
+        "outcome_refs": [],
+        "frozen_signal_refs": [],
+        "hindsight_evidence_refs": [],
+        "assumption_version": "synthetic-fixture",
+        "benchmark_ref": "synthetic-fixture",
+        "cost_basis_ref": "synthetic-fixture",
+        "path_resolution": "INTRADAY",
+        "auto_apply": false,
+        "status": "PENDING",
+        "reason_codes": []
+      },
+      "content_hash": "7755ad6d4d6415d6fc58776a1dd8108edfcfc97d45e0b75e2f337d7254c25ada"
+    },
+    {
+      "entity": "finding_ledger",
+      "record_id": "synthetic-finding_ledger",
+      "schema_version": "prediction_regression_data_contract_v1",
+      "revision": 1,
+      "supersedes_hash": null,
+      "source_refs": [
+        {
+          "source_path": "fixtures/synthetic-only.json",
+          "source_record_id": "synthetic-source",
+          "source_schema": "fixture_v1",
+          "content_hash": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      ],
+      "data": {
+        "market": "TW",
+        "symbol": "synthetic-fixture",
+        "strategy_id": "synthetic-fixture",
+        "finding_id": "synthetic-fixture",
+        "evaluation_refs": [],
+        "detected_at": "2026-09-23T07:00:00+08:00",
+        "category": "PREDICTION",
+        "status": "PROPOSED",
+        "confirmed_at": null,
+        "evidence_refs": []
+      },
+      "content_hash": "0653117908f4bcae44e9a6c2a37f257895ca7cc070269f1817179fb29cb79b3a"
+    },
+    {
+      "entity": "fix_ledger",
+      "record_id": "synthetic-fix_ledger",
+      "schema_version": "prediction_regression_data_contract_v1",
+      "revision": 1,
+      "supersedes_hash": null,
+      "source_refs": [
+        {
+          "source_path": "fixtures/synthetic-only.json",
+          "source_record_id": "synthetic-source",
+          "source_schema": "fixture_v1",
+          "content_hash": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      ],
+      "data": {
+        "market": "TW",
+        "symbol": "synthetic-fixture",
+        "strategy_id": "synthetic-fixture",
+        "fix_id": "synthetic-fixture",
+        "finding_ref": "synthetic-fixture",
+        "proposed_at": "2026-09-23T07:00:00+08:00",
+        "approved_at": null,
+        "effective_at": null,
+        "baseline_refs": [],
+        "change_ref": null,
+        "status": "PROPOSED",
+        "auto_apply": false
+      },
+      "content_hash": "85fdbe51d444da72adba292730057ad5d4dc88aca48888cc44f7f8caa8bc5001"
+    },
+    {
+      "entity": "fix_evaluation",
+      "record_id": "synthetic-fix_evaluation",
+      "schema_version": "prediction_regression_data_contract_v1",
+      "revision": 1,
+      "supersedes_hash": null,
+      "source_refs": [
+        {
+          "source_path": "fixtures/synthetic-only.json",
+          "source_record_id": "synthetic-source",
+          "source_schema": "fixture_v1",
+          "content_hash": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      ],
+      "data": {
+        "market": "TW",
+        "symbol": "synthetic-fixture",
+        "strategy_id": "synthetic-fixture",
+        "fix_ref": "synthetic-fixture",
+        "evaluated_at": "2026-09-23T07:00:00+08:00",
+        "d3_session": null,
+        "d10_session": null,
+        "d3_status": "PENDING",
+        "d10_status": "PENDING",
+        "recurrence_evidence_refs": [],
+        "status": "PENDING",
+        "reason_codes": []
+      },
+      "content_hash": "37c0ade5450475b25ae87618d5f1a3e1ad7dba9201945802273ee7bf4ed04a77"
+    },
+    {
+      "entity": "daily_scorecard",
+      "record_id": "synthetic-daily_scorecard",
+      "schema_version": "prediction_regression_data_contract_v1",
+      "revision": 1,
+      "supersedes_hash": null,
+      "source_refs": [
+        {
+          "source_path": "fixtures/synthetic-only.json",
+          "source_record_id": "synthetic-source",
+          "source_schema": "fixture_v1",
+          "content_hash": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      ],
+      "data": {
+        "market": "TW",
+        "symbol": "synthetic-fixture",
+        "strategy_id": "synthetic-fixture",
+        "report_date": "2026-09-23",
+        "cutoff_at": "2026-09-23T17:00:00+08:00",
+        "three_session_dates": [],
+        "ten_session_dates": [],
+        "prediction_status": "PENDING",
+        "improvement_status": "PENDING",
+        "strategy_status": "PENDING",
+        "composite_status": "PENDING",
+        "composite_score": null,
+        "next_actions": {
+          "prediction": [],
+          "improvement": [],
+          "strategy": []
+        },
+        "reason_codes": []
+      },
+      "content_hash": "b50d690f92005560e733fa9cf0b631c8771214377c9f3cb274fd7485196b0b5b"
+    },
+    {
+      "entity": "report_manifest",
+      "record_id": "synthetic-report_manifest",
+      "schema_version": "prediction_regression_data_contract_v1",
+      "revision": 1,
+      "supersedes_hash": null,
+      "source_refs": [
+        {
+          "source_path": "fixtures/synthetic-only.json",
+          "source_record_id": "synthetic-source",
+          "source_schema": "fixture_v1",
+          "content_hash": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      ],
+      "data": {
+        "report_id": "synthetic-report-20260923",
+        "report_date": "2026-09-23",
+        "cutoff_at": "2026-09-23T17:00:00+08:00",
+        "predecessor_report_id": null,
+        "predecessor_hash": null,
+        "predecessor_report_date": null,
+        "chain_status": "GENESIS",
+        "scorecard_refs": [],
+        "market_session_dates": {
+          "TW": "2026-09-23",
+          "US": "2026-09-22"
+        },
+        "calendar_ref": "synthetic-fixture",
+        "calendar_hash": "69638ff7d451456fe60ec8b4c222dff240061cd44c255ed510504e68481e99e6",
+        "calendar_coverage_through": "2026-09-24T17:00:00+08:00",
+        "as_of_cutoff": true,
+        "status": "PENDING"
+      },
+      "content_hash": "a054e2f59773956af1676127a37efc303714fdcd366274791eb050996edcb3c0"
+    },
+    {
+      "entity": "delivery_ledger",
+      "record_id": "synthetic-delivery_ledger",
+      "schema_version": "prediction_regression_data_contract_v1",
+      "revision": 1,
+      "supersedes_hash": null,
+      "source_refs": [
+        {
+          "source_path": "fixtures/synthetic-only.json",
+          "source_record_id": "synthetic-source",
+          "source_schema": "fixture_v1",
+          "content_hash": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      ],
+      "data": {
+        "report_ref": "synthetic-report-20260923",
+        "report_hash": "a054e2f59773956af1676127a37efc303714fdcd366274791eb050996edcb3c0",
+        "channel": "LINE",
+        "attempt_id": "synthetic-fixture",
+        "attempted_at": "2026-09-23T07:00:00+08:00",
+        "result": "PENDING",
+        "receipt_ref": null,
+        "presentation_hash": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "content_hash": "5c28816e3be14ed82d90d68c808d02669734c33bd2be3c4355b8ad912389f1b9"
+    }
+  ]
+}
