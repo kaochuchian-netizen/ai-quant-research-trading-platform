@@ -1,0 +1,60 @@
+{
+  "fixture_kind": "SYNTHETIC",
+  "improvement_case": {
+    "baseline_dates": ["2026-08-11", "2026-08-12", "2026-08-13", "2026-08-14", "2026-08-17", "2026-08-18", "2026-08-19", "2026-08-20", "2026-08-21", "2026-08-24"],
+    "effective_session": "2026-08-25",
+    "post_dates": ["2026-08-26", "2026-08-27", "2026-08-28", "2026-08-31", "2026-09-01", "2026-09-02", "2026-09-03", "2026-09-04", "2026-09-08", "2026-09-09"],
+    "baseline_metric": 70,
+    "post_metric": 70,
+    "expected_components": {"finding_confirmed": 100, "d3_effect": 50, "d10_effect": 50, "non_recurrence": 100},
+    "expected_score": 70,
+    "expected_status": "DIAGNOSIS_POSITIVE_EFFECT_NEUTRAL",
+    "expected_realized_prediction_effect": "NEUTRAL"
+  },
+  "report_date": "2026-09-24",
+  "session_dates": ["2026-09-10", "2026-09-11", "2026-09-14", "2026-09-15", "2026-09-16", "2026-09-17", "2026-09-18", "2026-09-21", "2026-09-22", "2026-09-23", "2026-09-24"],
+  "signals": {
+    "confidence_event": "direction_correct",
+    "atr_method": "WILDER_14_COMPLETED_POINT_IN_TIME",
+    "target_semantics": "FORECAST_TARGET",
+    "atr14": 10,
+    "reference_price": 100,
+    "range_low": 95,
+    "range_high": 110,
+    "trend": "UP",
+    "confidence": 0.8,
+    "target_price": 105,
+    "entry_rule": "synthetic_open",
+    "exit_rule": "synthetic_close",
+    "hedge_rule": "synthetic_no_hedge",
+    "benchmark_id": "SYNTHETIC_BENCHMARK",
+    "cost_basis": "synthetic_fees_and_slippage_in_net_values_v1",
+    "fill_model": "synthetic_intraday_v1",
+    "allowed_position_universe": "synthetic_signed_unit_v1",
+    "currency": "SYNTHETIC_UNIT",
+    "assumptions_version": "synthetic_v1",
+    "corporate_action_basis": "POINT_IN_TIME_ADJUSTED",
+    "recommended_exposure": 1,
+    "risk_budget": 10,
+    "required_timing_events": ["entry"]
+  },
+  "outcomes": {
+    "outcome_horizon_sessions": 1,
+    "close": 105,
+    "path_low": 98,
+    "path_high": 108,
+    "matched_currency_session_exposure": true,
+    "path_resolution": "INTRADAY",
+    "hypothetical_net_profit": 5,
+    "hypothetical_mae": 2,
+    "hypothetical_net_return": 0.05,
+    "benchmark_total_return": 0.02,
+    "avoided_loss_evidence": "synthetic_outcome_ref"
+  },
+  "regret": {
+    "best_permitted_exposure": 1,
+    "best_position_universe": "synthetic_signed_unit_v1",
+    "best_feasible_net_profit": 10,
+    "timing_events": {"entry": [100, 98]}
+  }
+}
