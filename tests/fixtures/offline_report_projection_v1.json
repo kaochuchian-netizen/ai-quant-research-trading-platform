@@ -1,0 +1,13 @@
+{
+  "fixture_kind": "SYNTHETIC",
+  "predecessor_date": "2026-09-24",
+  "current_date": "2026-09-25",
+  "predecessor_id": "synthetic-review-20260924",
+  "current_id": "synthetic-review-20260925",
+  "effects": [
+    {"post_metric": 80, "effect": "POSITIVE", "chain": "COMPLETE"},
+    {"post_metric": 70, "effect": "NEUTRAL", "chain": "COMPLETE"},
+    {"post_metric": 50, "effect": "NEGATIVE", "chain": "COMPLETE"},
+    {"post_metric": null, "effect": "INSUFFICIENT_EVIDENCE", "chain": "COMPLETE"}
+  ]
+}
