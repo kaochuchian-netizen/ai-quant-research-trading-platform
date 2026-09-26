@@ -183,12 +183,21 @@ def session_context(report_date, calendar):
 
 
 def evaluate_category(category, rows, *, market, symbol, strategy_id, horizon_sessions,
-                      report_date, calendar):
+                      report_date, calendar, review_session=None, evaluated_at=None):
     """One independent stock/strategy/horizon; rejects duplicates, never fills gaps."""
     if category not in {"prediction", "strategy", "improvement"}:
         raise ValueError("unsupported_category")
     contract = load_contract()
-    cutoff, latest, completed = session_context(report_date, calendar)
+    if review_session is None and evaluated_at is None:
+        cutoff, latest, completed = session_context(report_date, calendar)
+    else:
+        from app.evaluation.session_calendar import evaluator_calendar
+        if calendar["market"] != market:
+            raise ValueError("calendar_market_mismatch")
+        calendar = evaluator_calendar(calendar, review_session, evaluated_at)
+        cutoff = aware(evaluated_at)
+        completed = {m: sorted(r["session_date"] for r in calendar["sessions"] if r["market"] == m) for m in ("TW", "US")}
+        latest = {m: values[-1] if values else None for m, values in completed.items()}
     if market not in completed or type(horizon_sessions) is not int or horizon_sessions < 1:
         raise ValueError("identity")
     if safety_errors(rows):

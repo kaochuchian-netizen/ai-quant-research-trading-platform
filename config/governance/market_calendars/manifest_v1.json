@@ -1,0 +1,10 @@
+{
+  "TW": {
+    "content_hash": "24b3e447d19ea8b78fb0ed400edbadba0f337b8db35797f0e8fed91000492c67",
+    "file": "tw_2026_v1.json"
+  },
+  "US": {
+    "content_hash": "2d2055b532f075af8c2c8ab4a61f961a75ac46b4bf3e6966b9286c319d586a7a",
+    "file": "us_2026_v1.json"
+  }
+}

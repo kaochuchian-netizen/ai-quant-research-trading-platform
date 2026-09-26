@@ -69,6 +69,7 @@ PRESERVED_EXACT_PATHS = {
 PRESERVED_PATH_PATTERNS = tuple(
     re.compile(pattern)
     for pattern in (
+        rf"artifacts/archive/window_snapshots/(?:tw/(?:{'|'.join(TW_WINDOWS)})|us/(?:{'|'.join(US_WINDOWS)}))/\d{{4}}-\d{{2}}-\d{{2}}/\.evaluation/[0-9a-f]{{64}}\.json",
         r"artifacts/archive/formal_forecast_snapshots/(actual_outcome/formal_actual_outcome|prediction/formal_prediction_runtime|review/formal_prediction_review)_\d{4}-\d{2}-\d{2}\.json",
         rf"artifacts/runtime/delivery_provenance/(?:tw_(?:{'|'.join(TW_WINDOWS)})|us_(?:{'|'.join(US_WINDOWS)}))_(?:email|line)_latest\.json",
         rf"artifacts/runtime/operations_provenance/(?:tw_(?:{'|'.join(TW_WINDOWS)})|us_(?:{'|'.join(US_WINDOWS)}))_latest\.json",
