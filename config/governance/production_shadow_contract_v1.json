@@ -26,5 +26,8 @@
   ],
   "storage_layout": "<window archive>/<market>/<window>/<date>/.evaluation/<source-plus-contract-sha256>.json",
   "storage_owner": "app/dashboard/window_snapshot_archive.py",
+  "worker_address_space_limit_mib": 384,
+  "worker_cpu_seconds": 2,
+  "worker_min_available_memory_mib": 768,
   "worker_timeout_seconds": 3
 }

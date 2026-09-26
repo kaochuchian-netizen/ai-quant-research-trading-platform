@@ -74,6 +74,21 @@ def persist(snapshot_path):
         os.unlink(temporary)
     return {"status": current["status"], "path": str(target), "content_hash": current["content_hash"]}
 
+def worker_budget(mem_available_kb=None):
+    """Fail closed before loading a report; limits apply only to this child."""
+    import resource
+    if mem_available_kb is None:
+        try:
+            rows = Path("/proc/meminfo").read_text().splitlines()
+            mem_available_kb = int(next(r.split()[1] for r in rows if r.startswith("MemAvailable:")))
+        except (OSError, ValueError, StopIteration):
+            return False
+    if mem_available_kb < 768 * 1024:
+        return False
+    resource.setrlimit(resource.RLIMIT_AS, (384 * 1024 * 1024, 384 * 1024 * 1024))
+    resource.setrlimit(resource.RLIMIT_CPU, (2, 2))
+    return True
+
 def hook(snapshot_path):
     """Bounded worker; diagnostic errors never enter delivery decision/result."""
     try:
@@ -89,6 +104,9 @@ def hook(snapshot_path):
 
 if __name__ == "__main__":
     try:
+        if not worker_budget():
+            print('{"status":"SHADOW_RESOURCE_UNAVAILABLE"}')
+            raise SystemExit(2)
         print(json.dumps(persist(sys.argv[1]), sort_keys=True))
     except Exception:
         print('{"status":"SHADOW_FAILURE"}')

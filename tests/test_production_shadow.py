@@ -158,3 +158,15 @@ class ScoredPredecessorTests(unittest.TestCase):
         from app.evaluation.offline_review_evaluators import load_contract
         before=deepcopy(load_contract()["weights_percent"]);self.scored()
         self.assertEqual(before,load_contract()["weights_percent"])
+
+class ResourceTests(unittest.TestCase):
+    def test_low_memory_skip(self):
+        from app.dashboard.shadow_evaluation_archive import worker_budget
+        with patch("resource.setrlimit") as limit:
+            self.assertFalse(worker_budget(1024))
+            limit.assert_not_called()
+    def test_limits_owned_worker_only(self):
+        from app.dashboard.shadow_evaluation_archive import worker_budget
+        with patch("resource.setrlimit") as limit:
+            self.assertTrue(worker_budget(1024*1024))
+            self.assertEqual(limit.call_count,2)

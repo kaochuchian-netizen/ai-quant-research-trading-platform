@@ -116,3 +116,8 @@ and a clean cb997f689879b04ee560713a8497584b05d4e50b worktree with
 AttributeError: list has no attribute get at app/reports/tw_human_summary.py:145.
 That renderer and the failing validator are unchanged. This fixture/renderer
 mismatch is PRE_EXISTING_UNRELATED and is not fixed or waived here.
+
+Worker admission additionally requires MemAvailable >=768 MiB. The child alone has
+384 MiB address-space and 2-second CPU limits, in addition to the parent 3-second
+wall timeout. Missing memory telemetry or resource exhaustion skips shadow work,
+never report delivery; it does not claim a successfully persisted artifact.
