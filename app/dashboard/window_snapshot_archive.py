@@ -97,6 +97,8 @@ def _archive_signature(archive_root: Path) -> tuple[tuple[str, int, int], ...]:
     if not archive_root.exists():
         return ()
     for path in sorted(archive_root.rglob("*.json")):
+        if ".evaluation" in path.parts:
+            continue
         try:
             stat = path.stat()
         except OSError:
@@ -322,6 +324,15 @@ def write_snapshot(
     temporary = target.with_suffix(f".tmp-{os.getpid()}")
     temporary.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     temporary.replace(target)
+    # Shadow sidecars cannot alter archive identity, report payload or delivery.
+    try:
+        from app.dashboard.shadow_evaluation_archive import hook
+        production_archive = Path(__file__).resolve().parents[2] / "artifacts/archive/window_snapshots"
+        if archive_root.resolve() == production_archive.resolve():
+            hook(target)
+    except Exception:
+        import logging
+        logging.getLogger(__name__).warning("shadow_evaluation_worker: HOOK_FAILED")
     if rebuild_routes:
         from app.dashboard.multi_market_dashboard import publish_manual_rerun_update
         publish_result = publish_manual_rerun_update(market, canonical_window)
