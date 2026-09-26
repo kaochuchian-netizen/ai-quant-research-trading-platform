@@ -1,0 +1,30 @@
+{
+  "calendar_manifest": "config/governance/market_calendars/manifest_v1.json",
+  "calendar_schema": "market_calendar_snapshot_v1",
+  "chain": "PRIOR_SUCCESSFUL_SCORED_SESSION_SAME_STREAM",
+  "evaluation_context": "EXPLICIT_SESSION_AND_AWARE_EVALUATION_AT",
+  "legacy_contracts": "251A/B/C v1 unchanged; 251D opts into explicit session evaluator context",
+  "manual_rerun": "ISOLATED_NO_SCORED_PREDECESSOR",
+  "mutation_permissions": [
+    "DERIVED_SHADOW_SIDECAR_ONLY"
+  ],
+  "replay": "validate_shadow recomputes component evaluation from retained inputs and embedded immutable calendar",
+  "review_identity": [
+    "market",
+    "window",
+    "effective_trading_date"
+  ],
+  "schema_version": "ai_dev_251d_session_shadow_v1",
+  "scored_predecessor_states": [
+    "EVALUATED"
+  ],
+  "states": [
+    "BLOCKED_INPUT",
+    "PENDING",
+    "INSUFFICIENT_SAMPLE",
+    "EVALUATED"
+  ],
+  "storage_layout": "<window archive>/<market>/<window>/<date>/.evaluation/<source-plus-contract-sha256>.json",
+  "storage_owner": "app/dashboard/window_snapshot_archive.py",
+  "worker_timeout_seconds": 3
+}
