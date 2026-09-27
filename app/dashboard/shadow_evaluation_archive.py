@@ -17,6 +17,12 @@ def persist(snapshot_path):
     from app.dashboard.window_snapshot_archive import snapshot_id, admission_errors
     if admission_errors(snapshot) or snapshot["snapshot_id"] != snapshot_id({k:v for k,v in snapshot.items() if k != "snapshot_id"}):
         raise ValueError("SOURCE_INTEGRITY")
+    # Isolated extension; existing 251D projection remains byte-compatible.
+    try:
+        from app.dashboard.production_evidence_archive import persist as persist_evidence
+        persist_evidence(path)
+    except Exception:
+        print('{"event":"production_evidence","status":"SHADOW_FAILURE"}', file=sys.stderr)
     packet = source_packet(snapshot)
     try:
         calendar = load_calendar(snapshot["market"])

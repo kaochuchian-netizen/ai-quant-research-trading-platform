@@ -644,6 +644,15 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
                         ],
                         progress_hook=_card_progress,
                     )
+                # AI-DEV-252: future-only observation; never change report/delivery.
+                try:
+                    from app.evaluation.prediction_capture import capture_and_persist
+                    with _bounded_post_report_operation(stage_timing=stage_timing, symbol=stock_id,
+                                                        substage="SHADOW_EVIDENCE_CAPTURE", timeout_seconds=2):
+                        capture_and_persist(structured_card)
+                except Exception:
+                    import logging
+                    logging.getLogger(__name__).warning("prediction_capture: SHADOW_FAILURE")
                 _emit_post_report_progress(stage_timing, stock_id, "STRUCTURED_CARD_DONE", status="completed")
                 _emit_post_report_progress(stage_timing, stock_id, "ARTIFACT_WRITE_START")
                 with _bounded_post_report_operation(
