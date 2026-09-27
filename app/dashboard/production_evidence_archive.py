@@ -41,7 +41,7 @@ def project(snapshot, frozen_sources=None):
     for card in cards:
         symbol = str(card.get("symbol") or card.get("stock_id") or card.get("code") or "")
         native = card.get("prediction_snapshot_v2") or {}
-        saved = (frozen_sources or {}).get(native.get("prediction_identity"))
+        saved = (frozen_sources or {}).get(native.get("prediction_identity") or ("missing-native:"+symbol))
         source = None
         if saved is not None:
             try:
@@ -59,7 +59,7 @@ def project(snapshot, frozen_sources=None):
         elif source is None:
             r.update(state="HISTORICAL_INELIGIBLE" if cap=="NATIVE_DIRECTION" else None,
                      reason_codes=["NO_CONTEMPORANEOUS_FROZEN_EVIDENCE"])
-        elif source.get("status") != "FROZEN":
+        elif not isinstance(source,dict) or source.get("status") != "FROZEN":
             r.update(state="BLOCKED_INPUT",reason_codes=["NATIVE_FROZEN_PREREQUISITE"])
         else:
             try:
@@ -93,7 +93,13 @@ def persist(snapshot_path):
             if f.is_symlink() or f.stat().st_size>1024*1024:
                 raise ValueError("FROZEN_PATH")
             v=json.loads(f.read_text())
-            sources[v["native_prediction_id"]]=v
+            verify(v)
+            key=v["native_prediction_id"]
+            previous=sources.get(key)
+            if previous is None or (v.get("capture_phase")=="RESULT" and previous.get("capture_phase")!="RESULT"):
+                sources[key]=v
+            elif v.get("capture_phase")==previous.get("capture_phase") and v!=previous:
+                raise ValueError("FROZEN_RECEIPT_CONFLICT")
     value=project(snapshot,sources)
     target=path.parent/".evidence"/(value["content_hash"]+".json")
     publish(target,value)

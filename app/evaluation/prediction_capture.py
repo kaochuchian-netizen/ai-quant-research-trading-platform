@@ -74,16 +74,24 @@ def capture_and_persist(card):
     from app.evaluation.prediction_regression_contract import stamp
     try:
         native = card.get("prediction_snapshot_v2") or {}
-        if not native.get("prediction_identity"):
-            return
-        key = digest({"prediction_id":native["prediction_identity"],"version":"production_evidence_accumulation_v1"})
-        target = ROOT / "artifacts/archive/window_snapshots/tw/pre_open_0700" / card["trading_date"] / ".frozen" / (key+".json")
+        from datetime import date
+        day=card["trading_date"]
+        if date.fromisoformat(day).isoformat()!=day:
+            raise ValueError("SOURCE_DATE")
+        native_id=native.get("prediction_identity") or ("missing-native:"+str(card.get("symbol") or card.get("stock_id")))
+        key = digest({"prediction_id":native_id,"version":"production_evidence_accumulation_v1"})
+        directory = ROOT / "artifacts/archive/window_snapshots/tw/pre_open_0700" / day / ".frozen"
+        target=directory/(key+".json")
         if target.exists():
             verify(json.loads(target.read_text()))
             return
-        value = stamp({"schema_version":"production_evidence_accumulation_v1",
-                       "native_prediction_id":native["prediction_identity"],
-                       "native_prediction_digest":digest(native), "capture":capture(card)})
+        common={"schema_version":"production_evidence_accumulation_v1","native_prediction_id":native_id,
+                "native_prediction_digest":digest(native)}
+        # Immutable attempt receipt distinguishes failed future capture from history.
+        attempt=stamp({**common,"capture_phase":"ATTEMPT",
+                       "capture":{"status":"BLOCKED_INPUT","reason":"CAPTURE_NOT_COMPLETED"}})
+        publish(directory/(digest({"attempt":key})+".json"),attempt)
+        value=stamp({**common,"capture_phase":"RESULT","capture":capture(card,root=ROOT)})
         publish(target,value)
     except Exception:
         logging.getLogger(__name__).warning("prediction_capture: SHADOW_FAILURE")

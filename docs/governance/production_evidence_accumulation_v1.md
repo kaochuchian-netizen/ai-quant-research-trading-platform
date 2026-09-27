@@ -82,7 +82,7 @@ eligible samples; do not estimate a calendar completion date.
 
 ## Development validation
 251A 50, 251B 92, 251C 60 and 251D 49 regression tests passed.
-The 252 validator exercises 62 synthetic tests, including native capture,
+The 252 validator exercises 64 synthetic tests, including native capture,
 four-window deduplication, persistence and replay. Governance and source audit pass.
 Local full gates on the branch and clean 678e4ad baseline have the same 37 failed
 validator IDs and no branch-only failures. The system Python lacks dependencies
@@ -91,3 +91,6 @@ CI with repository dependencies is mandatory before merge.
 
 The original 251D artifact is published before the 252 extension runs, so an
 extension timeout/resource failure cannot prevent its persistence.
+
+An immutable attempt receipt precedes future capture. An interrupted/missing-field
+capture remains BLOCKED_INPUT rather than being mislabeled historical ineligible.

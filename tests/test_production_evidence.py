@@ -229,3 +229,28 @@ class IsolationTests(unittest.TestCase):
                 result=persist_251d(p)
             self.assertTrue(Path(result["path"]).exists())
             self.assertEqual(before,p.read_bytes())
+
+
+class CaptureReceiptTests(unittest.TestCase):
+    def test_failed_future_capture_not_historical(self):
+        from app.evaluation.prediction_capture import capture_and_persist
+        import app.evaluation.prediction_capture as module
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d)
+            card={"symbol":"1234","trading_date":"2026-09-24"}
+            with patch.object(module,"ROOT",root):
+                capture_and_persist(card)
+            files=list(root.glob("artifacts/archive/window_snapshots/tw/pre_open_0700/2026-09-24/.frozen/*.json"))
+            self.assertEqual(len(files),2)
+            saved=[json.loads(p.read_text()) for p in files]
+            self.assertEqual({x["capture_phase"] for x in saved},{"ATTEMPT","RESULT"})
+            self.assertTrue(all(x["capture"]["status"]=="BLOCKED_INPUT" for x in saved))
+    def test_interrupted_capture_leaves_receipt(self):
+        from app.evaluation.prediction_capture import capture_and_persist
+        import app.evaluation.prediction_capture as module
+        with tempfile.TemporaryDirectory() as d:
+            with patch.object(module,"ROOT",Path(d)), patch.object(module,"capture",side_effect=TimeoutError("synthetic")):
+                capture_and_persist({"symbol":"1234","trading_date":"2026-09-24"})
+            files=list(Path(d).rglob("*.json"))
+            self.assertEqual(len(files),1)
+            self.assertEqual(json.loads(files[0].read_text())["capture_phase"],"ATTEMPT")

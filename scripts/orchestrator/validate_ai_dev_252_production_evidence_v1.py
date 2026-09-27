@@ -14,7 +14,7 @@ def main():
     suite = unittest.defaultTestLoader.discover(str(ROOT / "tests"), pattern="test_production_evidence.py")
     output = io.StringIO()
     result = unittest.TextTestRunner(stream=output, verbosity=2).run(suite)
-    ok = result.wasSuccessful() and not result.skipped and result.testsRun >= 62
+    ok = result.wasSuccessful() and not result.skipped and result.testsRun >= 64
     print(json.dumps({"schema_version": "ai_dev_252_production_evidence_v1", "status": "PASS" if ok else "FAIL",
                       "tests_run": result.testsRun, "failures": [] if ok else [output.getvalue()],
                       "production_mutation": "NONE", "lifecycle_mutation": False, "input_kind": "SYNTHETIC",
