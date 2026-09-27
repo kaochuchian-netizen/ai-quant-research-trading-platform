@@ -9,6 +9,15 @@ from app.evaluation.offline_report_projection import digest
 from app.evaluation.production_shadow import VERSION, source_packet, build_shadow, bind_predecessor, validate_shadow
 from app.evaluation.session_calendar import CalendarError, load_calendar
 
+def _with_evidence(path, result):
+    """Publish the original 251D artifact before spending the extension budget."""
+    try:
+        from app.dashboard.production_evidence_archive import persist as persist_evidence
+        persist_evidence(path)
+    except Exception:
+        print('{"event":"production_evidence","status":"SHADOW_FAILURE"}', file=sys.stderr)
+    return result
+
 def persist(snapshot_path):
     path = Path(snapshot_path)
     if path.is_symlink() or path.stat().st_size > 32 * 1024 * 1024:
@@ -17,12 +26,6 @@ def persist(snapshot_path):
     from app.dashboard.window_snapshot_archive import snapshot_id, admission_errors
     if admission_errors(snapshot) or snapshot["snapshot_id"] != snapshot_id({k:v for k,v in snapshot.items() if k != "snapshot_id"}):
         raise ValueError("SOURCE_INTEGRITY")
-    # Isolated extension; existing 251D projection remains byte-compatible.
-    try:
-        from app.dashboard.production_evidence_archive import persist as persist_evidence
-        persist_evidence(path)
-    except Exception:
-        print('{"event":"production_evidence","status":"SHADOW_FAILURE"}', file=sys.stderr)
     packet = source_packet(snapshot)
     try:
         calendar = load_calendar(snapshot["market"])
@@ -35,7 +38,7 @@ def persist(snapshot_path):
         validate_shadow(previous)
         if previous["evaluation_inputs"] != packet:
             raise ValueError("IMMUTABLE_IDENTITY_CONFLICT")
-        return {"status": "IDEMPOTENT", "path": str(target), "content_hash": previous["content_hash"]}
+        return _with_evidence(path, {"status": "IDEMPOTENT", "path": str(target), "content_hash": previous["content_hash"]})
     current = build_shadow(packet, calendar)
     predecessor = None
     corrupt = False
@@ -78,7 +81,7 @@ def persist(snapshot_path):
                 raise ValueError("IMMUTABLE_CONCURRENT_CONFLICT")
     finally:
         os.unlink(temporary)
-    return {"status": current["status"], "path": str(target), "content_hash": current["content_hash"]}
+    return _with_evidence(path, {"status": current["status"], "path": str(target), "content_hash": current["content_hash"]})
 
 def worker_budget(mem_available_kb=None):
     """Fail closed before loading a report; limits apply only to this child."""

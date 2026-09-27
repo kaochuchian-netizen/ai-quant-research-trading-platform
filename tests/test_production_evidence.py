@@ -215,3 +215,17 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(v["comparison"]["status"],"NO_PREDECESSOR")
         self.assertEqual(v["realized_fix_effect"],"INSUFFICIENT_EVIDENCE")
 
+
+
+class IsolationTests(unittest.TestCase):
+    def test_extension_failure_preserves_251d(self):
+        from app.dashboard.shadow_evaluation_archive import persist as persist_251d
+        s,_=source_snapshot("us_pre_market_2000","US")
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d)/"us/us_pre_market_2000/2026-09-24/revision-0001.json"
+            p.parent.mkdir(parents=True);p.write_text(json.dumps(s))
+            before=p.read_bytes()
+            with patch("app.dashboard.production_evidence_archive.persist",side_effect=ValueError("synthetic_failure")):
+                result=persist_251d(p)
+            self.assertTrue(Path(result["path"]).exists())
+            self.assertEqual(before,p.read_bytes())
