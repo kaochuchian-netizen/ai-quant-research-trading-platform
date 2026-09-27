@@ -1,0 +1,64 @@
+{
+  "schema_version": "production_evidence_accumulation_v1",
+  "program_id": "AI-DEV-252",
+  "canonical_event_owner": "app.evaluation.offline_review_evaluators.realized_prediction_direction",
+  "event_contract": "prediction_direction_event_v1",
+  "legacy_review_event": "SESSION_OPEN_TO_CLOSE_REVIEW",
+  "capabilities": {
+    "TW": {
+      "pre_open_0700": "NATIVE_DIRECTION",
+      "intraday_1305": "INHERITED_REFERENCE_ONLY",
+      "pre_close_1335": "INHERITED_REFERENCE_ONLY",
+      "post_close_1500": "INHERITED_REFERENCE_ONLY"
+    },
+    "US": {
+      "us_pre_market_2000": "CAPABILITY_UNAVAILABLE",
+      "us_intraday_2300": "CAPABILITY_UNAVAILABLE",
+      "us_post_close_review_0630": "CAPABILITY_UNAVAILABLE"
+    }
+  },
+  "horizon_mapping": {
+    "current_session": [
+      "pre_open_0700",
+      "us_pre_market_2000"
+    ],
+    "next_session": [
+      "intraday_1305",
+      "pre_close_1335",
+      "post_close_1500",
+      "us_intraday_2300",
+      "us_post_close_review_0630"
+    ],
+    "activation": "native_producer_only"
+  },
+  "states": [
+    "HISTORICAL_INELIGIBLE",
+    "WAITING_OUTCOME",
+    "INSUFFICIENT_SAMPLE",
+    "READY_FOR_EVALUATION",
+    "EVALUATED",
+    "BLOCKED_INPUT"
+  ],
+  "sample_identity": [
+    "canonical_prediction_identity",
+    "event_contract",
+    "horizon_identity"
+  ],
+  "minimum_samples": {
+    "3d": 3,
+    "10d": 10
+  },
+  "event_confidence_required_for_direction": false,
+  "aggregate_weight_redistribution": false,
+  "archive_owner": "window_snapshot_archive",
+  "sidecars": [
+    ".frozen",
+    ".evidence",
+    ".outcome",
+    ".assessment"
+  ],
+  "historical_backfill": "contemporaneous_immutable_evidence_only",
+  "outcome_source": "canonical_historical_csv",
+  "outcome_maturity": "calendar_completed_and_later_dated_bar_present_and_source_mtime_after_close",
+  "automatic_actions": false
+}

@@ -92,6 +92,15 @@ class Evidence:
             raise Unavailable("SEMANTIC_MISMATCH", name)
 
 
+def realized_prediction_direction(close, reference, atr):
+    """Single 251A/B direction event implementation; frozen signal scales only."""
+    if any(type(v) not in (int, float) or not math.isfinite(v) or v <= 0
+           for v in (close, reference, atr)):
+        raise ValueError("INVALID_DIRECTION_PRICE")
+    delta = close - reference
+    return "FLAT" if abs(delta) <= 0.1 * atr else "UP" if delta > 0 else "DOWN"
+
+
 def prediction_components(e):
     e.expect("confidence_event", "direction_correct")
     e.expect("atr_method", "WILDER_14_COMPLETED_POINT_IN_TIME")
@@ -104,8 +113,7 @@ def prediction_components(e):
     lower, upper = e.positive("range_low"), e.positive("range_high")
     if not low <= close <= high or lower > upper:
         raise Unavailable("INVALID_PRICE_RANGE")
-    delta = close - reference
-    actual = "FLAT" if abs(delta) <= 0.1 * atr else "UP" if delta > 0 else "DOWN"
+    actual = realized_prediction_direction(close, reference, atr)
     trend = e.get("trend")
     if trend not in {"UP", "DOWN", "FLAT"}:
         raise Unavailable("AMBIGUOUS", "trend")
