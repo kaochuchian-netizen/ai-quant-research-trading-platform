@@ -41,9 +41,9 @@ audit; replay of admitted evaluation uses the frozen inputs.
 ## State and scoring
 HISTORICAL_INELIGIBLE is never included as an eligible sample.
 Missing or corrupt required native prerequisites use BLOCKED_INPUT.
-READY_FOR_EVALUATION denotes an admitted single direction component input;
-3/3 and 10/10 distinct completed sessions are still required for aggregate
-direction component evaluation. Time weights are read from 251A unchanged.
+A mature single input is eligible but remains INSUFFICIENT_SAMPLE until
+3/3 and 10/10 distinct completed sessions satisfy READY_FOR_EVALUATION;
+successful component evaluation then produces EVALUATED. Time weights are read from 251A unchanged.
 A direction component result does not fabricate total prediction accuracy,
 confidence, strategy or improvement scores. No weight redistribution occurs.
 
@@ -79,3 +79,12 @@ source hashes, persistence/idempotency, and capability semantics. Synthetic test
 cannot establish PRODUCTION_EVALUATION_ACCEPTED. Initial accumulation may have zero
 eligible samples; do not estimate a calendar completion date.
 
+
+## Development validation
+251A 50, 251B 92, 251C 60 and 251D 49 regression tests passed.
+The 252 validator exercises 61 synthetic tests, including native capture,
+four-window deduplication, persistence and replay. Governance and source audit pass.
+Local full gates on the branch and clean 678e4ad baseline have the same 37 failed
+validator IDs and no branch-only failures. The system Python lacks dependencies
+including pandas; existing PDF/transport/lock issues are not modified or waived.
+CI with repository dependencies is mandatory before merge.

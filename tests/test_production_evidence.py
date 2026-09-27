@@ -33,7 +33,7 @@ class EvidenceTests(unittest.TestCase):
     def test_missing_frozen(self): self.assertEqual(assess({},None,observed_at="2026-09-24T16:00:00+08:00")["state"],"BLOCKED_INPUT")
     def test_waiting(self): self.assertEqual(assess(frozen(),None,observed_at="2026-09-24T08:00:00+08:00")["state"],"WAITING_OUTCOME")
     def test_outcome_missing(self): self.assertEqual(assess(frozen(),None,observed_at="2026-09-24T16:00:00+08:00")["state"],"WAITING_OUTCOME")
-    def test_ready(self): self.assertEqual(assess(frozen(),realized(frozen()),observed_at="2026-09-24T16:00:00+08:00")["state"],"READY_FOR_EVALUATION")
+    def test_mature_single_is_insufficient(self): self.assertEqual(assess(frozen(),realized(frozen()),observed_at="2026-09-24T16:00:00+08:00")["state"],"INSUFFICIENT_SAMPLE")
     def test_direction_without_confidence(self): self.assertTrue(assess(frozen(),realized(frozen()),observed_at="2026-09-24T16:00:00+08:00")["direction_correct"])
     def test_insufficient(self):
         p=frozen(); r=evaluate_direction([p],{p["sample_id"]:realized(p)},calendar=p["calendar"],review_session="2026-09-24",observed_at="2026-09-24T16:00:00+08:00")
@@ -43,7 +43,7 @@ class EvidenceTests(unittest.TestCase):
         days=[r["session_date"] for r in c["days"] if r["state"] in {"NORMAL","EARLY_CLOSE"} and r["session_date"]<="2026-09-24"][-10:]
         ps=[frozen(d) for d in days];outs={p["sample_id"]:realized(p) for p in ps}
         r=evaluate_direction(ps,outs,calendar=c,review_session=days[-1],observed_at=days[-1]+"T16:00:00+08:00")
-        self.assertEqual(r["state"],"EVALUATED");self.assertEqual(r["score"],100);self.assertIsNone(r["prediction_accuracy_score"])
+        self.assertEqual(r["state"],"EVALUATED");self.assertEqual(r["admission_state"],"READY_FOR_EVALUATION");self.assertEqual(r["score"],100);self.assertIsNone(r["prediction_accuracy_score"])
     def test_no_reweight(self):
         p=frozen();r=evaluate_direction([p],{},calendar=p["calendar"],review_session="2026-09-24",observed_at="2026-09-24T16:00:00+08:00")
         self.assertFalse(r["aggregate_reweighted"]);self.assertEqual(r["improvement"],"NOT_APPLICABLE")

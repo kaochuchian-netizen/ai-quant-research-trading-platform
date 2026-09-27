@@ -124,7 +124,7 @@ def assess(frozen, realized, *, observed_at):
             raise ValueError("OUTCOME_BINDING")
         direction = realized_prediction_direction(realized["close"], frozen["features"]["reference"]["value"],
                                                   frozen["features"]["atr14"]["value"])
-        return {"state": "READY_FOR_EVALUATION", "reason": None, "direction": direction,
+        return {"state": "INSUFFICIENT_SAMPLE", "eligible": True, "reason": "COHORT_THRESHOLD_NOT_ASSESSED", "direction": direction,
                 "direction_correct": direction == frozen["direction"],
                 "confidence_status": "NOT_APPLICABLE" if frozen["event_confidence"] is None else "AVAILABLE"}
     except (ValueError, KeyError, TypeError):
@@ -164,13 +164,14 @@ def evaluate_direction(predictions, outcomes, *, calendar, review_session, obser
     windows = {}
     for n in (3,10):
         days = completed[-n:]
-        eligible = [evidence[d] for d in days if evidence[d]["state"] == "READY_FOR_EVALUATION"]
+        eligible = [evidence[d] for d in days if evidence[d].get("eligible") is True]
         ready = len(days) == len(eligible) == n
         windows[str(n)] = {"sample_size": len(eligible), "required": n, "score": sum(100*e["direction_correct"] for e in eligible)/n if ready else None}
     ready = all(w["score"] is not None for w in windows.values())
     from app.evaluation.offline_review_evaluators import load_contract
     weights = load_contract()["weights_percent"]["time"]
-    return {"state": "EVALUATED" if ready else "INSUFFICIENT_SAMPLE", "component": "prediction.trend",
+    return {"state": "EVALUATED" if ready else "INSUFFICIENT_SAMPLE",
+            "admission_state": "READY_FOR_EVALUATION" if ready else "INSUFFICIENT_SAMPLE", "component": "prediction.trend",
             "score": windows["3"]["score"]*weights["last_3_sessions"]/100 + windows["10"]["score"]*weights["last_10_sessions"]/100 if ready else None,
             "windows": windows, "evidence": evidence, "prediction_accuracy_score": None,
             "improvement": "NOT_APPLICABLE", "strategy": "INSUFFICIENT_SAMPLE",
