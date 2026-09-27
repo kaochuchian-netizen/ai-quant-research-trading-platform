@@ -316,3 +316,17 @@ class PredecessorTests(unittest.TestCase):
             record=json.loads(Path(r["path"]).read_text())["records"][0]
             self.assertEqual(record["state"],"WAITING_OUTCOME")
             self.assertEqual(record["direction_sample_count"],1)
+
+
+class ConsumerIsolationTests(unittest.TestCase):
+    def test_sidecars_do_not_change_report_navigation_signature(self):
+        from app.dashboard.window_snapshot_archive import _archive_signature,load_admitted_snapshots
+        s,_=source_snapshot("us_pre_market_2000","US")
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);p=root/"us/us_pre_market_2000/2026-09-24/revision-0001.json"
+            p.parent.mkdir(parents=True);p.write_text(json.dumps(s))
+            before=_archive_signature(root);reports=load_admitted_snapshots(root)
+            for name in (".frozen",".evidence",".outcome",".assessment"):
+                folder=p.parent/name;folder.mkdir();(folder/("a"*64+".json")).write_text("not a canonical report")
+            self.assertEqual(before,_archive_signature(root))
+            self.assertEqual(reports,load_admitted_snapshots(root))

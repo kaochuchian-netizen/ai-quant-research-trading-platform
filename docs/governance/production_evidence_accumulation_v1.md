@@ -82,7 +82,7 @@ eligible samples; do not estimate a calendar completion date.
 
 ## Development validation
 251A 50, 251B 92, 251C 60 and 251D 49 regression tests passed.
-The 252 validator exercises 74 synthetic tests, including native capture,
+The 252 validator exercises 75 synthetic tests, including native capture,
 four-window deduplication, persistence and replay. Governance and source audit pass.
 Local full gates on the branch and clean 678e4ad baseline have the same 37 failed
 validator IDs and no branch-only failures. The system Python lacks dependencies
@@ -98,3 +98,6 @@ capture remains BLOCKED_INPUT rather than being mislabeled historical ineligible
 The governed manual supervisor progress-marker presence and dry_run flag disable
 producer capture; no environment values are read. Manual report bindings cannot
 contribute direction samples, even when referencing an existing scheduled origin.
+
+All evidence sidecar directories are excluded from canonical report navigation
+signatures, preserving cache identity and avoiding parsing evidence as reports.
