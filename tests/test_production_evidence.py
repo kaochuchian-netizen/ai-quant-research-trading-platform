@@ -254,3 +254,65 @@ class CaptureReceiptTests(unittest.TestCase):
             files=list(Path(d).rglob("*.json"))
             self.assertEqual(len(files),1)
             self.assertEqual(json.loads(files[0].read_text())["capture_phase"],"ATTEMPT")
+
+
+class CaptureModeTests(unittest.TestCase):
+    def test_manual_capture_disabled(self):
+        from app.evaluation.prediction_capture import capture_permitted
+        self.assertFalse(capture_permitted(dry_run=False,environment_keys={"STOCK_AI_MANUAL_RERUN_PROGRESS_LOG"}))
+    def test_dry_run_capture_disabled(self):
+        from app.evaluation.prediction_capture import capture_permitted
+        self.assertFalse(capture_permitted(dry_run=True,environment_keys=set()))
+    def test_scheduled_capture_enabled(self):
+        from app.evaluation.prediction_capture import capture_permitted
+        self.assertTrue(capture_permitted(dry_run=False,environment_keys=set()))
+    def test_manual_sample_count_zero(self):
+        s,src=source_snapshot(kind="manual_rerun")
+        self.assertEqual(project(s,src)["records"][0]["direction_sample_count"],0)
+
+from app.dashboard.production_evidence_archive import bind_assessment
+
+def assessed(day, identity):
+    c=load_calendar("TW")
+    days=[r["session_date"] for r in c["days"] if r["state"] in {"NORMAL","EARLY_CLOSE"} and r["session_date"]<=day][-10:]
+    ps=[frozen(d) for d in days];out={p["sample_id"]:realized(p) for p in ps}
+    observed=day+"T16:00:00+08:00"
+    result=evaluate_direction(ps,out,calendar=c,review_session=day,observed_at=observed)
+    return stamp({"schema_version":VERSION,"identity":identity,"market":"TW","stream":"pre_open_0700",
+                  "symbol":"TEST","run_kind":"scheduled","review_session":day,"predictions":ps,"outcomes":out,
+                  "calendar":c,"observed_at":observed,"result":result})
+
+class PredecessorTests(unittest.TestCase):
+    def test_valid_binding(self):
+        prior=assessed("2026-09-23","prior");cur=assessed("2026-09-24","current")
+        r=bind_assessment(cur,prior)
+        self.assertEqual(r["comparison"]["status"],"BOUND")
+        self.assertEqual(r["comparison"]["predecessor_hash"],prior["content_hash"])
+        self.assertEqual(r["comparison"]["component_evidence"],prior["result"])
+    def test_digest_mismatch(self):
+        p=assessed("2026-09-23","prior");p["symbol"]="CHANGED"
+        self.assertEqual(bind_assessment(assessed("2026-09-24","current"),p)["comparison"]["status"],"REJECTED")
+    def test_wrong_stream(self):
+        p=assessed("2026-09-23","prior");p["stream"]="intraday_1305";p=stamp(p)
+        self.assertEqual(bind_assessment(assessed("2026-09-24","current"),p)["comparison"]["status"],"REJECTED")
+    def test_insufficient_not_predecessor(self):
+        p=assessed("2026-09-23","prior");p["result"]["state"]="INSUFFICIENT_SAMPLE";p=stamp(p)
+        self.assertEqual(bind_assessment(assessed("2026-09-24","current"),p)["comparison"]["status"],"REJECTED")
+    def test_component_evidence_unchanged(self):
+        p=assessed("2026-09-23","prior");before=deepcopy(p)
+        r=bind_assessment(assessed("2026-09-24","current"),p)
+        self.assertEqual(before,p);self.assertEqual(r,bind_assessment(assessed("2026-09-24","current"),p))
+    def test_tw_receipt_resolution(self):
+        s,src=source_snapshot();source=next(iter(src.values()))
+        attempt=stamp({**source,"capture_phase":"ATTEMPT","capture":{"status":"BLOCKED_INPUT"}})
+        complete=stamp({**source,"capture_phase":"RESULT"})
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d)/"tw/pre_open_0700/2026-09-24/revision-0001.json";p.parent.mkdir(parents=True)
+            p.write_text(json.dumps(s))
+            publish(p.parent/".frozen"/(attempt["content_hash"]+".json"),attempt)
+            publish(p.parent/".frozen"/(complete["content_hash"]+".json"),complete)
+            with patch("app.dashboard.production_evidence_archive.reevaluate",return_value=[]):
+                r=persist(p)
+            record=json.loads(Path(r["path"]).read_text())["records"][0]
+            self.assertEqual(record["state"],"WAITING_OUTCOME")
+            self.assertEqual(record["direction_sample_count"],1)

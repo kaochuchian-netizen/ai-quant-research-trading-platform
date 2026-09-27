@@ -57,7 +57,7 @@ def project(snapshot, frozen_sources=None):
             r.update(direction_status="NOT_APPLICABLE", reason_codes=["NO_SESSION_DIRECTION_PRODUCER"])
             r["producer_evidence"] = deepcopy(card.get("prediction") or {})
         elif source is None:
-            r.update(state="HISTORICAL_INELIGIBLE" if cap=="NATIVE_DIRECTION" else None,
+            r.update(state="HISTORICAL_INELIGIBLE" if cap=="NATIVE_DIRECTION" and snapshot["run_kind"]=="scheduled" else None,
                      reason_codes=["NO_CONTEMPORANEOUS_FROZEN_EVIDENCE"])
         elif not isinstance(source,dict) or source.get("status") != "FROZEN":
             r.update(state="BLOCKED_INPUT",reason_codes=["NATIVE_FROZEN_PREREQUISITE"])
@@ -69,7 +69,8 @@ def project(snapshot, frozen_sources=None):
                     raise ValueError("ORIGIN_IDENTITY")
                 r.update(lineage=lineage(f),frozen=deepcopy(f))
                 if cap == "NATIVE_DIRECTION":
-                    r.update(state="WAITING_OUTCOME",direction_sample_count=1)
+                    r.update(state="WAITING_OUTCOME" if snapshot["run_kind"]=="scheduled" else None,
+                             direction_sample_count=1 if snapshot["run_kind"]=="scheduled" else 0)
             except (ValueError,KeyError,TypeError):
                 r.update(state="BLOCKED_INPUT",reason_codes=["FROZEN_INTEGRITY"])
         records.append(r)

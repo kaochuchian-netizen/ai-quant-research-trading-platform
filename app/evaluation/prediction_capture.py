@@ -95,3 +95,9 @@ def capture_and_persist(card):
         publish(target,value)
     except Exception:
         logging.getLogger(__name__).warning("prediction_capture: SHADOW_FAILURE")
+
+
+def capture_permitted(*, dry_run, environment_keys):
+    """Only governed scheduled production may originate native evidence."""
+    from app.runtime.manual_rerun_progress import PROGRESS_LOG_ENV
+    return not dry_run and PROGRESS_LOG_ENV not in environment_keys
