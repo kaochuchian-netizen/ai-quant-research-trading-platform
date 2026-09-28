@@ -1,0 +1,46 @@
+{
+  "schema_version": "us_preopen_session_direction_v1",
+  "task_id": "AI-DEV-253",
+  "producer": "US_PREOPEN_SESSION_DIRECTION_V1",
+  "market": "US",
+  "stream": "us_pre_market_2000",
+  "algorithm_source": "app/evaluation/direction_signal.py::moving_average_direction",
+  "governed_source": "tw_ohlcv_range_direction_v2",
+  "rules": {
+    "UP": "MA5 > MA10 * 1.002",
+    "DOWN": "MA5 < MA10 * 0.998",
+    "NO_FORECAST": "otherwise, including insufficient non-corrupt lookback",
+    "FLAT": "not predicted by v1"
+  },
+  "features": [
+    "completed US OHLCV",
+    "MA5",
+    "MA10",
+    "frozen existing US reference price",
+    "frozen Wilder ATR14"
+  ],
+  "news": false,
+  "event_confidence": null,
+  "outcome_owner": "app/evaluation/offline_review_evaluators.py::realized_prediction_direction",
+  "horizon": "current authoritative US session; frozen_at strictly before open",
+  "lookback": {
+    "minimum_bars": 15,
+    "atr": "WILDER_14_COMPLETED_POINT_IN_TIME",
+    "source_limit": 260,
+    "coverage": "calendar-covered completed bars only; latest completed session required"
+  },
+  "persistence": "existing window_snapshot_archive .frozen/.evidence/.outcome/.assessment",
+  "capability": "native only with admitted future receipt; later windows inherit; historical US unavailable",
+  "source_binding": "immutable source observation hash; original pre-open quote digest; report identity/revision bound by 252",
+  "eligibility": "unchanged 252; NO_FORECAST excluded; no legacy conversion",
+  "manual_rerun": "capture excluded by governed manual-rerun marker; no scheduled sample admission",
+  "outcome_maturity": "authoritative close completed and later dated completed bar in existing fetched source",
+  "safety": {
+    "tactical_mutation": false,
+    "weights_mutation": false,
+    "report_visible_change": false,
+    "notification": false,
+    "orders": false,
+    "scheduler_change": false
+  }
+}

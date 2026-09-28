@@ -50,11 +50,13 @@ def feature(name, value, *, source, revision, source_digest, as_of, available_at
                   "source_digest": source_digest, "as_of": as_of, "available_at": available_at, "producer": producer})
 
 def freeze(*, prediction_id, symbol, direction, frozen_at, reference, atr, calendar, review_session,
-           producer, event_confidence=None):
-    h = horizon(calendar, "TW", "pre_open_0700", review_session, native=True)
+           producer, event_confidence=None, market="TW", stream="pre_open_0700", prediction_features=None):
+    if (market, stream) not in {("TW","pre_open_0700"),("US","us_pre_market_2000")}:
+        raise ValueError("NATIVE_STREAM")
+    h = horizon(calendar, market, stream, review_session, native=True)
     if aware(frozen_at) >= aware(h["open_at"]):
         raise ValueError("PREDICTION_NOT_BEFORE_SESSION")
-    for f in (reference, atr):
+    for f in (reference, atr, *(prediction_features or {}).values()):
         verify(f); positive(f["value"])
         if not aware(f["as_of"]) <= aware(f["available_at"]) <= aware(frozen_at):
             raise ValueError("FUTURE_FEATURE")
@@ -71,10 +73,12 @@ def freeze(*, prediction_id, symbol, direction, frozen_at, reference, atr, calen
             or type(event_confidence.get("value")) not in (int, float) or not 0 <= event_confidence["value"] <= 1):
             raise ValueError("EVENT_CONFIDENCE_IDENTITY")
     result = {"schema_version": VERSION, "kind": "FROZEN_PREDICTION", "prediction_id": prediction_id,
-              "symbol": symbol, "market": "TW", "stream": "pre_open_0700", "timezone": ZONES["TW"],
+              "symbol": symbol, "market": market, "stream": stream, "timezone": ZONES[market],
               "direction": direction, "prediction_frozen_at": frozen_at, "producer": producer,
               "event": event, "features": {"reference": reference, "atr14": atr}, "event_confidence": event_confidence,
               "calendar": deepcopy(calendar)}
+    if prediction_features is not None:
+        result["prediction_features"] = deepcopy(prediction_features)
     result["sample_id"] = digest({"prediction_id": prediction_id, "event": EVENT, "horizon": h})
     return stamp(result)
 
@@ -84,7 +88,8 @@ def validate_frozen(value):
                       frozen_at=value["prediction_frozen_at"], reference=value["features"]["reference"],
                       atr=value["features"]["atr14"], calendar=value["calendar"],
                       review_session=value["event"]["horizon"]["session_date"], producer=value["producer"],
-                      event_confidence=value["event_confidence"])
+                      event_confidence=value["event_confidence"], market=value["market"], stream=value["stream"],
+                      prediction_features=value.get("prediction_features"))
     if value != expected:
         raise ValueError("FROZEN_REPLAY")
     return value
@@ -142,14 +147,14 @@ def unique_predictions(predictions):
 
 def evaluate_direction(predictions, outcomes, *, calendar, review_session, observed_at):
     """Component-only evaluation; no weight redistribution or fabricated aggregate."""
-    validate_calendar(calendar, "TW")
+    validate_calendar(calendar, calendar["market"])
     completed = [r["session_date"] for r in calendar["days"] if r["state"] in {"NORMAL", "EARLY_CLOSE"}
                  and r["session_date"] <= review_session and aware(r["close_at"]) <= aware(observed_at)]
     by_day = {}
     if len({p.get("symbol") for p in predictions}) > 1:
         raise ValueError("MIXED_SYMBOL_COHORT")
     for p in unique_predictions(predictions):
-        if p["calendar"]["content_hash"] != calendar["content_hash"]:
+        if p["market"] != calendar["market"] or p["calendar"]["content_hash"] != calendar["content_hash"]:
             raise ValueError("CALENDAR_IDENTITY")
         by_day.setdefault(p["event"]["horizon"]["session_date"], []).append(p)
     evidence = {}
