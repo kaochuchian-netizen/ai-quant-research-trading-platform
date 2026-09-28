@@ -97,12 +97,10 @@ def capture_existing(symbol, quote, history, day, window, *, root=ROOT, clock=No
     from app.dashboard.production_evidence_archive import publish
     if not symbol_valid(symbol):
         raise ValueError("SYMBOL")
-    calendar=load_calendar("US")
-    session(calendar,"US",day)
-    clock=clock or (lambda:datetime.now(timezone.utc).isoformat())
-    observed=clock()
-    if aware(observed).astimezone(ZoneInfo("America/New_York")).date().isoformat()<day:
-        raise ValueError("SESSION_IDENTITY")
+    from datetime import date
+    from app.evaluation.production_evidence import MAPPING
+    if date.fromisoformat(day).isoformat()!=day or window not in MAPPING["US"]:
+        raise ValueError("REPORT_PATH")
     directory=Path(root)/"artifacts/archive/window_snapshots/us"/window/day/".frozen"
     key=receipt_key(symbol,day)
     target=directory/(key+".json")
@@ -114,6 +112,12 @@ def capture_existing(symbol, quote, history, day, window, *, root=ROOT, clock=No
         attempt=stamp({"schema_version":VERSION,"kind":"US_NATIVE_RECEIPT","symbol":symbol,"review_session":day,
                        "capture":stamp({"schema_version":VERSION,"status":"BLOCKED_INPUT","reason":"CAPTURE_NOT_COMPLETED","producer":PRODUCER})})
         publish(directory/(digest({"attempt":key})+".json"),attempt)
+    calendar=load_calendar("US")
+    session(calendar,"US",day)
+    clock=clock or (lambda:datetime.now(timezone.utc).isoformat())
+    observed=clock()
+    if aware(observed).astimezone(ZoneInfo("America/New_York")).date().isoformat()<day:
+        raise ValueError("SESSION_IDENTITY")
     rows=[]
     if history is None:
         raise ValueError("MISSING_HISTORY")
@@ -137,7 +141,13 @@ def capture_existing(symbol, quote, history, day, window, *, root=ROOT, clock=No
     publish(directory/(observation["content_hash"]+".json"),observation)
     if window==STREAM:
         try:
-            value=predict(observation,calendar,frozen_at=clock())
+            # Compute the forecast before assigning its freeze timestamp.
+            # The second pure call binds/replays the already computed signal.
+            computed=predict(observation,calendar,frozen_at=observed)
+            frozen_at=clock()
+            value=predict(observation,calendar,frozen_at=frozen_at)
+            if (computed["status"],computed.get("direction")) != (value["status"],value.get("direction")):
+                raise ValueError("PREDICTION_REPLAY")
         except (ValueError,KeyError,TypeError):
             value=stamp({"schema_version":VERSION,"status":"BLOCKED_INPUT","reason":"NATIVE_INPUT_INVALID",
                          "source":observation,"producer":PRODUCER})
