@@ -264,3 +264,28 @@ class ContractAuditTests(unittest.TestCase):
         f=prediction()["frozen"]
         with self.assertRaises(ValueError):
             evaluate_direction([f],{},calendar=load_calendar("TW"),review_session="2026-09-24",observed_at="2026-09-24T22:00:00Z")
+
+
+class FreezeOrderingTests(unittest.TestCase):
+    def test_forecast_computed_before_freeze_clock(self):
+        import app.evaluation.us_session_direction as module
+        original=module.predict
+        events=[]
+        def predict_spy(*args,**kwargs):
+            events.append("predict");return original(*args,**kwargs)
+        def clock():
+            events.append("clock");return "2026-09-24T08:01:00-04:00"
+        o=obs()
+        with tempfile.TemporaryDirectory() as d,patch.object(module,"predict",side_effect=predict_spy):
+            module.capture_existing("TEST",{"last_price":119,"market_data_as_of":o["reference_as_of"]},
+                                    History(o["rows"]),"2026-09-24",STREAM,root=d,clock=clock)
+        self.assertEqual(events,["clock","predict","clock","predict"])
+    def test_calculation_crossing_open_does_not_freeze(self):
+        o=obs();times=iter(["2026-09-24T09:29:59-04:00","2026-09-24T09:30:00-04:00"])
+        with tempfile.TemporaryDirectory() as d:
+            capture_existing("TEST",{"last_price":119,"market_data_as_of":o["reference_as_of"]},
+                             History(o["rows"]),"2026-09-24",STREAM,root=d,clock=lambda:next(times))
+            p=Path(d)/"artifacts/archive/window_snapshots/us"/STREAM/"2026-09-24/.frozen"/(receipt_key("TEST","2026-09-24")+".json")
+            v=json.loads(p.read_text())
+            self.assertEqual(v["capture"]["status"],"BLOCKED_INPUT")
+            self.assertNotIn("frozen",v["capture"])

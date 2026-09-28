@@ -137,7 +137,13 @@ def capture_existing(symbol, quote, history, day, window, *, root=ROOT, clock=No
     publish(directory/(observation["content_hash"]+".json"),observation)
     if window==STREAM:
         try:
-            value=predict(observation,calendar,frozen_at=clock())
+            # Compute the forecast before assigning its freeze timestamp.
+            # The second pure call binds/replays the already computed signal.
+            computed=predict(observation,calendar,frozen_at=observed)
+            frozen_at=clock()
+            value=predict(observation,calendar,frozen_at=frozen_at)
+            if (computed["status"],computed.get("direction")) != (value["status"],value.get("direction")):
+                raise ValueError("PREDICTION_REPLAY")
         except (ValueError,KeyError,TypeError):
             value=stamp({"schema_version":VERSION,"status":"BLOCKED_INPUT","reason":"NATIVE_INPUT_INVALID",
                          "source":observation,"producer":PRODUCER})
