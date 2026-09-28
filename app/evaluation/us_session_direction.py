@@ -50,8 +50,11 @@ def predict(observation, calendar, *, frozen_at):
     rows=observation["rows"]
     if rows!=sorted(rows,key=lambda r:r["date"]) or len({r["date"] for r in rows})!=len(rows):
         raise ValueError("BAR_ORDER")
+    sessions={r["session_date"]:r for r in calendar["days"]}
     for r in rows:
-        bar=session(calendar,"US",r["date"])
+        bar=sessions.get(r["date"])
+        if bar is None or bar["state"] not in {"NORMAL","EARLY_CLOSE"}:
+            raise ValueError("BAR_SESSION")
         if r["date"]>=day or aware(bar["close_at"])>aware(observation["available_at"]):
             raise ValueError("FUTURE_BAR")
         if positive(r["high"])<positive(r["low"]) or not r["low"]<=positive(r["close"])<=r["high"]:
@@ -115,11 +118,14 @@ def capture_existing(symbol, quote, history, day, window, *, root=ROOT, clock=No
     if history is None:
         raise ValueError("MISSING_HISTORY")
     # Limit the retained existing daily source; outside snapshot coverage is not inferred.
+    sessions={r["session_date"]:r for r in calendar["days"]}
     for index,r in history.tail(260).iterrows():
         date=index.date().isoformat()
         if date<calendar["coverage_start"]:
             continue
-        bar=session(calendar,"US",date)
+        bar=sessions.get(date)
+        if bar is None or bar["state"] not in {"NORMAL","EARLY_CLOSE"}:
+            raise ValueError("BAR_SESSION")
         if aware(bar["close_at"])>aware(observed):
             continue
         rows.append({"date":date,"high":positive(float(r["High"])),"low":positive(float(r["Low"])),"close":positive(float(r["Close"]))})
