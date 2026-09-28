@@ -121,10 +121,15 @@ def build_daily(report_date, inputs, predecessor=None):
     for market in ("TW","US"):
         packet=inputs[market]
         try:
+            if packet.get("prerequisite_error"):
+                raise ValueError("INPUT_PREREQUISITE")
             markets[market]=build_market(market,packet["calendar"],packet["records"],packet["outcomes"],cutoff)
         except (ValueError,KeyError,TypeError):
             markets[market]={"status":"BLOCKED_INPUT","reason":"INVALID_CALENDAR_OR_EVIDENCE"}
-    identity=digest({"schema_version":VERSION,"report_date":report_date,"input_digest":digest(inputs)})
+    from app.evaluation.offline_report_projection import contract as projection_contract, EVALUATOR_VERSION
+    contracts={"251A":digest(load_contract()),"251B":EVALUATOR_VERSION,"251C":digest(projection_contract()),
+               "252":"production_evidence_accumulation_v1","254":VERSION}
+    identity=digest({"schema_version":VERSION,"report_date":report_date,"input_digest":digest(inputs),"contracts":contracts})
     comparison={"status":"NO_PREDECESSOR"}
     if predecessor is not None:
         try:
@@ -152,7 +157,7 @@ def build_daily(report_date, inputs, predecessor=None):
             comparison={"status":"REJECTED","reason":"PREDECESSOR_INTEGRITY"}
     return stamp({"schema_version":VERSION,"kind":"DAILY_EVALUATION","stream":STREAM,"identity":identity,
                   "report_date":report_date,"canonical_cutoff":cutoff,"schedule_timezone":"Asia/Taipei",
-                  "input_digest":digest(inputs),"inputs":deepcopy(inputs),"markets":markets,"comparison":comparison,
+                  "input_digest":digest(inputs),"evaluator_contracts":contracts,"inputs":deepcopy(inputs),"markets":markets,"comparison":comparison,
                   "predecessor":deepcopy(predecessor),"thresholds":{"3":3,"10":10},"lifecycle_mutation":False,
                   "notification":False,"status":"BLOCKED_INPUT" if any(m["status"]=="BLOCKED_INPUT" for m in markets.values()) else "VALID"})
 

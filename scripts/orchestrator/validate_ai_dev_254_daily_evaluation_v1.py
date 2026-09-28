@@ -14,7 +14,7 @@ def main():
     suite = unittest.defaultTestLoader.discover(str(ROOT / "tests"), pattern="test_daily_evaluation.py")
     output = io.StringIO()
     result = unittest.TextTestRunner(stream=output, verbosity=2).run(suite)
-    ok = result.wasSuccessful() and not result.skipped and result.testsRun >= 63
+    ok = result.wasSuccessful() and not result.skipped and result.testsRun >= 66
     print(json.dumps({"schema_version": "ai_dev_254_daily_evaluation_v1", "status": "PASS" if ok else "FAIL",
                       "tests_run": result.testsRun, "failures": [] if ok else [output.getvalue()],
                       "production_mutation": "NONE", "lifecycle_mutation": False, "input_kind": "SYNTHETIC",

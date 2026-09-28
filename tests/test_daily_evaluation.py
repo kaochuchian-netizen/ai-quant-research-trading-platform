@@ -242,3 +242,20 @@ class AdditionalTests(unittest.TestCase):
         tree=ast.parse((root/"scripts/orchestrator/approved_daily_evaluation.py").read_text())
         names=[n.module or "" for n in ast.walk(tree) if isinstance(n,ast.ImportFrom)]
         self.assertFalse(any(any(x in n for x in ("delivery","notification","trading","pipeline")) for n in names))
+
+class BlockedPersistenceTests(unittest.TestCase):
+    def test_blocked_saved_not_success(self):
+        x=packet();x["US"]["prerequisite_error"]="INVALID_CALENDAR_OR_ARCHIVE"
+        with tempfile.TemporaryDirectory() as d,patch("app.dashboard.daily_evaluation_archive.collect",return_value=x):
+            path,value=persist_daily(d,"2026-09-25")
+            self.assertTrue(path.exists());self.assertEqual(value["status"],"BLOCKED_INPUT");replay(value)
+    def test_missing_calendar_isolated(self):
+        from app.dashboard.daily_evaluation_archive import collect
+        with tempfile.TemporaryDirectory() as d:
+            x=collect(d,"2026-09-25",calendars={"TW":load_calendar("TW"),"US":None})
+            v=build_daily("2026-09-25",x)
+            self.assertEqual(v["markets"]["TW"]["status"],"VALID")
+            self.assertEqual(v["markets"]["US"]["status"],"BLOCKED_INPUT")
+    def test_evaluator_versions_pinned(self):
+        v=build_daily("2026-09-25",packet())
+        self.assertEqual(set(v["evaluator_contracts"]),{"251A","251B","251C","252","254"})

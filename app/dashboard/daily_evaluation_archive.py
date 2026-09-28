@@ -54,8 +54,16 @@ def collect_market(archive,market,calendar,cutoff):
     return {"calendar":calendar,"records":records,"outcomes":outcomes}
 
 def collect(archive,report_date,calendars=None):
-    calendars=calendars or {m:load_calendar(m) for m in ("TW","US")}
-    return {m:collect_market(archive,m,calendars[m],canonical_cutoff(report_date)) for m in ("TW","US")}
+    result={}
+    for market in ("TW","US"):
+        calendar=None
+        try:
+            calendar=calendars[market] if calendars is not None else load_calendar(market)
+            result[market]=collect_market(archive,market,calendar,canonical_cutoff(report_date))
+        except (ValueError,KeyError,TypeError,OSError):
+            result[market]={"calendar":calendar,"records":[],"outcomes":[],
+                            "prerequisite_error":"INVALID_CALENDAR_OR_ARCHIVE"}
+    return result
 
 def persist_daily(archive,report_date,*,output_root=None):
     archive=Path(archive)
