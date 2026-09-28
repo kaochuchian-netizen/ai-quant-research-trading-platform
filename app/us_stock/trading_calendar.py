@@ -62,7 +62,14 @@ def us_market_holidays(year: int) -> set[date]:
 
 
 def is_us_trading_day(value: date) -> bool:
-    return value.weekday() < 5 and value not in us_market_holidays(value.year)
+    from app.evaluation.session_calendar import load_calendar, session, CalendarError
+    try:
+        session(load_calendar("US"), "US", value.isoformat())
+        return True
+    except CalendarError as exc:
+        if str(exc) == "NON_TRADING_SESSION":
+            return False
+        raise
 
 
 def previous_or_same_us_trading_day(value: date) -> date:
@@ -75,6 +82,9 @@ def previous_or_same_us_trading_day(value: date) -> date:
 def resolve_us_effective_trading_date(reference: datetime, window: str) -> date:
     if window not in {"us_pre_market_2000", "us_intraday_2300", "us_post_close_review_0630"}:
         raise ValueError("unsupported_us_window")
+    if window == "us_post_close_review_0630":
+        from app.evaluation.session_calendar import load_calendar, latest_completed_session
+        return date.fromisoformat(latest_completed_session(load_calendar("US"), "US", reference)["session_date"])
     return previous_or_same_us_trading_day(reference.astimezone(NEW_YORK).date())
 
 

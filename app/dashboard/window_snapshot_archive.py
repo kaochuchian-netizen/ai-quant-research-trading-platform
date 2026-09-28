@@ -97,7 +97,7 @@ def _archive_signature(archive_root: Path) -> tuple[tuple[str, int, int], ...]:
     if not archive_root.exists():
         return ()
     for path in sorted(archive_root.rglob("*.json")):
-        if {".evaluation", ".frozen", ".evidence", ".outcome", ".assessment"}.intersection(path.parts):
+        if {".evaluation", ".frozen", ".evidence", ".outcome", ".assessment", ".review", ".daily_evaluation"}.intersection(path.parts):
             continue
         try:
             stat = path.stat()

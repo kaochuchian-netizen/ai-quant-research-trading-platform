@@ -148,6 +148,13 @@ def persist(snapshot_path):
     target=path.parent/".evidence"/(value["content_hash"]+".json")
     publish(target,value)
     reevaluate(path,value)
+    if snapshot["market"]=="US" and snapshot["window"]=="us_post_close_review_0630":
+        try:
+            from app.dashboard.daily_evaluation_archive import post_close_review
+            post_close_review(path)
+        except Exception:
+            import logging
+            logging.getLogger(__name__).warning("AI_DEV_254_POST_CLOSE_BLOCKED_INPUT")
     return {"status":"EVIDENCE_ACCUMULATED","content_hash":value["content_hash"],"path":str(target)}
 
 

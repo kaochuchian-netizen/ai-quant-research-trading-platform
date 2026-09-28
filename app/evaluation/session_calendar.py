@@ -80,3 +80,19 @@ def evaluator_calendar(value, review_session, evaluated_at):
             for r in value["days"] if r["state"] in {"NORMAL", "EARLY_CLOSE"} and r["session_date"] <= review_session]
     return {"sessions": rows, "content_hash": digest(rows), "source_ref": value["content_hash"],
             "coverage_through": evaluated_at}
+
+
+def latest_completed_session(value, market, cutoff):
+    """Resolve from the pinned exchange snapshot, never weekday heuristics."""
+    validate_calendar(value, market)
+    instant = aware(cutoff) if isinstance(cutoff, str) else cutoff
+    if instant.tzinfo is None:
+        raise CalendarError("NAIVE_CUTOFF")
+    day = instant.astimezone(ZoneInfo(ZONES[market])).date().isoformat()
+    if not value["coverage_start"] <= day <= value["coverage_end"]:
+        raise CalendarError("CALENDAR_OUTSIDE_COVERAGE")
+    candidates = [r for r in value["days"] if r["state"] in {"NORMAL", "EARLY_CLOSE"}
+                  and aware(r["close_at"]) <= instant]
+    if not candidates:
+        raise CalendarError("NO_COMPLETED_SESSION")
+    return candidates[-1]
