@@ -289,3 +289,13 @@ class FreezeOrderingTests(unittest.TestCase):
             v=json.loads(p.read_text())
             self.assertEqual(v["capture"]["status"],"BLOCKED_INPUT")
             self.assertNotIn("frozen",v["capture"])
+
+
+class MissingCalendarReceiptTests(unittest.TestCase):
+    def test_calendar_failure_is_blocked_receipt(self):
+        with tempfile.TemporaryDirectory() as d,patch("app.evaluation.us_session_direction.load_calendar",side_effect=ValueError("CALENDAR_MISSING")):
+            with self.assertRaises(ValueError):
+                capture_existing("TEST",{},None,"2026-09-24",STREAM,root=d)
+            rows=[json.loads(p.read_text()) for p in Path(d).rglob("*.json")]
+            self.assertEqual(len(rows),1)
+            self.assertEqual(rows[0]["capture"]["status"],"BLOCKED_INPUT")
