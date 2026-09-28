@@ -1,0 +1,35 @@
+{
+  "schema_version": "daily_evaluation_integration_v1",
+  "task": "AI-DEV-254",
+  "entrypoint": "scripts/orchestrator/approved_daily_evaluation.py",
+  "schedule": {
+    "time": "17:00",
+    "timezone": "Asia/Taipei",
+    "owner": "kaochuchian user crontab",
+    "activation": "EXPLICIT_APPROVAL_REQUIRED"
+  },
+  "session_resolution": {
+    "TW": "LATEST_AUTHORITATIVE_COMPLETED",
+    "US": "LATEST_AUTHORITATIVE_COMPLETED"
+  },
+  "thresholds": {
+    "3": 3,
+    "10": 10
+  },
+  "input_owner": "252 production evidence archive",
+  "component_owners": [
+    "251A",
+    "251B",
+    "251C",
+    "251D",
+    "252",
+    "253"
+  ],
+  "persistence": "artifacts/archive/window_snapshots/.daily_evaluation/YYYY-MM-DD/<identity>.json",
+  "predecessor": "IMMUTABLE_SEMANTIC_CORE_WITH_SOURCE_ARTIFACT_HASH",
+  "notification": false,
+  "lifecycle_mutation": false,
+  "revision_policy": "CONTENT_ADDRESSED_NO_OVERWRITE",
+  "outcome_finality": "UNCHANGED_252_APPROVED",
+  "manual_rerun": "EXPLICIT_CANONICAL_REPORT_DATE"
+}
