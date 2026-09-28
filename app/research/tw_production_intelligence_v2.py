@@ -14,6 +14,7 @@ from datetime import date, datetime
 from typing import Any
 
 from app.market.instrument_master import instrument_metadata
+from app.evaluation.direction_signal import moving_average_direction
 from app.reports.decision_input_contract import tw_decision_required_inputs
 from app.runtime.intelligence_quality import (
     completeness_v2, intelligence_health, intelligence_readiness_v1,
@@ -199,12 +200,7 @@ def build_prediction_snapshot(card: dict[str, Any], *, effective_date: str | Non
         confidence = None
         reason = "INSUFFICIENT_LOOKBACK" if bars < MIN_PREDICTION_BARS else "NORMALIZATION_FAILED"
     else:
-        if ma5 is not None and ma10 is not None and ma5 > ma10 * 1.002:
-            direction = "bullish"
-        elif ma5 is not None and ma10 is not None and ma5 < ma10 * .998:
-            direction = "bearish"
-        else:
-            direction = "neutral"
+        direction = moving_average_direction(ma5, ma10)
         regime = "trend_continuation" if direction != "neutral" else "range"
         low, high = round(current - atr, 4), round(current + atr, 4)
         point_forecast = _prediction_point_forecast(direction=direction, current=current, low=low, high=high, ma5=ma5, ma10=ma10)

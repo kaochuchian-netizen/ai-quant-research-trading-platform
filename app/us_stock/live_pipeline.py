@@ -320,6 +320,14 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
         prediction["one_month_trend"] = technical.get("trend_1m")
         prediction["three_month_trend"] = technical.get("trend_3m")
         strategies = build_dual_strategies(DEFAULT_MARKET, score, prediction, result.quote, technical, market_context=market_context, research=research, generated_at=generated_at)
+        # 253 sidecar only: existing report/model objects are never modified.
+        try:
+            from app.evaluation.us_session_direction import capture_safely
+            capture_safely(symbol, result.quote, result.history, context["session_date"], window,
+                           enabled=production_runtime and write_snapshots, root=REPO_ROOT)
+        except Exception:
+            import logging
+            logging.getLogger(__name__).warning("us_session_direction: SHADOW_CAPTURE_FAILED")
         card = dashboard_card(entry, result.quote, technical, score, prediction, result.news, window, research, strategies)
         fresh_research_bundle = build_bundle(symbol, research, market_context, generated_at)
         finalized_funnel = ((fresh_research_bundle.get("news_intelligence_v2") or {}).get("evidence_funnel") or {})

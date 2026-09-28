@@ -73,6 +73,36 @@ def project(snapshot, frozen_sources=None):
                              direction_sample_count=1 if snapshot["run_kind"]=="scheduled" else 0)
             except (ValueError,KeyError,TypeError):
                 r.update(state="BLOCKED_INPUT",reason_codes=["FROZEN_INTEGRITY"])
+        if market == "US" and (frozen_sources or {}).get(symbol) is not None:
+            from app.evaluation.us_session_direction import predict, PRODUCER
+            receipt=frozen_sources[symbol]
+            r["capability"]="NATIVE_DIRECTION" if stream=="us_pre_market_2000" else "INHERITED_REFERENCE_ONLY"
+            r.pop("direction_status",None)
+            try:
+                verify(receipt)
+                source=receipt["capture"];verify(source)
+                if stream=="us_pre_market_2000" and source.get("source",{}).get("quote_digest") is not None and source["source"]["quote_digest"]!=digest(card.get("quote") or {}):
+                    raise ValueError("ORIGIN_QUOTE_MISMATCH")
+                if receipt["review_session"]!=snapshot["effective_trading_date"] or receipt["symbol"]!=symbol:
+                    raise ValueError("US_RECEIPT_IDENTITY")
+                if source["status"]=="BLOCKED_INPUT":
+                    r.update(state="BLOCKED_INPUT",reason_codes=[source["reason"]])
+                else:
+                    from app.evaluation.session_calendar import load_calendar
+                    calendar=source["calendar"]
+                    if predict(source["source"],calendar,frozen_at=source["frozen_at"])!=source:
+                        raise ValueError("US_PRODUCER_REPLAY")
+                    if source["status"]=="NO_FORECAST":
+                        r.update(state=None,direction_status="NO_FORECAST",reason_codes=[source["reason"]])
+                    else:
+                        f=source["frozen"];validate_frozen(f)
+                        if f["symbol"]!=symbol or f["producer"]!=PRODUCER:
+                            raise ValueError("US_FROZEN_IDENTITY")
+                        r.update(frozen=deepcopy(f),lineage=lineage(f),reason_codes=[],
+                                 state="WAITING_OUTCOME" if stream=="us_pre_market_2000" and snapshot["run_kind"]=="scheduled" else None,
+                                 direction_sample_count=1 if stream=="us_pre_market_2000" and snapshot["run_kind"]=="scheduled" else 0)
+            except (ValueError,KeyError,TypeError):
+                r.update(state="BLOCKED_INPUT",reason_codes=["US_RECEIPT_INTEGRITY"],direction_sample_count=0)
         records.append(r)
     return stamp({"schema_version":VERSION,"kind":"REPORT_EVIDENCE","report_identity":{k:snapshot[k] for k in
                   ("snapshot_id","revision","market","window","effective_trading_date","run_kind")},
@@ -101,6 +131,19 @@ def persist(snapshot_path):
                 sources[key]=v
             elif v.get("capture_phase")==previous.get("capture_phase") and v!=previous:
                 raise ValueError("FROZEN_RECEIPT_CONFLICT")
+    if snapshot["market"]=="US":
+        from app.evaluation.us_session_direction import receipt_key
+        root=path.parents[3]
+        day=snapshot["effective_trading_date"]
+        for card in snapshot["payload"].get("items",[]):
+            symbol=card.get("symbol")
+            f=root/"us/us_pre_market_2000"/day/".frozen"/(receipt_key(symbol,day)+".json")
+            if not f.exists():
+                f=f.parent/(digest({"attempt":receipt_key(symbol,day)})+".json")
+            if f.exists():
+                if f.is_symlink() or f.stat().st_size>1024*1024:
+                    raise ValueError("FROZEN_PATH")
+                sources[symbol]=json.loads(f.read_text())
     value=project(snapshot,sources)
     target=path.parent/".evidence"/(value["content_hash"]+".json")
     publish(target,value)
@@ -117,15 +160,17 @@ def reevaluate(snapshot_path, current, *, data_root=None, observed_at=None):
     from app.evaluation.production_evidence import outcome, evaluate_direction, unique_predictions
     from app.evaluation.prediction_regression_contract import aware
     path=Path(snapshot_path)
-    if current["report_identity"]["market"]!="TW" or current["report_identity"]["run_kind"]!="scheduled":
+    if current["report_identity"]["run_kind"]!="scheduled":
         return []
+    market=current["report_identity"]["market"]
+    origin="tw/pre_open_0700" if market=="TW" else "us/us_pre_market_2000"
     archive=path.parents[3]
     root=Path(data_root) if data_root else Path(__file__).resolve().parents[2]
     day=current["report_identity"]["effective_trading_date"]
     candidates={}
     report_bindings={}
     # Ten required sessions plus bounded headroom; never read raw report history.
-    dirs=sorted((archive/"tw/pre_open_0700").glob("????-??-??"),reverse=True)
+    dirs=sorted((archive/origin).glob("????-??-??"),reverse=True)
     for d in [d for d in dirs if d.name<=day][:12]:
         for p in sorted((d/".evidence").glob("*.json"))[:16]:
             if p.is_symlink() or p.stat().st_size>8*1024*1024:
@@ -140,13 +185,37 @@ def reevaluate(snapshot_path, current, *, data_root=None, observed_at=None):
                     report_bindings.setdefault(f["sample_id"],record["report_identity"])
     results=[]
     for symbol,entries in sorted(candidates.items()):
-        if not symbol.isdigit() or len(symbol)>8:
+        from app.evaluation.us_session_direction import symbol_valid
+        if (market=="TW" and (not symbol.isdigit() or len(symbol)>8)) or (market=="US" and not symbol_valid(symbol)):
             raise ValueError("SYMBOL")
         predictions=unique_predictions(entries)
         source=root/"data/historical"/(symbol+"_daily.csv")
         outcomes={}
         observed_at=observed_at or datetime.now(timezone.utc).isoformat()
-        if source.exists():
+        if market=="US":
+            observations=[]
+            for window in ("us_pre_market_2000","us_intraday_2300","us_post_close_review_0630"):
+                for op in sorted((archive/"us"/window/day/".frozen").glob("*.json"))[:64]:
+                    if op.is_symlink() or op.stat().st_size>1024*1024:
+                        raise ValueError("OBSERVATION_PATH")
+                    obs=json.loads(op.read_text());verify(obs)
+                    if obs.get("kind")=="US_MARKET_OBSERVATION" and obs.get("symbol")==symbol:
+                        if obs["source"]!="Yahoo Finance / yfinance":
+                            raise ValueError("OUTCOME_SOURCE")
+                        observations.append(obs)
+            if observations:
+                obs=max(observations,key=lambda o:(aware(o["available_at"]),o["content_hash"]))
+                for f in predictions:
+                    h=f["event"]["horizon"]
+                    matches=[r for r in obs["rows"] if r["date"]==h["session_date"]]
+                    if aware(obs["available_at"])>aware(observed_at) or aware(obs["available_at"])<aware(h["close_at"]) or len(matches)!=1 or not any(r["date"]>h["session_date"] for r in obs["rows"]):
+                        continue
+                    target=archive/origin/h["session_date"]/".outcome"/(digest({"sample":f["sample_id"],"source":obs["content_hash"],"version":VERSION})+".json")
+                    value=outcome(f,close=matches[0]["close"],source=obs["source"],revision=obs["source_version"],
+                                  source_digest=obs["content_hash"],available_at=obs["available_at"],session_date=h["session_date"],
+                                  report_identity=report_bindings[f["sample_id"]])
+                    publish(target,value);outcomes[f["sample_id"]]=value
+        elif source.exists():
             if source.is_symlink() or source.stat().st_size>4*1024*1024:
                 raise ValueError("SOURCE_PATH")
             raw=source.read_bytes();sha=hashlib.sha256(raw).hexdigest()
@@ -162,7 +231,7 @@ def reevaluate(snapshot_path, current, *, data_root=None, observed_at=None):
                 if source.stat().st_mtime < aware(h["close_at"]).timestamp():
                     continue
                 key=digest({"sample":f["sample_id"],"source":sha,"version":VERSION})
-                target=archive/"tw/pre_open_0700"/h["session_date"]/".outcome"/(key+".json")
+                target=archive/origin/h["session_date"]/".outcome"/(key+".json")
                 if target.exists():
                     value=json.loads(target.read_text());verify(value)
                 else:
@@ -170,6 +239,23 @@ def reevaluate(snapshot_path, current, *, data_root=None, observed_at=None):
                                   revision=sha,source_digest=sha,available_at=observed_at,session_date=h["session_date"],report_identity=report_bindings[f["sample_id"]])
                     publish(target,value)
                 outcomes[f["sample_id"]]=value
+        if market=="US":
+            # A transient missing source never erases already admitted immutable outcomes.
+            for f in predictions:
+                if f["sample_id"] in outcomes:
+                    continue
+                directory=archive/origin/f["event"]["horizon"]["session_date"]/".outcome"
+                prior=[]
+                for op in sorted(directory.glob("*.json"))[:64]:
+                    if op.is_symlink() or op.stat().st_size>1024*1024:
+                        raise ValueError("OUTCOME_PATH")
+                    item=json.loads(op.read_text());verify(item)
+                    if item.get("sample_id")==f["sample_id"] and aware(item["available_at"])<=aware(observed_at):
+                        from app.evaluation.production_evidence import assess
+                        if assess(f,item,observed_at=observed_at).get("eligible") is True:
+                            prior.append(item)
+                if prior:
+                    outcomes[f["sample_id"]]=max(prior,key=lambda v:(aware(v["available_at"]),v["content_hash"]))
         # Semantic cutoff is explicitly captured; replay never consults wall clock.
         calendar=predictions[0]["calendar"]
         completed=[r["session_date"] for r in calendar["days"] if r["state"] in {"NORMAL","EARLY_CLOSE"}
@@ -191,7 +277,7 @@ def reevaluate(snapshot_path, current, *, data_root=None, observed_at=None):
         else:
             result=evaluate_direction(predictions,outcomes,calendar=calendar,review_session=review,observed_at=observed_at)
             saved=stamp({"schema_version":VERSION,"kind":"DIRECTION_ASSESSMENT","identity":identity,
-                         "symbol":symbol,"market":"TW","stream":current["report_identity"]["window"],"prediction_stream":"pre_open_0700","run_kind":"scheduled",
+                         "symbol":symbol,"market":market,"stream":current["report_identity"]["window"],"prediction_stream":origin.split("/")[1],"run_kind":"scheduled",
                          "predictions":predictions,"outcomes":outcomes,"calendar":calendar,"review_session":review,
                          "observed_at":observed_at,"result":result,"comparison":{"status":"NO_PREDECESSOR"},
                          "report_bindings":report_bindings,"finding_fix_evidence":[],"lifecycle_mutation":False})
