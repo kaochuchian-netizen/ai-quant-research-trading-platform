@@ -356,6 +356,10 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
         news_aggregation_session.close()
 
     if not decision_cards and not dry_run:
+        from app.runtime.decision_card_diagnostics import decision_card_failure_evidence
+        print("decision_card_admission " + json.dumps(
+            decision_card_failure_evidence(historical_admission, failed_reports, len(decision_cards)),
+            sort_keys=True))
         timing.fail(stage="runtime_write", category="runtime_write_failure", reason="no_valid_decision_cards")
         raise RuntimeError("no_valid_decision_cards")
     with timing.stage("runtime_write"):
