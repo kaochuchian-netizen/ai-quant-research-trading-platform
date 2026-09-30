@@ -75,7 +75,7 @@ def main() -> int:
     weekend_card = fixture_card()
     weekend_card["session_context"] = weekend_context
     require("美股非交易時段" in _us_window_card(weekend_card, "us_pre_market_2000"), "weekend controlled message missing")
-    for token in ("方向：偏多 ↑", "目標：101.00", "區間：96.00～106.00", "新聞：抓取 4｜通過 2｜可用 1"):
+    for token in ("走勢預測：偏多", "股價區間：96.00–106.00", "投資策略："):
         require(token in line, f"LINE parity missing {token}")
     cases["production_renderer_activation"] = "PASS"
 

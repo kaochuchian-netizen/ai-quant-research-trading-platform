@@ -1,0 +1,1410 @@
+{
+  "input_kind": "SYNTHETIC",
+  "payloads": [
+    {
+      "market": "TW",
+      "window": "pre_open_0700",
+      "input_kind": "SYNTHETIC",
+      "snapshot_id": "fixture-pre_open_0700",
+      "revision": 1,
+      "structured_pre_open_cards": [
+        {
+          "symbol": "9999",
+          "name": "合成測試公司",
+          "market": "TW",
+          "window": "pre_open_0700",
+          "trading_date": "2026-09-24",
+          "current_price": 101,
+          "session_high": 103,
+          "session_low": 98,
+          "actual_high": 103,
+          "actual_low": 98,
+          "actual_close": 102,
+          "actual_direction": "bullish",
+          "action": "OBSERVE",
+          "holding_decision": "hold",
+          "plan_status": "watch",
+          "direction_hit": true,
+          "prediction_range_result": "hit",
+          "technical_data": {
+            "direction": "bullish",
+            "analysis_eligible": true,
+            "history_bars": 30,
+            "required_bars": 20
+          },
+          "strategies": {
+            "daily_tactical": {
+              "direction": "bullish"
+            }
+          },
+          "prediction_snapshot_v2": {
+            "schema_version": "tw_prediction_snapshot_v2",
+            "prediction_identity": "fixture-origin",
+            "direction_forecast": "bullish",
+            "range_forecast": {
+              "low": 98,
+              "high": 104
+            },
+            "reference_price": 100,
+            "confidence": 68,
+            "confidence_owner": "prediction_model",
+            "point_forecast": {
+              "price": 102,
+              "method": "fixture",
+              "owner": "tw_prediction_engine",
+              "horizon": "today",
+              "is_execution_target": false,
+              "is_support": false,
+              "is_resistance": false,
+              "provenance": {
+                "prediction_id": "fixture-origin"
+              }
+            }
+          },
+          "us_premarket_product_projection_v1": {
+            "direction": "BULLISH",
+            "target_price": 102,
+            "predicted_low": 98,
+            "predicted_high": 104,
+            "reference_price": 100
+          },
+          "premarket": {
+            "price": 100
+          },
+          "eligibility": {
+            "actionable": false
+          },
+          "trade_plan": {
+            "entry": {
+              "low": 99,
+              "high": 100
+            },
+            "stop": 97,
+            "target": {
+              "low": 102,
+              "high": 104
+            }
+          },
+          "source_plan": {
+            "source_snapshot_id": "fixture-prior",
+            "forecast": {
+              "direction": "BULLISH",
+              "predicted_low": 98,
+              "predicted_high": 104,
+              "target_price": 102,
+              "reference_price": 100
+            }
+          },
+          "review": {
+            "actual_high": 103,
+            "actual_low": 98,
+            "actual_close": 102,
+            "actual_direction": "bullish",
+            "prediction_evaluation_v2": {
+              "direction": {
+                "result": "hit"
+              },
+              "range": {
+                "hit": true
+              }
+            }
+          },
+          "finalized_current_news_projection_v3": {
+            "selected_items": [
+              {
+                "headline": "Example company announces a new manufacturing plant",
+                "publisher": "合成新聞來源",
+                "english_evidence": "Example original English evidence must remain unchanged.",
+                "chinese_summary": "測試公司宣布新設製造廠，預計擴大產能；實際影響仍待後續公告確認。"
+              }
+            ],
+            "compact_summary": "測試公司擴大產能。",
+            "selected_count": 1,
+            "state_label": "新聞可用",
+            "state": "AVAILABLE"
+          },
+          "news_summary": "測試公司宣布新設製造廠，預計擴大產能。",
+          "news_source": "合成新聞來源",
+          "unknown_future_field": {
+            "keep": [
+              1,
+              2,
+              {
+                "immutable": "raw"
+              }
+            ]
+          },
+          "backtest": {
+            "score": 0.7
+          },
+          "regression": {
+            "samples": 10
+          }
+        }
+      ]
+    },
+    {
+      "market": "TW",
+      "window": "intraday_1305",
+      "input_kind": "SYNTHETIC",
+      "snapshot_id": "fixture-intraday_1305",
+      "revision": 1,
+      "structured_intraday_cards": [
+        {
+          "symbol": "9999",
+          "name": "合成測試公司",
+          "market": "TW",
+          "window": "intraday_1305",
+          "trading_date": "2026-09-24",
+          "current_price": 101,
+          "session_high": 103,
+          "session_low": 98,
+          "actual_high": 103,
+          "actual_low": 98,
+          "actual_close": 102,
+          "actual_direction": "bullish",
+          "action": "OBSERVE",
+          "holding_decision": "hold",
+          "plan_status": "watch",
+          "direction_hit": true,
+          "prediction_range_result": "hit",
+          "technical_data": {
+            "direction": "bullish",
+            "analysis_eligible": true,
+            "history_bars": 30,
+            "required_bars": 20
+          },
+          "strategies": {
+            "daily_tactical": {
+              "direction": "bullish"
+            }
+          },
+          "prediction_snapshot_v2": {
+            "schema_version": "tw_prediction_snapshot_v2",
+            "prediction_identity": "fixture-origin",
+            "direction_forecast": "bullish",
+            "range_forecast": {
+              "low": 98,
+              "high": 104
+            },
+            "reference_price": 100,
+            "confidence": 68,
+            "confidence_owner": "prediction_model",
+            "point_forecast": {
+              "price": 102,
+              "method": "fixture",
+              "owner": "tw_prediction_engine",
+              "horizon": "today",
+              "is_execution_target": false,
+              "is_support": false,
+              "is_resistance": false,
+              "provenance": {
+                "prediction_id": "fixture-origin"
+              }
+            }
+          },
+          "us_premarket_product_projection_v1": {
+            "direction": "BULLISH",
+            "target_price": 102,
+            "predicted_low": 98,
+            "predicted_high": 104,
+            "reference_price": 100
+          },
+          "premarket": {
+            "price": 100
+          },
+          "eligibility": {
+            "actionable": false
+          },
+          "trade_plan": {
+            "entry": {
+              "low": 99,
+              "high": 100
+            },
+            "stop": 97,
+            "target": {
+              "low": 102,
+              "high": 104
+            }
+          },
+          "source_plan": {
+            "source_snapshot_id": "fixture-prior",
+            "forecast": {
+              "direction": "BULLISH",
+              "predicted_low": 98,
+              "predicted_high": 104,
+              "target_price": 102,
+              "reference_price": 100
+            }
+          },
+          "review": {
+            "actual_high": 103,
+            "actual_low": 98,
+            "actual_close": 102,
+            "actual_direction": "bullish",
+            "prediction_evaluation_v2": {
+              "direction": {
+                "result": "hit"
+              },
+              "range": {
+                "hit": true
+              }
+            }
+          },
+          "finalized_current_news_projection_v3": {
+            "selected_items": [
+              {
+                "headline": "Example company announces a new manufacturing plant",
+                "publisher": "合成新聞來源",
+                "english_evidence": "Example original English evidence must remain unchanged.",
+                "chinese_summary": "測試公司宣布新設製造廠，預計擴大產能；實際影響仍待後續公告確認。"
+              }
+            ],
+            "compact_summary": "測試公司擴大產能。",
+            "selected_count": 1,
+            "state_label": "新聞可用",
+            "state": "AVAILABLE"
+          },
+          "news_summary": "測試公司宣布新設製造廠，預計擴大產能。",
+          "news_source": "合成新聞來源",
+          "unknown_future_field": {
+            "keep": [
+              1,
+              2,
+              {
+                "immutable": "raw"
+              }
+            ]
+          },
+          "backtest": {
+            "score": 0.7
+          },
+          "regression": {
+            "samples": 10
+          }
+        }
+      ]
+    },
+    {
+      "market": "TW",
+      "window": "pre_close_1335",
+      "input_kind": "SYNTHETIC",
+      "snapshot_id": "fixture-pre_close_1335",
+      "revision": 1,
+      "structured_pre_close_cards": [
+        {
+          "symbol": "9999",
+          "name": "合成測試公司",
+          "market": "TW",
+          "window": "pre_close_1335",
+          "trading_date": "2026-09-24",
+          "current_price": 101,
+          "session_high": 103,
+          "session_low": 98,
+          "actual_high": 103,
+          "actual_low": 98,
+          "actual_close": 102,
+          "actual_direction": "bullish",
+          "action": "OBSERVE",
+          "holding_decision": "hold",
+          "plan_status": "watch",
+          "direction_hit": true,
+          "prediction_range_result": "hit",
+          "technical_data": {
+            "direction": "bullish",
+            "analysis_eligible": true,
+            "history_bars": 30,
+            "required_bars": 20
+          },
+          "strategies": {
+            "daily_tactical": {
+              "direction": "bullish"
+            }
+          },
+          "prediction_snapshot_v2": {
+            "schema_version": "tw_prediction_snapshot_v2",
+            "prediction_identity": "fixture-origin",
+            "direction_forecast": "bullish",
+            "range_forecast": {
+              "low": 98,
+              "high": 104
+            },
+            "reference_price": 100,
+            "confidence": 68,
+            "confidence_owner": "prediction_model",
+            "point_forecast": {
+              "price": 102,
+              "method": "fixture",
+              "owner": "tw_prediction_engine",
+              "horizon": "today",
+              "is_execution_target": false,
+              "is_support": false,
+              "is_resistance": false,
+              "provenance": {
+                "prediction_id": "fixture-origin"
+              }
+            }
+          },
+          "us_premarket_product_projection_v1": {
+            "direction": "BULLISH",
+            "target_price": 102,
+            "predicted_low": 98,
+            "predicted_high": 104,
+            "reference_price": 100
+          },
+          "premarket": {
+            "price": 100
+          },
+          "eligibility": {
+            "actionable": false
+          },
+          "trade_plan": {
+            "entry": {
+              "low": 99,
+              "high": 100
+            },
+            "stop": 97,
+            "target": {
+              "low": 102,
+              "high": 104
+            }
+          },
+          "source_plan": {
+            "source_snapshot_id": "fixture-prior",
+            "forecast": {
+              "direction": "BULLISH",
+              "predicted_low": 98,
+              "predicted_high": 104,
+              "target_price": 102,
+              "reference_price": 100
+            }
+          },
+          "review": {
+            "actual_high": 103,
+            "actual_low": 98,
+            "actual_close": 102,
+            "actual_direction": "bullish",
+            "prediction_evaluation_v2": {
+              "direction": {
+                "result": "hit"
+              },
+              "range": {
+                "hit": true
+              }
+            }
+          },
+          "finalized_current_news_projection_v3": {
+            "selected_items": [
+              {
+                "headline": "Example company announces a new manufacturing plant",
+                "publisher": "合成新聞來源",
+                "english_evidence": "Example original English evidence must remain unchanged.",
+                "chinese_summary": "測試公司宣布新設製造廠，預計擴大產能；實際影響仍待後續公告確認。"
+              }
+            ],
+            "compact_summary": "測試公司擴大產能。",
+            "selected_count": 1,
+            "state_label": "新聞可用",
+            "state": "AVAILABLE"
+          },
+          "news_summary": "測試公司宣布新設製造廠，預計擴大產能。",
+          "news_source": "合成新聞來源",
+          "unknown_future_field": {
+            "keep": [
+              1,
+              2,
+              {
+                "immutable": "raw"
+              }
+            ]
+          },
+          "backtest": {
+            "score": 0.7
+          },
+          "regression": {
+            "samples": 10
+          }
+        }
+      ]
+    },
+    {
+      "market": "TW",
+      "window": "post_close_1500",
+      "input_kind": "SYNTHETIC",
+      "snapshot_id": "fixture-post_close_1500",
+      "revision": 1,
+      "structured_review_cards": [
+        {
+          "symbol": "9999",
+          "name": "合成測試公司",
+          "market": "TW",
+          "window": "post_close_1500",
+          "trading_date": "2026-09-24",
+          "current_price": 101,
+          "session_high": 103,
+          "session_low": 98,
+          "actual_high": 103,
+          "actual_low": 98,
+          "actual_close": 102,
+          "actual_direction": "bullish",
+          "action": "OBSERVE",
+          "holding_decision": "hold",
+          "plan_status": "watch",
+          "direction_hit": true,
+          "prediction_range_result": "hit",
+          "technical_data": {
+            "direction": "bullish",
+            "analysis_eligible": true,
+            "history_bars": 30,
+            "required_bars": 20
+          },
+          "strategies": {
+            "daily_tactical": {
+              "direction": "bullish"
+            }
+          },
+          "prediction_snapshot_v2": {
+            "schema_version": "tw_prediction_snapshot_v2",
+            "prediction_identity": "fixture-origin",
+            "direction_forecast": "bullish",
+            "range_forecast": {
+              "low": 98,
+              "high": 104
+            },
+            "reference_price": 100,
+            "confidence": 68,
+            "confidence_owner": "prediction_model",
+            "point_forecast": {
+              "price": 102,
+              "method": "fixture",
+              "owner": "tw_prediction_engine",
+              "horizon": "today",
+              "is_execution_target": false,
+              "is_support": false,
+              "is_resistance": false,
+              "provenance": {
+                "prediction_id": "fixture-origin"
+              }
+            }
+          },
+          "us_premarket_product_projection_v1": {
+            "direction": "BULLISH",
+            "target_price": 102,
+            "predicted_low": 98,
+            "predicted_high": 104,
+            "reference_price": 100
+          },
+          "premarket": {
+            "price": 100
+          },
+          "eligibility": {
+            "actionable": false
+          },
+          "trade_plan": {
+            "entry": {
+              "low": 99,
+              "high": 100
+            },
+            "stop": 97,
+            "target": {
+              "low": 102,
+              "high": 104
+            }
+          },
+          "source_plan": {
+            "source_snapshot_id": "fixture-prior",
+            "forecast": {
+              "direction": "BULLISH",
+              "predicted_low": 98,
+              "predicted_high": 104,
+              "target_price": 102,
+              "reference_price": 100
+            }
+          },
+          "review": {
+            "actual_high": 103,
+            "actual_low": 98,
+            "actual_close": 102,
+            "actual_direction": "bullish",
+            "prediction_evaluation_v2": {
+              "direction": {
+                "result": "hit"
+              },
+              "range": {
+                "hit": true
+              }
+            }
+          },
+          "finalized_current_news_projection_v3": {
+            "selected_items": [
+              {
+                "headline": "Example company announces a new manufacturing plant",
+                "publisher": "合成新聞來源",
+                "english_evidence": "Example original English evidence must remain unchanged.",
+                "chinese_summary": "測試公司宣布新設製造廠，預計擴大產能；實際影響仍待後續公告確認。"
+              }
+            ],
+            "compact_summary": "測試公司擴大產能。",
+            "selected_count": 1,
+            "state_label": "新聞可用",
+            "state": "AVAILABLE"
+          },
+          "news_summary": "測試公司宣布新設製造廠，預計擴大產能。",
+          "news_source": "合成新聞來源",
+          "unknown_future_field": {
+            "keep": [
+              1,
+              2,
+              {
+                "immutable": "raw"
+              }
+            ]
+          },
+          "backtest": {
+            "score": 0.7
+          },
+          "regression": {
+            "samples": 10
+          }
+        }
+      ]
+    },
+    {
+      "market": "US",
+      "window": "us_pre_market_2000",
+      "input_kind": "SYNTHETIC",
+      "snapshot_id": "fixture-us_pre_market_2000",
+      "revision": 1,
+      "structured_pre_market_cards": [
+        {
+          "symbol": "DEMO",
+          "name": "合成測試公司",
+          "market": "US",
+          "window": "us_pre_market_2000",
+          "trading_date": "2026-09-24",
+          "current_price": 101,
+          "session_high": 103,
+          "session_low": 98,
+          "actual_high": 103,
+          "actual_low": 98,
+          "actual_close": 102,
+          "actual_direction": "bullish",
+          "action": "OBSERVE",
+          "holding_decision": "hold",
+          "plan_status": "watch",
+          "direction_hit": true,
+          "prediction_range_result": "hit",
+          "technical_data": {
+            "direction": "bullish",
+            "analysis_eligible": true,
+            "history_bars": 30,
+            "required_bars": 20
+          },
+          "strategies": {
+            "daily_tactical": {
+              "direction": "bullish"
+            }
+          },
+          "prediction_snapshot_v2": {
+            "schema_version": "tw_prediction_snapshot_v2",
+            "prediction_identity": "fixture-origin",
+            "direction_forecast": "bullish",
+            "range_forecast": {
+              "low": 98,
+              "high": 104
+            },
+            "reference_price": 100,
+            "confidence": 68,
+            "confidence_owner": "prediction_model",
+            "point_forecast": {
+              "price": 102,
+              "method": "fixture",
+              "owner": "tw_prediction_engine",
+              "horizon": "today",
+              "is_execution_target": false,
+              "is_support": false,
+              "is_resistance": false,
+              "provenance": {
+                "prediction_id": "fixture-origin"
+              }
+            }
+          },
+          "us_premarket_product_projection_v1": {
+            "direction": "BULLISH",
+            "target_price": 102,
+            "predicted_low": 98,
+            "predicted_high": 104,
+            "reference_price": 100
+          },
+          "premarket": {
+            "price": 100
+          },
+          "eligibility": {
+            "actionable": false
+          },
+          "trade_plan": {
+            "entry": {
+              "low": 99,
+              "high": 100
+            },
+            "stop": 97,
+            "target": {
+              "low": 102,
+              "high": 104
+            }
+          },
+          "source_plan": {
+            "source_snapshot_id": "fixture-prior",
+            "forecast": {
+              "direction": "BULLISH",
+              "predicted_low": 98,
+              "predicted_high": 104,
+              "target_price": 102,
+              "reference_price": 100
+            }
+          },
+          "review": {
+            "actual_high": 103,
+            "actual_low": 98,
+            "actual_close": 102,
+            "actual_direction": "bullish",
+            "prediction_evaluation_v2": {
+              "direction": {
+                "result": "hit"
+              },
+              "range": {
+                "hit": true
+              }
+            }
+          },
+          "finalized_current_news_projection_v3": {
+            "selected_items": [
+              {
+                "headline": "Example company announces a new manufacturing plant",
+                "publisher": "合成新聞來源",
+                "english_evidence": "Example original English evidence must remain unchanged.",
+                "chinese_summary": "測試公司宣布新設製造廠，預計擴大產能；實際影響仍待後續公告確認。"
+              }
+            ],
+            "compact_summary": "測試公司擴大產能。",
+            "selected_count": 1,
+            "state_label": "新聞可用",
+            "state": "AVAILABLE"
+          },
+          "news_summary": "測試公司宣布新設製造廠，預計擴大產能。",
+          "news_source": "合成新聞來源",
+          "unknown_future_field": {
+            "keep": [
+              1,
+              2,
+              {
+                "immutable": "raw"
+              }
+            ]
+          },
+          "backtest": {
+            "score": 0.7
+          },
+          "regression": {
+            "samples": 10
+          }
+        }
+      ],
+      "dashboard_ready_contract": {
+        "cards": [
+          {
+            "symbol": "DEMO",
+            "name": "合成測試公司",
+            "market": "US",
+            "window": "us_pre_market_2000",
+            "trading_date": "2026-09-24",
+            "current_price": 101,
+            "session_high": 103,
+            "session_low": 98,
+            "actual_high": 103,
+            "actual_low": 98,
+            "actual_close": 102,
+            "actual_direction": "bullish",
+            "action": "OBSERVE",
+            "holding_decision": "hold",
+            "plan_status": "watch",
+            "direction_hit": true,
+            "prediction_range_result": "hit",
+            "technical_data": {
+              "direction": "bullish",
+              "analysis_eligible": true,
+              "history_bars": 30,
+              "required_bars": 20
+            },
+            "strategies": {
+              "daily_tactical": {
+                "direction": "bullish"
+              }
+            },
+            "prediction_snapshot_v2": {
+              "schema_version": "tw_prediction_snapshot_v2",
+              "prediction_identity": "fixture-origin",
+              "direction_forecast": "bullish",
+              "range_forecast": {
+                "low": 98,
+                "high": 104
+              },
+              "reference_price": 100,
+              "confidence": 68,
+              "confidence_owner": "prediction_model",
+              "point_forecast": {
+                "price": 102,
+                "method": "fixture",
+                "owner": "tw_prediction_engine",
+                "horizon": "today",
+                "is_execution_target": false,
+                "is_support": false,
+                "is_resistance": false,
+                "provenance": {
+                  "prediction_id": "fixture-origin"
+                }
+              }
+            },
+            "us_premarket_product_projection_v1": {
+              "direction": "BULLISH",
+              "target_price": 102,
+              "predicted_low": 98,
+              "predicted_high": 104,
+              "reference_price": 100
+            },
+            "premarket": {
+              "price": 100
+            },
+            "eligibility": {
+              "actionable": false
+            },
+            "trade_plan": {
+              "entry": {
+                "low": 99,
+                "high": 100
+              },
+              "stop": 97,
+              "target": {
+                "low": 102,
+                "high": 104
+              }
+            },
+            "source_plan": {
+              "source_snapshot_id": "fixture-prior",
+              "forecast": {
+                "direction": "BULLISH",
+                "predicted_low": 98,
+                "predicted_high": 104,
+                "target_price": 102,
+                "reference_price": 100
+              }
+            },
+            "review": {
+              "actual_high": 103,
+              "actual_low": 98,
+              "actual_close": 102,
+              "actual_direction": "bullish",
+              "prediction_evaluation_v2": {
+                "direction": {
+                  "result": "hit"
+                },
+                "range": {
+                  "hit": true
+                }
+              }
+            },
+            "finalized_current_news_projection_v3": {
+              "selected_items": [
+                {
+                  "headline": "Example company announces a new manufacturing plant",
+                  "publisher": "合成新聞來源",
+                  "english_evidence": "Example original English evidence must remain unchanged.",
+                  "chinese_summary": "測試公司宣布新設製造廠，預計擴大產能；實際影響仍待後續公告確認。"
+                }
+              ],
+              "compact_summary": "測試公司擴大產能。",
+              "selected_count": 1,
+              "state_label": "新聞可用",
+              "state": "AVAILABLE"
+            },
+            "news_summary": "測試公司宣布新設製造廠，預計擴大產能。",
+            "news_source": "合成新聞來源",
+            "unknown_future_field": {
+              "keep": [
+                1,
+                2,
+                {
+                  "immutable": "raw"
+                }
+              ]
+            },
+            "backtest": {
+              "score": 0.7
+            },
+            "regression": {
+              "samples": 10
+            }
+          }
+        ]
+      }
+    },
+    {
+      "market": "US",
+      "window": "us_intraday_2300",
+      "input_kind": "SYNTHETIC",
+      "snapshot_id": "fixture-us_intraday_2300",
+      "revision": 1,
+      "structured_intraday_cards": [
+        {
+          "symbol": "DEMO",
+          "name": "合成測試公司",
+          "market": "US",
+          "window": "us_intraday_2300",
+          "trading_date": "2026-09-24",
+          "current_price": 101,
+          "session_high": 103,
+          "session_low": 98,
+          "actual_high": 103,
+          "actual_low": 98,
+          "actual_close": 102,
+          "actual_direction": "bullish",
+          "action": "OBSERVE",
+          "holding_decision": "hold",
+          "plan_status": "watch",
+          "direction_hit": true,
+          "prediction_range_result": "hit",
+          "technical_data": {
+            "direction": "bullish",
+            "analysis_eligible": true,
+            "history_bars": 30,
+            "required_bars": 20
+          },
+          "strategies": {
+            "daily_tactical": {
+              "direction": "bullish"
+            }
+          },
+          "prediction_snapshot_v2": {
+            "schema_version": "tw_prediction_snapshot_v2",
+            "prediction_identity": "fixture-origin",
+            "direction_forecast": "bullish",
+            "range_forecast": {
+              "low": 98,
+              "high": 104
+            },
+            "reference_price": 100,
+            "confidence": 68,
+            "confidence_owner": "prediction_model",
+            "point_forecast": {
+              "price": 102,
+              "method": "fixture",
+              "owner": "tw_prediction_engine",
+              "horizon": "today",
+              "is_execution_target": false,
+              "is_support": false,
+              "is_resistance": false,
+              "provenance": {
+                "prediction_id": "fixture-origin"
+              }
+            }
+          },
+          "us_premarket_product_projection_v1": {
+            "direction": "BULLISH",
+            "target_price": 102,
+            "predicted_low": 98,
+            "predicted_high": 104,
+            "reference_price": 100
+          },
+          "premarket": {
+            "price": 100
+          },
+          "eligibility": {
+            "actionable": false
+          },
+          "trade_plan": {
+            "entry": {
+              "low": 99,
+              "high": 100
+            },
+            "stop": 97,
+            "target": {
+              "low": 102,
+              "high": 104
+            }
+          },
+          "source_plan": {
+            "source_snapshot_id": "fixture-prior",
+            "forecast": {
+              "direction": "BULLISH",
+              "predicted_low": 98,
+              "predicted_high": 104,
+              "target_price": 102,
+              "reference_price": 100
+            }
+          },
+          "review": {
+            "actual_high": 103,
+            "actual_low": 98,
+            "actual_close": 102,
+            "actual_direction": "bullish",
+            "prediction_evaluation_v2": {
+              "direction": {
+                "result": "hit"
+              },
+              "range": {
+                "hit": true
+              }
+            }
+          },
+          "finalized_current_news_projection_v3": {
+            "selected_items": [
+              {
+                "headline": "Example company announces a new manufacturing plant",
+                "publisher": "合成新聞來源",
+                "english_evidence": "Example original English evidence must remain unchanged.",
+                "chinese_summary": "測試公司宣布新設製造廠，預計擴大產能；實際影響仍待後續公告確認。"
+              }
+            ],
+            "compact_summary": "測試公司擴大產能。",
+            "selected_count": 1,
+            "state_label": "新聞可用",
+            "state": "AVAILABLE"
+          },
+          "news_summary": "測試公司宣布新設製造廠，預計擴大產能。",
+          "news_source": "合成新聞來源",
+          "unknown_future_field": {
+            "keep": [
+              1,
+              2,
+              {
+                "immutable": "raw"
+              }
+            ]
+          },
+          "backtest": {
+            "score": 0.7
+          },
+          "regression": {
+            "samples": 10
+          }
+        }
+      ],
+      "dashboard_ready_contract": {
+        "cards": [
+          {
+            "symbol": "DEMO",
+            "name": "合成測試公司",
+            "market": "US",
+            "window": "us_intraday_2300",
+            "trading_date": "2026-09-24",
+            "current_price": 101,
+            "session_high": 103,
+            "session_low": 98,
+            "actual_high": 103,
+            "actual_low": 98,
+            "actual_close": 102,
+            "actual_direction": "bullish",
+            "action": "OBSERVE",
+            "holding_decision": "hold",
+            "plan_status": "watch",
+            "direction_hit": true,
+            "prediction_range_result": "hit",
+            "technical_data": {
+              "direction": "bullish",
+              "analysis_eligible": true,
+              "history_bars": 30,
+              "required_bars": 20
+            },
+            "strategies": {
+              "daily_tactical": {
+                "direction": "bullish"
+              }
+            },
+            "prediction_snapshot_v2": {
+              "schema_version": "tw_prediction_snapshot_v2",
+              "prediction_identity": "fixture-origin",
+              "direction_forecast": "bullish",
+              "range_forecast": {
+                "low": 98,
+                "high": 104
+              },
+              "reference_price": 100,
+              "confidence": 68,
+              "confidence_owner": "prediction_model",
+              "point_forecast": {
+                "price": 102,
+                "method": "fixture",
+                "owner": "tw_prediction_engine",
+                "horizon": "today",
+                "is_execution_target": false,
+                "is_support": false,
+                "is_resistance": false,
+                "provenance": {
+                  "prediction_id": "fixture-origin"
+                }
+              }
+            },
+            "us_premarket_product_projection_v1": {
+              "direction": "BULLISH",
+              "target_price": 102,
+              "predicted_low": 98,
+              "predicted_high": 104,
+              "reference_price": 100
+            },
+            "premarket": {
+              "price": 100
+            },
+            "eligibility": {
+              "actionable": false
+            },
+            "trade_plan": {
+              "entry": {
+                "low": 99,
+                "high": 100
+              },
+              "stop": 97,
+              "target": {
+                "low": 102,
+                "high": 104
+              }
+            },
+            "source_plan": {
+              "source_snapshot_id": "fixture-prior",
+              "forecast": {
+                "direction": "BULLISH",
+                "predicted_low": 98,
+                "predicted_high": 104,
+                "target_price": 102,
+                "reference_price": 100
+              }
+            },
+            "review": {
+              "actual_high": 103,
+              "actual_low": 98,
+              "actual_close": 102,
+              "actual_direction": "bullish",
+              "prediction_evaluation_v2": {
+                "direction": {
+                  "result": "hit"
+                },
+                "range": {
+                  "hit": true
+                }
+              }
+            },
+            "finalized_current_news_projection_v3": {
+              "selected_items": [
+                {
+                  "headline": "Example company announces a new manufacturing plant",
+                  "publisher": "合成新聞來源",
+                  "english_evidence": "Example original English evidence must remain unchanged.",
+                  "chinese_summary": "測試公司宣布新設製造廠，預計擴大產能；實際影響仍待後續公告確認。"
+                }
+              ],
+              "compact_summary": "測試公司擴大產能。",
+              "selected_count": 1,
+              "state_label": "新聞可用",
+              "state": "AVAILABLE"
+            },
+            "news_summary": "測試公司宣布新設製造廠，預計擴大產能。",
+            "news_source": "合成新聞來源",
+            "unknown_future_field": {
+              "keep": [
+                1,
+                2,
+                {
+                  "immutable": "raw"
+                }
+              ]
+            },
+            "backtest": {
+              "score": 0.7
+            },
+            "regression": {
+              "samples": 10
+            }
+          }
+        ]
+      }
+    },
+    {
+      "market": "US",
+      "window": "us_post_close_review_0630",
+      "input_kind": "SYNTHETIC",
+      "snapshot_id": "fixture-us_post_close_review_0630",
+      "revision": 1,
+      "structured_review_cards": [
+        {
+          "symbol": "DEMO",
+          "name": "合成測試公司",
+          "market": "US",
+          "window": "us_post_close_review_0630",
+          "trading_date": "2026-09-24",
+          "current_price": 101,
+          "session_high": 103,
+          "session_low": 98,
+          "actual_high": 103,
+          "actual_low": 98,
+          "actual_close": 102,
+          "actual_direction": "bullish",
+          "action": "OBSERVE",
+          "holding_decision": "hold",
+          "plan_status": "watch",
+          "direction_hit": true,
+          "prediction_range_result": "hit",
+          "technical_data": {
+            "direction": "bullish",
+            "analysis_eligible": true,
+            "history_bars": 30,
+            "required_bars": 20
+          },
+          "strategies": {
+            "daily_tactical": {
+              "direction": "bullish"
+            }
+          },
+          "prediction_snapshot_v2": {
+            "schema_version": "tw_prediction_snapshot_v2",
+            "prediction_identity": "fixture-origin",
+            "direction_forecast": "bullish",
+            "range_forecast": {
+              "low": 98,
+              "high": 104
+            },
+            "reference_price": 100,
+            "confidence": 68,
+            "confidence_owner": "prediction_model",
+            "point_forecast": {
+              "price": 102,
+              "method": "fixture",
+              "owner": "tw_prediction_engine",
+              "horizon": "today",
+              "is_execution_target": false,
+              "is_support": false,
+              "is_resistance": false,
+              "provenance": {
+                "prediction_id": "fixture-origin"
+              }
+            }
+          },
+          "us_premarket_product_projection_v1": {
+            "direction": "BULLISH",
+            "target_price": 102,
+            "predicted_low": 98,
+            "predicted_high": 104,
+            "reference_price": 100
+          },
+          "premarket": {
+            "price": 100
+          },
+          "eligibility": {
+            "actionable": false
+          },
+          "trade_plan": {
+            "entry": {
+              "low": 99,
+              "high": 100
+            },
+            "stop": 97,
+            "target": {
+              "low": 102,
+              "high": 104
+            }
+          },
+          "source_plan": {
+            "source_snapshot_id": "fixture-prior",
+            "forecast": {
+              "direction": "BULLISH",
+              "predicted_low": 98,
+              "predicted_high": 104,
+              "target_price": 102,
+              "reference_price": 100
+            }
+          },
+          "review": {
+            "actual_high": 103,
+            "actual_low": 98,
+            "actual_close": 102,
+            "actual_direction": "bullish",
+            "prediction_evaluation_v2": {
+              "direction": {
+                "result": "hit"
+              },
+              "range": {
+                "hit": true
+              }
+            }
+          },
+          "finalized_current_news_projection_v3": {
+            "selected_items": [
+              {
+                "headline": "Example company announces a new manufacturing plant",
+                "publisher": "合成新聞來源",
+                "english_evidence": "Example original English evidence must remain unchanged.",
+                "chinese_summary": "測試公司宣布新設製造廠，預計擴大產能；實際影響仍待後續公告確認。"
+              }
+            ],
+            "compact_summary": "測試公司擴大產能。",
+            "selected_count": 1,
+            "state_label": "新聞可用",
+            "state": "AVAILABLE"
+          },
+          "news_summary": "測試公司宣布新設製造廠，預計擴大產能。",
+          "news_source": "合成新聞來源",
+          "unknown_future_field": {
+            "keep": [
+              1,
+              2,
+              {
+                "immutable": "raw"
+              }
+            ]
+          },
+          "backtest": {
+            "score": 0.7
+          },
+          "regression": {
+            "samples": 10
+          }
+        }
+      ],
+      "dashboard_ready_contract": {
+        "cards": [
+          {
+            "symbol": "DEMO",
+            "name": "合成測試公司",
+            "market": "US",
+            "window": "us_post_close_review_0630",
+            "trading_date": "2026-09-24",
+            "current_price": 101,
+            "session_high": 103,
+            "session_low": 98,
+            "actual_high": 103,
+            "actual_low": 98,
+            "actual_close": 102,
+            "actual_direction": "bullish",
+            "action": "OBSERVE",
+            "holding_decision": "hold",
+            "plan_status": "watch",
+            "direction_hit": true,
+            "prediction_range_result": "hit",
+            "technical_data": {
+              "direction": "bullish",
+              "analysis_eligible": true,
+              "history_bars": 30,
+              "required_bars": 20
+            },
+            "strategies": {
+              "daily_tactical": {
+                "direction": "bullish"
+              }
+            },
+            "prediction_snapshot_v2": {
+              "schema_version": "tw_prediction_snapshot_v2",
+              "prediction_identity": "fixture-origin",
+              "direction_forecast": "bullish",
+              "range_forecast": {
+                "low": 98,
+                "high": 104
+              },
+              "reference_price": 100,
+              "confidence": 68,
+              "confidence_owner": "prediction_model",
+              "point_forecast": {
+                "price": 102,
+                "method": "fixture",
+                "owner": "tw_prediction_engine",
+                "horizon": "today",
+                "is_execution_target": false,
+                "is_support": false,
+                "is_resistance": false,
+                "provenance": {
+                  "prediction_id": "fixture-origin"
+                }
+              }
+            },
+            "us_premarket_product_projection_v1": {
+              "direction": "BULLISH",
+              "target_price": 102,
+              "predicted_low": 98,
+              "predicted_high": 104,
+              "reference_price": 100
+            },
+            "premarket": {
+              "price": 100
+            },
+            "eligibility": {
+              "actionable": false
+            },
+            "trade_plan": {
+              "entry": {
+                "low": 99,
+                "high": 100
+              },
+              "stop": 97,
+              "target": {
+                "low": 102,
+                "high": 104
+              }
+            },
+            "source_plan": {
+              "source_snapshot_id": "fixture-prior",
+              "forecast": {
+                "direction": "BULLISH",
+                "predicted_low": 98,
+                "predicted_high": 104,
+                "target_price": 102,
+                "reference_price": 100
+              }
+            },
+            "review": {
+              "actual_high": 103,
+              "actual_low": 98,
+              "actual_close": 102,
+              "actual_direction": "bullish",
+              "prediction_evaluation_v2": {
+                "direction": {
+                  "result": "hit"
+                },
+                "range": {
+                  "hit": true
+                }
+              }
+            },
+            "finalized_current_news_projection_v3": {
+              "selected_items": [
+                {
+                  "headline": "Example company announces a new manufacturing plant",
+                  "publisher": "合成新聞來源",
+                  "english_evidence": "Example original English evidence must remain unchanged.",
+                  "chinese_summary": "測試公司宣布新設製造廠，預計擴大產能；實際影響仍待後續公告確認。"
+                }
+              ],
+              "compact_summary": "測試公司擴大產能。",
+              "selected_count": 1,
+              "state_label": "新聞可用",
+              "state": "AVAILABLE"
+            },
+            "news_summary": "測試公司宣布新設製造廠，預計擴大產能。",
+            "news_source": "合成新聞來源",
+            "unknown_future_field": {
+              "keep": [
+                1,
+                2,
+                {
+                  "immutable": "raw"
+                }
+              ]
+            },
+            "backtest": {
+              "score": 0.7
+            },
+            "regression": {
+              "samples": 10
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

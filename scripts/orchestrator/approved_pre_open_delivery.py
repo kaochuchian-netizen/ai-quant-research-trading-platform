@@ -593,53 +593,13 @@ def send_delivery_email(env_file: Path, window_id: str, run_id: str, generated_a
 
 
 def build_line_message(window_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str, admitted_snapshot: dict[str, Any] | None = None) -> str:
-    """Build the approved AI-DEV-157 link-only LINE notification.
-
-    Runtime diagnostics, pipeline state, stock details, and raw artifact keys stay out
-    of LINE. The full decision content belongs on the Dashboard.
-    """
+    """Present the same admitted immutable window payload as Dashboard; no send."""
+    from app.reports.mobile_decision_presentation import render_line
+    window_id = {"prediction_review_1500": "post_close_1500"}.get(window_id, window_id)
     dashboard_url = _delivery_dashboard_url(window_id, dashboard_url)
-    if window_id == "pre_open_0700":
-        if admitted_snapshot is not None:
-            payload = admitted_snapshot.get("payload") if isinstance(admitted_snapshot.get("payload"), dict) else {}
-        else:
-            payload, _snapshot = _latest_pre_open_context()
-        if payload:
-            projection = project_decision_intelligence_v4("TW", "pre_open_0700", payload)
-            return tail_text(_append_tw_v2(render_tw_0700_line(payload, dashboard_url), projection, line_mode=True), LINE_BODY_LIMIT)
-        if admitted_snapshot is not None:
-            return "【Stock AI】07:00 台股盤前決策未交付：未通過 snapshot / Dashboard 一致性驗證。"
-        return "\n".join([
-            "【Stock AI】07:00 台股盤前決策尚未建立",
-            "本批次未通過正式資料驗證，不沿用舊內容。",
-            "完整報告：",
-            dashboard_url,
-        ])
-    if window_id == "pre_close_1335":
-        context = resolve_tw_1335_context(WINDOW_SNAPSHOT_ARCHIVE)
-        if context:
-            return tail_text(_append_tw_v2(render_tw_1335_line(context), context["projection"], line_mode=True), LINE_BODY_LIMIT)
-    if window_id == "intraday_1305":
-        selected = resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, "TW", "intraday_1305").latest or {}
-        payload = selected.get("payload") if isinstance(selected.get("payload"), dict) else {}
-        if payload.get("structured_intraday_cards"):
-            projection = project_decision_intelligence_v4("TW", "intraday_1305", payload)
-            return tail_text(_append_tw_v2(render_tw_1305_line(payload, dashboard_url), projection, line_mode=True), LINE_BODY_LIMIT)
-    if window_id in {"post_close_1500", "prediction_review_1500"}:
-        payload, _snapshot = _latest_post_close_context()
-        projection = project_decision_intelligence_v4("TW", "post_close_1500", payload)
-        return tail_text(_append_tw_v2(render_tw_1500_line(payload, dashboard_url), projection, line_mode=True), LINE_BODY_LIMIT)
-    context = get_window_context(window_id)
-    projection, review = _tw_delivery_projection(window_id)
-    return tail_text(
-        line_notification_text(
-            context,
-            dashboard_url or DEFAULT_DECISION_INTELLIGENCE_DASHBOARD_URL,
-            projection,
-            review,
-        ),
-        LINE_BODY_LIMIT,
-    )
+    selected = admitted_snapshot if admitted_snapshot is not None else (resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, "TW", window_id).latest or {})
+    payload = selected.get("payload") if isinstance(selected.get("payload"), dict) else {}
+    return tail_text(render_line(payload, "TW", window_id, dashboard_url), LINE_BODY_LIMIT)
 
 
 def send_concise_line(window_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str, admitted_snapshot: dict[str, Any] | None = None) -> dict[str, Any]:

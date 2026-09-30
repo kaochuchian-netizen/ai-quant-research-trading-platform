@@ -151,7 +151,7 @@ def main() -> int:
         snapshot = {"snapshot_id": f"snapshot-{window}", "effective_trading_date": "2026-08-07", "revision": 1, "payload": artifact}
         operations = build_operations_provenance(market="US", window=window, runtime_status="completed", runtime_trading_date="2026-08-07", snapshot=snapshot, public_sync={"status": "verified", "source_payload_hash": "hash"}, email_result="not_attempted", line_result="not_attempted")
         binding = operations["research_identity_bindings"][0]
-        channel_checks.append(window_identity in dashboard and window_identity in email and summary["research_summary_hash"][:12] in line and binding["window_research_identity"] == window_identity)
+        channel_checks.append(window_identity in dashboard and window_identity in email and "NVDA" in line and summary["research_summary_hash"][:12] not in line and binding["window_research_identity"] == window_identity)
 
     filing = classify_sec_filing({"form": "8-K", "item": "1.05", "summary": "Material cybersecurity incident"})
     unknown_filing = classify_sec_filing({"form": "8-K"})
