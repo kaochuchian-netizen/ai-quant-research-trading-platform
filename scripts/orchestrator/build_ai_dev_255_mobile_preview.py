@@ -4,6 +4,7 @@ import argparse
 import json
 from pathlib import Path
 import sys
+import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
@@ -16,7 +17,7 @@ def main():
     parser.add_argument('--output', required=True, type=Path)
     args = parser.parse_args()
     output = args.output.resolve()
-    if output == ROOT or ROOT in output.parents:
+    if output == ROOT or ROOT in output.parents or Path(tempfile.gettempdir()).resolve() not in output.parents:
         parser.error('Use a temporary target outside the repository; never a production publish root.')
     output.mkdir(parents=True, exist_ok=True)
     fixtures = json.loads((ROOT / 'tests/fixtures/ai_dev_255_mobile_decision_v1.json').read_text())

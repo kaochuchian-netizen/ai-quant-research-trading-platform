@@ -237,22 +237,20 @@ def main() -> int:
                 else:
                     checks[key + ":dashboard_v4"] = "Decision Intelligence V4" in dashboard_html and latest_projection["expected_card_type"] in dashboard_html
                 checks[key + ":email_v4"] = "Decision Intelligence V4" in email_text
-                if (market, window) == ("US", "us_intraday_2300"):
-                    checks[key + ":line_semantic_parity"] = all(
-                        marker in line_summary for marker in (
-                            "已觸發", "已失效", "仍可行動", "行情不足",
-                            get_window_report_contract(market, window).dashboard_url,
-                        )
+                if market == "US":
+                    # AI-DEV-255 keeps the same admitted payload; compact LINE is
+                    # decision-only and research/lineage stay in Dashboard evidence.
+                    required_labels = (
+                        ("今日預測結果：", "方向預測結果：", "區間預測結果：")
+                        if window == "us_post_close_review_0630" else
+                        (("走勢預測（現在→收盤）：", "股價區間：", "投資策略：")
+                         if window == "us_intraday_2300" else
+                         ("走勢預測：", "股價區間：", "投資策略："))
                     )
-                elif (market, window) == ("US", "us_post_close_review_0630"):
                     checks[key + ":line_semantic_parity"] = all(
-                        marker in line_summary for marker in ("預測區間命中", "交易結果已判定", "待補證據", get_window_report_contract(market, window).dashboard_url)
+                        marker in line_summary for marker in
+                        (*required_labels, get_window_report_contract(market, window).dashboard_url)
                     )
-                elif (market, window) == ("US", "us_pre_market_2000"):
-                    summary = selected.latest["payload"].get("premarket_summary") or {}
-                    checks[key + ":line_semantic_parity"] = all(
-                        marker in line_summary for marker in ("主要交易機會", "觀察等待", "暫不交易", get_window_report_contract(market, window).dashboard_url)
-                    ) and str(summary.get("top_opportunity_count", 0)) in line_summary
                 else:
                     checks[key + ":line_semantic_parity"] = all(
                         line in line_summary for line in delivery_summary_lines(latest_projection)

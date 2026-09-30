@@ -116,7 +116,7 @@ def chromium_check(html: str) -> dict:
         rendered = _browser_render(page_path, png, pdf, timeout_ms=45_000)
         text = rendered["text"]
         font_loaded = rendered["font_diagnostics"]["font_loaded"]
-        return {"ok": png.stat().st_size > 1000 and pdf.stat().st_size > 1000 and pdf.read_bytes().startswith(b"%PDF") and "今日短線預期" in text and "預測區間" in text and rendered["pdf_error"] is None,
+        return {"ok": png.stat().st_size > 1000 and pdf.stat().st_size > 1000 and pdf.read_bytes().startswith(b"%PDF") and "走勢預測" in text and "預測區間" in text and "技術分析、信心／品質與研究證據" in text and rendered["pdf_error"] is None,
             "font_loaded": font_loaded, "glyph_diagnostics": rendered["font_diagnostics"], "png_size": png.stat().st_size, "pdf_size": pdf.stat().st_size,
             "output_root_removed_after_context": True}
 

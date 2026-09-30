@@ -104,7 +104,14 @@ def validate() -> dict:
     artifact = {"dashboard_ready_contract": {"cards": [card]}, "institutional_research_summary": summary,
         "premarket_summary": {"groups": {}, "market_context": {}}, "runtime_watchlist_validation": {"enabled_stock_count": 1}}
     line = line_text(artifact, "us_pre_market_2000")
-    checks["case_k_line_dashboard_coverage_parity"] = f"有效研究覆蓋 {summary['average_effective_coverage_score_v2']}%" in line
+    # AI-DEV-255: research remains in source/expanded Dashboard, not compact LINE.
+    from app.reports.mobile_decision_presentation import project_card
+    preserved = project_card(card, "US", "us_pre_market_2000")["evidence"]
+    checks["case_k_line_dashboard_coverage_parity"] = (
+        preserved["institutional_research"] == bundle
+        and "有效研究覆蓋" not in line
+        and all(label in line for label in ("AAPL", "走勢預測：", "股價區間：", "投資策略："))
+    )
 
     selected_not_rendered = with_downstream_counts(exact, rre_used=1, rendered=0)
     checks["case_l_absence_state_partition"] = len({no_news["absence_state"], failed["absence_state"], filtered["absence_state"], stale["absence_state"], exact["absence_state"], selected_not_rendered["absence_state"]}) == 6
@@ -114,7 +121,7 @@ def validate() -> dict:
     checks["no_trade_or_strategy_export"] = bundle["decision_context_export"]["trade_action"] is None and bundle["decision_engine_boundary"]["trade_action_exported"] is False
     details.update({"us_exact_funnel": exact, "us_filtered": filtered, "us_stale": stale,
         "tw_current_funnel": tw_diag, "tw_stale_funnel": stale_diag_tw,
-        "coverage": summary, "line_research_summary": next(x for x in line.splitlines() if "有效研究覆蓋" in x)})
+        "coverage": summary, "line_research_summary": "依 AI-DEV-255 收折於 Dashboard 研究證據；LINE 保留決策欄位"})
     return {"task_id": "AI-DEV-209", "ok": all(checks.values()), "checks": checks, "details": details,
         "safety": {"network": False, "production_pipeline": False, "publish": False, "notification": False,
             "trading": False, "database_write": False, "immutable_history_rewrite": False}}
