@@ -60,10 +60,11 @@ def main() -> int:
     artifact = {"market": "US", "window": "us_pre_market_2000", "dashboard_ready_contract": {"cards": [visible_card]}, "premarket_summary": {"groups": {}}, "institutional_research_summary": {}}
     line = line_text(artifact, "us_pre_market_2000")
     html = _us_window_card(visible_card, "us_pre_market_2000")
-    for token in ("方向：偏多 ↑", "目標：101.00", "新聞：抓取 1｜通過 1｜可用 1", "Reuters"):
+    for token in ("走勢預測：偏多", "股價區間：96.00–106.00", "投資策略："):
         require(token in line, f"LINE missing canonical product token: {token}")
     for token in ("今日盤前判斷", "預測目標", "新聞抓取 1", "Reuters"):
         require(token in html, f"Dashboard missing canonical product token: {token}")
+    require("新聞：抓取" not in line and "目標：" not in line, "255 compact LINE boundary regressed")
     cases["dashboard_line_parity"] = "PASS"
 
     origin = {"research_identity": "us-origin", "continuity": {"status": "inherited", "source_snapshot_id": "snap-us", "source_revision": 2}, "research_intelligence_v2": {"window_research_identity": "us-current", "hypothesis": {"state": "confirmed"}}, "news_intelligence_v2": {"selected_items": []}}

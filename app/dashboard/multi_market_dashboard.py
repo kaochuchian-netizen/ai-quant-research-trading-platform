@@ -708,7 +708,7 @@ def _us_window_card(card: dict[str, Any], window: str) -> str:
     """
 
 
-def render_us_window_report(window: str, artifacts: list[dict[str, Any]]) -> str:
+def _render_us_window_report_evidence(window: str, artifacts: list[dict[str, Any]]) -> str:
     contract = get_window_report_contract("US", window)
     cards = _us_cards_for_window(artifacts, window)
     artifact = next((item for item in artifacts if item.get("market") == "US" and str(item.get("window")) == window), None)
@@ -1483,7 +1483,7 @@ def _tw_pre_open_structured_card(card: dict[str, Any]) -> str:
     """
 
 
-def render_tw_window_report(window: str, artifact: dict[str, Any] | None = None) -> str:
+def _render_tw_window_report_evidence(window: str, artifact: dict[str, Any] | None = None) -> str:
     contract = get_window_report_contract("TW", window)
     artifact = artifact if artifact is not None else _load_tw_tactical_artifact()
     cards_key = {"pre_open_0700": "structured_pre_open_cards", "intraday_1305": "structured_intraday_cards", "pre_close_1335": "structured_pre_close_cards", "post_close_1500": "structured_review_cards"}[window]
@@ -1589,6 +1589,19 @@ def render_tw_window_report(window: str, artifact: dict[str, Any] | None = None)
       <div class="grid decision-grid">{body}</div>
     </section>
     """
+
+def render_tw_window_report(window: str, artifact: dict[str, Any] | None = None) -> str:
+    from app.reports.mobile_decision_presentation import render_report
+    payload = artifact if artifact is not None else _load_tw_tactical_artifact()
+    payload = payload if isinstance(payload, dict) else {}
+    return render_report(payload, "TW", window, _render_tw_window_report_evidence(window, payload))
+
+
+def render_us_window_report(window: str, artifacts: list[dict[str, Any]]) -> str:
+    from app.reports.mobile_decision_presentation import render_report
+    payload = next((a for a in artifacts if a.get("market") == "US" and str(a.get("window")) == window), {})
+    return render_report(payload, "US", window, _render_us_window_report_evidence(window, artifacts))
+
 
 def shared_market_navigation(active_market: str, title: str, subtitle: str) -> str:
     active = html.escape(active_market)
