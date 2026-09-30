@@ -7,6 +7,8 @@ import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+from app.reports.mobile_decision_presentation import LABELS
 
 
 def main():
@@ -26,11 +28,14 @@ def main():
                     page.goto((target/row['html']).as_uri())
                     before = page.evaluate('''() => ({width:document.documentElement.scrollWidth,
                         collapsed:[...document.querySelectorAll('details')].every(x=>!x.open),
-                        rawVisible:/insufficient_evidence|bullish|lineage|MFE|MAE|Runtime Provenance/.test(document.body.innerText),
+                        rawVisible:/insufficient_evidence|bullish|\bNone\b|lineage|MFE|MAE|Runtime Provenance|判定原因|決策歷程|行情解析度|證據學習|信心/.test(document.body.innerText),
+                        topDetails:[...document.querySelectorAll('details')].filter(x=>!x.parentElement.closest('details')).map(x=>x.querySelector('summary').textContent),
+                        fields:[...document.querySelectorAll('.mobile-decision-card')].map(x=>[...x.querySelectorAll('dt')].map(t=>t.textContent)),
+                        visibleLegacy:[...document.querySelectorAll('.window-stock-card,.tw-pre-open-structured-card,.decision-card')].filter(x=>!x.closest('details:not([open])') && x.checkVisibility()).length,
                         badBounds:[...document.querySelectorAll('.mobile-decision-card,.mobile-decision-card dd')].filter(x=>x.getBoundingClientRect().right>393||x.getBoundingClientRect().left<0).length})''')
                     page.locator('details[data-ai-dev-255-evidence] > summary').click()
                     after = page.evaluate("() => ({width:document.documentElement.scrollWidth,open:document.querySelector('details[data-ai-dev-255-evidence]').open})")
-                    results.append({'window':row['window'],'pass':before['width']<=393 and before['collapsed'] and not before['rawVisible'] and before['badBounds']==0 and after['width']<=393 and after['open']})
+                    results.append({'window':row['window'],'pass':before['width']<=393 and before['collapsed'] and before['topDetails']==['詳細評估資料'] and before['visibleLegacy']==0 and bool(before['fields']) and all(fields==list(LABELS[row['window']]) for fields in before['fields']) and not before['rawVisible'] and before['badBounds']==0 and after['width']<=393 and after['open']})
                     page.close()
             finally:
                 browser.close()

@@ -1590,17 +1590,17 @@ def _render_tw_window_report_evidence(window: str, artifact: dict[str, Any] | No
     </section>
     """
 
-def render_tw_window_report(window: str, artifact: dict[str, Any] | None = None) -> str:
+def render_tw_window_report(window: str, artifact: dict[str, Any] | None = None, *, extra_evidence: str = "") -> str:
     from app.reports.mobile_decision_presentation import render_report
     payload = artifact if artifact is not None else _load_tw_tactical_artifact()
     payload = payload if isinstance(payload, dict) else {}
-    return render_report(payload, "TW", window, _render_tw_window_report_evidence(window, payload))
+    return render_report(payload, "TW", window, _render_tw_window_report_evidence(window, payload), extra_evidence=extra_evidence)
 
 
-def render_us_window_report(window: str, artifacts: list[dict[str, Any]]) -> str:
+def render_us_window_report(window: str, artifacts: list[dict[str, Any]], *, extra_evidence: str = "") -> str:
     from app.reports.mobile_decision_presentation import render_report
     payload = next((a for a in artifacts if a.get("market") == "US" and str(a.get("window")) == window), {})
-    return render_report(payload, "US", window, _render_us_window_report_evidence(window, artifacts))
+    return render_report(payload, "US", window, _render_us_window_report_evidence(window, artifacts), extra_evidence=extra_evidence)
 
 
 def shared_market_navigation(active_market: str, title: str, subtitle: str) -> str:
@@ -1610,14 +1610,14 @@ def shared_market_navigation(active_market: str, title: str, subtitle: str) -> s
     return f"""<div class="wrap section market-shared-navigation market-shared-navigation--v1" data-shared-navigation="tw-us" data-active-market="{active}"><h1>{html.escape(title)}</h1><nav class="market-shared-navigation__grid market-shared-navigation__grid--responsive" aria-label="Market Dashboard Navigation"><a class="market-shared-navigation__button" href="/stock-ai-dashboard/index.html">回到總覽</a><a class="market-shared-navigation__button" href="/stock-ai-dashboard/dashboard/tw/index.html"{current_tw}>台股 Dashboard</a><a class="market-shared-navigation__button" href="/stock-ai-dashboard/dashboard/us/index.html"{current_us}>美股 Dashboard</a></nav><p class="market-shared-navigation__subtitle">{html.escape(subtitle)}</p></div>"""
 
 
-def _snapshot_decision_content(snapshot: dict[str, Any]) -> str:
+def _snapshot_decision_content(snapshot: dict[str, Any], *, extra_evidence: str = "") -> str:
     market = str(snapshot.get("market") or "")
     window = str(snapshot.get("window") or snapshot.get("scheduler_window") or "")
     payload = snapshot.get("payload") if isinstance(snapshot.get("payload"), dict) else {}
     if market == "US":
-        return render_us_window_report(window, [payload])
+        return render_us_window_report(window, [payload], extra_evidence=extra_evidence)
     if window in {"pre_open_0700", "intraday_1305", "pre_close_1335", "post_close_1500"}:
-        return render_tw_window_report(window, payload)
+        return render_tw_window_report(window, payload, extra_evidence=extra_evidence)
     report = payload.get("user_facing_report") if isinstance(payload.get("user_facing_report"), dict) else {}
     cards = report.get("stock_cards") if isinstance(report.get("stock_cards"), list) else []
     forbidden_card_markers = ("樣本資料", "fixture", "contract validation", "example", "demo")
@@ -1643,7 +1643,7 @@ def _archive_evidence(title: str, content: str) -> str:
             '</details></section>')
 
 
-def render_immutable_snapshot_section(snapshot: dict[str, Any], *, show_revision: bool = True) -> str:
+def render_immutable_snapshot_section(snapshot: dict[str, Any], *, show_revision: bool = True, extra_evidence: str = "") -> str:
     contract = snapshot_parity_contract(snapshot)
     assert contract is not None
     updated = str(snapshot.get("revision_created_at") or snapshot.get("generated_at") or "")
@@ -1653,11 +1653,11 @@ def render_immutable_snapshot_section(snapshot: dict[str, Any], *, show_revision
     revision_text = f'｜Revision {contract["revision"]}' if show_revision and int(contract["revision"]) > 1 else ""
     updated_text = f'｜最後更新 {_escape(updated[11:16])}' if show_revision and len(updated) >= 16 else ""
     provenance = f'Runtime Provenance：{_escape(snapshot.get("runtime_provenance"))}｜Admission：{_escape(snapshot.get("admission_reason"))}｜Admitted：{str(snapshot.get("admitted") is True).lower()}'
+    diagnostics = _archive_evidence("批次來源與系統診斷", f'<p class="decision-note">Active Window：{_escape(contract["active_window"])}｜Source Route：{_escape(contract["source_route"])}</p><p class="decision-note">{provenance}</p>' + marker_text + '<p class="decision-note">本頁只使用 resolver 選出的 immutable snapshot payload；不讀取全域 latest runtime。</p>')
     return f'''<section class="section immutable-snapshot-payload" {identity_attributes(snapshot)}>
       <h2>本批次決策內容</h2>
       <p>有效交易日：{_escape(contract["effective_trading_date"])}{revision_text}{updated_text}</p>
-      {_snapshot_decision_content(snapshot)}
-      {_archive_evidence("批次來源與系統診斷", f'<p class="decision-note">Active Window：{_escape(contract["active_window"])}｜Source Route：{_escape(contract["source_route"])}</p><p class="decision-note">{provenance}</p>' + marker_text + '<p class="decision-note">本頁只使用 resolver 選出的 immutable snapshot payload；不讀取全域 latest runtime。</p>')}
+      {_snapshot_decision_content(snapshot, extra_evidence=diagnostics + extra_evidence)}
     </section>'''
 
 def render_landing_page() -> str:
@@ -1801,7 +1801,7 @@ def render_snapshot_archive_page(market: str, window: str, selection: str, snaps
         updated = str(snapshot.get("revision_created_at") or snapshot.get("generated_at") or "")
         revision_text = f"｜Revision {revision}" if selection == "latest" and revision > 1 else ""
         updated_text = f"｜最後更新 {updated[11:16]}" if selection == "latest" and len(updated) >= 16 else ""
-        body = render_immutable_snapshot_section(snapshot, show_revision=selection == "latest")
+        body = ""
         if market == "TW" and window == "pre_close_1335":
             body += _archive_evidence("收盤快照詳細證據", render_tw_1335_dashboard(tw_1335_context_for_snapshot(WINDOW_SNAPSHOT_ARCHIVE, snapshot)))
         if selection == "latest":
@@ -1814,7 +1814,12 @@ def render_snapshot_archive_page(market: str, window: str, selection: str, snaps
         change = f'<section class="section same-window-change"><h2>同時段跨交易日變化</h2><p>{_escape(comparison.get("previous_trading_date"))} → {_escape(comparison.get("current_trading_date"))}；決策來源欄位變更 {changed_count} 項。</p><p class="decision-note">比較基準固定為同市場、同 window、前一有效交易日最高 revision；不顯示原始 payload 或 runtime metadata。</p></section>'
     else:
         change = f'<section class="section same-window-change archive-empty-state"><h2>同時段跨交易日變化</h2><p>{_escape(comparison.get("empty_state"))}</p></section>'
-    return f'<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{_escape(title)}｜{selection_label}</title><style>{base_css()}</style></head><body {identity} data-archive-presentation-version="{VERSION}"><header>{shared_market_navigation(market, title, selection_label)}</header><main class="wrap">{body}{_archive_evidence("跨交易日比較", change)}</main></body></html>\n'
+    details = body + _archive_evidence("跨交易日比較", change)
+    if snapshot is not None:
+        body = render_immutable_snapshot_section(snapshot, show_revision=selection == "latest", extra_evidence=details)
+    else:
+        body += _archive_evidence("跨交易日比較", change)
+    return f'<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{_escape(title)}｜{selection_label}</title><style>{base_css()}</style></head><body {identity} data-archive-presentation-version="{VERSION}"><header>{shared_market_navigation(market, title, selection_label)}</header><main class="wrap">{body}</main></body></html>\n'
 
 
 def build_archive_route(output_dir: Path, market: str, window: str, selection_name: str) -> Path:

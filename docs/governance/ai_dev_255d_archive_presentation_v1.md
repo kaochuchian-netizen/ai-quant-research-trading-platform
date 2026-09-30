@@ -43,3 +43,13 @@ temporary public archive/latest；也驗 previous route。
 未來核准部署時，必須把「程式同步」與「既有 snapshot 的靜態頁重建」
 分開驗收，或等待原自然發布路徑。不得以本 PR CI PASS 宣稱 live UI 已更新。
 沒有 scheduler、DB、secrets、nginx、model、strategy、交易或原始資料 mutation。
+
+## Review refinement
+每頁只有一個預設可見的「詳細評估資料」收折入口，全部舊報告、confidence、
+strategy raw state、判定原因、交易／進場／目標／停損結果、MFE/MAE、
+證據學習、lineage、決策歷程、行情解析度及來源時間均位於該區內。
+「今日預測結果」僅表示已有結果／資料待補，不再重複列出方向和區間判定，
+也不是新評分。方向及區間結果各顯示一次。內部 source 不變。
+七窗口實際 archive 393px browser gate 檢查：
+每卡 exact field order、無重複欄位、只有一個頂層收折入口、
+沒有可見 legacy cards、raw enum 或 diagnostics。

@@ -49,6 +49,15 @@ class ArchivePresentationTests(unittest.TestCase):
         snapshots=list((self.root/"archive"/"tw"/"post_close_1500").rglob("*.json"))
         self.assertTrue(any("synthetic-origin" in p.read_text() for p in snapshots))
 
+    def test_review_summary_does_not_repeat_components(self):
+        for row in self.rows:
+            if row["window"] not in {"post_close_1500","us_post_close_review_0630"}:continue
+            html=(self.root/row["html"]).read_text()
+            p=VisibleText();p.feed(html);visible=" ".join(p.text)
+            self.assertNotIn("方向：",visible)
+            self.assertNotIn("；區間：",visible)
+            self.assertIn("今日預測結果",visible)
+
     def test_rebuild_idempotent_html(self):
         before={r["window"]:(self.root/r["html"]).read_bytes() for r in self.rows}
         # Re-render without creating snapshots or modifying canonical payloads.
@@ -71,7 +80,7 @@ def check_window(window,kind):
         elif kind=="visible":
             p=VisibleText();p.feed(html);visible=" ".join(p.text)
             for label in LABELS[window]:self.assertIn(label,visible)
-            for raw in ("insufficient_evidence","bullish","lineage","MFE","MAE","Active Window","Runtime Provenance"):
+            for raw in ("insufficient_evidence","bullish","lineage","MFE","MAE","None","confidence","判定原因","決策歷程","行情解析度","證據學習","Active Window","Runtime Provenance"):
                 self.assertNotIn(raw,visible)
         elif kind=="preservation":
             self.assertIn("data-ai-dev-255-evidence",html)
