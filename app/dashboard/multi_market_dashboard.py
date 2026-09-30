@@ -1636,6 +1636,13 @@ def _snapshot_decision_content(snapshot: dict[str, Any]) -> str:
     )
 
 
+def _archive_evidence(title: str, content: str) -> str:
+    """Keep archive diagnostics intact but outside the primary decision surface."""
+    return ('<section class="mobile-decision"><details data-ai-dev-255d-archive-evidence>'
+            f'<summary>{_escape(title)}</summary><div class="evidence-body">{content}</div>'
+            '</details></section>')
+
+
 def render_immutable_snapshot_section(snapshot: dict[str, Any], *, show_revision: bool = True) -> str:
     contract = snapshot_parity_contract(snapshot)
     assert contract is not None
@@ -1647,13 +1654,10 @@ def render_immutable_snapshot_section(snapshot: dict[str, Any], *, show_revision
     updated_text = f'｜最後更新 {_escape(updated[11:16])}' if show_revision and len(updated) >= 16 else ""
     provenance = f'Runtime Provenance：{_escape(snapshot.get("runtime_provenance"))}｜Admission：{_escape(snapshot.get("admission_reason"))}｜Admitted：{str(snapshot.get("admitted") is True).lower()}'
     return f'''<section class="section immutable-snapshot-payload" {identity_attributes(snapshot)}>
-      <h2>Snapshot 決策內容</h2>
+      <h2>本批次決策內容</h2>
       <p>有效交易日：{_escape(contract["effective_trading_date"])}{revision_text}{updated_text}</p>
-      <p class="decision-note">Active Window：{_escape(contract["active_window"])}｜Source Route：{_escape(contract["source_route"])}</p>
-      <p class="decision-note">{provenance}</p>
-      {marker_text}
       {_snapshot_decision_content(snapshot)}
-      <p class="decision-note">本頁只使用 resolver 選出的 immutable snapshot payload；不讀取全域 latest runtime。</p>
+      {_archive_evidence("批次來源與系統診斷", f'<p class="decision-note">Active Window：{_escape(contract["active_window"])}｜Source Route：{_escape(contract["source_route"])}</p><p class="decision-note">{provenance}</p>' + marker_text + '<p class="decision-note">本頁只使用 resolver 選出的 immutable snapshot payload；不讀取全域 latest runtime。</p>')}
     </section>'''
 
 def render_landing_page() -> str:
@@ -1785,6 +1789,9 @@ def build_pages(output_dir: Path = OUTPUT_DIR) -> dict[str, Any]:
 
 
 def render_snapshot_archive_page(market: str, window: str, selection: str, snapshot: dict[str, Any] | None, comparison: dict[str, Any]) -> str:
+    from app.reports.mobile_decision_presentation import TITLES, VERSION
+    title = TITLES.get(window, "批次報告")
+    selection_label = "最新報告" if selection == "latest" else "前一份報告"
     if snapshot is None:
         body = '<section class="section archive-empty-state"><h2>尚無可用 snapshot</h2><p>找不到符合正式、完整 admission policy 且同市場同時段的 immutable snapshot。</p></section>'
         identity = ""
@@ -1796,18 +1803,18 @@ def render_snapshot_archive_page(market: str, window: str, selection: str, snaps
         updated_text = f"｜最後更新 {updated[11:16]}" if selection == "latest" and len(updated) >= 16 else ""
         body = render_immutable_snapshot_section(snapshot, show_revision=selection == "latest")
         if market == "TW" and window == "pre_close_1335":
-            body += render_tw_1335_dashboard(tw_1335_context_for_snapshot(WINDOW_SNAPSHOT_ARCHIVE, snapshot))
+            body += _archive_evidence("收盤快照詳細證據", render_tw_1335_dashboard(tw_1335_context_for_snapshot(WINDOW_SNAPSHOT_ARCHIVE, snapshot)))
         if selection == "latest":
             revisions = revisions_for_snapshot(WINDOW_SNAPSHOT_ARCHIVE, market, window, str(snapshot.get("effective_trading_date")))
             manual_count = len([item for item in revisions if item.get("manual_rerun") is True or item.get("run_kind") == "manual_rerun"])
             rows = "".join(f'<tr><th>Revision {int(item.get("revision") or 1)}</th><td>{_escape(str(item.get("revision_created_at") or item.get("generated_at") or "")[11:16])}</td><td>{"Manual" if item.get("manual_rerun") is True or item.get("run_kind") == "manual_rerun" else "正式批次"}</td></tr>' for item in revisions)
-            body += f'<section class="section revision-history"><h2>本交易日 Revision History</h2><p>共手動更新 {manual_count} 次</p><table class="decision-table"><tbody>{rows}</tbody></table></section>'
+            body += _archive_evidence("版本歷史", f'<section class="section revision-history"><h2>本交易日 Revision History</h2><p>共手動更新 {manual_count} 次</p><table class="decision-table"><tbody>{rows}</tbody></table></section>')
     if comparison.get("available"):
         changed_count = len(comparison.get("changes", []))
         change = f'<section class="section same-window-change"><h2>同時段跨交易日變化</h2><p>{_escape(comparison.get("previous_trading_date"))} → {_escape(comparison.get("current_trading_date"))}；決策來源欄位變更 {changed_count} 項。</p><p class="decision-note">比較基準固定為同市場、同 window、前一有效交易日最高 revision；不顯示原始 payload 或 runtime metadata。</p></section>'
     else:
         change = f'<section class="section same-window-change archive-empty-state"><h2>同時段跨交易日變化</h2><p>{_escape(comparison.get("empty_state"))}</p></section>'
-    return f'<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{_escape(market)} {_escape(window)} {_escape(selection)}</title><style>{base_css()}</style></head><body {identity}><header>{shared_market_navigation(market, f"{market} Snapshot Archive", f"{window}｜{selection}")}</header><main class="wrap">{body}{change}</main></body></html>\n'
+    return f'<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{_escape(title)}｜{selection_label}</title><style>{base_css()}</style></head><body {identity} data-archive-presentation-version="{VERSION}"><header>{shared_market_navigation(market, title, selection_label)}</header><main class="wrap">{body}{_archive_evidence("跨交易日比較", change)}</main></body></html>\n'
 
 
 def build_archive_route(output_dir: Path, market: str, window: str, selection_name: str) -> Path:
