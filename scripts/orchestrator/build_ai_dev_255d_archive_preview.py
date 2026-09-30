@@ -34,6 +34,14 @@ def seed_archive(root):
             # Reuse the existing production-shaped admission fixture unchanged.
             # No bypass of strict structured-card/source-hash admission.
             payload["input_kind"] = "SYNTHETIC"
+            if window == "post_close_1500":
+                for index, card in enumerate(payload["cards"]):
+                    card.update(stock_name="合成測試公司 "+str(index+1),
+                        direction_hit=index==0, prediction_range_result="hit" if index==0 else "miss",
+                        actual_direction="bullish" if index==0 else "bearish",
+                        actual_low=98+index, actual_high=103+index, actual_close=102+index,
+                        mfe=4.2, mae=-1.1,
+                        preserved_unknown={"lineage":"synthetic-origin","backtest":[1,2,3]})
             result = write_snapshot(root, market=market, window=window,
                 effective_trading_date=day, generated_at=day+"T20:00:00+08:00",
                 source_payload=payload, status="completed", run_kind="scheduled",

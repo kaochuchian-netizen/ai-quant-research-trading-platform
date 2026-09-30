@@ -38,6 +38,17 @@ class ArchivePresentationTests(unittest.TestCase):
             with self.assertRaises(ValueError):require_temporary(root)
     def test_fixture_not_production_sample(self):
         self.assertTrue(all(r["input_kind"]=="SYNTHETIC" for r in self.rows))
+    def test_post_close_explicit_results_and_values(self):
+        row=next(r for r in self.rows if r["window"]=="post_close_1500")
+        html=(self.root/row["html"]).read_text()
+        p=VisibleText();p.feed(html);text=" ".join(p.text)
+        for value in ("符合預測","未符合預測","偏多","偏空","98.00–103.00"):
+            self.assertIn(value,text)
+        self.assertNotIn("synthetic-origin",text)
+        # Unknown/backtest fields remain immutable in persisted source JSON.
+        snapshots=list((self.root/"archive"/"tw"/"post_close_1500").rglob("*.json"))
+        self.assertTrue(any("synthetic-origin" in p.read_text() for p in snapshots))
+
     def test_rebuild_idempotent_html(self):
         before={r["window"]:(self.root/r["html"]).read_bytes() for r in self.rows}
         # Re-render without creating snapshots or modifying canonical payloads.
