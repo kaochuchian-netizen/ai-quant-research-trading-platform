@@ -142,7 +142,7 @@ def project_card(card, market, window):
         values["走勢預測（現在→收盤）"] = INTRADAY_MISSING
         values["預測區間"] = INTRADAY_MISSING
     # This is a display of separate canonical results, not a new combined grade.
-    values["今日預測結果"] = f"方向：{values['方向預測結果']}；區間：{values['區間預測結果']}"
+    values["今日預測結果"] = "已有評估結果" if all(values[k] != MISSING for k in ("方向預測結果", "區間預測結果")) else "評估資料待補"
     return {"schema_version": VERSION, "market": market, "window": window,
             "symbol": str(card.get("symbol") or card.get("stock_id") or ""),
             "name": str(card.get("name") or card.get("stock_name") or ""),
@@ -167,9 +167,9 @@ def render_primary(payload, market, window):
     return f'<style>{CSS}</style><section class="mobile-decision" data-presentation-version="{VERSION}" data-source-digest="{projection["source_digest"]}"><h2>{TITLES[window]}</h2>{"".join(out) or "<p>本批次尚未提供正式資料。</p>"}</section>'
 
 
-def render_report(payload, market, window, legacy_html):
-    summary = "詳細評估、技術分析、信心／品質與研究證據" if window in {"post_close_1500", "us_post_close_review_0630"} else "技術分析、信心／品質與研究證據"
-    return render_primary(payload, market, window) + f'<section class="mobile-decision"><details data-ai-dev-255-evidence><summary>{summary}</summary><div class="evidence-body"><p class="evidence-notice">以下保留既有詳細報告、來源鏈與系統診斷；原始來源可能包含英文，未改寫正式預測或評估。</p>{legacy_html}</div></details></section>'
+def render_report(payload, market, window, legacy_html, *, extra_evidence=""):
+    summary = "詳細評估資料"
+    return render_primary(payload, market, window) + f'<section class="mobile-decision"><details data-ai-dev-255-evidence><summary>{summary}</summary><div class="evidence-body"><p class="evidence-notice">以下保留既有詳細報告、來源鏈與系統診斷；原始來源可能包含英文，未改寫正式預測或評估。</p>{legacy_html}{extra_evidence}</div></details></section>'
 
 
 def render_line(payload, market, window, url):
