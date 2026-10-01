@@ -24,19 +24,24 @@ def get_historical_prices(api, stock_id, start_date, end_date):
     bounded_start_date, bounded_end_date = bounded_kbars_date_window(start_date, end_date)
     contract = api.Contracts.Stocks[str(stock_id)]
 
-    kbars = api.kbars(
-        contract,
-        start=bounded_start_date,
-        end=bounded_end_date,
-    )
-
-    df = pd.DataFrame({
-        "ts": pd.to_datetime(kbars.ts),
-        "open": kbars.Open,
-        "high": kbars.High,
-        "low": kbars.Low,
-        "close": kbars.Close,
-        "volume": kbars.Volume,
-    })
-
-    return df
+    # Provider accepts at most 30 calendar dates per request. Keep the full
+    # governed lookback, overlap boundaries so inclusive/exclusive endpoint
+    # behavior cannot silently omit a date, then deduplicate identical bars.
+    cursor = datetime.strptime(bounded_start_date, "%Y-%m-%d").date()
+    end = datetime.strptime(bounded_end_date, "%Y-%m-%d").date()
+    frames = []
+    while True:
+        stop = min(cursor + timedelta(days=29), end)
+        kbars = api.kbars(contract, start=cursor.isoformat(), end=stop.isoformat())
+        frames.append(pd.DataFrame({
+            "ts": pd.to_datetime(kbars.ts), "open": kbars.Open,
+            "high": kbars.High, "low": kbars.Low,
+            "close": kbars.Close, "volume": kbars.Volume,
+        }))
+        if stop == end:
+            break
+        cursor = stop
+    df = pd.concat(frames, ignore_index=True).drop_duplicates()
+    if df["ts"].duplicated().any():
+        raise ValueError("conflicting_kbars_boundary_revision")
+    return df.sort_values("ts").reset_index(drop=True)

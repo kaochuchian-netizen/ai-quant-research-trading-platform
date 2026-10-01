@@ -34,6 +34,7 @@ from app.dashboard.window_snapshot_archive import resolve_snapshots, write_snaps
 from app.dashboard.public_latest_sync import synchronize_admitted_latest, write_sync_artifact  # noqa: E402
 from app.dashboard.visual_evidence_archive import capture_published_snapshot_non_blocking  # noqa: E402
 from app.runtime.manual_rerun_progress import report_manual_rerun_stage  # noqa: E402
+from app.reports.tw_line_completeness import notification_universe_evidence
 from app.reports.delivery_provenance import build_delivery_provenance, transport_delivery_result, write_delivery_provenance  # noqa: E402
 from app.runtime.batch_audit_bundle import enqueue_batch_audit_non_blocking  # noqa: E402
 from app.reports.report_content_contract import build_report_content_artifact  # noqa: E402
@@ -68,7 +69,7 @@ TW_WINDOW_RUNTIME_DIR = REPO_ROOT / "artifacts/runtime/tw_window_decision"
 TW_PREOPEN_CHANNEL_RECEIPTS = REPO_ROOT / "artifacts/runtime/delivery_receipts/tw/pre_open_0700"
 DEFAULT_DECISION_INTELLIGENCE_DASHBOARD_URL = get_tw_dashboard_url()
 EMAIL_BODY_LIMIT = 14000
-LINE_BODY_LIMIT = 520
+
 TRACEBACK_MARKERS = (
     "Traceback (most recent call last):",
     "ShioajiClientError:",
@@ -599,7 +600,7 @@ def build_line_message(window_id: str, generated_at: str, pipeline_status: str, 
     dashboard_url = _delivery_dashboard_url(window_id, dashboard_url)
     selected = admitted_snapshot if admitted_snapshot is not None else (resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, "TW", window_id).latest or {})
     payload = selected.get("payload") if isinstance(selected.get("payload"), dict) else {}
-    return tail_text(render_line(payload, "TW", window_id, dashboard_url), LINE_BODY_LIMIT)
+    return render_line(payload, "TW", window_id, dashboard_url)
 
 
 def send_concise_line(window_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str, admitted_snapshot: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -607,8 +608,10 @@ def send_concise_line(window_id: str, generated_at: str, pipeline_status: str, d
     message = build_line_message(window_id, generated_at, pipeline_status, dashboard_url, output_tail, admitted_snapshot)
     line_module = importlib.import_module("reports.line_report_sender")
     line_sender = getattr(line_module, "send_line_report")
-    line_sender(message)
+    from app.reports.line_chunks import deliver_line_chunks
+    chunk_delivery = deliver_line_chunks(message, line_sender)
     return {
+        "chunk_delivery": chunk_delivery,
         "send_attempted": True,
         "send_status": "sent",
         "policy": cfg["line_policy"],
@@ -1016,6 +1019,7 @@ def main() -> int:
             "user_facing_report": report_contract.user_facing_report,
             "delivery_policy": report_contract.delivery_policy,
             "cards": snapshot_cards,
+            **notification_universe_evidence(window_runtime),
             **({
                 "structured_intraday_cards": window_runtime.get("structured_intraday_cards", []),
                 "structured_pre_close_cards": window_runtime.get("structured_pre_close_cards", []),
@@ -1179,6 +1183,7 @@ def main() -> int:
                 "send_attempted": True,
                 "send_status": "failed",
                 "policy": cfg["line_policy"],
+                "chunk_delivery": getattr(exc, "chunk_delivery", None),
                 "error_type": exc.__class__.__name__,
                 "secret_values_printed": False,
             }
@@ -1197,7 +1202,7 @@ def main() -> int:
     for channel, delivery, content in (("email", email, email_content), ("line", line, line_content)):
         delivery_result = transport_delivery_result(delivery)
         symbol_accounting = {}
-        if args.window == "pre_open_0700":
+        if provenance_snapshot:
             payload = provenance_snapshot.get("payload") if isinstance(provenance_snapshot.get("payload"), dict) else {}
             expected_symbols = payload_symbols(payload)
             symbol_accounting = build_symbol_delivery_accounting(
@@ -1214,6 +1219,8 @@ def main() -> int:
             delivery_attempted=bool(delivery.get("send_attempted")), recipient_count=int(delivery.get("recipient_count") or 0),
             public_sync=public_latest_sync, symbol_delivery_accounting=symbol_accounting,
         )
+        if channel == "line":
+            provenance["chunk_delivery"] = delivery.get("chunk_delivery")
         write_delivery_provenance(
             REPO_ROOT / "artifacts/runtime/delivery_provenance" / f"tw_{args.window}_{channel}_latest.json",
             provenance,

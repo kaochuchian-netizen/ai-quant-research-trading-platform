@@ -603,7 +603,13 @@ def build_observed_card(
     high = number(_quote_value(quote, "high", "session_high"))
     low = number(_quote_value(quote, "low", "session_low"))
     volume = number(_quote_value(quote, "total_volume", "session_volume", "volume"))
-    observed_at = _quote_value(quote, "snapshot_time", "market_data_as_of", "source_record_time")
+    from app.reports.observed_timestamp import observed_time
+    raw_observed_at = _quote_value(quote, "snapshot_time", "market_data_as_of", "source_record_time")
+    timestamp_evidence = observed_time(
+        raw_observed_at, captured_at=quote.get("captured_at") or generated_at,
+        session_date=trading_date, source_timezone=quote.get("source_timezone") or "Asia/Taipei",
+    )
+    observed_at = timestamp_evidence["normalized_timestamp"] if timestamp_evidence["freshness_status"] == "fresh" else None
     required = {"current_price": current, "market_data_as_of": observed_at, "session_open": session_open, "session_high": high, "session_low": low}
     missing = [key for key, value in required.items() if value in (None, "")]
     data_status = "complete" if not missing else "partial" if current is not None or observed_at else "unavailable"
@@ -694,11 +700,12 @@ def build_observed_card(
         "current_price": current, "market_data_as_of": observed_at, "session_open": session_open,
         "session_high": high, "session_low": low, "session_volume": volume,
         "source_name": quote.get("source") or "shioaji_snapshot", "source_type": "observed_market_snapshot",
-        "source_record_time": observed_at, "fetched_at": generated_at, "normalized_at": generated_at,
+        "source_record_time": raw_observed_at, "fetched_at": quote.get("captured_at") or generated_at, "normalized_at": generated_at,
+        "observed_timestamp_evidence": timestamp_evidence,
         "source_timezone": quote.get("source_timezone") or "Asia/Taipei",
         "source_record_time_kind": quote.get("source_record_time_kind") or "exchange_local_datetime",
         "normalized_timezone": quote.get("normalized_timezone") or "Asia/Taipei",
-        "freshness_status": "fresh" if observed_at else "unavailable",
+        "freshness_status": timestamp_evidence["freshness_status"],
         "entry_low": entry_low if plan_status == "active" else None,
         "entry_high": entry_high if plan_status == "active" else None,
         "monitoring_range": {"low": entry_low, "high": entry_high} if plan_status == "watch" else None,

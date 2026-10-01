@@ -1,7 +1,10 @@
 from datetime import datetime
+from zoneinfo import ZoneInfo
+from app.reports.observed_timestamp import observed_time
 
 
-def normalize_snapshot(snapshot):
+def normalize_snapshot(snapshot, *, captured_at=None):
+    captured_at = captured_at or datetime.now(ZoneInfo("Asia/Taipei")).isoformat()
     raw_time = snapshot.ts
     if isinstance(raw_time, datetime):
         snapshot_time = raw_time.isoformat()
@@ -13,7 +16,11 @@ def normalize_snapshot(snapshot):
     else:
         snapshot_time = str(raw_time or "")
         time_kind = "unknown"
+    evidence = observed_time(raw_time, captured_at=captured_at,
+                             session_date=datetime.fromisoformat(captured_at).astimezone(ZoneInfo("Asia/Taipei")).date().isoformat())
     return {
+        "observed_timestamp_evidence": evidence,
+        "captured_at": captured_at,
         "stock_id": snapshot.code,
 
         "open": snapshot.open,
@@ -40,4 +47,5 @@ def normalize_snapshot(snapshot):
 
 
 def normalize_snapshots(snapshots):
-    return [normalize_snapshot(snapshot) for snapshot in snapshots]
+    captured_at = datetime.now(ZoneInfo("Asia/Taipei")).isoformat()
+    return [normalize_snapshot(snapshot, captured_at=captured_at) for snapshot in snapshots]

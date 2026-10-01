@@ -1,0 +1,45 @@
+{
+  "schema_version": "tw_observed_minute_contract_v1",
+  "task_id": "AI-DEV-257",
+  "activation": "OFFLINE_DESIGN_ONLY",
+  "market": "TW",
+  "timezone": "Asia/Taipei",
+  "calendar_owner": "app.evaluation.session_calendar",
+  "archive_owner": "artifacts/archive/window_snapshots",
+  "storage_design": "content-addressed minute partitions referenced by existing archive; no parallel report archive",
+  "required_fields": ["symbol", "session_date", "calendar_identity", "source", "source_revision", "source_digest", "retrieved_at", "available_at", "timestamp_convention", "volume_unit", "price_adjustment", "revision", "predecessor_digest", "input_digest", "bars", "content_digest"],
+  "bar_fields": ["timestamp", "open", "high", "low", "close", "volume"],
+  "universe": "immutable full requested watchlist; every symbol has DATA_AVAILABLE or explicit DATA_MISSING reason",
+  "normalization": "timezone-aware ascending timestamp; identical duplicate dedup; conflicting duplicate fail closed",
+  "coverage": "authoritative session plus approved provider minute/auction grid; no synthetic forward fill; absent/no-trade/provider-outage distinguished",
+  "revision": "append-only content identity; changed source requires new revision and predecessor digest; same semantic input is idempotent",
+  "replay": "explicit as_of; bar availability <= as_of; chronological input; immutable calendar/source digests",
+  "retention": "minute OHLCV retained long-term in compressed columnar partitions; raw provider payload retention and backup policy require activation review",
+  "actual_trend": {
+    "schema_version": "tw_observed_path_trend_v1",
+    "event": "OBSERVED_SESSION_PATH_NOT_PREDICTION_OUTCOME",
+    "inputs": ["complete admitted minute bars", "previous authoritative session close with provenance", "explicit nonnegative absolute flat_band with approved parameter version"],
+    "priority": ["OPEN_LOW_RISE", "OPEN_HIGH_FALL", "BULLISH", "BEARISH", "SIDEWAYS"],
+    "rules": {
+      "OPEN_LOW_RISE": "open < previous_close - flat_band AND final_close > open + flat_band",
+      "OPEN_HIGH_FALL": "open > previous_close + flat_band AND final_close < open - flat_band",
+      "BULLISH": "final_close > open + flat_band",
+      "BEARISH": "final_close < open - flat_band",
+      "SIDEWAYS": "abs(final_close - open) <= flat_band"
+    },
+    "labels": {"OPEN_LOW_RISE": "開低走高", "OPEN_HIGH_FALL": "開高走低", "BULLISH": "偏多", "BEARISH": "偏空", "SIDEWAYS": "盤整"},
+    "interpretation": "labels describe open-to-end net movement, not a monotonic path or predictive skill; equality belongs to the flat band",
+    "incomplete": "INSUFFICIENT_EVIDENCE; never classify missing input as SIDEWAYS",
+    "production_parameter_default": null,
+    "evaluation": "chronological replay using the same stored bars; freeze parameter version before split; preserve confusion/coverage by session; never tune on production outcomes"
+  },
+  "activation_prerequisites": [
+    "Verify deployed Shioaji version numeric timestamp semantics against provider evidence; no guessed 8-hour shift",
+    "Approve minute timestamp start/end convention and closing-auction/no-trade grid",
+    "Approve OHLCV volume unit and adjustment semantics",
+    "Approve flat-band parameter value/version and raw retention policy",
+    "Prove full-watchlist retrieval without relaxing historical admission or adding a scheduler"
+  ],
+  "production_ingestion_enabled": false,
+  "production_actual_trend_enabled": false
+}
