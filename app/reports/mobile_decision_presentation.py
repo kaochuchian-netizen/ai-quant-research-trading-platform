@@ -189,4 +189,8 @@ def render_line(payload, market, window, url):
     if not projection["cards"]:
         lines.append("本批次尚未提供正式資料，不沿用其他窗口內容。")
     lines.extend(["完整報告：", url, "僅供研究參考，非交易指令。"])
-    return "\n".join(lines)
+    text = "\n".join(lines)
+    if market == "TW":
+        from app.reports.tw_line_completeness import complete_line_universe
+        text = complete_line_universe(text, payload, [c["symbol"] for c in projection["cards"]])
+    return text
