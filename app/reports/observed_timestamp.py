@@ -29,6 +29,8 @@ def observed_time(raw, *, captured_at, session_date, source_timezone="Asia/Taipe
             seconds, remainder = divmod(value, scale)
             instant = datetime(1970, 1, 1, tzinfo=timezone.utc) + timedelta(seconds=seconds, microseconds=remainder * 1000000 // scale)
         else:
+            if not isinstance(raw, datetime) and len(str(raw)) < 19:
+                raise ValueError("date_without_time")
             instant = raw if isinstance(raw, datetime) else datetime.fromisoformat(str(raw))
             if instant.tzinfo is None:
                 if source_timezone != "Asia/Taipei":

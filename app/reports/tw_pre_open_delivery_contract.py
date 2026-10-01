@@ -83,7 +83,7 @@ def _channel_delivery(channel: str, sender: Callable[[dict[str, Any]], dict[str,
     try:
         result = dict(sender(snapshot))
     except Exception as exc:
-        result = {"send_attempted": True, "send_status": "failed", "error_type": exc.__class__.__name__, "secret_values_printed": False}
+        result = {"send_attempted": True, "send_status": "failed", "error_type": exc.__class__.__name__, "chunk_delivery": getattr(exc, "chunk_delivery", None), "secret_values_printed": False}
     if result.get("send_status") == "sent" and result.get("send_attempted") is not True:
         result = {"send_attempted": False, "send_status": "failed", "error_type": "InvalidTransportEvidence", "secret_values_printed": False}
     result["delivery_identity"] = identity

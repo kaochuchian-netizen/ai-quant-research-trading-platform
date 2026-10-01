@@ -67,6 +67,11 @@ class LineTests(unittest.TestCase):
         self.assertIn("歷史資料未更新", text)
         self.assertNotIn("STALE", text)
 
+    def test_missing_analysis_card_explicit(self):
+        evidence=notification_universe_evidence({"cards":[],"historical_symbol_admission":[{"symbol":"2330","status":"ADMITTED"}]})
+        self.assertEqual(evidence["notification_exclusions"]["2330"],"ADMITTED_CARD_MISSING")
+        self.assertIn("未產生",complete_line_universe("報告",evidence,[]))
+
     def test_unexplained_omission_rejected(self):
         with self.assertRaises(ValueError):
             complete_line_universe("2330", {"tracking_symbols": ["2330", "00878"]}, ["2330"])
@@ -78,6 +83,29 @@ class LineTests(unittest.TestCase):
         r = build_symbol_delivery_accounting(expected_symbols=["2330"], rendered_symbols=["2330"], policy="test", channel="line", content="2330" + "字"*10000)
         self.assertEqual(r["chunk_count"], 3)
         self.assertTrue(r["complete"])
+
+    def test_email_not_line_chunked(self):
+        r=build_symbol_delivery_accounting(expected_symbols=[],rendered_symbols=[],policy="test",channel="email",content="a"*10000)
+        self.assertEqual(r["message_count"],1)
+
+    def test_preopen_partial_diagnostic_preserved(self):
+        from app.reports.tw_pre_open_delivery_contract import _channel_delivery
+        def failure(snapshot):
+            raise LineChunkFailure({"completed_chunk_count":1,"partial_delivery_possible":True})
+        with patch("app.reports.tw_pre_open_delivery_contract.delivery_identity",return_value={}):
+            result=_channel_delivery("line",failure,{},None)
+        self.assertEqual(result["send_status"],"failed")
+        self.assertEqual(result["chunk_delivery"]["completed_chunk_count"],1)
+
+    def test_four_window_full_universe(self):
+        from app.reports.mobile_decision_presentation import render_line, CARD_KEYS
+        for window in ("pre_open_0700","intraday_1305","pre_close_1335","post_close_1500"):
+            symbols=[str(3000+i) for i in range(10)]
+            payload={CARD_KEYS[window]:[{"symbol":s,"name":"測試"} for s in symbols[:8]],
+                     "notification_universe":symbols,"notification_exclusions":{s:"STALE" for s in symbols[8:]}}
+            text=render_line(payload,"TW",window,"https://example.invalid")
+            self.assertTrue(all(s in text for s in symbols))
+            self.assertEqual("".join(split_line_text(text)),text)
 
     def test_wrapper_full_content_and_mock_transport(self):
         from scripts.orchestrator import approved_pre_open_delivery as wrapper
@@ -111,6 +139,7 @@ class TimestampTests(unittest.TestCase):
     def test_missing(self): self.check(None, "unavailable")
     def test_malformed(self): self.check("bad", "invalid")
     def test_unknown_precision(self): self.check(123, "invalid")
+    def test_date_only(self): self.check("2026-10-01", "invalid")
     def test_boolean(self): self.check(True, "invalid")
     def test_naive_undeclared_zone(self): self.check("2026-10-01T13:30:00", "invalid", source_timezone="UNKNOWN")
     def test_naive_capture(self):
@@ -193,6 +222,12 @@ class MinuteContractTests(unittest.TestCase):
             rows=[{**r,"open":opening,"close":close,"high":max(opening,close),"low":min(opening,close)} for r in self.rows]
             result=classify_observed_path(self.evidence(rows),previous_close=previous,flat_band=band,parameter_version="fixture-only-v1")
             self.assertEqual(result["trend"],label);self.assertFalse(result["production_eligible"])
+    def test_contract_required_provenance(self):
+        d=json.loads((ROOT/"config/governance/tw_observed_minute_contract_v1.json").read_text())
+        self.assertTrue({"source_digest","source_revision","calendar_identity","available_at","revision","predecessor_digest","input_digest","content_digest"}.issubset(d["required_fields"]))
+        self.assertEqual(d["calendar_owner"],"app.evaluation.session_calendar")
+        self.assertNotIn("prediction",d["bar_fields"])
+
     def test_contract_no_activation(self):
         d=json.loads((ROOT/"config/governance/tw_observed_minute_contract_v1.json").read_text())
         self.assertFalse(d["production_ingestion_enabled"])

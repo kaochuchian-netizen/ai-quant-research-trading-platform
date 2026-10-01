@@ -58,7 +58,7 @@ def build_symbol_delivery_accounting(
         "omitted_symbol_count": len(omitted),
         "message_count": 1,
         "chunk_count": 1,
-        **chunk_evidence(content),
+        **(chunk_evidence(content) if channel == "line" and content else {}),
         "message_chars": len(content),
         "silent_omission": bool(omitted),
         "complete": not omitted,
@@ -69,9 +69,16 @@ def notification_universe_evidence(runtime):
     """Freeze requested symbols and admission reasons, not new analysis cards."""
     rows = runtime.get("historical_symbol_admission") or []
     symbols = [str(r["symbol"]) for r in rows if isinstance(r, dict) and r.get("symbol")]
-    return {"notification_universe": list(dict.fromkeys(symbols or runtime.get("tracking_symbols", []))),
-            "notification_exclusions": {str(r["symbol"]): str(r.get("exclusion_reason") or "UNAVAILABLE")
-                for r in rows if isinstance(r, dict) and r.get("symbol") and r.get("status") != "ADMITTED"}}
+    exclusions = {str(r["symbol"]): str(r.get("exclusion_reason") or "UNAVAILABLE")
+                  for r in rows if isinstance(r, dict) and r.get("symbol") and r.get("status") != "ADMITTED"}
+    universe = list(dict.fromkeys(symbols or runtime.get("tracking_symbols", [])))
+    if isinstance(runtime.get("cards"), list):
+        admitted_cards = {str(c.get("symbol") or c.get("stock_id")) for c in runtime["cards"] if isinstance(c, dict)}
+        for symbol in universe:
+            if symbol not in admitted_cards and symbol not in exclusions:
+                exclusions[symbol] = "ADMITTED_CARD_MISSING"
+    return {"notification_universe": universe, "notification_exclusions": exclusions}
+
 
 
 def complete_line_universe(content, payload, rendered_symbols):
@@ -81,7 +88,8 @@ def complete_line_universe(content, payload, rendered_symbols):
         raise ValueError("duplicate_line_symbol")
     exclusions = payload.get("notification_exclusions") or {}
     labels = {"STALE": "歷史資料未更新至應有交易日，未納入本次分析",
-              "INSUFFICIENT_LOOKBACK": "歷史資料筆數不足，未納入本次分析"}
+              "INSUFFICIENT_LOOKBACK": "歷史資料筆數不足，未納入本次分析",
+              "ADMITTED_CARD_MISSING": "本次分析卡片未產生，尚無可用分析結果"}
     for symbol in expected:
         if symbol not in rendered_symbols:
             reason = exclusions.get(symbol)
