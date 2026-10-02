@@ -51,7 +51,55 @@ def collect_market(archive,market,calendar,cutoff):
             item=read(p);verify(item)
             if aware(item["available_at"])<=aware(cutoff):
                 outcomes.append(item)
-    return {"calendar":calendar,"records":records,"outcomes":outcomes}
+    windows = collect_windows(archive, market, days, cutoff)
+    from app.evaluation.daily_evaluation import window_outcomes
+    derived, diagnostics = window_outcomes(records, windows, cutoff)
+    return {"calendar":calendar,"records":records,"outcomes":outcomes + derived,
+            "window_evidence":windows,"outcome_diagnostics":diagnostics,
+            "derived_outcomes":derived}
+
+def collect_windows(archive, market, days, cutoff):
+    """Read the existing seven-window archive; no market fetch or inferred origins."""
+    from app.dashboard.window_snapshot_archive import MARKET_WINDOWS, admission_errors, snapshot_id
+    from copy import deepcopy
+    result=[]
+    for day in days:
+        for window in MARKET_WINDOWS[market]:
+            directory=Path(archive)/market.lower()/window/day
+            candidates=[]
+            for path in sorted(directory.glob("revision-*.json")):
+                value=read(path)
+                if value.get("run_kind") != "scheduled" or aware(value["generated_at"]) > aware(cutoff):
+                    continue
+                if (admission_errors(value) or snapshot_id({k:v for k,v in value.items() if k!="snapshot_id"})!=value["snapshot_id"]
+                    or (value["market"],value["window"],value["effective_trading_date"])!=(market,window,day)):
+                    raise ValueError("WINDOW_REPORT_BINDING")
+                candidates.append(value)
+            if len(candidates)>32:
+                raise ValueError("WINDOW_REVISION_BOUND")
+            if not candidates:
+                continue
+            value=max(candidates,key=lambda v:v["revision"])
+            payload=value["payload"]
+            keys=("structured_pre_open_cards","structured_intraday_cards","structured_pre_close_cards","structured_review_cards","cards") if market=="TW" else ("items",)
+            cards=next((payload[k] for k in keys if isinstance(payload.get(k),list) and payload[k]),[])
+            fields=("symbol","stock_id","prediction_id","parent_setup_id","actual_close","actual_open","actual_high","actual_low",
+                    "actual_status","actual_missing_reason","source_name","source_type","source_record_time","source_timezone",
+                    "market_data_as_of","fetched_at","freshness_status","prediction_range_result","trade_outcome",
+                    "prediction_evaluation_v2","canonical_outcome","review","outcome_evidence","trigger_evidence",
+                    "mfe","mae","mfe_pct","mae_pct")
+            observations=[]
+            if market=="US" and window=="us_post_close_review_0630":
+                for path in files(directory/".frozen",128):
+                    obs=read(path);verify(obs)
+                    if obs.get("kind")=="US_MARKET_OBSERVATION" and aware(obs["available_at"])<=aware(cutoff):
+                        observations.append(obs)
+            result.append(stamp({"kind":"DAILY_WINDOW_EVIDENCE","market":market,"window":window,"session":day,
+                "report_identity":{k:value[k] for k in ("snapshot_id","revision","market","window","effective_trading_date","run_kind")},
+                "source_digest":digest(value),"generated_at":value["generated_at"],
+                "cards":[{k:deepcopy(c[k]) for k in fields if k in c} for c in cards],
+                "observations":observations}))
+    return result
 
 def collect(archive,report_date,calendars=None):
     result={}
@@ -91,6 +139,10 @@ def persist_daily(archive,report_date,*,output_root=None):
                 previous={"invalid":True}
     value=build_daily(report_date,inputs,previous)
     replay(value)
+    for market, packet in inputs.items():
+        for item in ([] if output_root else packet.get("derived_outcomes", [])):
+            session_day=item["horizon"]["session_date"]
+            publish(archive/market.lower()/ORIGINS[market]/session_day/".outcome"/(item["content_hash"]+".json"),item)
     publish(target,value)
     return target,value
 
