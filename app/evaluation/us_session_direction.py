@@ -86,7 +86,9 @@ def predict(observation, calendar, *, frozen_at, learning_reference=None):
     identity=digest({"producer":PRODUCER,"symbol":observation["symbol"],"session":day,
                      "observation":observation["content_hash"],"frozen_at":frozen_at})
     learning = apply_learning(learning_reference, frozen_at=frozen_at,
-        feature_times=[ref["available_at"], atr["available_at"], *(f["available_at"] for f in fs.values())], horizon_open=h["open_at"])
+        feature_times=[ref["available_at"], atr["available_at"], *(f["available_at"] for f in fs.values())], horizon_open=h["open_at"], direction=direction)
+    if learning is not None and learning["decision_effect"] == "ABSTAIN_NO_FORECAST":
+        return stamp({**common,"status":"NO_FORECAST","reason":"LEARNING_DIRECTION_ERROR_ABSTENTION","learning_used":learning})
     f=freeze(prediction_id=identity,symbol=observation["symbol"],direction=direction,frozen_at=frozen_at,
              reference=ref,atr=atr,calendar=calendar,review_session=day,producer=PRODUCER,
              market="US",stream=STREAM,prediction_features=fs,learning_used=learning)

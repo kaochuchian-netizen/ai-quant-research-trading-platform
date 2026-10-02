@@ -16,9 +16,16 @@ def derive(report_date, markets):
         data = markets.get(market, {})
         diagnostics = data.get("outcome_diagnostics", [])
         unresolved = sorted({d.get("reason") for d in diagnostics if d.get("status") != "RESOLVED" and d.get("reason")})
+        failed = sorted({review.get("prediction_direction") for stock in data.get("stocks", {}).values()
+                         for review in stock.get("sample_reviews", {}).values()
+                         if review.get("assessment", {}).get("eligible") is True
+                         and review.get("assessment", {}).get("direction_correct") is False
+                         and review.get("prediction_direction") in {"UP", "DOWN", "FLAT"}})
         scope[market] = {
-            "finding": "OUTCOME_EVIDENCE_GAP" if unresolved else "EVIDENCE_CHAIN_OBSERVED",
+            "finding": "DIRECTION_ERROR_OBSERVED" if failed else ("OUTCOME_EVIDENCE_GAP" if unresolved else "EVIDENCE_CHAIN_OBSERVED"),
             "finding_reasons": unresolved,
+            "actionable_learning": {"id": "AVOID_REPEATING_MATURE_DIRECTION_ERROR", "avoid_directions": failed,
+                                    "application": "EXISTING_NO_FORECAST_ABSTENTION", "active": bool(failed)},
             "fix": {"id": CONTROL, "state": "PROPOSED_DIAGNOSTIC_CONTROL",
                     "description": "Verify frozen feature provenance and session horizon before retaining native prediction evidence."},
         }
@@ -72,9 +79,9 @@ def latest(root, market, session_date, frozen_at):
     _, parent_hash, learning = min(candidates, key=lambda row:(row[0], row[1]))
     return {"daily_artifact_digest": parent_hash, "learning_digest": learning["content_hash"],
             "learning_id": learning["learning_id"], "report_date": learning["report_date"],
-            "market": market, "control": CONTROL}
+            "market": market, "control": CONTROL, "actionable_learning": deepcopy(learning["markets"][market].get("actionable_learning") or {})}
 
-def apply(reference, *, frozen_at, feature_times, horizon_open):
+def apply(reference, *, frozen_at, feature_times, horizon_open, direction=None):
     """Evidence that a prior diagnostic control was actually applied to this capture."""
     if reference is None:
         return None
@@ -84,8 +91,12 @@ def apply(reference, *, frozen_at, feature_times, horizon_open):
         raise ValueError("LEARNING_FEATURE_TIME")
     if aware(frozen_at) >= aware(horizon_open):
         raise ValueError("LEARNING_HORIZON")
+    actionable = reference.get("actionable_learning") or {}
+    avoid = actionable.get("avoid_directions") or []
+    effect = "ABSTAIN_NO_FORECAST" if actionable.get("active") is True and direction in avoid else "RETAIN_EXISTING_DECISION"
     return stamp({"schema_version": VERSION, "kind": "LEARNING_USED", "learning_reference": deepcopy(reference),
                   "applied_at": frozen_at, "application": "FROZEN_PROVENANCE_GATE_APPLIED",
+                  "applied_learning": deepcopy(actionable), "decision_direction": direction, "decision_effect": effect,
                   "controls": {"feature_available_before_freeze": True, "horizon_open_after_freeze": True},
                   "model_mutation": False, "strategy_mutation": False, "weights_mutation": False})
 
@@ -97,7 +108,7 @@ def validate_used(value):
         raise ValueError("LEARNING_USED_DIGEST")
     if value.get("schema_version") != VERSION or value.get("kind") != "LEARNING_USED":
         raise ValueError("LEARNING_USED_SCHEMA")
-    if value.get("application") != "FROZEN_PROVENANCE_GATE_APPLIED" or value.get("controls") != {"feature_available_before_freeze": True, "horizon_open_after_freeze": True}:
+    if value.get("application") != "FROZEN_PROVENANCE_GATE_APPLIED" or value.get("decision_effect") not in {"ABSTAIN_NO_FORECAST", "RETAIN_EXISTING_DECISION"} or value.get("controls") != {"feature_available_before_freeze": True, "horizon_open_after_freeze": True}:
         raise ValueError("LEARNING_USED_CONTROL")
     if any(value.get(flag) is not False for flag in ("model_mutation", "strategy_mutation", "weights_mutation")):
         raise ValueError("LEARNING_USED_MUTATION")

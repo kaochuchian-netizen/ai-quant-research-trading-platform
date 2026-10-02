@@ -57,10 +57,13 @@ def capture(card, *, root=ROOT, clock=None):
                             revision=p["method_version"], source_digest=digest(p),
                             as_of=observed, available_at=available, producer=p["method_version"])
         frozen_at = clock()
+        direction = {"bullish":"UP","bearish":"DOWN","neutral":"FLAT"}[p["direction_forecast"]]
         learning = apply_learning(latest_learning(root, "TW", day, frozen_at), frozen_at=frozen_at,
-            feature_times=[reference["available_at"], atr_feature["available_at"]], horizon_open=h["open_at"])
+            feature_times=[reference["available_at"], atr_feature["available_at"]], horizon_open=h["open_at"], direction=direction)
+        if learning is not None and learning["decision_effect"] == "ABSTAIN_NO_FORECAST":
+            return {"status":"NO_FORECAST", "reason":"LEARNING_DIRECTION_ERROR_ABSTENTION", "learning_used":learning}
         frozen = freeze(prediction_id=p["prediction_identity"], symbol=symbol,
-                        direction={"bullish":"UP","bearish":"DOWN","neutral":"FLAT"}[p["direction_forecast"]],
+                        direction=direction,
                         frozen_at=frozen_at, reference=reference, atr=atr_feature, calendar=calendar,
                         review_session=day, producer=p["method_version"], learning_used=learning)
         return {"status":"FROZEN", "frozen":frozen}
