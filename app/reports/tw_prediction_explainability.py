@@ -12,6 +12,7 @@ import math
 import re
 from copy import deepcopy
 from typing import Any
+from app.reports.structured_card_diagnostics import CardValidationError
 
 WINDOWS = ("pre_open_0700", "intraday_1305", "pre_close_1335", "post_close_1500")
 DIRECTIONS = {"bullish", "bearish", "neutral", "range_bound", "insufficient_evidence"}
@@ -50,9 +51,9 @@ def _hash(value: Any, prefix: str) -> str:
 def validate_interval(low: Any, high: Any, *, name: str = "prediction") -> tuple[float | None, float | None]:
     lo, hi = _number(low), _number(high)
     if (lo is None) != (hi is None):
-        raise ValueError(f"{name}_interval_incomplete")
+        raise CardValidationError(f"{name}_interval_incomplete", values={f"{name}_range.low": low, f"{name}_range.high": high})
     if lo is not None and hi is not None and lo > hi:
-        raise ValueError(f"{name}_interval_reversed")
+        raise CardValidationError(f"{name}_interval_reversed", values={f"{name}_range.low": low, f"{name}_range.high": high})
     return lo, hi
 
 
@@ -229,7 +230,7 @@ def _progress(direction: str, low: float | None, high: float | None, card: dict[
 
 def project_tw_prediction_card(card: dict[str, Any], window: str, *, strict: bool = True) -> dict[str, Any]:
     if window not in WINDOWS:
-        raise ValueError("unsupported_tw_prediction_window")
+        raise CardValidationError("unsupported_tw_prediction_window", values={"window": window})
     result = deepcopy(card)
     snapshot = result.get("prediction_snapshot_v2") if isinstance(result.get("prediction_snapshot_v2"), dict) else {}
     range_forecast = snapshot.get("range_forecast") if isinstance(snapshot.get("range_forecast"), dict) else {}
@@ -251,7 +252,7 @@ def project_tw_prediction_card(card: dict[str, Any], window: str, *, strict: boo
     same_horizon_conflict = (direction == "bullish" and bearish_reason) or (direction == "bearish" and bullish_reason)
     explicit_conflict = bool(result.get("signal_conflict"))
     if strict and same_horizon_conflict and not explicit_conflict:
-        raise ValueError("same_horizon_semantic_conflict")
+        raise CardValidationError("same_horizon_semantic_conflict", values={"direction": direction, "reasoning.directional_markers": True, "signal_conflict": explicit_conflict})
     prediction_id = snapshot.get("prediction_identity") or result.get("prediction_id")
     if not prediction_id:
         prediction_id = _hash({"symbol": result.get("symbol") or result.get("stock_id"), "window": "pre_open_0700", "range": [low, high], "direction": direction}, "twpred_")

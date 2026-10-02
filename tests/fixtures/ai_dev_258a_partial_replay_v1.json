@@ -1,0 +1,2255 @@
+{
+  "schema_version": "ai_dev_258a_partial_replay_fixture_v1",
+  "baseline": "76f55ae796ce35487e14903bfdd4bc401fe0a26d",
+  "archive_sha256": "c8b87c0a42e63b621959ef77fcc295a5ea323139f55279ab5dd520e078f78c0f",
+  "evidence_status": "PARTIAL_RECONSTRUCTION_NOT_EXACT_INCIDENT_REPLAY",
+  "missing_original_inputs": [
+    "2330 news_bundle",
+    "2330 analysis object",
+    "exception message",
+    "traceback",
+    "2330 in-memory tactical object"
+  ],
+  "news_policy": "omitted in partial replay; no fetch; cannot infer original absence",
+  "cases": [
+    {
+      "symbol": "2330",
+      "name": "台積電",
+      "tactical": {
+        "market": "TW",
+        "stock_id": "2330",
+        "stock_name": "台積電",
+        "strategy_id": "tw_daily_tactical_v1",
+        "strategy_type": "daily_tactical",
+        "strategy_version": "v1",
+        "factor_version": "tw_daily_tactical_factor_v1",
+        "factor_weights": {
+          "technical_setup": 0.22,
+          "volume_confirmation": 0.16,
+          "chip_flow": 0.14,
+          "market_context": 0.12,
+          "risk_quality": 0.18,
+          "data_quality": 0.18
+        },
+        "generated_at": "2026-10-02T09:07:42+08:00",
+        "direction": "no_trade",
+        "setup_type": "no_trade",
+        "action": "避免追高",
+        "score": 29.66,
+        "rating": "No-Trade",
+        "confidence": 32.6,
+        "entry_zone": null,
+        "stop_invalidation": null,
+        "target_1": null,
+        "target_2": null,
+        "expected_move_pct": null,
+        "reward_risk": null,
+        "level_method": "suppressed_for_no_trade_or_insufficient_data",
+        "chase_risk": "high",
+        "event_risk": "unknown",
+        "position_size": "avoid",
+        "time_horizon": "intraday_to_5d",
+        "data_quality": "partial",
+        "factor_coverage": {
+          "statuses": {
+            "price_trend": "available",
+            "volume": "available",
+            "support_resistance": "available",
+            "chip": "partial",
+            "institutional_flow": "unavailable",
+            "margin_short": "unavailable",
+            "market_context": "partial",
+            "event_news": "unavailable",
+            "prediction_snapshot": "available",
+            "review_outcome": "partial"
+          },
+          "instrument_type": "common_stock",
+          "summary": {
+            "available": 4,
+            "partial": 3,
+            "unavailable": 3,
+            "stale": 0,
+            "not_applicable": 0
+          },
+          "data_quality": "partial",
+          "downgrade_policy": "missing or stale TW tactical inputs lower confidence/position size; insufficient core OHLCV forces no_trade"
+        },
+        "source_status": {
+          "historical_ohlcv": "available",
+          "technical_engine": "available",
+          "twse_institutional_flow": "unavailable",
+          "margin_short": "unavailable",
+          "chip_engine": "partial",
+          "news_event": "unavailable",
+          "tw_market_context": "partial"
+        },
+        "technical_factors": {
+          "latest_date": "2026-10-01",
+          "latest_close": 2510.0,
+          "latest_open": 2490.0,
+          "latest_high": 2510.0,
+          "latest_low": 2485.0,
+          "latest_volume": 18496.0,
+          "history_days": 123,
+          "history_start": "2026-04-07",
+          "history_end": "2026-10-01",
+          "source": "canonical_historical_csv",
+          "ma5": 2488.0,
+          "ma10": 2464.5,
+          "ma20": 2442.5,
+          "ma60": 2403.42,
+          "ma20_slope": 0.00722,
+          "ma60_slope": 0.00108,
+          "rsi14": 57.14,
+          "macd": 23.9104,
+          "macd_signal": 18.0329,
+          "macd_histogram": 5.8775,
+          "bollinger_upper": 2525.72,
+          "bollinger_middle": 2442.5,
+          "bollinger_lower": 2359.28,
+          "bollinger_width": 0.06814,
+          "atr14": 35.71,
+          "atr_pct": 0.01423,
+          "high_5d": 2510.0,
+          "low_5d": 2470.0,
+          "high_10d": 2510.0,
+          "low_10d": 2375.0,
+          "high_20d": 2510.0,
+          "low_20d": 2375.0,
+          "current_range_position": 1.0,
+          "volume_ma5": 21357.0,
+          "volume_ma20": 19276.0,
+          "relative_volume": 0.96,
+          "volume_expansion": false,
+          "volume_contraction": false,
+          "return_volatility_pct": 0.01155
+        },
+        "support_resistance": {
+          "nearest_support": 2490.0,
+          "secondary_support": 2470.0,
+          "nearest_resistance": 2525.0,
+          "secondary_resistance": 2575.0,
+          "sources": [
+            "recent_swing_high_low",
+            "5_10_20d_high_low",
+            "moving_average",
+            "bollinger_band",
+            "atr_buffer"
+          ],
+          "tick_size_applied": true
+        },
+        "chip_tactical": {
+          "instrument_type": "common_stock",
+          "chip_direction": "neutral",
+          "chip_score": 50,
+          "institutional_flow": {
+            "foreign_investor_net_buy_sell": null,
+            "foreign_consecutive_days": null,
+            "investment_trust_net_buy_sell": null,
+            "investment_trust_consecutive_days": null,
+            "dealer_net_buy_sell": null,
+            "institutional_alignment": "unavailable",
+            "price_flow_divergence": "unavailable",
+            "data_status": "unavailable"
+          },
+          "margin_risk": {
+            "margin_balance_change": null,
+            "short_balance_change": null,
+            "margin_price_divergence": "unavailable",
+            "short_interest_signal": "unavailable",
+            "margin_overheat_risk": "unavailable",
+            "data_status": "unavailable"
+          },
+          "short_signal": "unavailable",
+          "short_interest_signal": "unavailable",
+          "flow_confirmation": false,
+          "chip_data_quality": "partial",
+          "data_quality": "partial",
+          "notes": [
+            "正式法人/融資券細項尚未接入；以量價代理輔助判斷並降低信心，不偽造籌碼資料。"
+          ]
+        },
+        "market_context": {
+          "market_bias": "bullish",
+          "market_risk": "low",
+          "market_breadth_status": "watchlist breadth bullish=6/10, bearish=4/10; broad TWSE breadth unavailable",
+          "market_volume_status": "normal",
+          "market_regime": "bullish_low_risk",
+          "market_context_score": 58.0,
+          "market_data_quality": "partial",
+          "data_status": "partial",
+          "unavailable_fields": [
+            "TWSE index breadth",
+            "OTC breadth",
+            "market-wide advancers/decliners"
+          ]
+        },
+        "score_components": {
+          "technical_setup": 7.7,
+          "volume_confirmation": 8.8,
+          "chip_flow": 7.0,
+          "market_context": 6.96,
+          "risk_quality": 5.04,
+          "data_quality": 11.16
+        },
+        "score_before_penalty": 46.66,
+        "risk_penalty": 12.0,
+        "data_quality_penalty": 5.0,
+        "final_score": 29.66,
+        "reasons": [
+          "追高風險過高，等待拉回"
+        ],
+        "risk_reasons": [
+          "接近 Bollinger 上緣",
+          "已達一個 ATR 以上擴張",
+          "突破或上攻量能未確認"
+        ],
+        "playbook": {
+          "setup_type": "no_trade",
+          "template": "目前缺乏合理進場結構、資料品質不足或報酬風險不合格，暫不建立戰術部位。",
+          "entry_condition": "use deterministic entry_zone when present",
+          "invalidation_condition": "資料不足",
+          "risk_context": [
+            "接近 Bollinger 上緣",
+            "已達一個 ATR 以上擴張",
+            "突破或上攻量能未確認"
+          ]
+        },
+        "advisory_only": true,
+        "trading_or_order_executed": false
+      },
+      "indicator": {
+        "close": 2510.0,
+        "date": "2026-10-01"
+      },
+      "expected_tactical_direction": "no_trade",
+      "expected_ma5": 2488.0,
+      "expected_ma10": 2464.5,
+      "provenance": {
+        "csv_sha256": "293dddf3ec33034ebd0378b15e13d5094548a994f8ee8751ca83af4cb0d1f56f",
+        "rows": 123,
+        "latest_date": "2026-10-01"
+      }
+    },
+    {
+      "symbol": "009816",
+      "name": "凱基台灣TOP50",
+      "tactical": {
+        "market": "TW",
+        "stock_id": "009816",
+        "stock_name": "凱基台灣TOP50",
+        "strategy_id": "tw_daily_tactical_v1",
+        "strategy_type": "daily_tactical",
+        "strategy_version": "v1",
+        "factor_version": "tw_daily_tactical_factor_v1",
+        "factor_weights": {
+          "technical_setup": 0.22,
+          "volume_confirmation": 0.16,
+          "chip_flow": 0.14,
+          "market_context": 0.12,
+          "risk_quality": 0.18,
+          "data_quality": 0.18
+        },
+        "generated_at": "2026-10-02T09:07:42+08:00",
+        "direction": "bullish",
+        "setup_type": "pullback",
+        "action": "拉回承接",
+        "score": 53.68,
+        "rating": "C-Tactical",
+        "confidence": 60.0,
+        "entry_zone": {
+          "low": 16.55,
+          "high": 16.6
+        },
+        "stop_invalidation": {
+          "price": 16.45,
+          "reason": "跌破回測支撐與 ATR 失效區，拉回承接 setup 取消"
+        },
+        "target_1": {
+          "low": 16.75,
+          "high": 16.85
+        },
+        "target_2": {
+          "low": 16.9,
+          "high": 17.0
+        },
+        "expected_move_pct": 1.2,
+        "reward_risk": 1.8,
+        "level_method": "setup_specific_support_resistance_atr_tick_size_v1",
+        "chase_risk": "medium",
+        "event_risk": "unknown",
+        "position_size": "half",
+        "time_horizon": "intraday_to_5d",
+        "data_quality": "partial",
+        "factor_coverage": {
+          "statuses": {
+            "price_trend": "available",
+            "volume": "available",
+            "support_resistance": "available",
+            "chip": "not_applicable",
+            "institutional_flow": "not_applicable",
+            "margin_short": "not_applicable",
+            "market_context": "partial",
+            "event_news": "unavailable",
+            "prediction_snapshot": "available",
+            "review_outcome": "partial"
+          },
+          "instrument_type": "etf",
+          "summary": {
+            "available": 4,
+            "partial": 2,
+            "unavailable": 1,
+            "stale": 0,
+            "not_applicable": 3
+          },
+          "data_quality": "partial",
+          "downgrade_policy": "missing or stale TW tactical inputs lower confidence/position size; insufficient core OHLCV forces no_trade"
+        },
+        "source_status": {
+          "historical_ohlcv": "available",
+          "technical_engine": "available",
+          "twse_institutional_flow": "not_applicable",
+          "margin_short": "not_applicable",
+          "chip_engine": "not_applicable",
+          "news_event": "unavailable",
+          "tw_market_context": "partial"
+        },
+        "technical_factors": {
+          "latest_date": "2026-10-01",
+          "latest_close": 16.6,
+          "latest_open": 16.5,
+          "latest_high": 16.6,
+          "latest_low": 16.43,
+          "latest_volume": 94143.0,
+          "history_days": 123,
+          "history_start": "2026-04-07",
+          "history_end": "2026-10-01",
+          "source": "canonical_historical_csv",
+          "ma5": 16.53,
+          "ma10": 16.38,
+          "ma20": 16.14,
+          "ma60": 15.38,
+          "ma20_slope": 0.01487,
+          "ma60_slope": 0.00435,
+          "rsi14": 65.22,
+          "macd": 0.2988,
+          "macd_signal": 0.2802,
+          "macd_histogram": 0.0187,
+          "bollinger_upper": 16.78,
+          "bollinger_middle": 16.14,
+          "bollinger_lower": 15.51,
+          "bollinger_width": 0.07914,
+          "atr14": 0.21,
+          "atr_pct": 0.01269,
+          "high_5d": 16.68,
+          "low_5d": 16.4,
+          "high_10d": 16.76,
+          "low_10d": 15.75,
+          "high_20d": 16.76,
+          "low_20d": 15.61,
+          "current_range_position": 0.8609,
+          "volume_ma5": 89832.0,
+          "volume_ma20": 89113.0,
+          "relative_volume": 1.056,
+          "volume_expansion": false,
+          "volume_contraction": false,
+          "return_volatility_pct": 0.00905
+        },
+        "support_resistance": {
+          "nearest_support": 16.55,
+          "secondary_support": 16.4,
+          "nearest_resistance": 16.7,
+          "secondary_resistance": 16.75,
+          "sources": [
+            "recent_swing_high_low",
+            "5_10_20d_high_low",
+            "moving_average",
+            "bollinger_band",
+            "atr_buffer"
+          ],
+          "tick_size_applied": true
+        },
+        "chip_tactical": {
+          "instrument_type": "etf",
+          "chip_direction": "neutral",
+          "chip_score": 50,
+          "institutional_flow": {
+            "foreign_investor_net_buy_sell": null,
+            "foreign_consecutive_days": null,
+            "investment_trust_net_buy_sell": null,
+            "investment_trust_consecutive_days": null,
+            "dealer_net_buy_sell": null,
+            "institutional_alignment": "not_applicable",
+            "price_flow_divergence": "not_applicable",
+            "data_status": "not_applicable"
+          },
+          "margin_risk": {
+            "margin_balance_change": null,
+            "short_balance_change": null,
+            "margin_price_divergence": "not_applicable",
+            "short_interest_signal": "not_applicable",
+            "margin_overheat_risk": "not_applicable",
+            "data_status": "not_applicable"
+          },
+          "short_signal": "not_applicable",
+          "short_interest_signal": "not_applicable",
+          "flow_confirmation": false,
+          "chip_data_quality": "not_applicable",
+          "data_quality": "not_applicable",
+          "notes": [
+            "ETF 標的不硬套個股法人/融資券規則，籌碼因子列為 not_applicable。"
+          ]
+        },
+        "market_context": {
+          "market_bias": "bullish",
+          "market_risk": "low",
+          "market_breadth_status": "watchlist breadth bullish=6/10, bearish=4/10; broad TWSE breadth unavailable",
+          "market_volume_status": "normal",
+          "market_regime": "bullish_low_risk",
+          "market_context_score": 58.0,
+          "market_data_quality": "partial",
+          "data_status": "partial",
+          "unavailable_fields": [
+            "TWSE index breadth",
+            "OTC breadth",
+            "market-wide advancers/decliners"
+          ]
+        },
+        "score_components": {
+          "technical_setup": 15.4,
+          "volume_confirmation": 8.8,
+          "chip_flow": 7.0,
+          "market_context": 6.96,
+          "risk_quality": 9.36,
+          "data_quality": 11.16
+        },
+        "score_before_penalty": 58.68,
+        "risk_penalty": 0.0,
+        "data_quality_penalty": 5.0,
+        "final_score": 53.68,
+        "reasons": [
+          "中期趨勢向上",
+          "回測短中期均線",
+          "量縮整理"
+        ],
+        "risk_reasons": [
+          "接近 Bollinger 上緣",
+          "已達一個 ATR 以上擴張"
+        ],
+        "playbook": {
+          "setup_type": "pullback",
+          "template": "等待回測支撐或短期均線止穩；量縮不破可觀察，跌破結構支撐取消。",
+          "entry_condition": "use deterministic entry_zone when present",
+          "invalidation_condition": "跌破回測支撐與 ATR 失效區，拉回承接 setup 取消",
+          "risk_context": [
+            "接近 Bollinger 上緣",
+            "已達一個 ATR 以上擴張"
+          ]
+        },
+        "advisory_only": true,
+        "trading_or_order_executed": false
+      },
+      "indicator": {
+        "close": 16.6,
+        "date": "2026-10-01"
+      },
+      "expected_tactical_direction": "bullish",
+      "expected_ma5": 16.53,
+      "expected_ma10": 16.38,
+      "provenance": {
+        "csv_sha256": "4f4891678f9cae3509c38d756de50a6aad37c067f2ef8e8dfd14cc0e99a4773b",
+        "rows": 123,
+        "latest_date": "2026-10-01"
+      }
+    },
+    {
+      "symbol": "2337",
+      "name": "旺宏",
+      "tactical": {
+        "market": "TW",
+        "stock_id": "2337",
+        "stock_name": "旺宏",
+        "strategy_id": "tw_daily_tactical_v1",
+        "strategy_type": "daily_tactical",
+        "strategy_version": "v1",
+        "factor_version": "tw_daily_tactical_factor_v1",
+        "factor_weights": {
+          "technical_setup": 0.22,
+          "volume_confirmation": 0.16,
+          "chip_flow": 0.14,
+          "market_context": 0.12,
+          "risk_quality": 0.18,
+          "data_quality": 0.18
+        },
+        "generated_at": "2026-10-02T09:07:42+08:00",
+        "direction": "neutral",
+        "setup_type": "range_trade",
+        "action": "區間操作",
+        "score": 48.3,
+        "rating": "C-Tactical",
+        "confidence": 54.0,
+        "entry_zone": {
+          "low": 120.0,
+          "high": 121.5
+        },
+        "stop_invalidation": {
+          "price": 118.0,
+          "reason": "跌破區間下緣與 ATR 失效區，區間策略取消"
+        },
+        "target_1": {
+          "low": 123.0,
+          "high": 124.0
+        },
+        "target_2": {
+          "low": 125.0,
+          "high": 127.0
+        },
+        "expected_move_pct": 2.07,
+        "reward_risk": 1.0,
+        "level_method": "setup_specific_support_resistance_atr_tick_size_v1",
+        "chase_risk": "medium",
+        "event_risk": "unknown",
+        "position_size": "half",
+        "time_horizon": "intraday_to_5d",
+        "data_quality": "partial",
+        "factor_coverage": {
+          "statuses": {
+            "price_trend": "available",
+            "volume": "available",
+            "support_resistance": "available",
+            "chip": "partial",
+            "institutional_flow": "unavailable",
+            "margin_short": "unavailable",
+            "market_context": "partial",
+            "event_news": "unavailable",
+            "prediction_snapshot": "available",
+            "review_outcome": "partial"
+          },
+          "instrument_type": "common_stock",
+          "summary": {
+            "available": 4,
+            "partial": 3,
+            "unavailable": 3,
+            "stale": 0,
+            "not_applicable": 0
+          },
+          "data_quality": "partial",
+          "downgrade_policy": "missing or stale TW tactical inputs lower confidence/position size; insufficient core OHLCV forces no_trade"
+        },
+        "source_status": {
+          "historical_ohlcv": "available",
+          "technical_engine": "available",
+          "twse_institutional_flow": "unavailable",
+          "margin_short": "unavailable",
+          "chip_engine": "partial",
+          "news_event": "unavailable",
+          "tw_market_context": "partial"
+        },
+        "technical_factors": {
+          "latest_date": "2026-10-01",
+          "latest_close": 121.0,
+          "latest_open": 121.0,
+          "latest_high": 122.5,
+          "latest_low": 119.5,
+          "latest_volume": 16208.0,
+          "history_days": 123,
+          "history_start": "2026-04-07",
+          "history_end": "2026-10-01",
+          "source": "canonical_historical_csv",
+          "ma5": 119.6,
+          "ma10": 119.25,
+          "ma20": 120.15,
+          "ma60": 123.95,
+          "ma20_slope": -0.01233,
+          "ma60_slope": -0.01763,
+          "rsi14": 42.47,
+          "macd": -1.3093,
+          "macd_signal": -1.778,
+          "macd_histogram": 0.4687,
+          "bollinger_upper": 126.62,
+          "bollinger_middle": 120.15,
+          "bollinger_lower": 113.68,
+          "bollinger_width": 0.10776,
+          "atr14": 4.64,
+          "atr_pct": 0.03837,
+          "high_5d": 123.5,
+          "low_5d": 114.5,
+          "high_10d": 124.5,
+          "low_10d": 114.5,
+          "high_20d": 130.0,
+          "low_20d": 114.0,
+          "current_range_position": 0.4375,
+          "volume_ma5": 20510.0,
+          "volume_ma20": 27754.0,
+          "relative_volume": 0.584,
+          "volume_expansion": false,
+          "volume_contraction": true,
+          "return_volatility_pct": 0.02539
+        },
+        "support_resistance": {
+          "nearest_support": 120.0,
+          "secondary_support": 119.5,
+          "nearest_resistance": 123.5,
+          "secondary_resistance": 124.0,
+          "sources": [
+            "recent_swing_high_low",
+            "5_10_20d_high_low",
+            "moving_average",
+            "bollinger_band",
+            "atr_buffer"
+          ],
+          "tick_size_applied": true
+        },
+        "chip_tactical": {
+          "instrument_type": "common_stock",
+          "chip_direction": "neutral",
+          "chip_score": 50,
+          "institutional_flow": {
+            "foreign_investor_net_buy_sell": null,
+            "foreign_consecutive_days": null,
+            "investment_trust_net_buy_sell": null,
+            "investment_trust_consecutive_days": null,
+            "dealer_net_buy_sell": null,
+            "institutional_alignment": "unavailable",
+            "price_flow_divergence": "unavailable",
+            "data_status": "unavailable"
+          },
+          "margin_risk": {
+            "margin_balance_change": null,
+            "short_balance_change": null,
+            "margin_price_divergence": "unavailable",
+            "short_interest_signal": "unavailable",
+            "margin_overheat_risk": "unavailable",
+            "data_status": "unavailable"
+          },
+          "short_signal": "unavailable",
+          "short_interest_signal": "unavailable",
+          "flow_confirmation": false,
+          "chip_data_quality": "partial",
+          "data_quality": "partial",
+          "notes": [
+            "正式法人/融資券細項尚未接入；以量價代理輔助判斷並降低信心，不偽造籌碼資料。"
+          ]
+        },
+        "market_context": {
+          "market_bias": "bullish",
+          "market_risk": "low",
+          "market_breadth_status": "watchlist breadth bullish=6/10, bearish=4/10; broad TWSE breadth unavailable",
+          "market_volume_status": "normal",
+          "market_regime": "bullish_low_risk",
+          "market_context_score": 58.0,
+          "market_data_quality": "partial",
+          "data_status": "partial",
+          "unavailable_fields": [
+            "TWSE index breadth",
+            "OTC breadth",
+            "market-wide advancers/decliners"
+          ]
+        },
+        "score_components": {
+          "technical_setup": 12.1,
+          "volume_confirmation": 6.72,
+          "chip_flow": 7.0,
+          "market_context": 6.96,
+          "risk_quality": 9.36,
+          "data_quality": 11.16
+        },
+        "score_before_penalty": 53.3,
+        "risk_penalty": 0.0,
+        "data_quality_penalty": 5.0,
+        "final_score": 48.3,
+        "reasons": [
+          "價格位於 20 日區間中段，適合區間觀察"
+        ],
+        "risk_reasons": [
+          "突破或上攻量能未確認"
+        ],
+        "playbook": {
+          "setup_type": "range_trade",
+          "template": "接近區間支撐才具備操作價值；接近壓力不追價，跌破區間下緣取消。",
+          "entry_condition": "use deterministic entry_zone when present",
+          "invalidation_condition": "跌破區間下緣與 ATR 失效區，區間策略取消",
+          "risk_context": [
+            "突破或上攻量能未確認"
+          ]
+        },
+        "advisory_only": true,
+        "trading_or_order_executed": false
+      },
+      "indicator": {
+        "close": 121.0,
+        "date": "2026-10-01"
+      },
+      "expected_tactical_direction": "neutral",
+      "expected_ma5": 119.6,
+      "expected_ma10": 119.25,
+      "provenance": {
+        "csv_sha256": "a7c63a914df16a24fbbd54138f31395b606529ab7433973837b02bc0054dcdbd",
+        "rows": 123,
+        "latest_date": "2026-10-01"
+      }
+    },
+    {
+      "symbol": "2353",
+      "name": "宏碁",
+      "tactical": {
+        "market": "TW",
+        "stock_id": "2353",
+        "stock_name": "宏碁",
+        "strategy_id": "tw_daily_tactical_v1",
+        "strategy_type": "daily_tactical",
+        "strategy_version": "v1",
+        "factor_version": "tw_daily_tactical_factor_v1",
+        "factor_weights": {
+          "technical_setup": 0.22,
+          "volume_confirmation": 0.16,
+          "chip_flow": 0.14,
+          "market_context": 0.12,
+          "risk_quality": 0.18,
+          "data_quality": 0.18
+        },
+        "generated_at": "2026-10-02T09:07:42+08:00",
+        "direction": "bullish",
+        "setup_type": "pullback",
+        "action": "拉回承接",
+        "score": 51.6,
+        "rating": "C-Tactical",
+        "confidence": 54.0,
+        "entry_zone": {
+          "low": 31.8,
+          "high": 31.85
+        },
+        "stop_invalidation": {
+          "price": 31.35,
+          "reason": "跌破回測支撐與 ATR 失效區，拉回承接 setup 取消"
+        },
+        "target_1": {
+          "low": 32.4,
+          "high": 32.65
+        },
+        "target_2": {
+          "low": 32.8,
+          "high": 33.2
+        },
+        "expected_move_pct": 2.12,
+        "reward_risk": 1.47,
+        "level_method": "setup_specific_support_resistance_atr_tick_size_v1",
+        "chase_risk": "medium",
+        "event_risk": "unknown",
+        "position_size": "half",
+        "time_horizon": "intraday_to_5d",
+        "data_quality": "partial",
+        "factor_coverage": {
+          "statuses": {
+            "price_trend": "available",
+            "volume": "available",
+            "support_resistance": "available",
+            "chip": "partial",
+            "institutional_flow": "unavailable",
+            "margin_short": "unavailable",
+            "market_context": "partial",
+            "event_news": "unavailable",
+            "prediction_snapshot": "available",
+            "review_outcome": "partial"
+          },
+          "instrument_type": "common_stock",
+          "summary": {
+            "available": 4,
+            "partial": 3,
+            "unavailable": 3,
+            "stale": 0,
+            "not_applicable": 0
+          },
+          "data_quality": "partial",
+          "downgrade_policy": "missing or stale TW tactical inputs lower confidence/position size; insufficient core OHLCV forces no_trade"
+        },
+        "source_status": {
+          "historical_ohlcv": "available",
+          "technical_engine": "available",
+          "twse_institutional_flow": "unavailable",
+          "margin_short": "unavailable",
+          "chip_engine": "partial",
+          "news_event": "unavailable",
+          "tw_market_context": "partial"
+        },
+        "technical_factors": {
+          "latest_date": "2026-10-01",
+          "latest_close": 31.85,
+          "latest_open": 31.65,
+          "latest_high": 31.9,
+          "latest_low": 31.4,
+          "latest_volume": 10024.0,
+          "history_days": 123,
+          "history_start": "2026-04-07",
+          "history_end": "2026-10-01",
+          "source": "canonical_historical_csv",
+          "ma5": 31.64,
+          "ma10": 31.81,
+          "ma20": 31.71,
+          "ma60": 30.99,
+          "ma20_slope": 0.00237,
+          "ma60_slope": -0.00252,
+          "rsi14": 50.45,
+          "macd": 0.1201,
+          "macd_signal": 0.1483,
+          "macd_histogram": -0.0282,
+          "bollinger_upper": 32.65,
+          "bollinger_middle": 31.71,
+          "bollinger_lower": 30.77,
+          "bollinger_width": 0.05916,
+          "atr14": 0.69,
+          "atr_pct": 0.02175,
+          "high_5d": 31.95,
+          "low_5d": 31.15,
+          "high_10d": 32.8,
+          "low_10d": 30.95,
+          "high_20d": 33.05,
+          "low_20d": 30.75,
+          "current_range_position": 0.4783,
+          "volume_ma5": 9414.0,
+          "volume_ma20": 15899.0,
+          "relative_volume": 0.63,
+          "volume_expansion": false,
+          "volume_contraction": true,
+          "return_volatility_pct": 0.0205
+        },
+        "support_resistance": {
+          "nearest_support": 31.8,
+          "secondary_support": 31.7,
+          "nearest_resistance": 31.95,
+          "secondary_resistance": 32.65,
+          "sources": [
+            "recent_swing_high_low",
+            "5_10_20d_high_low",
+            "moving_average",
+            "bollinger_band",
+            "atr_buffer"
+          ],
+          "tick_size_applied": true
+        },
+        "chip_tactical": {
+          "instrument_type": "common_stock",
+          "chip_direction": "neutral",
+          "chip_score": 50,
+          "institutional_flow": {
+            "foreign_investor_net_buy_sell": null,
+            "foreign_consecutive_days": null,
+            "investment_trust_net_buy_sell": null,
+            "investment_trust_consecutive_days": null,
+            "dealer_net_buy_sell": null,
+            "institutional_alignment": "unavailable",
+            "price_flow_divergence": "unavailable",
+            "data_status": "unavailable"
+          },
+          "margin_risk": {
+            "margin_balance_change": null,
+            "short_balance_change": null,
+            "margin_price_divergence": "unavailable",
+            "short_interest_signal": "unavailable",
+            "margin_overheat_risk": "unavailable",
+            "data_status": "unavailable"
+          },
+          "short_signal": "unavailable",
+          "short_interest_signal": "unavailable",
+          "flow_confirmation": false,
+          "chip_data_quality": "partial",
+          "data_quality": "partial",
+          "notes": [
+            "正式法人/融資券細項尚未接入；以量價代理輔助判斷並降低信心，不偽造籌碼資料。"
+          ]
+        },
+        "market_context": {
+          "market_bias": "bullish",
+          "market_risk": "low",
+          "market_breadth_status": "watchlist breadth bullish=6/10, bearish=4/10; broad TWSE breadth unavailable",
+          "market_volume_status": "normal",
+          "market_regime": "bullish_low_risk",
+          "market_context_score": 58.0,
+          "market_data_quality": "partial",
+          "data_status": "partial",
+          "unavailable_fields": [
+            "TWSE index breadth",
+            "OTC breadth",
+            "market-wide advancers/decliners"
+          ]
+        },
+        "score_components": {
+          "technical_setup": 15.4,
+          "volume_confirmation": 6.72,
+          "chip_flow": 7.0,
+          "market_context": 6.96,
+          "risk_quality": 9.36,
+          "data_quality": 11.16
+        },
+        "score_before_penalty": 56.6,
+        "risk_penalty": 0.0,
+        "data_quality_penalty": 5.0,
+        "final_score": 51.6,
+        "reasons": [
+          "中期趨勢向上",
+          "回測短中期均線",
+          "量縮整理"
+        ],
+        "risk_reasons": [
+          "突破或上攻量能未確認"
+        ],
+        "playbook": {
+          "setup_type": "pullback",
+          "template": "等待回測支撐或短期均線止穩；量縮不破可觀察，跌破結構支撐取消。",
+          "entry_condition": "use deterministic entry_zone when present",
+          "invalidation_condition": "跌破回測支撐與 ATR 失效區，拉回承接 setup 取消",
+          "risk_context": [
+            "突破或上攻量能未確認"
+          ]
+        },
+        "advisory_only": true,
+        "trading_or_order_executed": false
+      },
+      "indicator": {
+        "close": 31.85,
+        "date": "2026-10-01"
+      },
+      "expected_tactical_direction": "bullish",
+      "expected_ma5": 31.64,
+      "expected_ma10": 31.81,
+      "provenance": {
+        "csv_sha256": "6080d927f49f6de695a345df390c8616f65dd36610dc023d0b0ee15e72e593a2",
+        "rows": 123,
+        "latest_date": "2026-10-01"
+      }
+    },
+    {
+      "symbol": "6873",
+      "name": "泓德能源",
+      "tactical": {
+        "market": "TW",
+        "stock_id": "6873",
+        "stock_name": "泓德能源",
+        "strategy_id": "tw_daily_tactical_v1",
+        "strategy_type": "daily_tactical",
+        "strategy_version": "v1",
+        "factor_version": "tw_daily_tactical_factor_v1",
+        "factor_weights": {
+          "technical_setup": 0.22,
+          "volume_confirmation": 0.16,
+          "chip_flow": 0.14,
+          "market_context": 0.12,
+          "risk_quality": 0.18,
+          "data_quality": 0.18
+        },
+        "generated_at": "2026-10-02T09:07:42+08:00",
+        "direction": "no_trade",
+        "setup_type": "no_trade",
+        "action": "暫不操作",
+        "score": 35.66,
+        "rating": "No-Trade",
+        "confidence": 36.8,
+        "entry_zone": null,
+        "stop_invalidation": null,
+        "target_1": null,
+        "target_2": null,
+        "expected_move_pct": null,
+        "reward_risk": null,
+        "level_method": "suppressed_for_no_trade_or_insufficient_data",
+        "chase_risk": "low",
+        "event_risk": "unknown",
+        "position_size": "avoid",
+        "time_horizon": "intraday_to_5d",
+        "data_quality": "partial",
+        "factor_coverage": {
+          "statuses": {
+            "price_trend": "available",
+            "volume": "available",
+            "support_resistance": "available",
+            "chip": "partial",
+            "institutional_flow": "unavailable",
+            "margin_short": "unavailable",
+            "market_context": "partial",
+            "event_news": "unavailable",
+            "prediction_snapshot": "available",
+            "review_outcome": "partial"
+          },
+          "instrument_type": "common_stock",
+          "summary": {
+            "available": 4,
+            "partial": 3,
+            "unavailable": 3,
+            "stale": 0,
+            "not_applicable": 0
+          },
+          "data_quality": "partial",
+          "downgrade_policy": "missing or stale TW tactical inputs lower confidence/position size; insufficient core OHLCV forces no_trade"
+        },
+        "source_status": {
+          "historical_ohlcv": "available",
+          "technical_engine": "available",
+          "twse_institutional_flow": "unavailable",
+          "margin_short": "unavailable",
+          "chip_engine": "partial",
+          "news_event": "unavailable",
+          "tw_market_context": "partial"
+        },
+        "technical_factors": {
+          "latest_date": "2026-10-01",
+          "latest_close": 67.9,
+          "latest_open": 68.4,
+          "latest_high": 68.8,
+          "latest_low": 67.6,
+          "latest_volume": 189.0,
+          "history_days": 123,
+          "history_start": "2026-04-07",
+          "history_end": "2026-10-01",
+          "source": "canonical_historical_csv",
+          "ma5": 68.32,
+          "ma10": 68.67,
+          "ma20": 68.49,
+          "ma60": 74.67,
+          "ma20_slope": -0.00407,
+          "ma60_slope": -0.01739,
+          "rsi14": 45.16,
+          "macd": -0.9611,
+          "macd_signal": -1.2316,
+          "macd_histogram": 0.2705,
+          "bollinger_upper": 70.04,
+          "bollinger_middle": 68.49,
+          "bollinger_lower": 66.94,
+          "bollinger_width": 0.04512,
+          "atr14": 1.72,
+          "atr_pct": 0.02535,
+          "high_5d": 71.8,
+          "low_5d": 67.1,
+          "high_10d": 71.8,
+          "low_10d": 66.5,
+          "high_20d": 71.8,
+          "low_20d": 66.5,
+          "current_range_position": 0.2642,
+          "volume_ma5": 219.0,
+          "volume_ma20": 211.0,
+          "relative_volume": 0.896,
+          "volume_expansion": false,
+          "volume_contraction": false,
+          "return_volatility_pct": 0.01167
+        },
+        "support_resistance": {
+          "nearest_support": 67.1,
+          "secondary_support": 66.9,
+          "nearest_resistance": 68.3,
+          "secondary_resistance": 68.5,
+          "sources": [
+            "recent_swing_high_low",
+            "5_10_20d_high_low",
+            "moving_average",
+            "bollinger_band",
+            "atr_buffer"
+          ],
+          "tick_size_applied": true
+        },
+        "chip_tactical": {
+          "instrument_type": "common_stock",
+          "chip_direction": "neutral",
+          "chip_score": 50,
+          "institutional_flow": {
+            "foreign_investor_net_buy_sell": null,
+            "foreign_consecutive_days": null,
+            "investment_trust_net_buy_sell": null,
+            "investment_trust_consecutive_days": null,
+            "dealer_net_buy_sell": null,
+            "institutional_alignment": "unavailable",
+            "price_flow_divergence": "unavailable",
+            "data_status": "unavailable"
+          },
+          "margin_risk": {
+            "margin_balance_change": null,
+            "short_balance_change": null,
+            "margin_price_divergence": "unavailable",
+            "short_interest_signal": "unavailable",
+            "margin_overheat_risk": "unavailable",
+            "data_status": "unavailable"
+          },
+          "short_signal": "unavailable",
+          "short_interest_signal": "unavailable",
+          "flow_confirmation": false,
+          "chip_data_quality": "partial",
+          "data_quality": "partial",
+          "notes": [
+            "正式法人/融資券細項尚未接入；以量價代理輔助判斷並降低信心，不偽造籌碼資料。"
+          ]
+        },
+        "market_context": {
+          "market_bias": "bullish",
+          "market_risk": "low",
+          "market_breadth_status": "watchlist breadth bullish=6/10, bearish=4/10; broad TWSE breadth unavailable",
+          "market_volume_status": "normal",
+          "market_regime": "bullish_low_risk",
+          "market_context_score": 58.0,
+          "market_data_quality": "partial",
+          "data_status": "partial",
+          "unavailable_fields": [
+            "TWSE index breadth",
+            "OTC breadth",
+            "market-wide advancers/decliners"
+          ]
+        },
+        "score_components": {
+          "technical_setup": 7.7,
+          "volume_confirmation": 8.8,
+          "chip_flow": 7.0,
+          "market_context": 6.96,
+          "risk_quality": 5.04,
+          "data_quality": 11.16
+        },
+        "score_before_penalty": 46.66,
+        "risk_penalty": 6.0,
+        "data_quality_penalty": 5.0,
+        "final_score": 35.66,
+        "reasons": [
+          "價格位於 20 日區間中段，適合區間觀察"
+        ],
+        "risk_reasons": [
+          "RR_BELOW_THRESHOLD"
+        ],
+        "playbook": {
+          "setup_type": "no_trade",
+          "template": "目前缺乏合理進場結構、資料品質不足或報酬風險不合格，暫不建立戰術部位。",
+          "entry_condition": "use deterministic entry_zone when present",
+          "invalidation_condition": "資料不足",
+          "risk_context": [
+            "RR_BELOW_THRESHOLD"
+          ]
+        },
+        "advisory_only": true,
+        "trading_or_order_executed": false
+      },
+      "indicator": {
+        "close": 67.9,
+        "date": "2026-10-01"
+      },
+      "expected_tactical_direction": "no_trade",
+      "expected_ma5": 68.32,
+      "expected_ma10": 68.67,
+      "provenance": {
+        "csv_sha256": "73af9835536b0219790580911763819d73c1b20eca87df3c3ee170bed8b25280",
+        "rows": 123,
+        "latest_date": "2026-10-01"
+      }
+    },
+    {
+      "symbol": "4743",
+      "name": "合一",
+      "tactical": {
+        "market": "TW",
+        "stock_id": "4743",
+        "stock_name": "合一",
+        "strategy_id": "tw_daily_tactical_v1",
+        "strategy_type": "daily_tactical",
+        "strategy_version": "v1",
+        "factor_version": "tw_daily_tactical_factor_v1",
+        "factor_weights": {
+          "technical_setup": 0.22,
+          "volume_confirmation": 0.16,
+          "chip_flow": 0.14,
+          "market_context": 0.12,
+          "risk_quality": 0.18,
+          "data_quality": 0.18
+        },
+        "generated_at": "2026-10-02T09:07:42+08:00",
+        "direction": "neutral",
+        "setup_type": "range_trade",
+        "action": "區間操作",
+        "score": 53.98,
+        "rating": "C-Tactical",
+        "confidence": 54.0,
+        "entry_zone": {
+          "low": 45.7,
+          "high": 46.0
+        },
+        "stop_invalidation": {
+          "price": 45.2,
+          "reason": "跌破區間下緣與 ATR 失效區，區間策略取消"
+        },
+        "target_1": {
+          "low": 46.35,
+          "high": 46.65
+        },
+        "target_2": {
+          "low": 46.85,
+          "high": 47.25
+        },
+        "expected_move_pct": 1.42,
+        "reward_risk": 1.0,
+        "level_method": "setup_specific_support_resistance_atr_tick_size_v1",
+        "chase_risk": "low",
+        "event_risk": "unknown",
+        "position_size": "half",
+        "time_horizon": "intraday_to_5d",
+        "data_quality": "partial",
+        "factor_coverage": {
+          "statuses": {
+            "price_trend": "available",
+            "volume": "available",
+            "support_resistance": "available",
+            "chip": "partial",
+            "institutional_flow": "unavailable",
+            "margin_short": "unavailable",
+            "market_context": "partial",
+            "event_news": "unavailable",
+            "prediction_snapshot": "available",
+            "review_outcome": "partial"
+          },
+          "instrument_type": "common_stock",
+          "summary": {
+            "available": 4,
+            "partial": 3,
+            "unavailable": 3,
+            "stale": 0,
+            "not_applicable": 0
+          },
+          "data_quality": "partial",
+          "downgrade_policy": "missing or stale TW tactical inputs lower confidence/position size; insufficient core OHLCV forces no_trade"
+        },
+        "source_status": {
+          "historical_ohlcv": "available",
+          "technical_engine": "available",
+          "twse_institutional_flow": "unavailable",
+          "margin_short": "unavailable",
+          "chip_engine": "partial",
+          "news_event": "unavailable",
+          "tw_market_context": "partial"
+        },
+        "technical_factors": {
+          "latest_date": "2026-10-01",
+          "latest_close": 45.85,
+          "latest_open": 47.15,
+          "latest_high": 47.25,
+          "latest_low": 45.65,
+          "latest_volume": 1277.0,
+          "history_days": 123,
+          "history_start": "2026-04-07",
+          "history_end": "2026-10-01",
+          "source": "canonical_historical_csv",
+          "ma5": 45.72,
+          "ma10": 45.05,
+          "ma20": 45.07,
+          "ma60": 46.72,
+          "ma20_slope": -0.00689,
+          "ma60_slope": -0.01563,
+          "rsi14": 50.25,
+          "macd": -0.2185,
+          "macd_signal": -0.5076,
+          "macd_histogram": 0.2891,
+          "bollinger_upper": 47.16,
+          "bollinger_middle": 45.07,
+          "bollinger_lower": 42.97,
+          "bollinger_width": 0.09293,
+          "atr14": 1.11,
+          "atr_pct": 0.0243,
+          "high_5d": 47.35,
+          "low_5d": 44.3,
+          "high_10d": 47.35,
+          "low_10d": 43.5,
+          "high_20d": 47.5,
+          "low_20d": 43.0,
+          "current_range_position": 0.6333,
+          "volume_ma5": 1189.0,
+          "volume_ma20": 1051.0,
+          "relative_volume": 1.215,
+          "volume_expansion": false,
+          "volume_contraction": false,
+          "return_volatility_pct": 0.02063
+        },
+        "support_resistance": {
+          "nearest_support": 45.7,
+          "secondary_support": 45.05,
+          "nearest_resistance": 46.7,
+          "secondary_resistance": 47.15,
+          "sources": [
+            "recent_swing_high_low",
+            "5_10_20d_high_low",
+            "moving_average",
+            "bollinger_band",
+            "atr_buffer"
+          ],
+          "tick_size_applied": true
+        },
+        "chip_tactical": {
+          "instrument_type": "common_stock",
+          "chip_direction": "neutral",
+          "chip_score": 50,
+          "institutional_flow": {
+            "foreign_investor_net_buy_sell": null,
+            "foreign_consecutive_days": null,
+            "investment_trust_net_buy_sell": null,
+            "investment_trust_consecutive_days": null,
+            "dealer_net_buy_sell": null,
+            "institutional_alignment": "unavailable",
+            "price_flow_divergence": "unavailable",
+            "data_status": "unavailable"
+          },
+          "margin_risk": {
+            "margin_balance_change": null,
+            "short_balance_change": null,
+            "margin_price_divergence": "unavailable",
+            "short_interest_signal": "unavailable",
+            "margin_overheat_risk": "unavailable",
+            "data_status": "unavailable"
+          },
+          "short_signal": "unavailable",
+          "short_interest_signal": "unavailable",
+          "flow_confirmation": false,
+          "chip_data_quality": "partial",
+          "data_quality": "partial",
+          "notes": [
+            "正式法人/融資券細項尚未接入；以量價代理輔助判斷並降低信心，不偽造籌碼資料。"
+          ]
+        },
+        "market_context": {
+          "market_bias": "bullish",
+          "market_risk": "low",
+          "market_breadth_status": "watchlist breadth bullish=6/10, bearish=4/10; broad TWSE breadth unavailable",
+          "market_volume_status": "normal",
+          "market_regime": "bullish_low_risk",
+          "market_context_score": 58.0,
+          "market_data_quality": "partial",
+          "data_status": "partial",
+          "unavailable_fields": [
+            "TWSE index breadth",
+            "OTC breadth",
+            "market-wide advancers/decliners"
+          ]
+        },
+        "score_components": {
+          "technical_setup": 12.1,
+          "volume_confirmation": 8.8,
+          "chip_flow": 7.0,
+          "market_context": 6.96,
+          "risk_quality": 12.96,
+          "data_quality": 11.16
+        },
+        "score_before_penalty": 58.98,
+        "risk_penalty": 0.0,
+        "data_quality_penalty": 5.0,
+        "final_score": 53.98,
+        "reasons": [
+          "價格位於 20 日區間中段，適合區間觀察"
+        ],
+        "risk_reasons": [
+          "追價風險未見明顯升高"
+        ],
+        "playbook": {
+          "setup_type": "range_trade",
+          "template": "接近區間支撐才具備操作價值；接近壓力不追價，跌破區間下緣取消。",
+          "entry_condition": "use deterministic entry_zone when present",
+          "invalidation_condition": "跌破區間下緣與 ATR 失效區，區間策略取消",
+          "risk_context": [
+            "追價風險未見明顯升高"
+          ]
+        },
+        "advisory_only": true,
+        "trading_or_order_executed": false
+      },
+      "indicator": {
+        "close": 45.85,
+        "date": "2026-10-01"
+      },
+      "expected_tactical_direction": "neutral",
+      "expected_ma5": 45.72,
+      "expected_ma10": 45.05,
+      "provenance": {
+        "csv_sha256": "a7677d49939696926cd001168ebdf6f6ed95e1a1ce249a721a4838d2d79e2b21",
+        "rows": 123,
+        "latest_date": "2026-10-01"
+      }
+    },
+    {
+      "symbol": "2305",
+      "name": "全友",
+      "tactical": {
+        "market": "TW",
+        "stock_id": "2305",
+        "stock_name": "全友",
+        "strategy_id": "tw_daily_tactical_v1",
+        "strategy_type": "daily_tactical",
+        "strategy_version": "v1",
+        "factor_version": "tw_daily_tactical_factor_v1",
+        "factor_weights": {
+          "technical_setup": 0.22,
+          "volume_confirmation": 0.16,
+          "chip_flow": 0.14,
+          "market_context": 0.12,
+          "risk_quality": 0.18,
+          "data_quality": 0.18
+        },
+        "generated_at": "2026-10-02T09:07:42+08:00",
+        "direction": "no_trade",
+        "setup_type": "no_trade",
+        "action": "避免追高",
+        "score": 27.58,
+        "rating": "No-Trade",
+        "confidence": 32.6,
+        "entry_zone": null,
+        "stop_invalidation": null,
+        "target_1": null,
+        "target_2": null,
+        "expected_move_pct": null,
+        "reward_risk": null,
+        "level_method": "suppressed_for_no_trade_or_insufficient_data",
+        "chase_risk": "high",
+        "event_risk": "unknown",
+        "position_size": "avoid",
+        "time_horizon": "intraday_to_5d",
+        "data_quality": "partial",
+        "factor_coverage": {
+          "statuses": {
+            "price_trend": "available",
+            "volume": "available",
+            "support_resistance": "available",
+            "chip": "partial",
+            "institutional_flow": "unavailable",
+            "margin_short": "unavailable",
+            "market_context": "partial",
+            "event_news": "unavailable",
+            "prediction_snapshot": "available",
+            "review_outcome": "partial"
+          },
+          "instrument_type": "common_stock",
+          "summary": {
+            "available": 4,
+            "partial": 3,
+            "unavailable": 3,
+            "stale": 0,
+            "not_applicable": 0
+          },
+          "data_quality": "partial",
+          "downgrade_policy": "missing or stale TW tactical inputs lower confidence/position size; insufficient core OHLCV forces no_trade"
+        },
+        "source_status": {
+          "historical_ohlcv": "available",
+          "technical_engine": "available",
+          "twse_institutional_flow": "unavailable",
+          "margin_short": "unavailable",
+          "chip_engine": "partial",
+          "news_event": "unavailable",
+          "tw_market_context": "partial"
+        },
+        "technical_factors": {
+          "latest_date": "2026-10-01",
+          "latest_close": 61.9,
+          "latest_open": 65.3,
+          "latest_high": 65.3,
+          "latest_low": 61.9,
+          "latest_volume": 9268.0,
+          "history_days": 123,
+          "history_start": "2026-04-07",
+          "history_end": "2026-10-01",
+          "source": "canonical_historical_csv",
+          "ma5": 65.24,
+          "ma10": 60.74,
+          "ma20": 48.48,
+          "ma60": 36.66,
+          "ma20_slope": 0.22353,
+          "ma60_slope": 0.06314,
+          "rsi14": 81.21,
+          "macd": 9.1693,
+          "macd_signal": 7.549,
+          "macd_histogram": 1.6202,
+          "bollinger_upper": 75.46,
+          "bollinger_middle": 48.48,
+          "bollinger_lower": 21.51,
+          "bollinger_width": 1.11278,
+          "atr14": 4.97,
+          "atr_pct": 0.08037,
+          "high_5d": 72.5,
+          "low_5d": 60.4,
+          "high_10d": 72.5,
+          "low_10d": 44.1,
+          "high_20d": 72.5,
+          "low_20d": 29.05,
+          "current_range_position": 0.756,
+          "volume_ma5": 6394.0,
+          "volume_ma20": 18152.0,
+          "relative_volume": 0.511,
+          "volume_expansion": false,
+          "volume_contraction": true,
+          "return_volatility_pct": 0.05223
+        },
+        "support_resistance": {
+          "nearest_support": 60.7,
+          "secondary_support": 60.4,
+          "nearest_resistance": 65.2,
+          "secondary_resistance": 72.5,
+          "sources": [
+            "recent_swing_high_low",
+            "5_10_20d_high_low",
+            "moving_average",
+            "bollinger_band",
+            "atr_buffer"
+          ],
+          "tick_size_applied": true
+        },
+        "chip_tactical": {
+          "instrument_type": "common_stock",
+          "chip_direction": "neutral",
+          "chip_score": 50,
+          "institutional_flow": {
+            "foreign_investor_net_buy_sell": null,
+            "foreign_consecutive_days": null,
+            "investment_trust_net_buy_sell": null,
+            "investment_trust_consecutive_days": null,
+            "dealer_net_buy_sell": null,
+            "institutional_alignment": "unavailable",
+            "price_flow_divergence": "unavailable",
+            "data_status": "unavailable"
+          },
+          "margin_risk": {
+            "margin_balance_change": null,
+            "short_balance_change": null,
+            "margin_price_divergence": "unavailable",
+            "short_interest_signal": "unavailable",
+            "margin_overheat_risk": "unavailable",
+            "data_status": "unavailable"
+          },
+          "short_signal": "unavailable",
+          "short_interest_signal": "unavailable",
+          "flow_confirmation": false,
+          "chip_data_quality": "partial",
+          "data_quality": "partial",
+          "notes": [
+            "正式法人/融資券細項尚未接入；以量價代理輔助判斷並降低信心，不偽造籌碼資料。"
+          ]
+        },
+        "market_context": {
+          "market_bias": "bullish",
+          "market_risk": "low",
+          "market_breadth_status": "watchlist breadth bullish=6/10, bearish=4/10; broad TWSE breadth unavailable",
+          "market_volume_status": "normal",
+          "market_regime": "bullish_low_risk",
+          "market_context_score": 58.0,
+          "market_data_quality": "partial",
+          "data_status": "partial",
+          "unavailable_fields": [
+            "TWSE index breadth",
+            "OTC breadth",
+            "market-wide advancers/decliners"
+          ]
+        },
+        "score_components": {
+          "technical_setup": 7.7,
+          "volume_confirmation": 6.72,
+          "chip_flow": 7.0,
+          "market_context": 6.96,
+          "risk_quality": 5.04,
+          "data_quality": 11.16
+        },
+        "score_before_penalty": 44.58,
+        "risk_penalty": 12.0,
+        "data_quality_penalty": 5.0,
+        "final_score": 27.58,
+        "reasons": [
+          "追高風險過高，等待拉回"
+        ],
+        "risk_reasons": [
+          "價格明顯高於 MA20",
+          "RSI 過熱",
+          "已達一個 ATR 以上擴張",
+          "突破或上攻量能未確認"
+        ],
+        "playbook": {
+          "setup_type": "no_trade",
+          "template": "目前缺乏合理進場結構、資料品質不足或報酬風險不合格，暫不建立戰術部位。",
+          "entry_condition": "use deterministic entry_zone when present",
+          "invalidation_condition": "資料不足",
+          "risk_context": [
+            "價格明顯高於 MA20",
+            "RSI 過熱",
+            "已達一個 ATR 以上擴張",
+            "突破或上攻量能未確認"
+          ]
+        },
+        "advisory_only": true,
+        "trading_or_order_executed": false
+      },
+      "indicator": {
+        "close": 61.9,
+        "date": "2026-10-01"
+      },
+      "expected_tactical_direction": "no_trade",
+      "expected_ma5": 65.24,
+      "expected_ma10": 60.74,
+      "provenance": {
+        "csv_sha256": "9683cb41f62c228ca5e809586e837ed3d440b0dfb05a8ba298d8916e61ba3bf3",
+        "rows": 123,
+        "latest_date": "2026-10-01"
+      }
+    },
+    {
+      "symbol": "00878",
+      "name": "國泰永續高股息",
+      "tactical": {
+        "market": "TW",
+        "stock_id": "00878",
+        "stock_name": "國泰永續高股息",
+        "strategy_id": "tw_daily_tactical_v1",
+        "strategy_type": "daily_tactical",
+        "strategy_version": "v1",
+        "factor_version": "tw_daily_tactical_factor_v1",
+        "factor_weights": {
+          "technical_setup": 0.22,
+          "volume_confirmation": 0.16,
+          "chip_flow": 0.14,
+          "market_context": 0.12,
+          "risk_quality": 0.18,
+          "data_quality": 0.18
+        },
+        "generated_at": "2026-10-02T09:07:42+08:00",
+        "direction": "bullish",
+        "setup_type": "pullback",
+        "action": "拉回承接",
+        "score": 53.68,
+        "rating": "C-Tactical",
+        "confidence": 60.0,
+        "entry_zone": {
+          "low": 34.7,
+          "high": 34.9
+        },
+        "stop_invalidation": {
+          "price": 34.6,
+          "reason": "跌破回測支撐與 ATR 失效區，拉回承接 setup 取消"
+        },
+        "target_1": {
+          "low": 35.15,
+          "high": 35.3
+        },
+        "target_2": {
+          "low": 35.4,
+          "high": 35.55
+        },
+        "expected_move_pct": 0.96,
+        "reward_risk": 2.13,
+        "level_method": "setup_specific_support_resistance_atr_tick_size_v1",
+        "chase_risk": "medium",
+        "event_risk": "unknown",
+        "position_size": "half",
+        "time_horizon": "intraday_to_5d",
+        "data_quality": "partial",
+        "factor_coverage": {
+          "statuses": {
+            "price_trend": "available",
+            "volume": "available",
+            "support_resistance": "available",
+            "chip": "not_applicable",
+            "institutional_flow": "not_applicable",
+            "margin_short": "not_applicable",
+            "market_context": "partial",
+            "event_news": "unavailable",
+            "prediction_snapshot": "available",
+            "review_outcome": "partial"
+          },
+          "instrument_type": "etf",
+          "summary": {
+            "available": 4,
+            "partial": 2,
+            "unavailable": 1,
+            "stale": 0,
+            "not_applicable": 3
+          },
+          "data_quality": "partial",
+          "downgrade_policy": "missing or stale TW tactical inputs lower confidence/position size; insufficient core OHLCV forces no_trade"
+        },
+        "source_status": {
+          "historical_ohlcv": "available",
+          "technical_engine": "available",
+          "twse_institutional_flow": "not_applicable",
+          "margin_short": "not_applicable",
+          "chip_engine": "not_applicable",
+          "news_event": "unavailable",
+          "tw_market_context": "partial"
+        },
+        "technical_factors": {
+          "latest_date": "2026-10-01",
+          "latest_close": 34.89,
+          "latest_open": 34.87,
+          "latest_high": 34.91,
+          "latest_low": 34.68,
+          "latest_volume": 32660.0,
+          "history_days": 123,
+          "history_start": "2026-04-07",
+          "history_end": "2026-10-01",
+          "source": "canonical_historical_csv",
+          "ma5": 34.92,
+          "ma10": 34.89,
+          "ma20": 34.47,
+          "ma60": 33.3,
+          "ma20_slope": 0.01341,
+          "ma60_slope": 0.00388,
+          "rsi14": 70.0,
+          "macd": 0.4667,
+          "macd_signal": 0.4773,
+          "macd_histogram": -0.0106,
+          "bollinger_upper": 35.42,
+          "bollinger_middle": 34.47,
+          "bollinger_lower": 33.52,
+          "bollinger_width": 0.05521,
+          "atr14": 0.35,
+          "atr_pct": 0.01013,
+          "high_5d": 35.36,
+          "low_5d": 34.68,
+          "high_10d": 35.54,
+          "low_10d": 34.22,
+          "high_20d": 35.54,
+          "low_20d": 33.56,
+          "current_range_position": 0.6717,
+          "volume_ma5": 28742.0,
+          "volume_ma20": 31922.0,
+          "relative_volume": 1.023,
+          "volume_expansion": false,
+          "volume_contraction": false,
+          "return_volatility_pct": 0.00586
+        },
+        "support_resistance": {
+          "nearest_support": 34.7,
+          "secondary_support": 34.45,
+          "nearest_resistance": 34.9,
+          "secondary_resistance": 35.35,
+          "sources": [
+            "recent_swing_high_low",
+            "5_10_20d_high_low",
+            "moving_average",
+            "bollinger_band",
+            "atr_buffer"
+          ],
+          "tick_size_applied": true
+        },
+        "chip_tactical": {
+          "instrument_type": "etf",
+          "chip_direction": "neutral",
+          "chip_score": 50,
+          "institutional_flow": {
+            "foreign_investor_net_buy_sell": null,
+            "foreign_consecutive_days": null,
+            "investment_trust_net_buy_sell": null,
+            "investment_trust_consecutive_days": null,
+            "dealer_net_buy_sell": null,
+            "institutional_alignment": "not_applicable",
+            "price_flow_divergence": "not_applicable",
+            "data_status": "not_applicable"
+          },
+          "margin_risk": {
+            "margin_balance_change": null,
+            "short_balance_change": null,
+            "margin_price_divergence": "not_applicable",
+            "short_interest_signal": "not_applicable",
+            "margin_overheat_risk": "not_applicable",
+            "data_status": "not_applicable"
+          },
+          "short_signal": "not_applicable",
+          "short_interest_signal": "not_applicable",
+          "flow_confirmation": false,
+          "chip_data_quality": "not_applicable",
+          "data_quality": "not_applicable",
+          "notes": [
+            "ETF 標的不硬套個股法人/融資券規則，籌碼因子列為 not_applicable。"
+          ]
+        },
+        "market_context": {
+          "market_bias": "bullish",
+          "market_risk": "low",
+          "market_breadth_status": "watchlist breadth bullish=6/10, bearish=4/10; broad TWSE breadth unavailable",
+          "market_volume_status": "normal",
+          "market_regime": "bullish_low_risk",
+          "market_context_score": 58.0,
+          "market_data_quality": "partial",
+          "data_status": "partial",
+          "unavailable_fields": [
+            "TWSE index breadth",
+            "OTC breadth",
+            "market-wide advancers/decliners"
+          ]
+        },
+        "score_components": {
+          "technical_setup": 15.4,
+          "volume_confirmation": 8.8,
+          "chip_flow": 7.0,
+          "market_context": 6.96,
+          "risk_quality": 9.36,
+          "data_quality": 11.16
+        },
+        "score_before_penalty": 58.68,
+        "risk_penalty": 0.0,
+        "data_quality_penalty": 5.0,
+        "final_score": 53.68,
+        "reasons": [
+          "中期趨勢向上",
+          "回測短中期均線",
+          "量縮整理"
+        ],
+        "risk_reasons": [
+          "接近 Bollinger 上緣",
+          "已達一個 ATR 以上擴張"
+        ],
+        "playbook": {
+          "setup_type": "pullback",
+          "template": "等待回測支撐或短期均線止穩；量縮不破可觀察，跌破結構支撐取消。",
+          "entry_condition": "use deterministic entry_zone when present",
+          "invalidation_condition": "跌破回測支撐與 ATR 失效區，拉回承接 setup 取消",
+          "risk_context": [
+            "接近 Bollinger 上緣",
+            "已達一個 ATR 以上擴張"
+          ]
+        },
+        "advisory_only": true,
+        "trading_or_order_executed": false
+      },
+      "indicator": {
+        "close": 34.89,
+        "date": "2026-10-01"
+      },
+      "expected_tactical_direction": "bullish",
+      "expected_ma5": 34.92,
+      "expected_ma10": 34.89,
+      "provenance": {
+        "csv_sha256": "ee12bc8acc1c3e83ce76b8e0b0eb0a839869ef70f84a8765cc5913825f316510",
+        "rows": 123,
+        "latest_date": "2026-10-01"
+      }
+    },
+    {
+      "symbol": "1409",
+      "name": "新纖",
+      "tactical": {
+        "market": "TW",
+        "stock_id": "1409",
+        "stock_name": "新纖",
+        "strategy_id": "tw_daily_tactical_v1",
+        "strategy_type": "daily_tactical",
+        "strategy_version": "v1",
+        "factor_version": "tw_daily_tactical_factor_v1",
+        "factor_weights": {
+          "technical_setup": 0.22,
+          "volume_confirmation": 0.16,
+          "chip_flow": 0.14,
+          "market_context": 0.12,
+          "risk_quality": 0.18,
+          "data_quality": 0.18
+        },
+        "generated_at": "2026-10-02T09:07:42+08:00",
+        "direction": "no_trade",
+        "setup_type": "no_trade",
+        "action": "暫不操作",
+        "score": 33.58,
+        "rating": "No-Trade",
+        "confidence": 36.8,
+        "entry_zone": null,
+        "stop_invalidation": null,
+        "target_1": null,
+        "target_2": null,
+        "expected_move_pct": null,
+        "reward_risk": null,
+        "level_method": "suppressed_for_no_trade_or_insufficient_data",
+        "chase_risk": "low",
+        "event_risk": "unknown",
+        "position_size": "avoid",
+        "time_horizon": "intraday_to_5d",
+        "data_quality": "partial",
+        "factor_coverage": {
+          "statuses": {
+            "price_trend": "available",
+            "volume": "available",
+            "support_resistance": "available",
+            "chip": "partial",
+            "institutional_flow": "unavailable",
+            "margin_short": "unavailable",
+            "market_context": "partial",
+            "event_news": "unavailable",
+            "prediction_snapshot": "available",
+            "review_outcome": "partial"
+          },
+          "instrument_type": "common_stock",
+          "summary": {
+            "available": 4,
+            "partial": 3,
+            "unavailable": 3,
+            "stale": 0,
+            "not_applicable": 0
+          },
+          "data_quality": "partial",
+          "downgrade_policy": "missing or stale TW tactical inputs lower confidence/position size; insufficient core OHLCV forces no_trade"
+        },
+        "source_status": {
+          "historical_ohlcv": "available",
+          "technical_engine": "available",
+          "twse_institutional_flow": "unavailable",
+          "margin_short": "unavailable",
+          "chip_engine": "partial",
+          "news_event": "unavailable",
+          "tw_market_context": "partial"
+        },
+        "technical_factors": {
+          "latest_date": "2026-10-01",
+          "latest_close": 24.4,
+          "latest_open": 24.6,
+          "latest_high": 24.75,
+          "latest_low": 24.3,
+          "latest_volume": 8673.0,
+          "history_days": 123,
+          "history_start": "2026-04-07",
+          "history_end": "2026-10-01",
+          "source": "canonical_historical_csv",
+          "ma5": 24.41,
+          "ma10": 24.39,
+          "ma20": 24.59,
+          "ma60": 24.39,
+          "ma20_slope": -0.00476,
+          "ma60_slope": -0.01288,
+          "rsi14": 29.06,
+          "macd": -0.0157,
+          "macd_signal": 0.0042,
+          "macd_histogram": -0.0199,
+          "bollinger_upper": 25.85,
+          "bollinger_middle": 24.59,
+          "bollinger_lower": 23.34,
+          "bollinger_width": 0.10201,
+          "atr14": 0.72,
+          "atr_pct": 0.02971,
+          "high_5d": 24.95,
+          "low_5d": 23.85,
+          "high_10d": 25.15,
+          "low_10d": 23.8,
+          "high_20d": 26.85,
+          "low_20d": 23.8,
+          "current_range_position": 0.1967,
+          "volume_ma5": 7759.0,
+          "volume_ma20": 17225.0,
+          "relative_volume": 0.504,
+          "volume_expansion": false,
+          "volume_contraction": true,
+          "return_volatility_pct": 0.03033
+        },
+        "support_resistance": {
+          "nearest_support": 24.4,
+          "secondary_support": 23.85,
+          "nearest_resistance": 24.4,
+          "secondary_resistance": 24.6,
+          "sources": [
+            "recent_swing_high_low",
+            "5_10_20d_high_low",
+            "moving_average",
+            "bollinger_band",
+            "atr_buffer"
+          ],
+          "tick_size_applied": true
+        },
+        "chip_tactical": {
+          "instrument_type": "common_stock",
+          "chip_direction": "neutral",
+          "chip_score": 50,
+          "institutional_flow": {
+            "foreign_investor_net_buy_sell": null,
+            "foreign_consecutive_days": null,
+            "investment_trust_net_buy_sell": null,
+            "investment_trust_consecutive_days": null,
+            "dealer_net_buy_sell": null,
+            "institutional_alignment": "unavailable",
+            "price_flow_divergence": "unavailable",
+            "data_status": "unavailable"
+          },
+          "margin_risk": {
+            "margin_balance_change": null,
+            "short_balance_change": null,
+            "margin_price_divergence": "unavailable",
+            "short_interest_signal": "unavailable",
+            "margin_overheat_risk": "unavailable",
+            "data_status": "unavailable"
+          },
+          "short_signal": "unavailable",
+          "short_interest_signal": "unavailable",
+          "flow_confirmation": false,
+          "chip_data_quality": "partial",
+          "data_quality": "partial",
+          "notes": [
+            "正式法人/融資券細項尚未接入；以量價代理輔助判斷並降低信心，不偽造籌碼資料。"
+          ]
+        },
+        "market_context": {
+          "market_bias": "bullish",
+          "market_risk": "low",
+          "market_breadth_status": "watchlist breadth bullish=6/10, bearish=4/10; broad TWSE breadth unavailable",
+          "market_volume_status": "normal",
+          "market_regime": "bullish_low_risk",
+          "market_context_score": 58.0,
+          "market_data_quality": "partial",
+          "data_status": "partial",
+          "unavailable_fields": [
+            "TWSE index breadth",
+            "OTC breadth",
+            "market-wide advancers/decliners"
+          ]
+        },
+        "score_components": {
+          "technical_setup": 7.7,
+          "volume_confirmation": 6.72,
+          "chip_flow": 7.0,
+          "market_context": 6.96,
+          "risk_quality": 5.04,
+          "data_quality": 11.16
+        },
+        "score_before_penalty": 44.58,
+        "risk_penalty": 6.0,
+        "data_quality_penalty": 5.0,
+        "final_score": 33.58,
+        "reasons": [
+          "價格接近 20 日區間下緣",
+          "RSI 偏低，觀察反彈"
+        ],
+        "risk_reasons": [
+          "RR_BELOW_THRESHOLD"
+        ],
+        "playbook": {
+          "setup_type": "no_trade",
+          "template": "目前缺乏合理進場結構、資料品質不足或報酬風險不合格，暫不建立戰術部位。",
+          "entry_condition": "use deterministic entry_zone when present",
+          "invalidation_condition": "資料不足",
+          "risk_context": [
+            "RR_BELOW_THRESHOLD"
+          ]
+        },
+        "advisory_only": true,
+        "trading_or_order_executed": false
+      },
+      "indicator": {
+        "close": 24.4,
+        "date": "2026-10-01"
+      },
+      "expected_tactical_direction": "no_trade",
+      "expected_ma5": 24.41,
+      "expected_ma10": 24.39,
+      "provenance": {
+        "csv_sha256": "a56cd6667d0a8a7951d5b4fe32e3558135f7d62e9b97199cde491a44598e8734",
+        "rows": 123,
+        "latest_date": "2026-10-01"
+      }
+    },
+    {
+      "symbol": "3293",
+      "name": "鈊象",
+      "tactical": {
+        "market": "TW",
+        "stock_id": "3293",
+        "stock_name": "鈊象",
+        "strategy_id": "tw_daily_tactical_v1",
+        "strategy_type": "daily_tactical",
+        "strategy_version": "v1",
+        "factor_version": "tw_daily_tactical_factor_v1",
+        "factor_weights": {
+          "technical_setup": 0.22,
+          "volume_confirmation": 0.16,
+          "chip_flow": 0.14,
+          "market_context": 0.12,
+          "risk_quality": 0.18,
+          "data_quality": 0.18
+        },
+        "generated_at": "2026-10-02T09:07:42+08:00",
+        "direction": "no_trade",
+        "setup_type": "no_trade",
+        "action": "避免追高",
+        "score": 32.26,
+        "rating": "No-Trade",
+        "confidence": 32.6,
+        "entry_zone": null,
+        "stop_invalidation": null,
+        "target_1": null,
+        "target_2": null,
+        "expected_move_pct": null,
+        "reward_risk": null,
+        "level_method": "suppressed_for_no_trade_or_insufficient_data",
+        "chase_risk": "high",
+        "event_risk": "unknown",
+        "position_size": "avoid",
+        "time_horizon": "intraday_to_5d",
+        "data_quality": "partial",
+        "factor_coverage": {
+          "statuses": {
+            "price_trend": "available",
+            "volume": "available",
+            "support_resistance": "available",
+            "chip": "partial",
+            "institutional_flow": "unavailable",
+            "margin_short": "unavailable",
+            "market_context": "partial",
+            "event_news": "unavailable",
+            "prediction_snapshot": "available",
+            "review_outcome": "partial"
+          },
+          "instrument_type": "common_stock",
+          "summary": {
+            "available": 4,
+            "partial": 3,
+            "unavailable": 3,
+            "stale": 0,
+            "not_applicable": 0
+          },
+          "data_quality": "partial",
+          "downgrade_policy": "missing or stale TW tactical inputs lower confidence/position size; insufficient core OHLCV forces no_trade"
+        },
+        "source_status": {
+          "historical_ohlcv": "available",
+          "technical_engine": "available",
+          "twse_institutional_flow": "unavailable",
+          "margin_short": "unavailable",
+          "chip_engine": "partial",
+          "news_event": "unavailable",
+          "tw_market_context": "partial"
+        },
+        "technical_factors": {
+          "latest_date": "2026-10-01",
+          "latest_close": 814.0,
+          "latest_open": 786.0,
+          "latest_high": 814.0,
+          "latest_low": 785.0,
+          "latest_volume": 5228.0,
+          "history_days": 123,
+          "history_start": "2026-04-07",
+          "history_end": "2026-10-01",
+          "source": "canonical_historical_csv",
+          "ma5": 774.2,
+          "ma10": 748.4,
+          "ma20": 726.1,
+          "ma60": 734.6,
+          "ma20_slope": 0.02232,
+          "ma60_slope": -0.0029,
+          "rsi14": 84.87,
+          "macd": 14.2925,
+          "macd_signal": 2.1505,
+          "macd_histogram": 12.142,
+          "bollinger_upper": 791.24,
+          "bollinger_middle": 726.1,
+          "bollinger_lower": 660.96,
+          "bollinger_width": 0.17943,
+          "atr14": 17.79,
+          "atr_pct": 0.02185,
+          "high_5d": 814.0,
+          "low_5d": 724.0,
+          "high_10d": 814.0,
+          "low_10d": 698.0,
+          "high_20d": 814.0,
+          "low_20d": 687.0,
+          "current_range_position": 1.0,
+          "volume_ma5": 3252.0,
+          "volume_ma20": 1927.0,
+          "relative_volume": 2.714,
+          "volume_expansion": true,
+          "volume_contraction": false,
+          "return_volatility_pct": 0.01458
+        },
+        "support_resistance": {
+          "nearest_support": 774.0,
+          "secondary_support": 748.0,
+          "nearest_resistance": 832.0,
+          "secondary_resistance": 846.0,
+          "sources": [
+            "recent_swing_high_low",
+            "5_10_20d_high_low",
+            "moving_average",
+            "bollinger_band",
+            "atr_buffer"
+          ],
+          "tick_size_applied": true
+        },
+        "chip_tactical": {
+          "instrument_type": "common_stock",
+          "chip_direction": "positive",
+          "chip_score": 56,
+          "institutional_flow": {
+            "foreign_investor_net_buy_sell": null,
+            "foreign_consecutive_days": null,
+            "investment_trust_net_buy_sell": null,
+            "investment_trust_consecutive_days": null,
+            "dealer_net_buy_sell": null,
+            "institutional_alignment": "unavailable",
+            "price_flow_divergence": "unavailable",
+            "data_status": "unavailable"
+          },
+          "margin_risk": {
+            "margin_balance_change": null,
+            "short_balance_change": null,
+            "margin_price_divergence": "unavailable",
+            "short_interest_signal": "unavailable",
+            "margin_overheat_risk": "unavailable",
+            "data_status": "unavailable"
+          },
+          "short_signal": "unavailable",
+          "short_interest_signal": "unavailable",
+          "flow_confirmation": true,
+          "chip_data_quality": "partial",
+          "data_quality": "partial",
+          "notes": [
+            "正式法人/融資券細項尚未接入；以量價代理輔助判斷並降低信心，不偽造籌碼資料。"
+          ]
+        },
+        "market_context": {
+          "market_bias": "bullish",
+          "market_risk": "low",
+          "market_breadth_status": "watchlist breadth bullish=6/10, bearish=4/10; broad TWSE breadth unavailable",
+          "market_volume_status": "normal",
+          "market_regime": "bullish_low_risk",
+          "market_context_score": 58.0,
+          "market_data_quality": "partial",
+          "data_status": "partial",
+          "unavailable_fields": [
+            "TWSE index breadth",
+            "OTC breadth",
+            "market-wide advancers/decliners"
+          ]
+        },
+        "score_components": {
+          "technical_setup": 7.7,
+          "volume_confirmation": 10.56,
+          "chip_flow": 7.84,
+          "market_context": 6.96,
+          "risk_quality": 5.04,
+          "data_quality": 11.16
+        },
+        "score_before_penalty": 49.26,
+        "risk_penalty": 12.0,
+        "data_quality_penalty": 5.0,
+        "final_score": 32.26,
+        "reasons": [
+          "追高風險過高，等待拉回"
+        ],
+        "risk_reasons": [
+          "價格明顯高於 MA5",
+          "價格明顯高於 MA20",
+          "接近 Bollinger 上緣",
+          "RSI 過熱",
+          "已達一個 ATR 以上擴張"
+        ],
+        "playbook": {
+          "setup_type": "no_trade",
+          "template": "目前缺乏合理進場結構、資料品質不足或報酬風險不合格，暫不建立戰術部位。",
+          "entry_condition": "use deterministic entry_zone when present",
+          "invalidation_condition": "資料不足",
+          "risk_context": [
+            "價格明顯高於 MA5",
+            "價格明顯高於 MA20",
+            "接近 Bollinger 上緣",
+            "RSI 過熱",
+            "已達一個 ATR 以上擴張"
+          ]
+        },
+        "advisory_only": true,
+        "trading_or_order_executed": false
+      },
+      "indicator": {
+        "close": 814.0,
+        "date": "2026-10-01"
+      },
+      "expected_tactical_direction": "no_trade",
+      "expected_ma5": 774.2,
+      "expected_ma10": 748.4,
+      "provenance": {
+        "csv_sha256": "cab329f5dcdea75a618c3995ba44f637a17da6b29f08ceb341014ba47d05aa5d",
+        "rows": 123,
+        "latest_date": "2026-10-01"
+      }
+    }
+  ]
+}
