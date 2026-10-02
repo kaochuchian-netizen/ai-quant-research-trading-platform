@@ -3,6 +3,7 @@ import os
 import signal
 import sys
 import threading
+from app.reports.structured_card_diagnostics import failure_diagnostic
 from datetime import datetime
 from pathlib import Path
 from time import monotonic
@@ -506,6 +507,7 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
 
             csv_path = f"data/historical/{stock_id}_daily.csv"
 
+            analysis_substage = "HISTORICAL_INDICATORS"
             try:
                 indicator_result = build_indicator_result(stock_id, csv_path)
 
@@ -514,10 +516,12 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
                     50,
                 )
 
+                analysis_substage = "ADR_ANALYSIS"
                 adr_result = get_adr_result(stock_id)
                 adr_score = calculate_adr_score(adr_result)
 
                 report_manual_rerun_stage("news_acquisition", symbol=stock_id)
+                analysis_substage = "NEWS_ANALYSIS"
                 news_bundle = analyze_news(
                     stock_id,
                     stock_name,
@@ -530,10 +534,12 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
                 news_score_result = calculate_news_score(news_result)
                 news_score = news_score_result.get("score", 50)
 
+                analysis_substage = "CHIP_ANALYSIS"
                 chip_result = analyze_chip(stock_id)
                 chip_score = chip_result.get("chip_score", 50)
 
 
+                analysis_substage = "SCORE_ANALYSIS"
                 total_score_result = calculate_total_score(
                     technical_score=technical_score,
                     news_score=news_score,
@@ -542,6 +548,7 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
                 )
 
                 report_manual_rerun_stage("research_rre", symbol=stock_id)
+                analysis_substage = "STOCK_ANALYSIS"
                 ai_analysis = analyze_stock(
                     indicator_result=indicator_result,
                     adr_result=adr_result,
@@ -550,6 +557,7 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
 
                 report_manual_rerun_stage("research_rre", "completed", symbol=stock_id)
                 report_manual_rerun_stage("prediction_projection", symbol=stock_id)
+                analysis_substage = "REPORT_FORMAT"
                 report = format_stock_report_v2(
                     stock_id=stock_id,
                     stock_name=stock_name,
@@ -568,6 +576,7 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
                     report_chars=len(report),
                 )
 
+                analysis_substage = "SQLITE_WRITE"
                 if dry_run:
                     print(f"dry-run 模式：略過 SQLite 寫入：{stock_name}({stock_id})")
                 else:
@@ -617,6 +626,7 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
                         **metadata,
                     )
 
+                analysis_substage = "STRUCTURED_CARD_BUILD"
                 with _bounded_post_report_operation(
                     stage_timing=stage_timing,
                     symbol=stock_id,
@@ -655,6 +665,7 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
                     import logging
                     logging.getLogger(__name__).warning("prediction_capture: SHADOW_FAILURE")
                 _emit_post_report_progress(stage_timing, stock_id, "STRUCTURED_CARD_DONE", status="completed")
+                analysis_substage = "ARTIFACT_WRITE"
                 _emit_post_report_progress(stage_timing, stock_id, "ARTIFACT_WRITE_START")
                 with _bounded_post_report_operation(
                     stage_timing=stage_timing,
@@ -666,6 +677,7 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
                         structured_card,
                     )
                 _emit_post_report_progress(stage_timing, stock_id, "ARTIFACT_WRITE_DONE", status="completed")
+                analysis_substage = "MANUAL_PROGRESS_WRITE"
                 with _bounded_post_report_operation(
                     stage_timing=stage_timing,
                     symbol=stock_id,
@@ -676,7 +688,11 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
                 stage_timing.finish(stage_name, report_ready=True)
 
             except Exception as e:
-                reason = e.__class__.__name__
+                diagnostic = failure_diagnostic(e, stage=analysis_substage, symbol=stock_id,
+                                                run_id=context["pipeline_run_id"])
+                # Debug evidence is log-only; never attach traceback/messages to cards or LINE.
+                print(json.dumps(diagnostic, ensure_ascii=False, sort_keys=True), file=sys.stderr, flush=True)
+                reason = diagnostic["category"]
                 print(f"分析失敗：{stock_name}({stock_id})，原因類型：{reason}", flush=True)
                 failed_reports.append({"stock_id": stock_id, "stock_name": stock_name, "reason": reason})
                 _store_structured_pre_open_card(
@@ -685,7 +701,7 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
                         stock_id,
                         stock_name,
                         context["run_date"],
-                        f"analysis_failed:{reason}",
+                        reason,
                     ),
                 )
                 stage_timing.finish(stage_name, status="failed", reason=reason)

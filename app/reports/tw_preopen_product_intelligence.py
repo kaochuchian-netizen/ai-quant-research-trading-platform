@@ -5,6 +5,7 @@ does not own strategy, scoring, eligibility, action, or execution.  Dashboard
 and LINE consume the same projection and may not recompute forecast values.
 """
 from __future__ import annotations
+from app.reports.structured_card_diagnostics import CardValidationError
 
 import hashlib
 import json
@@ -218,7 +219,21 @@ def project_tw_preopen_product(card: dict[str, Any], *, strict: bool = True) -> 
     news_funnel = _news_funnel(news)
     errors.extend(validate_news_funnel_contract(news_funnel, selected_news))
     if errors and strict:
-        raise ValueError("|".join(sorted(set(errors))))
+        raise CardValidationError(errors, values={
+            "presentation.direction": direction, "snapshot.direction_forecast": snapshot_direction,
+            "prediction_range.low": low, "prediction_range.high": high, "point_forecast.price": target,
+            "point_forecast.owner": point.get("owner"), "point_forecast.is_execution_target": point.get("is_execution_target"),
+            "point_forecast.is_support": point.get("is_support"), "point_forecast.is_resistance": point.get("is_resistance"),
+            "snapshot.confidence_owner": snapshot.get("confidence_owner"),
+            "news.retrieved_count": news_funnel["retrieved_count"],
+            "news.qualified_count": news_funnel["qualified_count"],
+            "news.selected_count": news_funnel["selected_count"], "news.rendered_count": len(selected_news),
+            "news.identity_present": all(bool(n.get("news_id")) for n in selected_news),
+            "news.title_present": all(bool(n.get("headline")) for n in selected_news),
+            "news.source_present": all(bool(n.get("publisher")) for n in selected_news),
+            "news.provenance_present": all(bool(n.get("source_url")) for n in selected_news),
+            "news.attribution_present": all(bool((n.get("attribution_provenance") or {}).get("subject_contract")) for n in selected_news),
+        })
 
     label, arrow = LABELS.get(direction, ("盤整", "↔"))
     symbol = str(projected.get("symbol") or projected.get("stock_id") or "")

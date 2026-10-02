@@ -5,6 +5,7 @@ production artifacts, sends notifications, or places orders.  Producers pass
 the observed quote and the admitted 07:00 setup explicitly.
 """
 from __future__ import annotations
+from app.reports.structured_card_diagnostics import card_stage
 
 import hashlib
 import json
@@ -285,12 +286,15 @@ def upgrade_pre_open_card(card: dict[str, Any], tactical: dict[str, Any] | None,
     result["data_freshness"] = freshness
     result["instrument_context_v2"] = instrument_context(symbol)
     result["effective_research_coverage_v2"] = effective_research_coverage_v2(result)
-    result["prediction_snapshot_v2"] = build_research_prediction_v2(
-        result, effective_date=trading_date, generated_at=result.get("generated_at") or result.get("as_of"),
-    )
-    result = project_tw_prediction_card(result, "pre_open_0700", strict=True)
+    with card_stage("RESEARCH_PREDICTION"):
+        result["prediction_snapshot_v2"] = build_research_prediction_v2(
+            result, effective_date=trading_date, generated_at=result.get("generated_at") or result.get("as_of"),
+        )
+    with card_stage("PREDICTION_PROJECTION"):
+        result = project_tw_prediction_card(result, "pre_open_0700", strict=True)
     if result["prediction_snapshot_v2"].get("prediction_status") == "evaluable":
-        result = project_tw_preopen_product(result, strict=True)
+        with card_stage("PRODUCT_PROJECTION"):
+            result = project_tw_preopen_product(result, strict=True)
     result["verification_record_v1"] = verification_record(result["prediction_snapshot_v2"])
     without_hash = dict(result)
     without_hash.pop("source_payload_hash", None)

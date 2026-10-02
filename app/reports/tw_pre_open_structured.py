@@ -5,6 +5,7 @@ import hashlib
 import json
 from datetime import datetime
 from typing import Any
+from app.reports.structured_card_diagnostics import CATEGORIES, HISTORICAL_CODES, card_stage
 from zoneinfo import ZoneInfo
 
 from app.reports.presentation_normalization import (
@@ -129,7 +130,8 @@ def build_card(*, symbol: str, name: str, trading_date: str, indicator: dict[str
     technical_as_of = _first(indicator, "date", "source_data_date")
     if progress_hook:
         progress_hook("NEWS_EVIDENCE_START")
-    canonical_news = news_contract(news, generated_at=generated_at, target_symbol=str(symbol), target_name=name)
+    with card_stage("NEWS_EVIDENCE"):
+        canonical_news = news_contract(news, generated_at=generated_at, target_symbol=str(symbol), target_name=name)
     if progress_hook:
         progress_hook("NEWS_EVIDENCE_DONE", status="completed")
     card: dict[str, Any] = {
@@ -165,14 +167,30 @@ def build_card(*, symbol: str, name: str, trading_date: str, indicator: dict[str
         "strategies": {"daily_tactical": {"action": action, "rating": rating, "score": decision_score, "confidence": decision_score, "entry_zone": _first(analysis, "entry_zone"), "target_1": _first(analysis, "target", "target_price"), "stop_invalidation": _first(analysis, "stop", "stop_loss"), "chase_risk": chase_risk}},
     }
     if tactical:
-        card = upgrade_pre_open_card(card, tactical, source_revision=source_revision)
+        with card_stage("TACTICAL_UPGRADE"):
+            card = upgrade_pre_open_card(card, tactical, source_revision=source_revision)
     else:
         card = seal_card_source_payload_hash(card)
     return card
 
 
 def unavailable_card(symbol: str, name: str, trading_date: str, reason: str, generated_at: str | None = None) -> dict[str, Any]:
-    return build_card(symbol=symbol, name=name, trading_date=trading_date, missing_fields=[reason, "market_data"], generated_at=generated_at)
+    # A downstream exception is not evidence that upstream prices are missing.
+    category = reason if reason in CATEGORIES else (
+        "historical_data_invalid" if reason.lower().startswith("historical") else "analysis_failed"
+    )
+    source_reason = reason.split(":")[-1] if isinstance(reason, str) else ""
+    if source_reason == "historical_csv_missing":
+        category = "market_data_missing"
+    stable_reason = source_reason if source_reason in HISTORICAL_CODES else category
+    label = CATEGORIES[category]
+    missing = ["market_data"] if category == "market_data_missing" else []
+    card = build_card(symbol=symbol, name=name, trading_date=trading_date, missing_fields=missing, generated_at=generated_at)
+    card.update({"failure_category": category, "failure_reason_code": stable_reason,
+                 "reasoning": label, "unavailable_reason": label,
+                 "do_not_trade_reason": label, "technical_summary": "未提供",
+                 "news_summary": "未提供", "risk_summary": label})
+    return seal_card_source_payload_hash(card)
 
 
 def aggregate(cards: list[dict[str, Any]], tracking_symbols: list[str]) -> dict[str, Any]:
