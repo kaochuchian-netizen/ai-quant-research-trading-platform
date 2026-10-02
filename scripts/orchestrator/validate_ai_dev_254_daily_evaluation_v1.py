@@ -11,11 +11,14 @@ sys.path.insert(0, str(ROOT))
 
 
 def main():
-    suite = unittest.defaultTestLoader.discover(str(ROOT / "tests"), pattern="test_daily_evaluation.py")
+    suite = unittest.TestSuite([
+        unittest.defaultTestLoader.discover(str(ROOT / "tests"), pattern="test_daily_evaluation.py"),
+        unittest.defaultTestLoader.discover(str(ROOT / "tests"), pattern="test_unified_daily_learning.py"),
+    ])
     output = io.StringIO()
     result = unittest.TextTestRunner(stream=output, verbosity=2).run(suite)
-    ok = result.wasSuccessful() and not result.skipped and result.testsRun >= 66
-    print(json.dumps({"schema_version": "ai_dev_254_daily_evaluation_v1", "status": "PASS" if ok else "FAIL",
+    ok = result.wasSuccessful() and not result.skipped and result.testsRun >= 75
+    print(json.dumps({"schema_version": "ai_dev_256_unified_daily_learning_v1", "status": "PASS" if ok else "FAIL",
                       "tests_run": result.testsRun, "failures": [] if ok else [output.getvalue()],
                       "production_mutation": "NONE", "lifecycle_mutation": False, "input_kind": "SYNTHETIC",
                       "production_ready": False}, sort_keys=True))

@@ -8,6 +8,7 @@ from app.evaluation.production_evidence import freeze, feature, positive
 from app.evaluation.session_calendar import load_calendar, session
 from app.evaluation.prediction_regression_contract import aware
 from app.evaluation.offline_report_projection import digest
+from app.evaluation.daily_learning import latest as latest_learning, apply as apply_learning
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -55,10 +56,13 @@ def capture(card, *, root=ROOT, clock=None):
         reference = feature("reference_price", positive(p["reference_price"]), source=p["prediction_identity"],
                             revision=p["method_version"], source_digest=digest(p),
                             as_of=observed, available_at=available, producer=p["method_version"])
+        frozen_at = clock()
+        learning = apply_learning(latest_learning(root, "TW", day, frozen_at), frozen_at=frozen_at,
+            feature_times=[reference["available_at"], atr_feature["available_at"]], horizon_open=h["open_at"])
         frozen = freeze(prediction_id=p["prediction_identity"], symbol=symbol,
                         direction={"bullish":"UP","bearish":"DOWN","neutral":"FLAT"}[p["direction_forecast"]],
-                        frozen_at=clock(), reference=reference, atr=atr_feature, calendar=calendar,
-                        review_session=day, producer=p["method_version"])
+                        frozen_at=frozen_at, reference=reference, atr=atr_feature, calendar=calendar,
+                        review_session=day, producer=p["method_version"], learning_used=learning)
         return {"status":"FROZEN", "frozen":frozen}
     except (OSError, ValueError, KeyError, TypeError):
         return {"status":"BLOCKED_INPUT", "reason":"NATIVE_FROZEN_PREREQUISITE"}

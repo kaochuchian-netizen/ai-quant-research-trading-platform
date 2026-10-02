@@ -15,6 +15,7 @@ from app.evaluation.production_evidence import feature, freeze, positive, verify
 from app.evaluation.prediction_regression_contract import aware, stamp
 from app.evaluation.offline_report_projection import digest
 from app.evaluation.session_calendar import load_calendar, session
+from app.evaluation.daily_learning import latest as latest_learning, apply as apply_learning
 
 PRODUCER = "US_PREOPEN_SESSION_DIRECTION_V1"
 VERSION = "us_preopen_session_direction_v1"
@@ -33,7 +34,7 @@ def wilder(rows):
         value=(value*13+tr)/14
     return positive(value)
 
-def predict(observation, calendar, *, frozen_at):
+def predict(observation, calendar, *, frozen_at, learning_reference=None):
     """Replay uses recorded inputs only; no current clock."""
     verify(observation)
     if not symbol_valid(observation["symbol"]) or observation["source"]!="Yahoo Finance / yfinance":
@@ -84,9 +85,11 @@ def predict(observation, calendar, *, frozen_at):
     fs={name:feature(name,value,as_of=as_of,producer=VERSION,**kwargs) for name,value in (("ma5",ma5),("ma10",ma10))}
     identity=digest({"producer":PRODUCER,"symbol":observation["symbol"],"session":day,
                      "observation":observation["content_hash"],"frozen_at":frozen_at})
+    learning = apply_learning(learning_reference, frozen_at=frozen_at,
+        feature_times=[ref["available_at"], atr["available_at"], *(f["available_at"] for f in fs.values())], horizon_open=h["open_at"])
     f=freeze(prediction_id=identity,symbol=observation["symbol"],direction=direction,frozen_at=frozen_at,
              reference=ref,atr=atr,calendar=calendar,review_session=day,producer=PRODUCER,
-             market="US",stream=STREAM,prediction_features=fs)
+             market="US",stream=STREAM,prediction_features=fs,learning_used=learning)
     return stamp({**common,"status":"FROZEN","frozen":f,"reason":None})
 
 def receipt_key(symbol,day):
@@ -143,9 +146,10 @@ def capture_existing(symbol, quote, history, day, window, *, root=ROOT, clock=No
         try:
             # Compute the forecast before assigning its freeze timestamp.
             # The second pure call binds/replays the already computed signal.
-            computed=predict(observation,calendar,frozen_at=observed)
+            learning_reference = latest_learning(root, "US", day, observed)
+            computed=predict(observation,calendar,frozen_at=observed, learning_reference=learning_reference)
             frozen_at=clock()
-            value=predict(observation,calendar,frozen_at=frozen_at)
+            value=predict(observation,calendar,frozen_at=frozen_at, learning_reference=learning_reference)
             if (computed["status"],computed.get("direction")) != (value["status"],value.get("direction")):
                 raise ValueError("PREDICTION_REPLAY")
         except (ValueError,KeyError,TypeError):

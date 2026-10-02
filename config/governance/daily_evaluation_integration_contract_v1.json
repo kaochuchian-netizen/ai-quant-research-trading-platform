@@ -31,5 +31,25 @@
   "lifecycle_mutation": false,
   "revision_policy": "CONTENT_ADDRESSED_NO_OVERWRITE",
   "outcome_finality": "UNCHANGED_252_APPROVED",
-  "manual_rerun": "EXPLICIT_CANONICAL_REPORT_DATE"
+  "manual_rerun": "EXPLICIT_CANONICAL_REPORT_DATE",
+  "unified_market_inputs": {
+    "TW": [
+      "pre_open_0700",
+      "intraday_1305",
+      "pre_close_1335",
+      "post_close_1500"
+    ],
+    "US": [
+      "us_pre_market_2000",
+      "us_intraday_2300",
+      "us_post_close_review_0630"
+    ]
+  },
+  "outcome_resolution": "IMMUTABLE_SCHEDULED_POST_CLOSE_EVIDENCE_ONLY",
+  "learning_loop": {
+    "artifact": "DAILY_LEARNING_ARTIFACT",
+    "application": "FROZEN_PROVENANCE_GATE_APPLIED",
+    "scope": "DIAGNOSTIC_ONLY_NO_MODEL_STRATEGY_OR_WEIGHT_MUTATION",
+    "proof": "IMMUTABLE_LEARNING_USED_ON_NEXT_APPLICABLE_NATIVE_PREDICTION"
+  }
 }

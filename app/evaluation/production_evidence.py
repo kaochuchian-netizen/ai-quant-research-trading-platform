@@ -50,7 +50,7 @@ def feature(name, value, *, source, revision, source_digest, as_of, available_at
                   "source_digest": source_digest, "as_of": as_of, "available_at": available_at, "producer": producer})
 
 def freeze(*, prediction_id, symbol, direction, frozen_at, reference, atr, calendar, review_session,
-           producer, event_confidence=None, market="TW", stream="pre_open_0700", prediction_features=None):
+           producer, event_confidence=None, market="TW", stream="pre_open_0700", prediction_features=None, learning_used=None):
     if (market, stream) not in {("TW","pre_open_0700"),("US","us_pre_market_2000")}:
         raise ValueError("NATIVE_STREAM")
     h = horizon(calendar, market, stream, review_session, native=True)
@@ -66,6 +66,8 @@ def freeze(*, prediction_id, symbol, direction, frozen_at, reference, atr, calen
         raise ValueError("PREDICTION_IDENTITY")
     event = {"version": EVENT, "reference_digest": reference["content_hash"], "atr_digest": atr["content_hash"],
              "flat_band_rule": "251A.prediction.trend", "horizon": h}
+    from app.evaluation.daily_learning import validate_used
+    validate_used(learning_used)
     if event_confidence is not None:
         verify(event_confidence)
         if (event_confidence.get("prediction_id") != prediction_id or event_confidence.get("event") != event
@@ -76,7 +78,7 @@ def freeze(*, prediction_id, symbol, direction, frozen_at, reference, atr, calen
               "symbol": symbol, "market": market, "stream": stream, "timezone": ZONES[market],
               "direction": direction, "prediction_frozen_at": frozen_at, "producer": producer,
               "event": event, "features": {"reference": reference, "atr14": atr}, "event_confidence": event_confidence,
-              "calendar": deepcopy(calendar)}
+              "calendar": deepcopy(calendar), "learning_used": deepcopy(learning_used)}
     if prediction_features is not None:
         result["prediction_features"] = deepcopy(prediction_features)
     result["sample_id"] = digest({"prediction_id": prediction_id, "event": EVENT, "horizon": h})
@@ -89,7 +91,7 @@ def validate_frozen(value):
                       atr=value["features"]["atr14"], calendar=value["calendar"],
                       review_session=value["event"]["horizon"]["session_date"], producer=value["producer"],
                       event_confidence=value["event_confidence"], market=value["market"], stream=value["stream"],
-                      prediction_features=value.get("prediction_features"))
+                      prediction_features=value.get("prediction_features"), learning_used=value.get("learning_used"))
     if value != expected:
         raise ValueError("FROZEN_REPLAY")
     return value
