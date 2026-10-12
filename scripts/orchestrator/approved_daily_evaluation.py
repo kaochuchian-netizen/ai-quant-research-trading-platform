@@ -9,6 +9,8 @@ from zoneinfo import ZoneInfo
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT))
 from app.dashboard.daily_evaluation_archive import ARCHIVE, collect, persist_daily, read
+from app.dashboard.daily_learning_presentation import publish_dashboard
+from app.dashboard.multi_market_dashboard import STATIC_ROOT
 from app.evaluation.daily_evaluation import build_daily, replay, canonical_cutoff
 from app.evaluation.prediction_regression_contract import aware
 
@@ -31,9 +33,16 @@ def main(argv=None):
             value=build_daily(day,collect(ARCHIVE,day));replay(value);path=None
         else:
             path,value=persist_daily(ARCHIVE,day,output_root=args.shadow_output)
+        dashboard={"status":"NOT_PUBLISHED"}
+        if path is not None:
+            try:
+                dashboard=publish_dashboard(value,static_root=STATIC_ROOT,
+                                            output_root=ROOT/"templates/daily_learning_dashboard")
+            except (ValueError,KeyError,TypeError,OSError):
+                dashboard={"status":"PRESENTATION_FAILED"}
         print(json.dumps({"status":value["status"],"identity":value["identity"],"path":str(path) if path else None,
                           "sessions":{m:v.get("review_session") for m,v in value["markets"].items()},
-                          "notification":False,"scheduler_mutation":False},sort_keys=True))
+                          "dashboard":dashboard,"notification":False,"scheduler_mutation":False},sort_keys=True))
         return 0 if value["status"]=="VALID" else 1
     except (ValueError,KeyError,TypeError,OSError):
         # Stable bounded diagnostics, no payload or exception text.

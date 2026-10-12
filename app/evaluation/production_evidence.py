@@ -9,6 +9,10 @@ from app.evaluation.session_calendar import session, validate_calendar, ZONES
 VERSION = "production_evidence_accumulation_v1"
 EVENT = "prediction_direction_event_v1"
 LEGACY_EVENT = "SESSION_OPEN_TO_CLOSE_REVIEW"
+# AI-DEV-256B: pre-learning frozen records are immutable and lack this later field.
+# The bounded cutoff is the UTC commit time of the learning_used contract introduction.
+LEGACY_FROZEN_REPLAY_VERSION = "legacy_missing_learning_used_v1"
+LEGACY_LEARNING_USED_CUTOFF = "2026-10-02T13:38:22+00:00"
 MAPPING = {"TW": {"pre_open_0700": 0, "intraday_1305": 1, "pre_close_1335": 1, "post_close_1500": 1},
            "US": {"us_pre_market_2000": 0, "us_intraday_2300": 1, "us_post_close_review_0630": 1}}
 STATES = {"HISTORICAL_INELIGIBLE", "WAITING_OUTCOME", "INSUFFICIENT_SAMPLE",
@@ -84,14 +88,31 @@ def freeze(*, prediction_id, symbol, direction, frozen_at, reference, atr, calen
     result["sample_id"] = digest({"prediction_id": prediction_id, "event": EVENT, "horizon": h})
     return stamp(result)
 
+def _legacy_missing_learning_used(value):
+    """Accept only the immutable pre-256 shape; never normalize the stored record."""
+    if "learning_used" in value:
+        return False
+    required = {"schema_version", "kind", "prediction_id", "symbol", "market", "stream", "timezone",
+                "direction", "prediction_frozen_at", "producer", "event", "features", "event_confidence",
+                "calendar", "sample_id", "content_hash"}
+    return (value.get("schema_version") == VERSION and value.get("kind") == "FROZEN_PREDICTION"
+            and required <= set(value) and aware(value["prediction_frozen_at"]) < aware(LEGACY_LEARNING_USED_CUTOFF))
+
+
 def validate_frozen(value):
     verify(value)
+    legacy = _legacy_missing_learning_used(value)
+    if "learning_used" not in value and not legacy:
+        raise ValueError("FROZEN_LEARNING_USED_MISSING")
     expected = freeze(prediction_id=value["prediction_id"], symbol=value["symbol"], direction=value["direction"],
                       frozen_at=value["prediction_frozen_at"], reference=value["features"]["reference"],
                       atr=value["features"]["atr14"], calendar=value["calendar"],
                       review_session=value["event"]["horizon"]["session_date"], producer=value["producer"],
                       event_confidence=value["event_confidence"], market=value["market"], stream=value["stream"],
                       prediction_features=value.get("prediction_features"), learning_used=value.get("learning_used"))
+    if legacy:
+        # Reconstruct the historical shape before hashing; do not add a field to value.
+        expected = stamp({k: v for k, v in expected.items() if k not in {"content_hash", "learning_used"}})
     if value != expected:
         raise ValueError("FROZEN_REPLAY")
     return value
