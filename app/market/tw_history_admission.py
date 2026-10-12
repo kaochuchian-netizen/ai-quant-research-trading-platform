@@ -24,17 +24,26 @@ def _day(value: Any) -> date | None:
 def expected_completed_session(
     target_date: Any, *, window: str = "pre_open_0700",
     holiday_dates: set[str] | set[date] | None = None,
+    calendar: dict[str, Any] | None = None,
 ) -> date | None:
     """Return the latest eligible completed TW daily session.
 
-    The deterministic calendar knows weekends and accepts an explicit holiday
-    set from the repository/runtime.  This avoids calendar-day staleness and
-    remains dependency-free.  Unknown future holidays are a documented
-    limitation rather than silently widening a tolerance.
+    A supplied immutable TWSE calendar is authoritative.  The legacy
+    weekend/explicit-holiday path remains for callers that deliberately use
+    a bounded fixture; production admission supplies the pinned calendar.
     """
     target = _day(target_date)
     if target is None:
         return None
+    if calendar is not None:
+        from app.evaluation.session_calendar import CalendarError, latest_completed_session
+
+        clock = "23:59:59+08:00" if window in {"post_close_1500", "completed_session"} else "07:00:00+08:00"
+        try:
+            row = latest_completed_session(calendar, "TW", f"{target.isoformat()}T{clock}")
+        except CalendarError:
+            return None
+        return _day(row.get("session_date"))
     holidays = {_day(value) for value in (holiday_dates or set())}
     include_target = window in {"post_close_1500", "completed_session"}
     candidate = target if include_target else target.fromordinal(target.toordinal() - 1)
@@ -47,6 +56,7 @@ def validate_history_candidate(
     frame: pd.DataFrame | None, *, source: str, target_date: Any,
     minimum_bars: int = 20, window: str = "pre_open_0700",
     holiday_dates: set[str] | set[date] | None = None,
+    calendar: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Return normalized data plus stage-by-stage admission evidence."""
     base = {
@@ -88,7 +98,21 @@ def validate_history_candidate(
         & (normalized["low"] <= normalized[["open", "close", "high"]].min(axis=1))
     )
     target = _day(target_date)
-    expected = expected_completed_session(target_date, window=window, holiday_dates=holiday_dates)
+    if calendar is None and holiday_dates is None:
+        # Production history admission must use the repository-pinned TWSE
+        # snapshot.  A calendar load failure is fail-closed below.
+        try:
+            from app.evaluation.session_calendar import load_calendar
+            calendar = load_calendar("TW")
+        except Exception:
+            base.update(status="SOURCE_FAILED", reason_codes=["CALENDAR_UNAVAILABLE"])
+            return base
+    expected = expected_completed_session(
+        target_date, window=window, holiday_dates=holiday_dates, calendar=calendar,
+    )
+    if expected is None:
+        base.update(status="SOURCE_FAILED", reason_codes=["CALENDAR_SESSION_UNRESOLVED"])
+        return base
     latest = normalized["date"].max().date()
     future = bool(expected and (normalized["date"].dt.date > expected).any())
     base.update(
