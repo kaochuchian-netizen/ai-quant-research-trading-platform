@@ -123,8 +123,12 @@ def project_card(card, market, window):
     news = news_summary(card, human)
     news_text = "；".join(f"{x['summary']}（來源：{x['source']}）" for x in news) or "尚無可用新聞內容摘要"
     strategy = zh(card.get("canonical_intraday_action") or card.get("tactical_adjustment") or card.get("action") or card.get("action_rationale"))
+    unavailable_prediction = (
+        window == "pre_open_0700"
+        and (card.get("availability_status") == "unavailable" or bool(card.get("failure_category")))
+    )
     values = {
-        "走勢預測": zh(human.get("direction")), "預測目標": price(human.get("forecast_target")),
+        "走勢預測": "資料不足，暫不判斷" if unavailable_prediction else zh(human.get("direction")), "預測目標": price(human.get("forecast_target")),
         "預測區間": interval(human.get("forecast_low"), human.get("forecast_high")),
         "投資策略": strategy, "新聞內容摘要": news_text,
         "目前價格": price(card.get("current_price")), "盤前價格": price((card.get("premarket") or {}).get("price")),
