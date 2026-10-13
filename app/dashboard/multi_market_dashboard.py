@@ -66,6 +66,7 @@ from app.reports.tw_pre_open_quality import data_gaps as canonical_pre_open_gaps
 from app.reports.tw_prediction_explainability import project_tw_prediction_card
 from app.reports.tw_preopen_product_intelligence import portfolio_summary as tw_preopen_product_summary
 from app.reports.tw_human_summary import build_tw_human_summary
+from app.dashboard.daily_evaluation_archive import latest_valid_daily_evaluation
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PUBLIC_BASE_URL = "http://35.201.242.167/stock-ai-dashboard"
@@ -1694,6 +1695,11 @@ def render_landing_page() -> str:
         for market in ("TW", "US")
     )
     health_rows_html = "".join(health_rows)
+    daily=latest_valid_daily_evaluation()
+    daily_date=str(daily.get("report_date") or "") if daily else "尚無有效策略檢討"
+    daily_status="已完成" if daily else "等待下一次自然 17:00"
+    daily_link="/stock-ai-dashboard/dashboard/daily-evaluation/latest/index.html"
+    daily_section=f'<section class="section" id="daily-strategy-review"><h2>17:00 策略檢討</h2><p>最新日期：{_escape(daily_date)}｜狀態：{_escape(daily_status)}</p><a class="market-shared-navigation__button daily-strategy-review-link" href="{daily_link}">查看 17:00 策略檢討</a><p class="decision-note">台股與美股依各自完成交易日檢討；詳細技術與證據資料保留於報告收折區。</p></section>'
     return f"""<!doctype html>
     <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>AI Multi-Market Decision Intelligence</title><style>{base_css()}</style></head>
     <body><header><div class="wrap"><h1>AI Multi-Market Decision Intelligence</h1><p>台股與美股分流入口；LINE/Email 依市場連到正確 Dashboard。</p></div></header><main class="wrap">
@@ -1701,6 +1707,7 @@ def render_landing_page() -> str:
       <a class="section market-choice" href="/stock-ai-dashboard/dashboard/tw/index.html"><h2>台股 Dashboard</h2><p>07:00 盤前｜13:05 盤中｜13:35 收盤快照｜15:00 盤後／檢討</p><span class="badge">TW</span></a>
       <a class="section market-choice" href="/stock-ai-dashboard/dashboard/us/index.html"><h2>美股 Dashboard</h2><p>20:00 美股盤前｜23:00 美股盤中｜06:30 美股盤後檢討</p><span class="badge">US</span></a>
     </div>
+    {daily_section}
     <section class="section" id="snapshot-archive-browser"><h2>批次報告歷史</h2><p>Latest 是最新有效交易日最高 revision；Previous 永遠是上一有效交易日最高 revision。</p>{archive_buttons_html}</section>
     <section class="section" id="production-operations-center"><h2>系統營運中心</h2><p class="decision-note">Production health 內容投影不改變既有 health source；archive empty state 是等待資料，不是批次失敗。</p><div class="operations-table-scroll" role="region" aria-label="Production Operations Center" tabindex="0"><table class="decision-table operations-table"><thead><tr><th>Market / Window</th><th>Latest</th><th>Revision</th><th>Previous</th><th>Runtime Provenance</th><th>Scheduler</th><th>Pipeline</th><th>Dashboard</th><th>Archive</th><th>LINE</th><th>Email</th><th>Overall</th></tr></thead><tbody>{health_rows_html}</tbody></table></div></section>
     {render_manual_control_center()}
@@ -1786,6 +1793,19 @@ def build_pages(output_dir: Path = OUTPUT_DIR) -> dict[str, Any]:
     }
     (output_dir / "manifest.json").write_text(stable_json(manifest), encoding="utf-8")
     return manifest
+
+
+def publish_daily_evaluation_landing(*, static_root: Path = STATIC_ROOT, output_dir: Path = Path("/tmp/stock-ai-dashboard-daily-evaluation")) -> dict[str, Any]:
+    """Publish only the landing-page link after a valid daily-review sidecar exists."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    source=output_dir/"index.html"
+    source.write_text(stable_html(render_landing_page()),encoding="utf-8")
+    errors=production_landing_contract_errors(source.read_text(encoding="utf-8"))
+    if errors:
+        raise ValueError("production landing contract failed: "+", ".join(errors))
+    target=static_root/"index.html"
+    _atomic_copy(source,target)
+    return {"status":"PUBLISHED","route":"/index.html","target":str(target)}
 
 
 def render_snapshot_archive_page(market: str, window: str, selection: str, snapshot: dict[str, Any] | None, comparison: dict[str, Any]) -> str:

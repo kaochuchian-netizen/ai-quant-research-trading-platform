@@ -81,6 +81,12 @@ class PostMergeDirtyClassificationTests(unittest.TestCase):
         self.assertEqual(result["preserved_runtime_artifacts"], [path])
         self.assertEqual(result["unknown_dirty_paths"], [])
 
+    def test_daily_evaluation_hashed_line_receipt_is_preserved(self) -> None:
+        path = "artifacts/runtime/delivery_receipts/daily_evaluation_line/" + ("a" * 64) + ".json"
+        result = summarize_post_merge_status(platform(status=[f"?? {path}"]))
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["preserved_runtime_artifacts"], [path])
+
     def test_tw_preopen_delivery_receipt_similar_paths_remain_blocked(self) -> None:
         entries = [
             "?? artifacts/runtime/delivery_receipts/tw/pre_open_0700/arbitrary.json",
