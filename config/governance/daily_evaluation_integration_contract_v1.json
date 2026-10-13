@@ -26,6 +26,7 @@
     "253"
   ],
   "persistence": "artifacts/archive/window_snapshots/.daily_evaluation/YYYY-MM-DD/<identity>.json",
+  "dashboard_sidecar": "/dashboard/daily-evaluation/latest/index.html",
   "predecessor": "IMMUTABLE_SEMANTIC_CORE_WITH_SOURCE_ARTIFACT_HASH",
   "notification": false,
   "lifecycle_mutation": false,
