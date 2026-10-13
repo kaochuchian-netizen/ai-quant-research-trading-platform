@@ -12,6 +12,22 @@ from app.dashboard.production_evidence_archive import publish
 ROOT=Path(__file__).resolve().parents[2]
 ARCHIVE=ROOT/"artifacts/archive/window_snapshots"
 
+def latest_valid_daily_evaluation(archive=ARCHIVE):
+    """Return the newest replay-valid 17:00 artifact, without mutable aliases."""
+    root=Path(archive)/".daily_evaluation"
+    candidates=[]
+    for directory in sorted(root.glob("????-??-??"), reverse=True)[:32]:
+        for path in files(directory,32):
+            try:
+                value=read(path);replay(value)
+            except (ValueError,KeyError,TypeError,OSError):
+                continue
+            if value.get("status")=="VALID":
+                candidates.append(value)
+        if candidates:
+            return max(candidates,key=lambda item:str(item.get("identity") or ""))
+    return None
+
 def read(path,limit=32*1024*1024):
     path=Path(path)
     if path.is_symlink() or any(p.is_symlink() for p in path.parents) or path.stat().st_size>limit:

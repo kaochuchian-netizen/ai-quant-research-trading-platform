@@ -11,6 +11,8 @@ sys.path.insert(0,str(ROOT))
 from app.dashboard.daily_evaluation_archive import ARCHIVE, collect, persist_daily, read
 from app.dashboard.daily_learning_presentation import publish_dashboard
 from app.dashboard.multi_market_dashboard import STATIC_ROOT
+from app.dashboard.multi_market_dashboard import PUBLIC_BASE_URL, publish_daily_evaluation_landing
+from app.reports.daily_evaluation_line_notice import deliver as deliver_line_notice
 from app.evaluation.daily_evaluation import build_daily, replay, canonical_cutoff
 from app.evaluation.prediction_regression_contract import aware
 
@@ -34,15 +36,24 @@ def main(argv=None):
         else:
             path,value=persist_daily(ARCHIVE,day,output_root=args.shadow_output)
         dashboard={"status":"NOT_PUBLISHED"}
+        landing={"status":"NOT_PUBLISHED"}
+        line_notice={"send_attempted":False,"send_status":"suppressed_not_completed"}
         if path is not None:
             try:
                 dashboard=publish_dashboard(value,static_root=STATIC_ROOT,
                                             output_root=ROOT/"templates/daily_learning_dashboard")
+                landing=publish_daily_evaluation_landing()
+                # Explicit report-date/shadow invocations are replay or operator paths,
+                # never completion-notice sources.  The scheduler invokes without either.
+                if landing.get("status")=="PUBLISHED" and args.report_date is None and args.shadow_output is None:
+                    from reports.line_report_sender import send_line_report
+                    line_notice=deliver_line_notice(value=value,dashboard=dashboard,base_url=PUBLIC_BASE_URL,
+                        sender=send_line_report,receipt_root=ROOT/"artifacts/runtime/delivery_receipts/daily_evaluation_line")
             except (ValueError,KeyError,TypeError,OSError):
                 dashboard={"status":"PRESENTATION_FAILED"}
         print(json.dumps({"status":value["status"],"identity":value["identity"],"path":str(path) if path else None,
                           "sessions":{m:v.get("review_session") for m,v in value["markets"].items()},
-                          "dashboard":dashboard,"notification":False,"scheduler_mutation":False},sort_keys=True))
+                          "dashboard":dashboard,"landing":landing,"line_notice":line_notice,"notification":line_notice.get("send_attempted") is True,"scheduler_mutation":False},sort_keys=True))
         return 0 if value["status"]=="VALID" else 1
     except (ValueError,KeyError,TypeError,OSError):
         # Stable bounded diagnostics, no payload or exception text.
