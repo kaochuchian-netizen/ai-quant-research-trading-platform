@@ -84,6 +84,11 @@ PRESERVED_PATH_PATTERNS = tuple(
         rf"artifacts/runtime/manual_rerun/progress/manual-[0-9a-f]{{16}}\.jsonl",
         rf"artifacts/runtime/tw/evidence_regression_ledger/v1/\d{{4}}-\d{{2}}-\d{{2}}/(?:{'|'.join(TW_WINDOWS)})/\d{{4,6}}/tw_ledger_[0-9a-f]{{28}}\.json",
         rf"templates/multi_market_dashboard_v2/dashboard/archive/(?:tw/(?:{'|'.join(TW_WINDOWS)})|us/(?:{'|'.join(US_WINDOWS)}))/(?:latest|previous)/index\.html",
+        # The 17:00 publisher stages the immutable daily-review sidecar here before
+        # atomically publishing the matching static page.  Preserve only the one
+        # generated document for a calendar date and 64-hex evaluation identity;
+        # the enclosing template tree remains fail-closed for every other file.
+        r"templates/daily_learning_dashboard/dashboard/daily-evaluation/\d{4}-\d{2}-\d{2}/[0-9a-f]{64}/index\.html",
         r"artifacts/archive/visual_evidence/index\.json",
         rf"artifacts/archive/visual_evidence/\d{{4}}-\d{{2}}-\d{{2}}/(?:TW/(?:{'|'.join(TW_WINDOWS)})|US/(?:{'|'.join(US_WINDOWS)}))/(?:revision_\d{{3}}/(?:dashboard_full\.pdf|screenshot_full\.png|rendered_page\.html|rendered_text\.md|manifest\.json|canonical_reference\.json)|failures/revision_\d{{3}}_[0-9a-f]{{12}}\.json)",
         rf"artifacts/archive/visual_evidence/daily_reviews/\d{{4}}-\d{{2}}-\d{{2}}/(?:review_manifest\.json|review_summary\.md|(?:TW/(?:{'|'.join(TW_WINDOWS)})|US/(?:{'|'.join(US_WINDOWS)}))/(?:dashboard_full\.pdf|screenshot_full\.png|rendered_page\.html|rendered_text\.md|manifest\.json|canonical_reference\.json))",
