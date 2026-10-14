@@ -1,0 +1,20 @@
+{
+  "schema_version": "tw_intraday_1m_contract_v1",
+  "program_id": "AI-DEV-270A",
+  "activation": "OFFLINE_FOUNDATION_ONLY",
+  "market": "TW",
+  "timezone": "Asia/Taipei",
+  "interval": "1m",
+  "calendar_owner": "app.evaluation.session_calendar",
+  "provider_adapter": "app.history.tw_intraday_1m.fetch_shioaji_1m_rows",
+  "bar_timestamp_convention": "BAR_OPEN_TIMESTAMP_HALF_OPEN_1M",
+  "session_grid": "authoritative calendar open_at inclusive through close_at exclusive; no inferred lunch break",
+  "artifact_schema": "tw_intraday_1m_artifact_v1",
+  "immutable_archive": "artifacts/archive/tw_intraday/1m/YYYY-MM-DD/SYMBOL/SHA256.json",
+  "completeness": ["COMPLETE", "PARTIAL", "UNAVAILABLE"],
+  "replay": "offline reader validates calendar binding, canonical artifact hash, ordered bars and archive identity; no network",
+  "derived_metrics": ["session_high_low", "close_vs_open_direction", "range_first_touch", "range_occupancy", "MFE", "MAE"],
+  "prohibitions": ["no scheduler activation", "no production collector", "no historical backfill", "no 1500 integration", "no 1700 integration", "no inferred bars"],
+  "production_ingestion_enabled": false,
+  "production_evaluation_enabled": false
+}
