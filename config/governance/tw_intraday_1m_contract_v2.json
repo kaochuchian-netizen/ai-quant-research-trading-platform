@@ -1,7 +1,7 @@
 {
   "schema_version": "tw_intraday_1m_contract_v2",
   "program_id": "AI-DEV-270C",
-  "activation": "OFFLINE_FOUNDATION_ONLY",
+  "activation": "PRODUCTION_ARCHIVE_COLLECTION_ONLY",
   "market": "TW",
   "timezone": "Asia/Taipei",
   "interval": "1m",
@@ -16,7 +16,7 @@
   "complete_proof_requirement": "AUTHORITATIVE_FULL_SESSION_GRID_V1 with every expected bar-end label",
   "replay": "offline reader validates calendar binding, canonical artifact hash, ordered bars, coverage evidence and archive identity; no network",
   "derived_metrics": "path-dependent metrics require COMPLETE; sparse or partial observations yield INSUFFICIENT_EVIDENCE",
-  "prohibitions": ["no synthetic zero-volume bars", "no scheduler activation", "no production collector", "no historical backfill", "no 1500 integration", "no 1700 integration"],
-  "production_ingestion_enabled": false,
+  "prohibitions": ["no synthetic zero-volume bars", "no new scheduler", "no historical backfill", "no 1500 evaluation integration", "no 1700 integration"],
+  "production_ingestion_enabled": true,
   "production_evaluation_enabled": false
 }

@@ -172,9 +172,9 @@ class ProviderAdapterTests(unittest.TestCase):
 
 
 class ContractTests(unittest.TestCase):
-    def test_v2_contract_is_offline_not_activated(self):
+    def test_v2_contract_allows_collection_but_not_evaluation(self):
         value = json.loads((ROOT / "config/governance/tw_intraday_1m_contract_v2.json").read_text())
-        self.assertFalse(value["production_ingestion_enabled"])
+        self.assertTrue(value["production_ingestion_enabled"])
         self.assertFalse(value["production_evaluation_enabled"])
         self.assertEqual(value["bar_timestamp_convention"], "BAR_END_TIMESTAMP_HALF_OPEN_1M")
         self.assertIn("SPARSE_UNVERIFIED", value["completeness"])

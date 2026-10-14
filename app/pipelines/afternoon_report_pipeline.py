@@ -366,6 +366,29 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
         runtime_path = None if dry_run else _write_window_runtime(
             pipeline_type, context, decision_cards, historical_admission=historical_admission,
         )
+    # AI-DEV-270F: an evidence-only sidecar runs only for the existing 15:00
+    # batch.  It uses the admitted immutable 07:00 archive, not the mutable
+    # watchlist. Its failure is isolated from the established post-close
+    # evaluation and delivery path, but recorded in the existing stage timing.
+    if pipeline_type == "post_close" and not dry_run:
+        try:
+            from app.history.tw_intraday_collection import collect_session
+            from app.market.shioaji_client import get_api
+            try:
+                api = get_api()
+            except Exception:
+                # Retain one terminal provider failure per frozen symbol.
+                api = None
+            collect_session(
+                trading_session=str(context["run_date"]),
+                snapshot_root=REPO_ROOT / "artifacts/archive/window_snapshots",
+                archive_root=REPO_ROOT / "artifacts/archive",
+                api=api,
+            )
+            record_stage_result(timing_path, "intraday_archive", status="completed", elapsed_seconds=0)
+        except Exception as exc:
+            record_stage_result(timing_path, "intraday_archive", status="failed_optional", elapsed_seconds=0,
+                                reason=type(exc).__name__)
     # These stages belong to the approved wrapper; record explicit handoff so
     # the pipeline artifact never implies they happened here.
     for handoff in ("snapshot_admission", "archive_build", "publish", "notification_format", "delivery"):
