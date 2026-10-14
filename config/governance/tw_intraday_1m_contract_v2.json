@@ -1,0 +1,22 @@
+{
+  "schema_version": "tw_intraday_1m_contract_v2",
+  "program_id": "AI-DEV-270C",
+  "activation": "OFFLINE_FOUNDATION_ONLY",
+  "market": "TW",
+  "timezone": "Asia/Taipei",
+  "interval": "1m",
+  "calendar_owner": "app.evaluation.session_calendar",
+  "provider_adapter": "app.history.tw_intraday_1m.fetch_shioaji_1m_rows",
+  "provider_timestamp_decoder": "SHIOAJI_KBARS_NS_LOCAL_WALL_CLOCK_V1",
+  "bar_timestamp_convention": "BAR_END_TIMESTAMP_HALF_OPEN_1M",
+  "session_grid": "authoritative calendar open_at exclusive through close_at inclusive; 09:01 labels [09:00,09:01), 13:30 labels [13:29,13:30)",
+  "artifact_schema": "tw_intraday_1m_artifact_v2",
+  "immutable_archive": "artifacts/archive/tw_intraday/1m/v2/YYYY-MM-DD/SYMBOL/SHA256.json",
+  "completeness": ["COMPLETE", "SPARSE_UNVERIFIED", "PARTIAL", "UNAVAILABLE"],
+  "complete_proof_requirement": "AUTHORITATIVE_FULL_SESSION_GRID_V1 with every expected bar-end label",
+  "replay": "offline reader validates calendar binding, canonical artifact hash, ordered bars, coverage evidence and archive identity; no network",
+  "derived_metrics": "path-dependent metrics require COMPLETE; sparse or partial observations yield INSUFFICIENT_EVIDENCE",
+  "prohibitions": ["no synthetic zero-volume bars", "no scheduler activation", "no production collector", "no historical backfill", "no 1500 integration", "no 1700 integration"],
+  "production_ingestion_enabled": false,
+  "production_evaluation_enabled": false
+}
