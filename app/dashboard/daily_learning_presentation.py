@@ -10,6 +10,7 @@ from typing import Any
 
 VERSION = "daily_learning_presentation_v1"
 ROUTE = "dashboard/daily-evaluation"
+PUBLIC_FILE_MODE = 0o664
 
 
 def _text(value: Any) -> str:
@@ -109,7 +110,15 @@ def render_line_summary(value: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def _atomic_write(path: Path, content: str) -> None:
+def _atomic_write(path: Path, content: str, *, mode: int = PUBLIC_FILE_MODE) -> None:
+    """Atomically publish an nginx-readable static file.
+
+    The production service account is not the dashboard publisher owner.  A
+    restrictive process umask therefore must not turn a successfully rendered
+    page into a public 403.  Set the mode on the staged inode before replace;
+    this keeps the operation atomic and applies equally to immutable and
+    latest routes.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, temp = tempfile.mkstemp(prefix=".daily-learning-", dir=path.parent)
     try:
@@ -117,6 +126,7 @@ def _atomic_write(path: Path, content: str) -> None:
             output.write(content)
             output.flush()
             os.fsync(output.fileno())
+        os.chmod(temp, mode)
         os.replace(temp, path)
     finally:
         if os.path.exists(temp):

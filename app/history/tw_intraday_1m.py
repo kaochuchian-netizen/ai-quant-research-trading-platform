@@ -25,6 +25,7 @@ BAR_TIMESTAMP_CONVENTION = "BAR_END_TIMESTAMP_HALF_OPEN_1M"
 STATUSES = {"COMPLETE", "SPARSE_UNVERIFIED", "PARTIAL", "UNAVAILABLE"}
 FULL_SESSION_PROOF_KIND = "AUTHORITATIVE_FULL_SESSION_GRID_V1"
 PARTIAL_PROOF_KIND = "AUTHORITATIVE_ACQUISITION_INCOMPLETE_V1"
+OBSERVED_PATH_SCHEMA_VERSION = "tw_intraday_observed_path_evidence_v1"
 
 
 def canonical_json(value: Any) -> str:
@@ -236,6 +237,64 @@ def replay_artifact(*, root: Path | str, trading_session: str, symbol: str, cont
     return validate_artifact(value, calendar=calendar)
 
 
+def observed_path_evidence(artifact: dict[str, Any], *, calendar: dict[str, Any], flat_band: float = 0.0) -> dict[str, Any]:
+    """Project immutable bars without overstating sparse-provider coverage.
+
+    Kbars does not prove whether absent minutes were zero-trade minutes or an
+    acquisition gap.  ``SPARSE_UNVERIFIED`` is therefore useful *observed*
+    evidence only: the values below are explicitly named observed values and
+    no first-touch, occupancy, MFE/MAE, or verified session extrema are
+    emitted.  Consumers can retain the provenance while remaining fail closed
+    for full-path claims.
+    """
+    value = validate_artifact(artifact, calendar=calendar)
+    bars = value["bars"]
+    base = {
+        "schema_version": OBSERVED_PATH_SCHEMA_VERSION,
+        "artifact_digest": value["content_hash"],
+        "market": value["market"],
+        "symbol": value["symbol"],
+        "trading_session": value["trading_session"],
+        "source": dict(value["source"]),
+        "calendar_identity": value["calendar_identity"],
+        "completeness": value["completeness"],
+        "expected_bar_count": value["expected_bar_count"],
+        "observed_bar_count": value["observed_bar_count"],
+        "absent_bar_count": value["absent_bar_count"],
+        "coverage_ratio": value["coverage_ratio"],
+        "absent_bar_labels": list(value["absent_bar_labels"]),
+        "missingness": "UNPROVEN_ABSENT_MINUTES" if value["completeness"] == "SPARSE_UNVERIFIED" else "NONE" if value["completeness"] == "COMPLETE" else "INCOMPLETE_OR_UNAVAILABLE",
+    }
+    if not bars:
+        return {
+            **base,
+            "evidence_status": "UNAVAILABLE",
+            "path_metrics_status": "INSUFFICIENT_EVIDENCE",
+            "observed_open": None, "observed_close": None,
+            "observed_high": None, "observed_low": None,
+            "observed_close_vs_open_direction": None,
+        }
+    band = _number(flat_band, "flat_band")
+    if band < 0:
+        raise ValueError("FLAT_BAND")
+    opening, closing = bars[0]["open"], bars[-1]["close"]
+    direction = "UP" if closing > opening + band else "DOWN" if closing < opening - band else "FLAT"
+    observed = {
+        **base,
+        "evidence_status": "COMPLETE_PATH" if value["completeness"] == "COMPLETE" else "OBSERVED_ONLY",
+        "path_metrics_status": "AVAILABLE" if value["completeness"] == "COMPLETE" else "INSUFFICIENT_EVIDENCE",
+        "observed_open": opening,
+        "observed_close": closing,
+        "observed_high": max(row["high"] for row in bars),
+        "observed_low": min(row["low"] for row in bars),
+        "observed_close_vs_open_direction": direction,
+    }
+    if value["completeness"] == "COMPLETE":
+        metrics = derive_path_metrics(value, calendar=calendar, flat_band=flat_band)
+        observed["verified_path_metrics"] = metrics
+    return observed
+
+
 def derive_path_metrics(artifact: dict[str, Any], *, calendar: dict[str, Any], reference_price: float | None = None, predicted_range: tuple[float, float] | None = None, flat_band: float = 0.0) -> dict[str, Any]:
     """Only a positively proven full path may yield path-dependent metrics."""
     validate_artifact(artifact, calendar=calendar)
@@ -254,7 +313,9 @@ def derive_path_metrics(artifact: dict[str, Any], *, calendar: dict[str, Any], r
         mfe, mae = round(high - ref, 8), round(low - ref, 8)
     touch = None
     if predicted_range is not None:
-        lower, upper = sorted((_number(predicted_range[0], "range_low", positive=True), _number(predicted_range[1], "range_high", positive=True)))
+        lower, upper = (_number(predicted_range[0], "range_low", positive=True), _number(predicted_range[1], "range_high", positive=True))
+        if lower > upper:
+            raise ValueError("PREDICTED_RANGE_REVERSED")
         hits = [row for row in bars if row["low"] <= upper and row["high"] >= lower]
         touch = {"touched": bool(hits), "first_touch_at": hits[0]["bar_timestamp"] if hits else None, "occupancy_minutes": len(hits), "range": {"low": lower, "high": upper}}
     return {"status": "COMPLETE", "artifact_digest": artifact["content_hash"], "session_open": opening, "session_close": closing, "session_high": high, "session_low": low, "close_vs_open_direction": direction, "mfe": mfe, "mae": mae, "range_touch": touch}

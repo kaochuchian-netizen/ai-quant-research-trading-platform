@@ -5,7 +5,7 @@ import hashlib
 import json
 from datetime import datetime
 from typing import Any
-from app.reports.structured_card_diagnostics import CATEGORIES, HISTORICAL_CODES, card_stage
+from app.reports.structured_card_diagnostics import CATEGORIES, HISTORICAL_CODES, VALIDATIONS, card_stage
 from zoneinfo import ZoneInfo
 
 from app.reports.presentation_normalization import (
@@ -176,13 +176,13 @@ def build_card(*, symbol: str, name: str, trading_date: str, indicator: dict[str
 
 def unavailable_card(symbol: str, name: str, trading_date: str, reason: str, generated_at: str | None = None) -> dict[str, Any]:
     # A downstream exception is not evidence that upstream prices are missing.
-    category = reason if reason in CATEGORIES else (
+    category = "structured_card_validation_failed" if reason in VALIDATIONS else reason if reason in CATEGORIES else (
         "historical_data_invalid" if reason.lower().startswith("historical") else "analysis_failed"
     )
     source_reason = reason.split(":")[-1] if isinstance(reason, str) else ""
     if source_reason == "historical_csv_missing":
         category = "market_data_missing"
-    stable_reason = source_reason if source_reason in HISTORICAL_CODES else category
+    stable_reason = source_reason if source_reason in HISTORICAL_CODES or source_reason in VALIDATIONS else category
     label = CATEGORIES[category]
     missing = ["market_data"] if category == "market_data_missing" else []
     card = build_card(symbol=symbol, name=name, trading_date=trading_date, missing_fields=missing, generated_at=generated_at)

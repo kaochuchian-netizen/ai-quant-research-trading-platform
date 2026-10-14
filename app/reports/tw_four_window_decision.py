@@ -5,7 +5,7 @@ production artifacts, sends notifications, or places orders.  Producers pass
 the observed quote and the admitted 07:00 setup explicitly.
 """
 from __future__ import annotations
-from app.reports.structured_card_diagnostics import card_stage
+from app.reports.structured_card_diagnostics import CardValidationError, card_stage
 
 import hashlib
 import json
@@ -25,6 +25,7 @@ from app.reports.tw_pre_open_quality import data_gaps, public_reason, technical_
 from app.reports.tw_prediction_explainability import (
     post_close_quality_review,
     project_tw_prediction_card,
+    validate_interval,
 )
 from app.reports.tw_preopen_product_intelligence import project_tw_preopen_product
 from app.research.tw_production_intelligence_v2 import (
@@ -210,6 +211,9 @@ def upgrade_pre_open_card(card: dict[str, Any], tactical: dict[str, Any] | None,
     strategy_type = str(tactical.get("setup_type") or "unavailable")
     entry_low, entry_high = _zone(tactical.get("entry_zone"))
     target_1, target_2 = _target(tactical.get("target_1")), _target(tactical.get("target_2"))
+    # The frozen forecast interval is entry-to-first-target. Do not reorder a
+    # malformed source into an apparently valid forecast.
+    validate_interval(entry_low, target_1)
     stop_level = _stop(tactical.get("stop_invalidation"))
     data_quality = str(tactical.get("data_quality") or result.get("availability_status") or "unavailable")
     setup = canonical_setup_id(
@@ -389,6 +393,44 @@ def _prediction_result(setup: dict[str, Any], actual_low: float | None, actual_h
     if max(predicted_low, actual_low) <= min(predicted_high, actual_high):
         return "partial_hit"
     return "miss"
+
+
+def prediction_interval_integrity(setup: dict[str, Any]) -> dict[str, Any]:
+    """Validate the frozen 07:00 range without correcting it.
+
+    A reversed interval is producer evidence failure, never a reason to sort
+    values later in the 15:00 evaluator.  Keeping this structured result lets
+    one invalid symbol remain visible without aborting the other cards.
+    """
+    low, high = setup.get("predicted_low"), setup.get("predicted_high")
+    try:
+        normalized = validate_interval(low, high)
+    except CardValidationError as exc:
+        return {
+            "status": "INVALID",
+            "reason_code": exc.validation_codes[0] if exc.validation_codes else "invalid_prediction_interval",
+            "validation_fields": list(exc.validation_fields),
+            "frozen_values": dict(exc.validation_values),
+        }
+    return {
+        "status": "VALID" if normalized != (None, None) else "NOT_APPLICABLE",
+        "reason_code": None,
+        "validation_fields": [],
+        "frozen_values": {"prediction_range.low": normalized[0], "prediction_range.high": normalized[1]},
+    }
+
+
+def _safe_setup_for_invalid_interval(setup: dict[str, Any]) -> dict[str, Any]:
+    """Remove only invalid range fields before legacy post-close projections."""
+    safe = json.loads(json.dumps(setup, default=str))
+    safe["predicted_low"] = None
+    safe["predicted_high"] = None
+    safe["prediction_status"] = "unavailable"
+    snapshot = safe.get("prediction_snapshot_v2")
+    if isinstance(snapshot, dict):
+        snapshot.pop("range_forecast", None)
+        snapshot["prediction_status"] = "unavailable"
+    return safe
 
 
 def _identity_transition(window: str, card: dict[str, Any], state: str) -> dict[str, Any]:
@@ -594,14 +636,17 @@ def build_observed_card(
     source_revision: int, source_payload_hash: str | None,
     prior_card: dict[str, Any] | None = None,
     lifecycle_timeline: list[dict[str, Any]] | None = None,
+    intraday_path_evidence: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if window not in OBSERVED_WINDOWS:
         raise ValueError("unsupported_tw_observed_window")
     quote = quote if isinstance(quote, dict) else {}
     symbol = str(setup_card.get("symbol") or setup_card.get("stock_id") or "")
-    tactical = ((setup_card.get("strategies") or {}).get("daily_tactical") or {}) if isinstance(setup_card.get("strategies"), dict) else {}
-    entry_low = number(setup_card.get("entry_low")); entry_high = number(setup_card.get("entry_high"))
-    stop = number(setup_card.get("stop_level")); target1 = number(setup_card.get("target_1")); target2 = number(setup_card.get("target_2"))
+    interval_integrity = prediction_interval_integrity(setup_card)
+    evaluation_setup = setup_card if interval_integrity["status"] != "INVALID" else _safe_setup_for_invalid_interval(setup_card)
+    tactical = ((evaluation_setup.get("strategies") or {}).get("daily_tactical") or {}) if isinstance(evaluation_setup.get("strategies"), dict) else {}
+    entry_low = number(evaluation_setup.get("entry_low")); entry_high = number(evaluation_setup.get("entry_high"))
+    stop = number(evaluation_setup.get("stop_level")); target1 = number(evaluation_setup.get("target_1")); target2 = number(evaluation_setup.get("target_2"))
     current = number(_quote_value(quote, "close", "current_price"))
     session_open = number(_quote_value(quote, "open", "session_open"))
     high = number(_quote_value(quote, "high", "session_high"))
@@ -622,14 +667,14 @@ def build_observed_card(
     distance_stop = None if current in (None, 0) or stop is None else round((stop - current) / current * 100, 4)
     distance_t1 = None if current in (None, 0) or target1 is None else round((target1 - current) / current * 100, 4)
     distance_t2 = None if current in (None, 0) or target2 is None else round((target2 - current) / current * 100, 4)
-    no_trade = setup_card.get("entry_readiness") == "no_trade" or tactical.get("setup_type") == "no_trade"
+    no_trade = evaluation_setup.get("entry_readiness") == "no_trade" or tactical.get("setup_type") == "no_trade"
     near_stop = distance_stop is not None and abs(distance_stop) <= STOP_NEAR_THRESHOLD_PCT
     near_target = distance_t1 is not None and abs(distance_t1) <= TARGET_NEAR_THRESHOLD_PCT
-    plan_status = _plan_status(setup_card, no_trade=no_trade)
-    direction = str(setup_card.get("predicted_direction") or tactical.get("direction") or "")
-    eligibility_evidence = plan_status == "active" and setup_card.get("entry_readiness") == "entry_ready"
+    plan_status = _plan_status(evaluation_setup, no_trade=no_trade)
+    direction = str(evaluation_setup.get("predicted_direction") or tactical.get("direction") or "")
+    eligibility_evidence = plan_status == "active" and evaluation_setup.get("entry_readiness") == "entry_ready"
     direction_evidence = direction in {"bullish", "bearish", "neutral", "long", "short"}
-    risk_evidence = str(setup_card.get("chase_risk")) in {"low", "medium", "high"} and str(setup_card.get("event_risk")) in {"low", "medium", "high"}
+    risk_evidence = str(evaluation_setup.get("chase_risk")) in {"low", "medium", "high"} and str(evaluation_setup.get("event_risk")) in {"low", "medium", "high"}
     price_evidence = price_trigger in {"triggered", "inside_zone", "invalidated"} and trigger_price is not None and observed_at not in (None, "")
     volume_evidence = volume_state in {"strong", "confirmed", "normal", "weak"} and ratio is not None
     trigger_evidence = {
@@ -637,7 +682,7 @@ def build_observed_card(
         "volume": {"complete": volume_evidence, "state": volume_state, "ratio": ratio, "as_of": observed_at},
         "eligibility": {"complete": eligibility_evidence, "plan_status": plan_status},
         "direction": {"complete": direction_evidence, "value": direction or "unavailable"},
-        "risk": {"complete": risk_evidence, "chase_risk": setup_card.get("chase_risk"), "event_risk": setup_card.get("event_risk")},
+        "risk": {"complete": risk_evidence, "chase_risk": evaluation_setup.get("chase_risk"), "event_risk": evaluation_setup.get("event_risk")},
     }
     trigger_evidence_complete = all(bool(value.get("complete")) for value in trigger_evidence.values())
     trigger_evidence["complete"] = trigger_evidence_complete
@@ -655,7 +700,7 @@ def build_observed_card(
         action, reason = "maintain_watch", "07:00 僅建立觀察狀態，本批次不得升級為正式交易計畫"
     elif price_trigger == "invalidated":
         action, reason = "stop_invalidated", "盤中價格已觸及失效／停損條件"
-    elif price_trigger == "passed_without_safe_entry" or setup_card.get("chase_risk") == "high":
+    elif price_trigger == "passed_without_safe_entry" or evaluation_setup.get("chase_risk") == "high":
         action, reason = "cancel_chase", "價格已偏離安全進場區或追價風險過高"
     elif not trigger_evidence_complete and price_evidence and not volume_evidence:
         action, reason = "wait_for_volume", "價格已到達觀察區，但量能證據尚未完整"
@@ -695,12 +740,12 @@ def build_observed_card(
     evidence_status = "not_applicable" if no_trade else "complete" if data_status == "complete" else "partial" if data_status == "partial" else "missing"
     result = {
         "schema_version": SCHEMA_VERSION, "market": "TW", "window": window,
-        "symbol": symbol, "stock_id": symbol, "name": setup_card.get("name") or setup_card.get("stock_name"),
-        "stock_name": setup_card.get("stock_name") or setup_card.get("name"), "trading_date": trading_date,
-        "setup_id": setup_card.get("setup_id"), "parent_setup_id": setup_card.get("setup_id"),
+        "symbol": symbol, "stock_id": symbol, "name": evaluation_setup.get("name") or evaluation_setup.get("stock_name"),
+        "stock_name": evaluation_setup.get("stock_name") or evaluation_setup.get("name"), "trading_date": trading_date,
+        "setup_id": evaluation_setup.get("setup_id"), "parent_setup_id": evaluation_setup.get("setup_id"),
         "source_snapshot_id": source_snapshot_id, "source_revision": int(source_revision),
         "parent_source_payload_hash": source_payload_hash,
-        "strategy_type": setup_card.get("strategy_type") or tactical.get("setup_type"),
+        "strategy_type": evaluation_setup.get("strategy_type") or tactical.get("setup_type"),
         "current_price": current, "market_data_as_of": observed_at, "session_open": session_open,
         "session_high": high, "session_low": low, "session_volume": volume,
         "source_name": quote.get("source") or "shioaji_snapshot", "source_type": "observed_market_snapshot",
@@ -742,21 +787,21 @@ def build_observed_card(
         "overnight_action": overnight, "risk_state": risk_state,
         "target_near_threshold_pct": TARGET_NEAR_THRESHOLD_PCT,
         "stop_near_threshold_pct": STOP_NEAR_THRESHOLD_PCT,
-        "chase_risk": setup_card.get("chase_risk"), "overnight_gap_risk": setup_card.get("gap_risk"),
-        "event_risk": setup_card.get("event_risk"), "tomorrow_watch_status": holding in {"hold", "watch"},
+        "chase_risk": evaluation_setup.get("chase_risk"), "overnight_gap_risk": evaluation_setup.get("gap_risk"),
+        "event_risk": evaluation_setup.get("event_risk"), "tomorrow_watch_status": holding in {"hold", "watch"},
         "data_status": data_status, "evidence_status": evidence_status,
         "missing_fields": sorted(missing), "strategies": {"daily_tactical": dict(tactical)},
-        "technical_data": dict(setup_card.get("technical_data") or {}),
-        "news_evidence": dict(setup_card.get("news_evidence") or {}),
-        "news_items": list(setup_card.get("news_items") or []),
-        "news_direction": setup_card.get("news_direction"), "news_summary": setup_card.get("news_summary"),
-        "adr_context": setup_card.get("adr_context"), "fundamental_context": setup_card.get("fundamental_context"),
-        "sector_context": setup_card.get("sector_context"), "market_context": setup_card.get("market_context"),
-        "data_gaps": list(setup_card.get("data_gaps") or []), "data_freshness": dict(setup_card.get("data_freshness") or {}),
-        "instrument_context_v2": setup_card.get("instrument_context_v2") or instrument_context(symbol),
-        "effective_research_coverage_v2": setup_card.get("effective_research_coverage_v2") or effective_research_coverage_v2(setup_card),
-        "prediction_snapshot_v2": dict(setup_card.get("prediction_snapshot_v2") or build_research_prediction_v2(
-            setup_card, effective_date=trading_date, generated_at=setup_card.get("generated_at"),
+        "technical_data": dict(evaluation_setup.get("technical_data") or {}),
+        "news_evidence": dict(evaluation_setup.get("news_evidence") or {}),
+        "news_items": list(evaluation_setup.get("news_items") or []),
+        "news_direction": evaluation_setup.get("news_direction"), "news_summary": evaluation_setup.get("news_summary"),
+        "adr_context": evaluation_setup.get("adr_context"), "fundamental_context": evaluation_setup.get("fundamental_context"),
+        "sector_context": evaluation_setup.get("sector_context"), "market_context": evaluation_setup.get("market_context"),
+        "data_gaps": list(evaluation_setup.get("data_gaps") or []), "data_freshness": dict(evaluation_setup.get("data_freshness") or {}),
+        "instrument_context_v2": evaluation_setup.get("instrument_context_v2") or instrument_context(symbol),
+        "effective_research_coverage_v2": evaluation_setup.get("effective_research_coverage_v2") or effective_research_coverage_v2(evaluation_setup),
+        "prediction_snapshot_v2": dict(evaluation_setup.get("prediction_snapshot_v2") or build_research_prediction_v2(
+            evaluation_setup, effective_date=trading_date, generated_at=evaluation_setup.get("generated_at"),
         )),
         "decision_state": {
             "hold_candidate": holding in {"hold", "hold_with_protection"}, "avoid_hold": holding in {"reduce", "exit"},
@@ -783,7 +828,16 @@ def build_observed_card(
     })
     result["lifecycle_timeline"] = _dedupe_timeline(timeline)
     if window == "post_close_1500":
-        result.update(evaluate_post_close(result, setup_card))
+        result.update(evaluate_post_close(result, evaluation_setup))
+        result["prediction_interval_integrity"] = interval_integrity
+        if interval_integrity["status"] == "INVALID":
+            result["prediction_failure"] = {
+                "status": "STRUCTURED_FAILURE",
+                "reason_code": interval_integrity["reason_code"],
+                "stage": "FROZEN_PREDICTION_INTERVAL",
+            }
+            result["prediction_range_result"] = "not_applicable"
+            result["prediction_evaluation"] = {"range_result": "not_applicable", "failure": dict(result["prediction_failure"])}
         result["lifecycle_timeline"][-1]["state"] = result["trade_outcome"]
     event = {
         "time": observed_at, "source_window": window, "source_revision": int(source_revision),
@@ -798,6 +852,19 @@ def build_observed_card(
         "identity_status": "bound_to_source_snapshot" if source_snapshot_id else "awaiting_snapshot_admission",
     }
     result = project_tw_prediction_card(result, window, strict=True)
+    if window == "post_close_1500" and isinstance(intraday_path_evidence, dict):
+        result["intraday_observed_path_evidence_v1"] = dict(intraday_path_evidence)
+        result["actual_trend"] = {
+            "status": intraday_path_evidence.get("evidence_status"),
+            "value": intraday_path_evidence.get("observed_close_vs_open_direction"),
+            "completeness": intraday_path_evidence.get("completeness"),
+        }
+        result["actual_range"] = {
+            "status": intraday_path_evidence.get("evidence_status"),
+            "observed_low": intraday_path_evidence.get("observed_low"),
+            "observed_high": intraday_path_evidence.get("observed_high"),
+            "completeness": intraday_path_evidence.get("completeness"),
+        }
     without_hash = dict(result)
     result["source_payload_hash"] = stable_hash(without_hash)
     return result
