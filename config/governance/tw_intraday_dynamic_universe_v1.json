@@ -1,0 +1,14 @@
+{
+  "schema_version": "tw_intraday_session_universe_v1",
+  "program_id": "AI-DEV-270E",
+  "market": "TW",
+  "authoritative_source": "admitted window_snapshot_archive_v1 TW/pre_open_0700 snapshot payload.tracking_symbols",
+  "binding": "effective_trading_date + ordered normalized symbols + 07:00 snapshot identity/revision/payload hash",
+  "universe_digest": "SHA-256 canonical JSON of schema, market, session, ordered symbols and source identity",
+  "intraday_artifact_schema": "tw_intraday_1m_artifact_v2",
+  "collection_coverage": ["expected_symbols", "kbars_success_count", "artifact_success_count", "failed_symbols", "symbol_coverage", "terminal_result_coverage"],
+  "failure_policy": "every bound symbol has artifact-ready or structured terminal failure evidence; no omission or mutable watchlist replacement",
+  "runtime_activation": "OFF",
+  "production_archive_write_enabled": false,
+  "production_evaluation_enabled": false
+}
