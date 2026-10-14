@@ -107,6 +107,56 @@ def _write_window_runtime(pipeline_type, context, cards, runtime_dir=None, histo
     return target
 
 
+def _post_close_intraday_evidence(*, trading_session: str) -> tuple[dict[str, dict], dict | None]:
+    """Collect then replay v2 evidence before 15:00 cards are sealed.
+
+    Collection remains isolated from the established daily-OHLC evaluation.
+    Every frozen 07:00 symbol receives either an immutable artifact projection
+    or a structured unavailable record; neither case fabricates a full path.
+    """
+    from app.evaluation.session_calendar import load_calendar
+    from app.history.tw_intraday_1m import observed_path_evidence, replay_artifact
+    from app.history.tw_intraday_collection import collect_session
+    from app.market.shioaji_client import get_api
+
+    archive_root = REPO_ROOT / "artifacts/archive"
+    calendar = load_calendar("TW")
+    try:
+        api = get_api()
+    except Exception:
+        api = None
+    manifest, _ = collect_session(
+        trading_session=trading_session,
+        snapshot_root=archive_root / "window_snapshots",
+        archive_root=archive_root,
+        api=api,
+        calendar=calendar,
+    )
+    evidence: dict[str, dict] = {}
+    for record in manifest["records"]:
+        symbol = str(record["symbol"]).zfill(4)
+        if record["status"] == "ARTIFACT_READY":
+            artifact = replay_artifact(
+                root=archive_root, trading_session=trading_session, symbol=symbol,
+                content_hash=record["artifact_digest"], calendar=calendar,
+            )
+            evidence[symbol] = observed_path_evidence(artifact, calendar=calendar)
+        else:
+            evidence[symbol] = {
+                "schema_version": "tw_intraday_observed_path_evidence_v1",
+                "evidence_status": "UNAVAILABLE",
+                "path_metrics_status": "INSUFFICIENT_EVIDENCE",
+                "market": "TW", "symbol": symbol, "trading_session": trading_session,
+                "failure_status": "COLLECTION_FAILED",
+                "failure_stage": record.get("stage"), "failure_reason": record.get("reason_code"),
+                "observed_open": None, "observed_close": None,
+                "observed_high": None, "observed_low": None,
+                "observed_close_vs_open_direction": None,
+                "completeness": "UNAVAILABLE", "coverage_ratio": 0.0,
+            }
+    return evidence, manifest
+
+
 def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
     """Generate stock-analysis report content for afternoon scheduler delivery.
 
@@ -183,6 +233,21 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
     print(f"{pipeline_type} historical admitted count: {len(stock_ids)}")
     print(f"{pipeline_type} selected stock ids: {selected_stock_ids}")
     print(f"{pipeline_type} full LINE report disabled; concise scheduler reminder is handled by approved wrapper")
+
+    intraday_path_by_symbol: dict[str, dict] = {}
+    intraday_manifest = None
+    if pipeline_type == "post_close" and not dry_run:
+        try:
+            intraday_path_by_symbol, intraday_manifest = _post_close_intraday_evidence(
+                trading_session=str(context["run_date"]),
+            )
+            record_stage_result(timing_path, "intraday_archive", status="completed", elapsed_seconds=0,
+                                manifest_digest=intraday_manifest.get("content_hash"))
+        except Exception as exc:
+            # The prior daily-OHLC review remains available when the optional
+            # observed-path sidecar cannot be built.  Never substitute data.
+            record_stage_result(timing_path, "intraday_archive", status="failed_optional", elapsed_seconds=0,
+                                reason=type(exc).__name__)
 
     daily_reports = []
     decision_cards = []
@@ -340,6 +405,7 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
                     source_payload_hash=stable_hash(setup_payload) if setup_snapshot else None,
                     prior_card=prior_card or None,
                     lifecycle_timeline=prior_timeline,
+                    intraday_path_evidence=intraday_path_by_symbol.get(stock_id) if pipeline_type == "post_close" else None,
                 )
                 if isinstance(news_bundle, dict):
                     observed_card["current_news_evidence"] = news_bundle
@@ -366,29 +432,6 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
         runtime_path = None if dry_run else _write_window_runtime(
             pipeline_type, context, decision_cards, historical_admission=historical_admission,
         )
-    # AI-DEV-270F: an evidence-only sidecar runs only for the existing 15:00
-    # batch.  It uses the admitted immutable 07:00 archive, not the mutable
-    # watchlist. Its failure is isolated from the established post-close
-    # evaluation and delivery path, but recorded in the existing stage timing.
-    if pipeline_type == "post_close" and not dry_run:
-        try:
-            from app.history.tw_intraday_collection import collect_session
-            from app.market.shioaji_client import get_api
-            try:
-                api = get_api()
-            except Exception:
-                # Retain one terminal provider failure per frozen symbol.
-                api = None
-            collect_session(
-                trading_session=str(context["run_date"]),
-                snapshot_root=REPO_ROOT / "artifacts/archive/window_snapshots",
-                archive_root=REPO_ROOT / "artifacts/archive",
-                api=api,
-            )
-            record_stage_result(timing_path, "intraday_archive", status="completed", elapsed_seconds=0)
-        except Exception as exc:
-            record_stage_result(timing_path, "intraday_archive", status="failed_optional", elapsed_seconds=0,
-                                reason=type(exc).__name__)
     # These stages belong to the approved wrapper; record explicit handoff so
     # the pipeline artifact never implies they happened here.
     for handoff in ("snapshot_admission", "archive_build", "publish", "notification_format", "delivery"):

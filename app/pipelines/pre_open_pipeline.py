@@ -701,7 +701,7 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
                         stock_id,
                         stock_name,
                         context["run_date"],
-                        reason,
+                        diagnostic["reason_code"],
                     ),
                 )
                 stage_timing.finish(stage_name, status="failed", reason=reason)

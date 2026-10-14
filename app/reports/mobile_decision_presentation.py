@@ -127,6 +127,20 @@ def project_card(card, market, window):
         window == "pre_open_0700"
         and (card.get("availability_status") == "unavailable" or bool(card.get("failure_category")))
     )
+    intraday = card.get("intraday_observed_path_evidence_v1") if isinstance(card.get("intraday_observed_path_evidence_v1"), dict) else {}
+    observed_only = intraday.get("evidence_status") == "OBSERVED_ONLY"
+    observed_direction = intraday.get("observed_close_vs_open_direction")
+    observed_range = (intraday.get("observed_low"), intraday.get("observed_high"))
+    actual_trend = (
+        f"分時觀測{zh(observed_direction)}（未驗證完整）" if observed_only and observed_direction else
+        zh(observed_direction) if intraday.get("evidence_status") == "COMPLETE_PATH" and observed_direction else
+        zh(card.get("actual_direction") or review.get("actual_direction") or (card.get("direction") or {}).get("actual") if isinstance(card.get("direction"), dict) else card.get("actual_direction") or review.get("actual_direction"))
+    )
+    actual_range = (
+        f"分時觀測 {interval(observed_range[0], observed_range[1])}（未驗證完整）" if observed_only else
+        interval(card.get("actual_low", review.get("actual_low", actual.get("low", card.get("session_low")))),
+                 card.get("actual_high", review.get("actual_high", actual.get("high", card.get("session_high")))))
+    )
     values = {
         "走勢預測": "資料不足，暫不判斷" if unavailable_prediction else zh(human.get("direction")), "預測目標": price(human.get("forecast_target")),
         "預測區間": interval(human.get("forecast_low"), human.get("forecast_high")),
@@ -135,9 +149,8 @@ def project_card(card, market, window):
         "進場區間": interval((plan.get("entry") or {}).get("low"), (plan.get("entry") or {}).get("high")) if active else "未建立正式進場區間",
         "停損": price(plan.get("stop")) if active else "未建立正式停損",
         "目標區": interval((plan.get("target") or {}).get("low"), (plan.get("target") or {}).get("high")) if active else "未建立正式目標區",
-        "今天實際走勢": zh(card.get("actual_direction") or review.get("actual_direction") or (card.get("direction") or {}).get("actual") if isinstance(card.get("direction"), dict) else card.get("actual_direction") or review.get("actual_direction")),
-        "今天實際區間": interval(card.get("actual_low", review.get("actual_low", actual.get("low", card.get("session_low")))),
-                                card.get("actual_high", review.get("actual_high", actual.get("high", card.get("session_high"))))),
+        "今天實際走勢": actual_trend,
+        "今天實際區間": actual_range,
         "今日狀態": zh(card.get("holding_decision") or card.get("canonical_overnight_action") or card.get("data_status")),
         "方向預測結果": zh(human.get("direction_result") or (card.get("direction") or {}).get("result") if isinstance(card.get("direction"), dict) else human.get("direction_result")), "區間預測結果": zh(human.get("range_result")),
     }

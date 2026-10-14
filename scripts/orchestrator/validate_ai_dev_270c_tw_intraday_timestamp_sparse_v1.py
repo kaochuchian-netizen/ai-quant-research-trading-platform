@@ -15,8 +15,8 @@ def main() -> int:
     contract = json.loads((ROOT / "config/governance/tw_intraday_1m_contract_v2.json").read_text(encoding="utf-8"))
     expected = {
         "schema_version": "tw_intraday_1m_contract_v2",
-        "program_id": "AI-DEV-270C",
-        "activation": "PRODUCTION_ARCHIVE_COLLECTION_ONLY",
+        "program_id": "AI-DEV-271",
+        "activation": "PRODUCTION_ARCHIVE_AND_OBSERVED_PRESENTATION",
         "bar_timestamp_convention": "BAR_END_TIMESTAMP_HALF_OPEN_1M",
         "provider_timestamp_decoder": "SHIOAJI_KBARS_NS_LOCAL_WALL_CLOCK_V1",
         "production_ingestion_enabled": True,
