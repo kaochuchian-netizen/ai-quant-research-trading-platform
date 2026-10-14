@@ -87,6 +87,31 @@ class PostMergeDirtyClassificationTests(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertEqual(result["preserved_runtime_artifacts"], [path])
 
+    def test_intraday_v2_hashed_artifacts_and_manifest_are_preserved(self) -> None:
+        digest = "a" * 64
+        entries = [
+            f"?? artifacts/archive/tw_intraday/1m/v2/2026-10-13/009816/{digest}.json",
+            f"?? artifacts/archive/tw_intraday/1m/v2/2026-10-13/_manifests/{digest}.json",
+        ]
+        result = summarize_post_merge_status(platform(status=entries))
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["preserved_runtime_artifacts"], sorted(entry[3:] for entry in entries))
+
+    def test_intraday_v2_near_matches_remain_blocked(self) -> None:
+        digest = "a" * 64
+        entries = [
+            f"?? artifacts/archive/tw_intraday/1m/v2/2026-10-13/009816/arbitrary.json",
+            f"?? artifacts/archive/tw_intraday/1m/v2/not-a-date/009816/{digest}.json",
+            f"?? artifacts/archive/tw_intraday/1m/v2/2026-10-13/_manifests/{digest}.json.bak",
+            f"?? artifacts/archive/tw_intraday/1m/v2/2026-10-13/009816/credentials.json",
+            " M app/history/tw_intraday_1m.py",
+        ]
+        result = summarize_post_merge_status(platform(status=entries))
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["preserved_runtime_artifacts"], [])
+        self.assertEqual(result["blocking_task_residue"], ["app/history/tw_intraday_1m.py"])
+        self.assertEqual(result["unknown_dirty_paths"], sorted(entry[3:] for entry in entries[:-1]))
+
     def test_daily_evaluation_generated_dashboard_sidecar_is_preserved(self) -> None:
         path = (
             "templates/daily_learning_dashboard/dashboard/daily-evaluation/"

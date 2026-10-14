@@ -89,6 +89,10 @@ PRESERVED_PATH_PATTERNS = tuple(
         # generated document for a calendar date and 64-hex evaluation identity;
         # the enclosing template tree remains fail-closed for every other file.
         r"templates/daily_learning_dashboard/dashboard/daily-evaluation/\d{4}-\d{2}-\d{2}/[0-9a-f]{64}/index\.html",
+        # AI-DEV-270F immutable intraday evidence: only a dated numeric symbol
+        # content-addressed artifact or a content-addressed session manifest.
+        r"artifacts/archive/tw_intraday/1m/v2/\d{4}-\d{2}-\d{2}/\d{4,6}/[0-9a-f]{64}\.json",
+        r"artifacts/archive/tw_intraday/1m/v2/\d{4}-\d{2}-\d{2}/_manifests/[0-9a-f]{64}\.json",
         r"artifacts/archive/visual_evidence/index\.json",
         rf"artifacts/archive/visual_evidence/\d{{4}}-\d{{2}}-\d{{2}}/(?:TW/(?:{'|'.join(TW_WINDOWS)})|US/(?:{'|'.join(US_WINDOWS)}))/(?:revision_\d{{3}}/(?:dashboard_full\.pdf|screenshot_full\.png|rendered_page\.html|rendered_text\.md|manifest\.json|canonical_reference\.json)|failures/revision_\d{{3}}_[0-9a-f]{{12}}\.json)",
         rf"artifacts/archive/visual_evidence/daily_reviews/\d{{4}}-\d{{2}}-\d{{2}}/(?:review_manifest\.json|review_summary\.md|(?:TW/(?:{'|'.join(TW_WINDOWS)})|US/(?:{'|'.join(US_WINDOWS)}))/(?:dashboard_full\.pdf|screenshot_full\.png|rendered_page\.html|rendered_text\.md|manifest\.json|canonical_reference\.json))",

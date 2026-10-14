@@ -1,4 +1,4 @@
-"""Narrow offline validator for AI-DEV-270C; never invokes a provider."""
+"""Narrow deterministic validator for the TW v2 intraday contract; never invokes a provider."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -16,10 +16,10 @@ def main() -> int:
     expected = {
         "schema_version": "tw_intraday_1m_contract_v2",
         "program_id": "AI-DEV-270C",
-        "activation": "OFFLINE_FOUNDATION_ONLY",
+        "activation": "PRODUCTION_ARCHIVE_COLLECTION_ONLY",
         "bar_timestamp_convention": "BAR_END_TIMESTAMP_HALF_OPEN_1M",
         "provider_timestamp_decoder": "SHIOAJI_KBARS_NS_LOCAL_WALL_CLOCK_V1",
-        "production_ingestion_enabled": False,
+        "production_ingestion_enabled": True,
         "production_evaluation_enabled": False,
     }
     failures = [key for key, value in expected.items() if contract.get(key) != value]
