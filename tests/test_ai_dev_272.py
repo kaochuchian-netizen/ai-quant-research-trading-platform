@@ -18,9 +18,9 @@ class DecisionQualityGateTests(unittest.TestCase):
     def test_us_line_has_no_false_missing_direction(self):
         payload = {"market":"US", "window":FIXTURE["window"], "structured_review_cards":FIXTURE["cards"]}
         text = render_line(payload, "US", FIXTURE["window"], "https://example.test/report")
-        self.assertIn("方向：預測 偏多／實際 偏多／結果 符合預測", text)
-        self.assertIn("方向：預測 偏多／實際 偏空／結果 未符合預測", text)
-        self.assertIn("區間：預測 334.98–348.92／實際 341.72–347.07／結果 符合預測", text)
+        self.assertIn("方向預測結果：符合預測（預測：偏多／實際：偏多）", text)
+        self.assertIn("方向預測結果：未符合預測（預測：偏多／實際：偏空）", text)
+        self.assertIn("區間預測結果：符合預測（預測：334.98–348.92／實際：341.72–347.07）", text)
         self.assertNotIn("尚未取得正式資料", text)
         self.assertIn("AAPL", text)
         self.assertIn("NVDA", text)

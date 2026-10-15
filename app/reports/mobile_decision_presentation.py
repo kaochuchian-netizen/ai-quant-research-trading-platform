@@ -229,8 +229,8 @@ def _post_close_line_items(card, market, window):
     direction_public = zh(direction_result) if direction_result else f"資料不足：{QUALITY_REASON_ZH.get(quality['direction']['reason_code'], '無法確認評估依據')}"
     range_public = zh(range_result) if range_result else f"資料不足：{QUALITY_REASON_ZH.get(quality['range']['reason_code'], '無法確認評估依據')}"
     return [
-        ("方向", f"預測 {zh(predicted_direction)}／實際 {zh(actual_direction)}／結果 {direction_public}"),
-        ("區間", f"預測 {interval(predicted_low, predicted_high)}／實際 {interval(actual_low, actual_high)}／結果 {range_public}"),
+        ("方向預測結果", f"{direction_public}（預測：{zh(predicted_direction)}／實際：{zh(actual_direction)}）"),
+        ("區間預測結果", f"{range_public}（預測：{interval(predicted_low, predicted_high)}／實際：{interval(actual_low, actual_high)}）"),
     ]
 
 
