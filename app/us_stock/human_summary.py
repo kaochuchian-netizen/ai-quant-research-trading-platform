@@ -124,6 +124,8 @@ def build_us_human_summary(card: dict[str, Any], window: str) -> dict[str, Any]:
             "source_revision": continuity.get("source_revision"),
         })
     else:
+        from app.reports.post_close_quality_gate import evaluate_card
+        quality = evaluate_card(card, market="US", window=window)
         review = card.get("review") if isinstance(card.get("review"), dict) else {}
         source = card.get("source_trade_plan") if isinstance(card.get("source_trade_plan"), dict) else {}
         forecast = source.get("forecast") if isinstance(source.get("forecast"), dict) else {}
@@ -141,8 +143,9 @@ def build_us_human_summary(card: dict[str, Any], window: str) -> dict[str, Any]:
             "direction": forecast.get("direction") or direction_eval.get("predicted_direction"),
             "forecast_target": target, "forecast_low": low, "forecast_high": high,
             "actual_high": review.get("actual_high"), "actual_low": review.get("actual_low"), "actual_close": review.get("actual_close"),
-            "direction_result": direction_eval.get("result") or evaluation.get("direction_result"),
-            "range_result": card.get("prediction_range_result") or ("hit" if range_eval.get("hit") else "miss" if range_eval.get("hit") is False else None),
+            "direction_result": quality["direction"].get("result"),
+            "range_result": quality["range"].get("result"),
+            "decision_quality": quality,
             "forecast_errors": {"high": range_eval.get("high_error", review.get("high_error")), "low": range_eval.get("low_error", review.get("low_error")), "midpoint": range_eval.get("midpoint_error")},
             "mfe": review.get("mfe"), "mae": review.get("mae"), "trade_outcome": card.get("trade_review_outcome") or review.get("trade_review_outcome"),
             "continuity_state": result["hypothesis_state"], "evaluation_state": range_eval.get("status") or card.get("review_status"),

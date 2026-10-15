@@ -1,0 +1,9 @@
+{
+  "source": "immutable us_post_close_review_0630_latest.json, 2026-10-15 natural batch",
+  "market": "US",
+  "window": "us_post_close_review_0630",
+  "cards": [
+    {"symbol":"AAPL","source_trade_plan":{"source_snapshot_id":"e0d9e08c7c3cff56dc1a58d8effbcd234c4352e9ba88b62d434089e0ea6f0bd4","forecast":{"direction":"BULLISH","predicted_low":334.98,"predicted_high":348.92}},"review":{"actual_low":341.72,"actual_high":347.07,"actual_close":342.96,"prediction_evaluation_v2":{"direction":{"status":"evaluated","forecast":"bullish","actual":"bullish","hit":true},"range":{"status":"evaluated","hit":true}}},"prediction_range_result":"hit"},
+    {"symbol":"NVDA","source_trade_plan":{"source_snapshot_id":"e0d9e08c7c3cff56dc1a58d8effbcd234c4352e9ba88b62d434089e0ea6f0bd4","forecast":{"direction":"BULLISH","predicted_low":224.08,"predicted_high":233.93}},"review":{"actual_low":219.64,"actual_high":226.0,"actual_close":221.3,"prediction_evaluation_v2":{"direction":{"status":"evaluated","forecast":"bullish","actual":"bearish","hit":false},"range":{"status":"evaluated","hit":false}}},"prediction_range_result":"miss"}
+  ]
+}
