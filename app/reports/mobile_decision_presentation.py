@@ -141,6 +141,14 @@ def project_card(card, market, window):
         interval(card.get("actual_low", review.get("actual_low", actual.get("low", card.get("session_low")))),
                  card.get("actual_high", review.get("actual_high", actual.get("high", card.get("session_high")))))
     )
+    quality = None
+    if window in {"post_close_1500", "us_post_close_review_0630"}:
+        from app.reports.post_close_quality_gate import evaluate_card
+        quality = evaluate_card(card, market=market, window=window)
+    direction_value = quality["direction"].get("result") if quality else (human.get("direction_result") or (card.get("direction") or {}).get("result") if isinstance(card.get("direction"), dict) else human.get("direction_result"))
+    range_value = quality["range"].get("result") if quality else human.get("range_result")
+    direction_public = zh(direction_value) if direction_value else f"資料不足：{quality['direction']['reason_code']}" if quality else MISSING
+    range_public = zh(range_value) if range_value else f"資料不足：{quality['range']['reason_code']}" if quality else MISSING
     values = {
         "走勢預測": "資料不足，暫不判斷" if unavailable_prediction else zh(human.get("direction")), "預測目標": price(human.get("forecast_target")),
         "預測區間": interval(human.get("forecast_low"), human.get("forecast_high")),
@@ -152,14 +160,17 @@ def project_card(card, market, window):
         "今天實際走勢": actual_trend,
         "今天實際區間": actual_range,
         "今日狀態": zh(card.get("holding_decision") or card.get("canonical_overnight_action") or card.get("data_status")),
-        "方向預測結果": zh(human.get("direction_result") or (card.get("direction") or {}).get("result") if isinstance(card.get("direction"), dict) else human.get("direction_result")), "區間預測結果": zh(human.get("range_result")),
+        "方向預測結果": direction_public, "區間預測結果": range_public,
     }
     # Existing intraday products inherit their pre-open forecast. Never relabel its horizon.
     if window in {"intraday_1305", "us_intraday_2300"}:
         values["走勢預測（現在→收盤）"] = INTRADAY_MISSING
         values["預測區間"] = INTRADAY_MISSING
     # This is a display of separate canonical results, not a new combined grade.
-    values["今日預測結果"] = "已有評估結果" if all(values[k] != MISSING for k in ("方向預測結果", "區間預測結果")) else "評估資料待補"
+    if quality:
+        values["今日預測結果"] = "已完成方向與區間評估" if quality["status"] == "EVALUATED" else "部分評估：僅呈現已具備正式證據的項目"
+    else:
+        values["今日預測結果"] = "已有評估結果" if all(values[k] != MISSING for k in ("方向預測結果", "區間預測結果")) else "評估資料待補"
     return {"schema_version": VERSION, "market": market, "window": window,
             "symbol": str(card.get("symbol") or card.get("stock_id") or ""),
             "name": str(card.get("name") or card.get("stock_name") or ""),
@@ -191,6 +202,11 @@ def render_report(payload, market, window, legacy_html, *, extra_evidence=""):
 
 def render_line(payload, market, window, url):
     projection = project_payload(payload, market, window)
+    if window in {"post_close_1500", "us_post_close_review_0630"}:
+        from app.reports.post_close_quality_gate import batch_gate
+        gate = batch_gate([item["evidence"] for item in projection["cards"]], market=market, window=window)
+        if not gate["line_send_allowed"]:
+            raise ValueError("LINE_DECISION_QUALITY_GATE_BLOCKED")
     lines = ["【決策摘要】" + TITLES[window]]
     for card in projection["cards"]:
         fields = {x["label"]: x["value"] for x in card["fields"]}
