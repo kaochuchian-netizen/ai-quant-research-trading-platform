@@ -43,7 +43,6 @@ def _news_impact(item: dict[str, Any]) -> dict[str, Any]:
     elif direction == "bearish":
         impact = "此事件提供偏空風險證據，需檢查是否削弱或使原研究假設失效。"
     else:
-        from app.reports.post_close_quality_gate import evaluate_card
         impact = "此事件提供當期研究脈絡，方向尚未評估，不單獨建立公司方向。"
     return {
         "news_id": item.get("news_id"), "news_event_id": item.get("news_event_id") or item.get("event_cluster_id"),

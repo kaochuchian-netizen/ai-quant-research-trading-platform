@@ -31,12 +31,17 @@ CARD_KEYS = {
     "us_pre_market_2000": "structured_pre_market_cards", "us_intraday_2300": "structured_intraday_cards",
     "us_post_close_review_0630": "structured_review_cards",
 }
-ZH = {"up": "偏多", "down": "偏空", "flat": "盤整", "sideways": "盤整",
+ZH = {"up": "偏多", "down": "偏空", "flat": "盤整", "sideways": "盤整", "bullish": "偏多", "bearish": "偏空", "neutral": "盤整",
       "hit": "符合預測", "miss": "未符合預測", "correct": "符合預測", "incorrect": "未符合預測",
       "no_forecast": "未提供預測", "no_canonical_forecast": "未提供正式方向預測",
       "insufficient_sample": "樣本不足", "blocked_input": "必要資料不足", "waiting_outcome": "等待結果成熟",
       "observe": "觀察等待", "buy": "偏多策略", "sell": "偏空策略", "hold": "續抱觀察", "reduce": "降低曝險", "avoid_overnight": "不留倉", "stop_invalidated": "停損條件失效",
       "not_evaluated": "尚未評估", "pending_evidence": "等待評估證據"}
+QUALITY_REASON_ZH = {
+    "ACTUAL_OUTCOME_MISSING_OR_INVALID": "缺少可驗證的實際收盤資料",
+    "DIRECTION_EVALUATION_NOT_ADMITTED": "方向評估所需證據不足",
+    "RANGE_EVALUATION_NOT_ADMITTED": "區間評估所需證據不足",
+}
 
 
 def digest(value):
@@ -147,8 +152,8 @@ def project_card(card, market, window):
         quality = evaluate_card(card, market=market, window=window)
     direction_value = quality["direction"].get("result") if quality else (human.get("direction_result") or (card.get("direction") or {}).get("result") if isinstance(card.get("direction"), dict) else human.get("direction_result"))
     range_value = quality["range"].get("result") if quality else human.get("range_result")
-    direction_public = zh(direction_value) if direction_value else f"資料不足：{quality['direction']['reason_code']}" if quality else MISSING
-    range_public = zh(range_value) if range_value else f"資料不足：{quality['range']['reason_code']}" if quality else MISSING
+    direction_public = zh(direction_value) if direction_value else f"資料不足：{QUALITY_REASON_ZH.get(quality['direction']['reason_code'], '無法確認評估依據')}" if quality else MISSING
+    range_public = zh(range_value) if range_value else f"資料不足：{QUALITY_REASON_ZH.get(quality['range']['reason_code'], '無法確認評估依據')}" if quality else MISSING
     values = {
         "走勢預測": "資料不足，暫不判斷" if unavailable_prediction else zh(human.get("direction")), "預測目標": price(human.get("forecast_target")),
         "預測區間": interval(human.get("forecast_low"), human.get("forecast_high")),
@@ -200,6 +205,35 @@ def render_report(payload, market, window, legacy_html, *, extra_evidence=""):
     return render_primary(payload, market, window) + f'<section class="mobile-decision"><details data-ai-dev-255-evidence><summary>{summary}</summary><div class="evidence-body"><p class="evidence-notice">以下保留既有詳細報告、來源鏈與系統診斷；原始來源可能包含英文，未改寫正式預測或評估。</p>{legacy_html}{extra_evidence}</div></details></section>'
 
 
+def _post_close_line_items(card, market, window):
+    """Compact, evidence-scoped comparison.  It never infers a result."""
+    from app.reports.post_close_quality_gate import evaluate_card
+
+    quality = evaluate_card(card, market=market, window=window)
+    review = card.get("review") if isinstance(card.get("review"), dict) else {}
+    evaluation = review.get("prediction_evaluation_v2") if isinstance(review.get("prediction_evaluation_v2"), dict) else {}
+    if not evaluation and isinstance(card.get("prediction_evaluation_v2"), dict):
+        evaluation = card["prediction_evaluation_v2"]
+    direction_eval = evaluation.get("direction") if isinstance(evaluation.get("direction"), dict) else {}
+    source = card.get("source_trade_plan") if isinstance(card.get("source_trade_plan"), dict) else card.get("trade_plan") or {}
+    forecast = source.get("forecast") if isinstance(source.get("forecast"), dict) else {}
+    predicted_direction = direction_eval.get("forecast") or direction_eval.get("predicted_direction") or forecast.get("direction") or (card.get("direction") or {}).get("forecast")
+    actual_direction = direction_eval.get("actual") or (card.get("direction") or {}).get("actual") or review.get("actual_direction")
+    actual = review.get("actual_range") if isinstance(review.get("actual_range"), dict) else {}
+    predicted_low = forecast.get("predicted_low", card.get("predicted_low"))
+    predicted_high = forecast.get("predicted_high", card.get("predicted_high"))
+    actual_low = review.get("actual_low", actual.get("low", card.get("actual_low")))
+    actual_high = review.get("actual_high", actual.get("high", card.get("actual_high")))
+    direction_result = quality["direction"].get("result")
+    range_result = quality["range"].get("result")
+    direction_public = zh(direction_result) if direction_result else f"資料不足：{QUALITY_REASON_ZH.get(quality['direction']['reason_code'], '無法確認評估依據')}"
+    range_public = zh(range_result) if range_result else f"資料不足：{QUALITY_REASON_ZH.get(quality['range']['reason_code'], '無法確認評估依據')}"
+    return [
+        ("方向", f"預測 {zh(predicted_direction)}／實際 {zh(actual_direction)}／結果 {direction_public}"),
+        ("區間", f"預測 {interval(predicted_low, predicted_high)}／實際 {interval(actual_low, actual_high)}／結果 {range_public}"),
+    ]
+
+
 def render_line(payload, market, window, url):
     projection = project_payload(payload, market, window)
     if window in {"post_close_1500", "us_post_close_review_0630"}:
@@ -211,7 +245,7 @@ def render_line(payload, market, window, url):
     for card in projection["cards"]:
         fields = {x["label"]: x["value"] for x in card["fields"]}
         if window in {"post_close_1500", "us_post_close_review_0630"}:
-            selected = [(k, fields[k]) for k in LABELS[window][:3]]
+            selected = [("今日預測結果", fields["今日預測結果"]), *_post_close_line_items(card["evidence"], market, window)]
         elif window == "pre_close_1335":
             selected = [(k, fields[k]) for k in LABELS[window][:3]]
         else:

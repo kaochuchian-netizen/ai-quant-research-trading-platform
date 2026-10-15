@@ -24,7 +24,10 @@ def _number(value: Any) -> float | None:
 
 def _result(value: Any) -> str | None:
     value = str(value or "").lower()
-    return {"hit": "correct", "correct": "correct", "miss": "incorrect", "incorrect": "incorrect"}.get(value)
+    # Preserve the existing review contract (``hit`` / ``miss``).  The
+    # presentation layer translates these values for people; changing the
+    # stored summary enum would invalidate AI-DEV-225's established contract.
+    return {"hit": "hit", "correct": "hit", "miss": "miss", "incorrect": "miss"}.get(value)
 
 
 def _insufficient(reason: str) -> dict[str, Any]:
@@ -58,7 +61,12 @@ def evaluate_card(card: dict[str, Any], *, market: str, window: str) -> dict[str
         # US v2 has an explicit boolean result.  Missing ``result`` is not
         # missing evidence and must not be rendered as such.
         if direction_eval.get("status") == "evaluated" and isinstance(direction_eval.get("hit"), bool) and direction_eval.get("forecast") and direction_eval.get("actual"):
-            direction = _evaluated("correct" if direction_eval["hit"] else "incorrect", "US_CURRENT_SESSION_DIRECTION")
+            direction = _evaluated("hit" if direction_eval["hit"] else "miss", "US_CURRENT_SESSION_DIRECTION")
+        # Older immutable review evidence predates the v2 boolean field but
+        # has an explicit canonical hit/miss result.  Treating it as absent
+        # would be the same legacy-schema status mix that caused this task.
+        elif _result(direction_eval.get("result")) and direction_eval.get("predicted_direction"):
+            direction = _evaluated(_result(direction_eval.get("result")), "US_CURRENT_SESSION_DIRECTION")
         else:
             direction = _insufficient("DIRECTION_EVALUATION_NOT_ADMITTED")
         range_result = _result(card.get("prediction_range_result"))
