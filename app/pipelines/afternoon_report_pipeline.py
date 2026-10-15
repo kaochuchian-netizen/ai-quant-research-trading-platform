@@ -157,6 +157,33 @@ def _post_close_intraday_evidence(*, trading_session: str) -> tuple[dict[str, di
     return evidence, manifest
 
 
+def _collect_optional_post_close_intraday_evidence(
+    *, timing_path: Path, trading_session: str,
+) -> tuple[dict[str, dict], dict | None]:
+    """Collect the optional 1-minute sidecar without breaking 15:00 delivery.
+
+    The immutable collector is intentionally additive: a collection failure is
+    recorded as an optional-stage failure and the established daily-OHLC review
+    continues.  Keep the timing receipt on the public ``record_stage_result``
+    contract; unsupported diagnostic keyword arguments must never turn this
+    optional sidecar into a nonterminal pipeline failure.
+    """
+    try:
+        evidence, manifest = _post_close_intraday_evidence(trading_session=trading_session)
+    except Exception as exc:
+        record_stage_result(
+            timing_path,
+            "intraday_archive",
+            status="failed_optional",
+            elapsed_seconds=0,
+            error_category="pipeline_failure",
+            error_message_sanitized=exc.__class__.__name__,
+        )
+        return {}, None
+    record_stage_result(timing_path, "intraday_archive", status="completed", elapsed_seconds=0)
+    return evidence, manifest
+
+
 def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
     """Generate stock-analysis report content for afternoon scheduler delivery.
 
@@ -210,7 +237,14 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
     except Exception as exc:
         quote_failure = exc.__class__.__name__
         quotes = []
-        record_stage_result(timing_path, "observed_market_data", status="failed_optional", elapsed_seconds=0, reason=quote_failure)
+        record_stage_result(
+            timing_path,
+            "observed_market_data",
+            status="failed_optional",
+            elapsed_seconds=0,
+            error_category="pipeline_failure",
+            error_message_sanitized=quote_failure,
+        )
     quotes_by_symbol = {str(item.get("stock_id") or "").zfill(4): item for item in quotes}
     same_day_admitted = [
         item for item in load_admitted_snapshots(REPO_ROOT / "artifacts/archive/window_snapshots")
@@ -237,17 +271,10 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
     intraday_path_by_symbol: dict[str, dict] = {}
     intraday_manifest = None
     if pipeline_type == "post_close" and not dry_run:
-        try:
-            intraday_path_by_symbol, intraday_manifest = _post_close_intraday_evidence(
-                trading_session=str(context["run_date"]),
-            )
-            record_stage_result(timing_path, "intraday_archive", status="completed", elapsed_seconds=0,
-                                manifest_digest=intraday_manifest.get("content_hash"))
-        except Exception as exc:
-            # The prior daily-OHLC review remains available when the optional
-            # observed-path sidecar cannot be built.  Never substitute data.
-            record_stage_result(timing_path, "intraday_archive", status="failed_optional", elapsed_seconds=0,
-                                reason=type(exc).__name__)
+        intraday_path_by_symbol, intraday_manifest = _collect_optional_post_close_intraday_evidence(
+            timing_path=timing_path,
+            trading_session=str(context["run_date"]),
+        )
 
     daily_reports = []
     decision_cards = []
