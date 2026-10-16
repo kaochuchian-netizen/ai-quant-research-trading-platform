@@ -30,14 +30,14 @@ class DecisionQualityGateTests(unittest.TestCase):
         card = {"symbol":"2330", "actual_low":100, "actual_high":102, "actual_close":101}
         value = evaluate_card(card, market="TW", window="post_close_1500")
         self.assertEqual(value["status"], "PARTIAL_EVIDENCE")
-        self.assertEqual(value["direction"]["reason_code"], "DIRECTION_EVALUATION_NOT_ADMITTED")
+        self.assertEqual(value["direction"]["reason_code"], "TACTICAL_FROZEN_IDENTITY_MISSING")
         self.assertIsNone(value["range"]["result"])
 
     def test_cross_market_gate_isolated(self):
         self.assertEqual(batch_gate(FIXTURE["cards"], market="US", window=FIXTURE["window"])["status"], "QUALIFIED")
         tw = {"symbol":"2330", "actual_low":100, "actual_high":102, "actual_close":101,
               "direction_result":"hit", "prediction_range_result":"hit"}
-        self.assertEqual(evaluate_card(tw, market="TW", window="post_close_1500")["status"], "EVALUATED")
+        self.assertEqual(evaluate_card(tw, market="TW", window="post_close_1500")["status"], "PARTIAL_EVIDENCE")
         with self.assertRaises(ValueError):
             evaluate_card(FIXTURE["cards"][0], market="TW", window="us_post_close_review_0630")
 

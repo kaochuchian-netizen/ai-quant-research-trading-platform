@@ -32,7 +32,7 @@ CARD_KEYS = {
     "us_post_close_review_0630": "structured_review_cards",
 }
 ZH = {"up": "偏多", "down": "偏空", "flat": "盤整", "sideways": "盤整", "bullish": "偏多", "bearish": "偏空", "neutral": "盤整",
-      "hit": "符合預測", "miss": "未符合預測", "correct": "符合預測", "incorrect": "未符合預測",
+      "hit": "符合預測", "partial_hit": "部分符合", "miss": "未符合預測", "not_applicable": "不適用", "correct": "符合預測", "incorrect": "未符合預測",
       "no_forecast": "未提供預測", "no_canonical_forecast": "未提供正式方向預測",
       "insufficient_sample": "樣本不足", "blocked_input": "必要資料不足", "waiting_outcome": "等待結果成熟",
       "observe": "觀察等待", "buy": "偏多策略", "sell": "偏空策略", "hold": "續抱觀察", "reduce": "降低曝險", "avoid_overnight": "不留倉", "stop_invalidated": "停損條件失效",
@@ -41,6 +41,14 @@ QUALITY_REASON_ZH = {
     "ACTUAL_OUTCOME_MISSING_OR_INVALID": "缺少可驗證的實際收盤資料",
     "DIRECTION_EVALUATION_NOT_ADMITTED": "方向評估所需證據不足",
     "RANGE_EVALUATION_NOT_ADMITTED": "區間評估所需證據不足",
+    "PREDICTION_INTERVAL_INVALID": "預測區間格式無效，無法安全評估",
+    "TACTICAL_FROZEN_IDENTITY_MISSING": "缺少盤前凍結預測識別",
+    "TACTICAL_FROZEN_IDENTITY_MISMATCH": "盤前預測識別不一致",
+    "TACTICAL_DIRECTION_FORECAST_MISSING": "未提供正式方向預測",
+    "TACTICAL_DIRECTION_RESULT_MISSING": "缺少正式方向評估結果",
+    "TACTICAL_DIRECTION_RESULT_INCONSISTENT": "方向評估資料不一致",
+    "NO_CANONICAL_TACTICAL_DIRECTION_FORECAST": "未提供正式方向預測",
+    "NO_CANONICAL_TACTICAL_RANGE_FORECAST": "未提供正式區間預測",
 }
 
 
@@ -234,6 +242,26 @@ def _post_close_line_items(card, market, window):
     ]
 
 
+def _post_close_compact_line(card, market, window):
+    """One line per symbol for mobile LINE; details remain on Dashboard."""
+    from app.reports.post_close_quality_gate import evaluate_card
+
+    quality = evaluate_card(card, market=market, window=window)
+
+    short = {"hit": "符合", "partial_hit": "部分符合", "miss": "未符合", "not_applicable": "不適用"}
+
+    def result(component):
+        value = component.get("result")
+        if value:
+            return short.get(value, zh(value))
+        return "資料不足（" + QUALITY_REASON_ZH.get(component.get("reason_code"), "無法確認評估依據") + "）"
+
+    symbol = str(card.get("symbol") or card.get("stock_id") or "")
+    name = str(card.get("name") or card.get("stock_name") or "")
+    display_name = f" {name}" if name else ""
+    return f"{symbol}{display_name}｜方向：{result(quality['direction'])}｜區間：{result(quality['range'])}"
+
+
 def render_line(payload, market, window, url):
     projection = project_payload(payload, market, window)
     if window in {"post_close_1500", "us_post_close_review_0630"}:
@@ -244,6 +272,9 @@ def render_line(payload, market, window, url):
     lines = ["【決策摘要】" + TITLES[window]]
     for card in projection["cards"]:
         fields = {x["label"]: x["value"] for x in card["fields"]}
+        if market == "TW" and window == "post_close_1500":
+            lines.append(_post_close_compact_line(card["evidence"], market, window))
+            continue
         if window in {"post_close_1500", "us_post_close_review_0630"}:
             selected = [("今日預測結果", fields["今日預測結果"]), *_post_close_line_items(card["evidence"], market, window)]
         elif window == "pre_close_1335":
