@@ -18,7 +18,7 @@ if str(ROOT) not in sys.path:
 import app.dashboard.multi_market_dashboard as dashboard
 from app.dashboard.market_dashboard_alias import resolve_active_snapshot, snapshot_parity_contract
 from app.dashboard.window_snapshot_archive import write_snapshot
-from scripts.orchestrator.manual_rerun_runtime_bridge import lifecycle_status, persist_status, status_payload
+from scripts.orchestrator.manual_rerun_runtime_bridge import MANUAL_STATUS_SCHEMA, lifecycle_status, persist_status, status_payload
 
 
 def payload(market: str, window: str, marker: str) -> dict[str, Any]:
@@ -141,7 +141,7 @@ def main() -> int:
             legacy_path = status_dir / "manual_rerun_legacy-job.json"
             legacy_path.write_text(json.dumps({"schema_version": "manual_rerun_status_v1", "job_id": "legacy-job", "status": "unauthorized"}), encoding="utf-8")
             legacy = status_payload("legacy-job", status_dir)
-            checks["legacy_status_normalized"] = legacy.get("schema_version") == "manual_rerun_status_v2" and legacy.get("status") == "rejected" and legacy.get("reason") == "unauthorized"
+            checks["legacy_status_normalized"] = legacy.get("schema_version") == MANUAL_STATUS_SCHEMA and legacy.get("status") == "rejected" and legacy.get("reason") == "unauthorized"
             rejected = lifecycle_status({"market": "TW", "window": "pre_open_0700"}, "rejected", error_summary="invalid pin")
             checks["rejected_terminal"] = rejected["status"] == "rejected" and rejected["latest_route_updated"] is False
             landing = dashboard.render_landing_page()

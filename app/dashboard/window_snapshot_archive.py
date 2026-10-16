@@ -7,7 +7,7 @@ import os
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 from zoneinfo import ZoneInfo
 
 from app.us_stock.runtime_provenance import ADMITTED_PROVENANCE, provenance_admission
@@ -213,8 +213,14 @@ def write_snapshot(
     source_artifact_path: str | None = None,
     rebuild_routes: bool = False,
     effective_batch_time: str | None = None,
+    progress: Callable[[str], None] | None = None,
 ) -> dict[str, Any]:
     """Admit and atomically write one immutable snapshot; never infers batch date from wall clock."""
+    def report(substage: str) -> None:
+        if progress:
+            progress(substage)
+
+    report("validate_request")
     canonical_window = "post_close_1500" if market == "TW" and window == "prediction_review_1500" else window
     if market not in MARKET_WINDOWS or canonical_window not in MARKET_WINDOWS[market]:
         return {"written": False, "reason": "unsupported_market_window"}
@@ -275,6 +281,7 @@ def write_snapshot(
             return {"written": False, "reason": reason, "validation_errors": structured_errors}
     if not _source_is_admissible(source_payload, status, run_kind):
         return {"written": False, "reason": "source_not_admissible"}
+    report("resolve_existing_revisions")
     existing = [
         item for item in load_admitted_snapshots(archive_root)
         if item.get("market") == market
@@ -286,6 +293,7 @@ def write_snapshot(
         [str(item.get("original_batch_time") or item.get("generated_at")) for item in existing if item.get("original_batch_time") or item.get("generated_at")]
         or [effective_batch_time or generated_at]
     )
+    report("canonicalize_payload")
     source_for_admission = canonical_snapshot(source_payload)
     if run_kind == "manual_rerun":
         source_for_admission["runtime_provenance"] = "manual_rerun"
@@ -320,11 +328,13 @@ def write_snapshot(
     if errors:
         return {"written": False, "reason": "admission_failed", "errors": errors}
     target = archive_root / market.lower() / canonical_window / effective_trading_date / f"revision-{revision:04d}.json"
+    report("atomic_snapshot_write")
     target.parent.mkdir(parents=True, exist_ok=True)
     temporary = target.with_suffix(f".tmp-{os.getpid()}")
     temporary.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     temporary.replace(target)
     # Shadow sidecars cannot alter archive identity, report payload or delivery.
+    report("shadow_sidecar")
     try:
         from app.dashboard.shadow_evaluation_archive import hook
         production_archive = Path(__file__).resolve().parents[2] / "artifacts/archive/window_snapshots"
@@ -334,8 +344,10 @@ def write_snapshot(
         import logging
         logging.getLogger(__name__).warning("shadow_evaluation_worker: HOOK_FAILED")
     if rebuild_routes:
+        report("manual_route_rebuild")
         from app.dashboard.multi_market_dashboard import publish_manual_rerun_update
         publish_result = publish_manual_rerun_update(market, canonical_window)
     else:
         publish_result = None
+    report("completed")
     return {"written": True, "path": str(target), "snapshot_id": snapshot["snapshot_id"], "revision": revision, "market": market, "window": canonical_window, "effective_trading_date": effective_trading_date, "routes_rebuilt": rebuild_routes, "publish_result": publish_result}
