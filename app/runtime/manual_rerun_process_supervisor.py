@@ -32,6 +32,9 @@ class ProcessResult:
     log_truncated: bool
     stage: str
     stage_started_at: str | None
+    stage_elapsed_seconds: float | None
+    timeout_substage: str | None
+    last_progress: dict[str, Any] | None
     stage_timings: dict[str, dict[str, Any]]
 
 
@@ -59,6 +62,32 @@ class _BoundedLogWriter:
                     self.truncated = True
 
 
+def _safe_progress_metadata(value: object) -> dict[str, str]:
+    """Keep receipt progress useful without copying arbitrary child output."""
+    if not isinstance(value, dict):
+        return {}
+    allowed = {"substage", "reason", "symbol", "window", "operation"}
+    result: dict[str, str] = {}
+    for key in allowed:
+        raw = value.get(key)
+        if raw is None:
+            continue
+        result[key] = str(raw).replace("\n", " ").replace("\r", " ")[:160]
+    return result
+
+
+def _stage_elapsed_seconds(state: dict[str, Any], now: datetime | None = None) -> float | None:
+    started_at = state.get("stage_started_at")
+    if not started_at:
+        return None
+    try:
+        started = datetime.fromisoformat(str(started_at))
+        finished = now or datetime.now(started.tzinfo)
+        return max((finished - started).total_seconds(), 0.0)
+    except (TypeError, ValueError):
+        return None
+
+
 def _read_progress(path: Path, offset: int, state: dict[str, Any]) -> int:
     if not path.exists():
         return offset
@@ -74,6 +103,12 @@ def _read_progress(path: Path, offset: int, state: dict[str, Any]) -> int:
             at = event.get("at")
             if stage not in CANONICAL_STAGES:
                 continue
+            metadata = _safe_progress_metadata(event.get("metadata"))
+            state["last_progress"] = {"stage": stage, "status": status, "at": at, **metadata}
+            if status == "started" and stage != state.get("stage"):
+                state["substage"] = metadata.get("substage")
+            elif metadata.get("substage"):
+                state["substage"] = metadata["substage"]
             timing = state.setdefault("stage_timings", {}).setdefault(stage, {})
             if status == "started":
                 timing.setdefault("started_at", at)
@@ -167,6 +202,8 @@ def run_process_group(
     state: dict[str, Any] = {
         "stage": "runtime_started",
         "stage_started_at": None,
+        "substage": None,
+        "last_progress": None,
         "stage_timings": {},
     }
     offset = 0
@@ -184,6 +221,9 @@ def run_process_group(
                     "runtime_heartbeat": True,
                     "stage": state["stage"],
                     "stage_started_at": state["stage_started_at"],
+                    "stage_elapsed_seconds": _stage_elapsed_seconds(state),
+                    "timeout_substage": state.get("substage"),
+                    "last_progress": state.get("last_progress"),
                     "stage_timings": state["stage_timings"],
                 })
             last_heartbeat = now
@@ -221,5 +261,8 @@ def run_process_group(
         log_truncated=writer.truncated,
         stage=str(state["stage"]),
         stage_started_at=state.get("stage_started_at"),
+        stage_elapsed_seconds=_stage_elapsed_seconds(state),
+        timeout_substage=state.get("substage"),
+        last_progress=dict(state["last_progress"]) if isinstance(state.get("last_progress"), dict) else None,
         stage_timings=dict(state["stage_timings"]),
     )

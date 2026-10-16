@@ -15,6 +15,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.runtime.manual_rerun_process_supervisor import run_process_group
+from app.dashboard.window_snapshot_archive import write_snapshot
 from scripts.orchestrator import manual_rerun_runtime_bridge as bridge
 
 
@@ -114,6 +115,29 @@ def main() -> int:
         require(any(item.get("signal") == "SIGKILL" and item.get("sent") for item in ignore_term.termination), "hung child did not escalate to KILL")
         cases["hung_child"] = "PASS"
 
+        ten_cards_then_hang = run_process_group(
+            python_command(
+                "from app.runtime.manual_rerun_progress import report_manual_rerun_stage as r;"
+                "r('runtime_started');r('admission',substage='atomic_snapshot_write');"
+                "[print('CARD='+str(n),flush=True) for n in range(10)];"
+                "import signal,time;signal.signal(signal.SIGTERM,signal.SIG_IGN);time.sleep(60)"
+            ),
+            cwd=ROOT,
+            task_id="admission-after-cards",
+            log_path=root / "admission-after-cards.log",
+            progress_path=root / "admission-after-cards.jsonl",
+            timeout_seconds=0.3,
+            terminate_grace_seconds=0.1,
+            kill_grace_seconds=1,
+            heartbeat_seconds=0.05,
+        )
+        require(ten_cards_then_hang.timed_out, "ten-card fixture did not time out")
+        require(ten_cards_then_hang.timeout_substage == "atomic_snapshot_write", "timeout substage lost")
+        require((ten_cards_then_hang.last_progress or {}).get("substage") == "atomic_snapshot_write", "safe last progress lost")
+        require(ten_cards_then_hang.stage_elapsed_seconds is not None, "stage elapsed diagnostics missing")
+        require((root / "admission-after-cards.log").read_text(encoding="utf-8").count("CARD=") == 10, "fixture did not emit all card outputs")
+        cases["ten_cards_not_terminal_success"] = "PASS"
+
         status_dir = root / "status"
         bridge.persist_status(
             {
@@ -147,11 +171,45 @@ def main() -> int:
             bridge.ACTIVE_JOB_LOCK_PATH = old_lock
         cases["lock_release"] = "PASS"
 
+        old_lock = bridge.ACTIVE_JOB_LOCK_PATH
+        old_persist, old_execute, old_active = bridge.persist_status, bridge.execute_manual_backend, bridge.ACTIVE_JOB_ID
+        captured: list[dict[str, object]] = []
+        try:
+            bridge.ACTIVE_JOB_LOCK_PATH = root / "exception-active.json"
+            bridge.ACTIVE_JOB_ID = "exception-task"
+            bridge._write_active_job_lock("exception-task")
+            bridge.persist_status = lambda value, status_dir=None: captured.append(dict(value)) or dict(value)
+            def boom(_: dict[str, object]) -> dict[str, object]:
+                raise RuntimeError("credential=value must not escape")
+            bridge.execute_manual_backend = boom
+            terminal = bridge._execute_and_release({"job_id": "exception-task", "window": "post_close_1500"})
+            require(terminal.get("status") == "failed" and terminal.get("failure_class") == "bridge_exception", "bridge exception not terminalized")
+            require("credential=value" not in json.dumps(terminal, ensure_ascii=False), "exception text leaked")
+            require(isinstance(terminal.get("safe_stack_diagnostic"), dict), "safe stack diagnostic missing")
+            require(not bridge.ACTIVE_JOB_LOCK_PATH.exists() and bridge.ACTIVE_JOB_ID is None, "exception path retained lock")
+        finally:
+            bridge.ACTIVE_JOB_LOCK_PATH = old_lock
+            bridge.persist_status, bridge.execute_manual_backend, bridge.ACTIVE_JOB_ID = old_persist, old_execute, old_active
+        cases["exception_terminal_receipt_and_lock_release"] = "PASS"
+
+        substages: list[str] = []
+        admission = write_snapshot(
+            root / "snapshot-archive", market="TW", window="post_close_1500",
+            effective_trading_date="2026-10-16", generated_at="2026-10-16T15:00:00+08:00",
+            source_payload={"runtime_provenance": "scheduled_production", "items": []},
+            status="completed", run_kind="manual_rerun", progress=substages.append,
+        )
+        require(admission.get("written") is True, "isolated snapshot admission failed")
+        require(substages == ["validate_request", "resolve_existing_revisions", "canonicalize_payload", "atomic_snapshot_write", "shadow_sidecar", "completed"], "snapshot substage sequence is incomplete")
+        cases["admission_substage_progress"] = "PASS"
+
         source = (ROOT / "app/runtime/manual_rerun_process_supervisor.py").read_text(encoding="utf-8")
         bridge_source = (ROOT / "scripts/orchestrator/manual_rerun_runtime_bridge.py").read_text(encoding="utf-8")
         require("start_new_session=True" in source and "os.killpg" in source, "process-group containment mutation detected")
         require("capture_output=True" not in bridge_source, "unbounded bridge capture_output regression detected")
         require("failure_class=\"runtime_timeout\"" in bridge_source, "terminal timeout classification missing")
+        require("timeout_substage=runtime_result.timeout_substage" in bridge_source, "timeout substage persistence missing")
+        require("safe_stack_diagnostic" in bridge_source, "safe stack diagnostics missing")
         require("finally:" in bridge_source and "_release_active_job_lock" in bridge_source, "lock-finally mutation detected")
         cases["mutation_guards"] = "PASS"
 

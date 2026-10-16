@@ -1003,7 +1003,11 @@ def main() -> int:
         stock_cards=snapshot_cards,
     )
     effective_trading_date = args.effective_trading_date or scheduled_datetime_taipei(args.window, generated).date().isoformat()
-    report_manual_rerun_stage("admission")
+    report_manual_rerun_stage("admission", substage="snapshot_admission")
+
+    def admission_progress(substage: str) -> None:
+        report_manual_rerun_stage("admission", substage=substage)
+
     archive_write = write_snapshot(
         WINDOW_SNAPSHOT_ARCHIVE,
         market="TW",
@@ -1064,6 +1068,7 @@ def main() -> int:
         source_artifact_path=str(TW_WINDOW_RUNTIME_DIR / f"{args.window}_latest.json") if window_runtime else None,
         rebuild_routes=args.manual_rerun,
         effective_batch_time=effective_batch_time,
+        progress=admission_progress if args.manual_rerun else None,
     )
     report_manual_rerun_stage("admission", "completed" if archive_write.get("written") is True else "failed", reason=archive_write.get("reason"))
     stage_timing_path = REPO_ROOT / "artifacts/runtime/stage_timing" / f"tw_{args.window}_latest.json"

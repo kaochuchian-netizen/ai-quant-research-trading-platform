@@ -8,11 +8,13 @@ PIN hash is configured outside the repo.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import sys
 import threading
 import time
+import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from datetime import datetime
@@ -222,6 +224,33 @@ def _execute_and_release(response: dict[str, Any]) -> dict[str, Any]:
     global ACTIVE_JOB_ID
     try:
         return execute_manual_backend(response)
+    except Exception as exc:
+        # A bridge exception must not leave Portal with a permanent running state.
+        # Keep stack evidence auditable while exposing no argument values, paths, or
+        # arbitrary exception text through the public status endpoint.
+        frames = traceback.extract_tb(exc.__traceback__)
+        stack = "\n".join(
+            f"{Path(frame.filename).name}:{frame.lineno}:{frame.name}"
+            for frame in frames[-12:]
+        )
+        diagnostic = {
+            "exception_type": type(exc).__name__,
+            "stack_frame_count": len(frames),
+            "stack_fingerprint": hashlib.sha256(stack.encode("utf-8")).hexdigest(),
+        }
+        failed = lifecycle_status(
+            response,
+            "failed",
+            stage=str(response.get("stage") or "runtime_started"),
+            finished_at=datetime.now(ZoneInfo("Asia/Taipei")).replace(microsecond=0).isoformat(),
+            failure_class="bridge_exception",
+            error_stage=str(response.get("stage") or "runtime_started"),
+            error_summary="手動批次執行發生未預期錯誤。",
+            safe_stack_diagnostic=diagnostic,
+            lock_released=True,
+            message="手動重跑失敗；Archive、Latest、Previous 與市場 Dashboard 不應更新。",
+        )
+        return sanitize_response(persist_status(failed))
     finally:
         with ACTIVE_LOCK:
             if ACTIVE_JOB_ID == str(response.get("job_id")):
@@ -285,11 +314,14 @@ def execute_manual_backend(response: dict[str, Any]) -> dict[str, Any]:
         latest_runtime_state, "running", stage=runtime_result.stage, pid=runtime_result.pid, pgid=runtime_result.pgid,
         runtime_log_path=str(Path(runtime_result.log_path).relative_to(ROOT)), runtime_log_bytes=runtime_result.log_bytes,
         runtime_log_truncated=runtime_result.log_truncated, stage_started_at=runtime_result.stage_started_at,
+        stage_elapsed_seconds=runtime_result.stage_elapsed_seconds,
+        timeout_substage=runtime_result.timeout_substage,
+        last_progress=runtime_result.last_progress,
         stage_timings=runtime_result.stage_timings,
     )
     if runtime_result.timed_out:
         finished = datetime.now(ZoneInfo("Asia/Taipei")).replace(microsecond=0)
-        failed = lifecycle_status(running_state, "failed", stage=runtime_result.stage, started_at=started_at, finished_at=finished.isoformat(), duration_seconds=int(runtime_result.elapsed_seconds), failure_class="runtime_timeout", error_stage=runtime_result.stage, error_summary="手動批次執行逾時。", termination=list(runtime_result.termination), lock_released=True, message="手動重跑失敗；Archive、Latest、Previous 與市場 Dashboard 不應更新。", hash_evidence={"before": before_hashes, "after": _route_hashes(market, window)})
+        failed = lifecycle_status(running_state, "failed", stage=runtime_result.stage, started_at=started_at, finished_at=finished.isoformat(), duration_seconds=int(runtime_result.elapsed_seconds), backend_returncode=runtime_result.returncode, failure_class="runtime_timeout", error_stage=runtime_result.stage, timeout_substage=runtime_result.timeout_substage, stage_elapsed_seconds=runtime_result.stage_elapsed_seconds, last_progress=runtime_result.last_progress, error_summary="手動批次執行逾時。", termination=list(runtime_result.termination), lock_released=True, message="手動重跑失敗；Archive、Latest、Previous 與市場 Dashboard 不應更新。", hash_evidence={"before": before_hashes, "after": _route_hashes(market, window)})
         return persist_status(failed)
     success = runtime_result.returncode == 0
     after_selection = resolve_snapshots(ROOT / "artifacts/archive/window_snapshots", market, window)
