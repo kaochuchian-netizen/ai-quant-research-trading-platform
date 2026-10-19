@@ -81,6 +81,12 @@ class PostMergeDirtyClassificationTests(unittest.TestCase):
         self.assertEqual(result["preserved_runtime_artifacts"], [path])
         self.assertEqual(result["unknown_dirty_paths"], [])
 
+    def test_tw_postclose_hashed_delivery_receipt_is_preserved(self) -> None:
+        path = "artifacts/runtime/delivery_receipts/tw/post_close_1500/" + ("a" * 64) + ".json"
+        result = summarize_post_merge_status(platform(status=[f"?? {path}"]))
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["preserved_runtime_artifacts"], [path])
+
     def test_daily_evaluation_hashed_line_receipt_is_preserved(self) -> None:
         path = "artifacts/runtime/delivery_receipts/daily_evaluation_line/" + ("a" * 64) + ".json"
         result = summarize_post_merge_status(platform(status=[f"?? {path}"]))
@@ -145,6 +151,7 @@ class PostMergeDirtyClassificationTests(unittest.TestCase):
             "?? artifacts/runtime/delivery_receipts/tw/pre_open_0700/" + ("a" * 64) + ".jsonl",
             "?? artifacts/runtime/delivery_receipts/tw/pre_open_0700/archive/" + ("a" * 64) + ".json",
             "?? artifacts/runtime/delivery_receipts/tw/intraday_1305/" + ("a" * 64) + ".json",
+            "?? artifacts/runtime/delivery_receipts/tw/post_close_1500/arbitrary.json",
             "?? artifacts/runtime/delivery_receipts/us/pre_open_0700/" + ("a" * 64) + ".json",
             "?? stock-ai-key.json.pre-migration-20260911",
             " M app/reports/tw_pre_open_delivery_contract.py",

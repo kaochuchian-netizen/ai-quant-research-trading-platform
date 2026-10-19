@@ -36,6 +36,7 @@ from app.dashboard.visual_evidence_archive import capture_published_snapshot_non
 from app.runtime.manual_rerun_progress import report_manual_rerun_stage  # noqa: E402
 from app.reports.tw_line_completeness import notification_universe_evidence
 from app.reports.delivery_provenance import build_delivery_provenance, transport_delivery_result, write_delivery_provenance  # noqa: E402
+from app.reports.channel_delivery_receipt import deliver_once, delivery_identity  # noqa: E402
 from app.runtime.batch_audit_bundle import enqueue_batch_audit_non_blocking  # noqa: E402
 from app.reports.report_content_contract import build_report_content_artifact  # noqa: E402
 from app.reports.window_context import get_window_context  # noqa: E402
@@ -67,6 +68,7 @@ DEFAULT_MAIL_ENV_FILE = Path("~/.config/stock-ai-orchestrator/mail.env")
 WINDOW_SNAPSHOT_ARCHIVE = Path(os.environ.get("STOCK_AI_WINDOW_SNAPSHOT_ARCHIVE", REPO_ROOT / "artifacts/archive/window_snapshots"))
 TW_WINDOW_RUNTIME_DIR = REPO_ROOT / "artifacts/runtime/tw_window_decision"
 TW_PREOPEN_CHANNEL_RECEIPTS = REPO_ROOT / "artifacts/runtime/delivery_receipts/tw/pre_open_0700"
+TW_POSTCLOSE_CHANNEL_RECEIPTS = REPO_ROOT / "artifacts/runtime/delivery_receipts/tw/post_close_1500"
 DEFAULT_DECISION_INTELLIGENCE_DASHBOARD_URL = get_tw_dashboard_url()
 EMAIL_BODY_LIMIT = 14000
 
@@ -571,7 +573,12 @@ def build_email_body(window_id: str, run_id: str, generated_at: str, pipeline_st
     lines += ["", "重點提醒：", "- baseline V1 仍在回測校準。", "- 預測僅供研究參考，非交易指令。", "- 詳細個股、預測、風險與檢討請看 Dashboard。", "本信不包含下單建議。"]
     return "\n".join(lines)
 
-def send_delivery_email(env_file: Path, window_id: str, run_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str, admitted_snapshot: dict[str, Any] | None = None) -> dict[str, Any]:
+def _mail_recipients(config: dict[str, str]) -> list[str]:
+    from email.utils import getaddresses
+    return [address for _, address in getaddresses([str(config.get("to_addr") or "")]) if address]
+
+
+def send_delivery_email(env_file: Path, window_id: str, run_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str, admitted_snapshot: dict[str, Any] | None = None, receipt_root: Path | None = None) -> dict[str, Any]:
     cfg = window_config(window_id)
     expanded = env_file.expanduser()
     if expanded.exists():
@@ -583,7 +590,22 @@ def send_delivery_email(env_file: Path, window_id: str, run_id: str, generated_a
         subject,
         build_email_body(window_id, run_id, generated_at, pipeline_status, dashboard_url, output_tail, admitted_snapshot),
     )
-    send_message(config, message)
+    def send() -> dict[str, Any]:
+        refused = send_message(config, message) or {}
+        recipients = []
+        for recipient in _mail_recipients(config):
+            refusal = refused.get(recipient) if isinstance(refused, dict) else None
+            recipients.append({
+                "recipient": recipient,
+                "status": "accepted" if refusal is None else "rejected",
+                **({"status_code": int(refusal[0])} if isinstance(refusal, tuple) and isinstance(refusal[0], int) else {}),
+            })
+        return {"recipients": recipients}
+    if receipt_root is not None and admitted_snapshot is not None:
+        content = message.get_content()
+        identity = delivery_identity(snapshot=admitted_snapshot, channel="email", market="TW", window=window_id, content=content)
+        return deliver_once(receipt_root=receipt_root, identity=identity, channel="email", sender=send)
+    send()
     return {
         "send_attempted": True,
         "send_status": "sent",
@@ -603,13 +625,38 @@ def build_line_message(window_id: str, generated_at: str, pipeline_status: str, 
     return render_line(payload, "TW", window_id, dashboard_url)
 
 
-def send_concise_line(window_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str, admitted_snapshot: dict[str, Any] | None = None) -> dict[str, Any]:
+def send_concise_line(window_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str, admitted_snapshot: dict[str, Any] | None = None, receipt_root: Path | None = None) -> dict[str, Any]:
     cfg = window_config(window_id)
     message = build_line_message(window_id, generated_at, pipeline_status, dashboard_url, output_tail, admitted_snapshot)
     line_module = importlib.import_module("reports.line_report_sender")
-    line_sender = getattr(line_module, "send_line_report")
+    line_sender = getattr(line_module, "send_line_report", None)
     from app.reports.line_chunks import deliver_line_chunks
-    chunk_delivery = deliver_line_chunks(message, line_sender)
+    detailed_results: list[dict[str, Any]] = []
+    def send() -> dict[str, Any]:
+        def sender(chunk: str) -> Any:
+            if not callable(line_sender):
+                raise RuntimeError("line_transport_sender_missing")
+            result = line_sender(chunk)
+            for recipient, status_code in result or []:
+                detailed_results.append({"recipient": str(recipient), "status": "accepted" if int(status_code) < 300 else "rejected", "status_code": int(status_code)})
+            return result
+        try:
+            chunk_delivery = deliver_line_chunks(message, sender)
+        except Exception as exc:
+            return {
+                "recipients": detailed_results or [{"recipient": "unresolved-transport", "status": "failed", "error_type": type(exc).__name__}],
+                "attempted_at": generated_at,
+                "chunk_delivery": getattr(exc, "chunk_delivery", None),
+            }
+        return {"recipients": detailed_results, "attempted_at": generated_at, "chunk_delivery": chunk_delivery}
+    if receipt_root is not None and admitted_snapshot is not None:
+        identity = delivery_identity(snapshot=admitted_snapshot, channel="line", market="TW", window=window_id, content=message)
+        result = deliver_once(receipt_root=receipt_root, identity=identity, channel="line", sender=send)
+        if result.get("receipt"):
+            result["chunk_delivery"] = result["receipt"].get("chunk_delivery")
+        return {**result, "policy": cfg["line_policy"], "concise_reminder": True, "message_chars": len(message)}
+    sent = send()
+    chunk_delivery = sent["chunk_delivery"]
     return {
         "chunk_delivery": chunk_delivery,
         "send_attempted": True,
@@ -1169,8 +1216,13 @@ def main() -> int:
         line = None
     if email is None:
         try:
-            email = send_delivery_email(Path(args.mail_env_file), args.window, run_id, generated_at, pipeline_status, args.dashboard_url, output_tail)
-            email_ok = True
+            email = send_delivery_email(
+                Path(args.mail_env_file), args.window, run_id, generated_at,
+                pipeline_status, args.dashboard_url, output_tail,
+                latest_snapshot if args.window == "post_close_1500" else None,
+                TW_POSTCLOSE_CHANNEL_RECEIPTS if args.window == "post_close_1500" else None,
+            )
+            email_ok = email.get("send_status") in {"sent", "already_delivered"}
         except Exception as exc:  # pragma: no cover - runtime SMTP/config failure path
             email = {
                 "send_attempted": True,
@@ -1181,8 +1233,12 @@ def main() -> int:
             email_ok = False
     if line is None:
         try:
-            line = send_concise_line(args.window, generated_at, pipeline_status, args.dashboard_url, output_tail)
-            line_ok = line.get("send_status") == "sent"
+            line = send_concise_line(
+                args.window, generated_at, pipeline_status, args.dashboard_url,
+                output_tail, latest_snapshot if args.window == "post_close_1500" else None,
+                TW_POSTCLOSE_CHANNEL_RECEIPTS if args.window == "post_close_1500" else None,
+            )
+            line_ok = line.get("send_status") in {"sent", "already_delivered"}
         except Exception as exc:  # pragma: no cover - runtime LINE/config failure path
             line = {
                 "send_attempted": True,
@@ -1222,6 +1278,9 @@ def main() -> int:
             snapshot=provenance_snapshot, canonical_url=args.dashboard_url, channel=channel,
             content=content, delivery_result=delivery_result,
             delivery_attempted=bool(delivery.get("send_attempted")), recipient_count=int(delivery.get("recipient_count") or 0),
+            delivery_time=(delivery.get("receipt") or {}).get("attempted_at"),
+            delivery_receipt=delivery.get("receipt"),
+            receipt_ref=delivery.get("receipt_path"),
             public_sync=public_latest_sync, symbol_delivery_accounting=symbol_accounting,
         )
         if channel == "line":
