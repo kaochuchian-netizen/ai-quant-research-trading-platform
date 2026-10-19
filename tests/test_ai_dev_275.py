@@ -65,11 +65,13 @@ class TwTacticalPresentationParityTests(unittest.TestCase):
         for symbol in FIXTURE["tracking_symbols"]:
             self.assertEqual(line.count(symbol), 1)
         self.assertIn("009816 中信科技｜方向：符合｜區間：符合", line)
-        self.assertIn("6873 泓德能源｜方向：不適用｜區間：不適用", line)
+        self.assertIn("方向：5/8 符合（62.5%）｜區間：1/8 符合（12.5%）", line)
+        self.assertIn("有效樣本：方向 8｜區間 8", line)
+        self.assertIn("6873 泓德能源｜方向：不適用（未產生方向預測）｜區間：不適用（未產生區間預測）", line)
         self.assertIn("2330 台積電｜方向：符合｜區間：部分符合", line)
         self.assertIn(URL, line)
         self.assertNotIn("資料不足：方向評估所需證據不足", line)
-        self.assertLess(len(line), 1000)
+        self.assertLessEqual(len(line), 520)
         self.assertTrue(batch_gate(self.cards, market="TW", window="post_close_1500")["line_send_allowed"])
 
     def test_dashboard_projection_preserves_original_evidence(self):
@@ -79,6 +81,14 @@ class TwTacticalPresentationParityTests(unittest.TestCase):
         fields = {field["label"]: field["value"] for field in projected["cards"][0]["fields"]}
         self.assertEqual(fields["方向預測結果"], "符合預測")
         self.assertEqual(fields["區間預測結果"], "部分符合")
+
+    def test_dashboard_keeps_not_applicable_reason_distinct_from_missing_data(self):
+        payload = {"market": "TW", "window": "post_close_1500", "structured_review_cards": self.cards}
+        projected = {card["symbol"]: card for card in project_payload(payload, "TW", "post_close_1500")["cards"]}
+        fields = {field["label"]: field["value"] for field in projected["6873"]["fields"]}
+        self.assertEqual(fields["方向預測結果"], "不適用（未提供正式方向預測）")
+        self.assertEqual(fields["區間預測結果"], "不適用（未提供正式區間預測）")
+        self.assertNotIn("資料不足", fields["方向預測結果"])
 
 
 if __name__ == "__main__":
