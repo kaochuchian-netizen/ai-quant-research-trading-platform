@@ -50,6 +50,10 @@ QUALITY_REASON_ZH = {
     "NO_CANONICAL_TACTICAL_DIRECTION_FORECAST": "未提供正式方向預測",
     "NO_CANONICAL_TACTICAL_RANGE_FORECAST": "未提供正式區間預測",
 }
+LINE_REASON_ZH = {
+    "NO_CANONICAL_TACTICAL_DIRECTION_FORECAST": "未產生方向預測",
+    "NO_CANONICAL_TACTICAL_RANGE_FORECAST": "未產生區間預測",
+}
 
 
 def digest(value):
@@ -85,6 +89,55 @@ def interval(low, high):
     if MISSING in (a, b) or float(a) > float(b):
         return MISSING
     return f"{a}–{b}"
+
+
+def quality_component_public(component):
+    """Render a quality-gate component without hiding a proved abstention.
+
+    ``NOT_APPLICABLE`` is an explicit result (for example, the frozen 07:00
+    card produced no tactical forecast), not a missing market-data result.
+    Keep its stable reason visible in presentation while retaining the raw
+    value only in the immutable evidence object.
+    """
+    result = component.get("result") if isinstance(component, dict) else None
+    if result == "not_applicable":
+        reason = QUALITY_REASON_ZH.get(component.get("reason_code"), "本項未建立正式預測")
+        return f"不適用（{reason}）"
+    if result:
+        return zh(result)
+    reason = QUALITY_REASON_ZH.get(component.get("reason_code"), "無法確認評估依據")
+    return f"資料不足：{reason}"
+
+
+def post_close_line_summary(cards, market, window):
+    """Return compact, component-scoped rates from the same quality gate.
+
+    A ``partial_hit`` remains an admitted result but is not counted as a full
+    hit.  This deliberately exposes the denominator rather than silently
+    treating abstentions or partial evidence as successes.
+    """
+    from app.reports.post_close_quality_gate import evaluate_card
+
+    quality_rows = [evaluate_card(card, market=market, window=window) for card in cards]
+
+    def metric(component_name):
+        values = [row[component_name].get("result") for row in quality_rows]
+        eligible = [value for value in values if value in {"hit", "miss", "partial_hit"}]
+        hit_count = sum(value == "hit" for value in eligible)
+        count = len(eligible)
+        rate = f"{(hit_count / count):.1%}" if count else "不適用"
+        return hit_count, count, rate
+
+    direction_hit, direction_count, direction_rate = metric("direction")
+    range_hit, range_count, range_rate = metric("range")
+    return {
+        "direction_hit_count": direction_hit,
+        "direction_effective_count": direction_count,
+        "direction_hit_rate": direction_rate,
+        "range_hit_count": range_hit,
+        "range_effective_count": range_count,
+        "range_hit_rate": range_rate,
+    }
 
 
 def cards_for(payload, window):
@@ -160,8 +213,8 @@ def project_card(card, market, window):
         quality = evaluate_card(card, market=market, window=window)
     direction_value = quality["direction"].get("result") if quality else (human.get("direction_result") or (card.get("direction") or {}).get("result") if isinstance(card.get("direction"), dict) else human.get("direction_result"))
     range_value = quality["range"].get("result") if quality else human.get("range_result")
-    direction_public = zh(direction_value) if direction_value else f"資料不足：{QUALITY_REASON_ZH.get(quality['direction']['reason_code'], '無法確認評估依據')}" if quality else MISSING
-    range_public = zh(range_value) if range_value else f"資料不足：{QUALITY_REASON_ZH.get(quality['range']['reason_code'], '無法確認評估依據')}" if quality else MISSING
+    direction_public = quality_component_public(quality["direction"]) if quality else (zh(direction_value) if direction_value else MISSING)
+    range_public = quality_component_public(quality["range"]) if quality else (zh(range_value) if range_value else MISSING)
     values = {
         "走勢預測": "資料不足，暫不判斷" if unavailable_prediction else zh(human.get("direction")), "預測目標": price(human.get("forecast_target")),
         "預測區間": interval(human.get("forecast_low"), human.get("forecast_high")),
@@ -252,6 +305,9 @@ def _post_close_compact_line(card, market, window):
 
     def result(component):
         value = component.get("result")
+        if value == "not_applicable":
+            reason = LINE_REASON_ZH.get(component.get("reason_code"), "未建立正式預測")
+            return "不適用（" + reason + "）"
         if value:
             return short.get(value, zh(value))
         return "資料不足（" + QUALITY_REASON_ZH.get(component.get("reason_code"), "無法確認評估依據") + "）"
@@ -270,6 +326,17 @@ def render_line(payload, market, window, url):
         if not gate["line_send_allowed"]:
             raise ValueError("LINE_DECISION_QUALITY_GATE_BLOCKED")
     lines = ["【決策摘要】" + TITLES[window]]
+    if market == "TW" and window == "post_close_1500":
+        summary = post_close_line_summary([item["evidence"] for item in projection["cards"]], market, window)
+        lines.append(
+            "方向：{}/{} 符合（{}）｜區間：{}/{} 符合（{}）".format(
+                summary["direction_hit_count"], summary["direction_effective_count"], summary["direction_hit_rate"],
+                summary["range_hit_count"], summary["range_effective_count"], summary["range_hit_rate"],
+            )
+        )
+        lines.append("有效樣本：方向 {}｜區間 {}".format(
+            summary["direction_effective_count"], summary["range_effective_count"],
+        ))
     for card in projection["cards"]:
         fields = {x["label"]: x["value"] for x in card["fields"]}
         if market == "TW" and window == "post_close_1500":
