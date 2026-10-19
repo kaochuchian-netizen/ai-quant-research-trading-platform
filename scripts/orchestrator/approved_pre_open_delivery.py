@@ -133,7 +133,7 @@ WINDOWS = {
         "label": "15:00 post-close / prediction review",
         "local_time": "15:00",
         "pipeline_type": "post_close",
-        "line_policy": "link-only post-close review notification with dashboard URL only",
+        "line_policy": "quality-gated per-symbol post-close summary with dashboard URL",
         "line_mode": "concise_reminder",
         "email_policy": "PM-readable post-close review summary with Dashboard link",
         "dashboard_policy": "publish latest post-close / prediction review snapshot",

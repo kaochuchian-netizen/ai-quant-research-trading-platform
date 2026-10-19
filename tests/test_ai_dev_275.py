@@ -90,6 +90,11 @@ class TwTacticalPresentationParityTests(unittest.TestCase):
         self.assertEqual(fields["區間預測結果"], "不適用（未提供正式區間預測）")
         self.assertNotIn("資料不足", fields["方向預測結果"])
 
+    def test_delivery_provenance_policy_matches_quality_gated_line_renderer(self):
+        source = (Path(__file__).parents[1] / "scripts/orchestrator/approved_pre_open_delivery.py").read_text(encoding="utf-8")
+        self.assertIn('"line_policy": "quality-gated per-symbol post-close summary with dashboard URL"', source)
+        self.assertNotIn('"line_policy": "link-only post-close review notification with dashboard URL only"', source)
+
 
 if __name__ == "__main__":
     unittest.main()
