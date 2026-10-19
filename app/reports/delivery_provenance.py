@@ -42,7 +42,7 @@ def transport_delivery_result(delivery: dict[str, Any]) -> str:
     return "not_attempted"
 
 
-def build_delivery_provenance(*, market: str, window: str, trading_date: str, snapshot: dict[str, Any], canonical_url: str, channel: str, content: str, delivery_result: str, delivery_attempted: bool, recipient_count: int = 0, delivery_time: str | None = None, public_sync: dict[str, Any] | None = None, symbol_delivery_accounting: dict[str, Any] | None = None) -> dict[str, Any]:
+def build_delivery_provenance(*, market: str, window: str, trading_date: str, snapshot: dict[str, Any], canonical_url: str, channel: str, content: str, delivery_result: str, delivery_attempted: bool, recipient_count: int = 0, delivery_time: str | None = None, delivery_receipt: dict[str, Any] | None = None, receipt_ref: str | None = None, public_sync: dict[str, Any] | None = None, symbol_delivery_accounting: dict[str, Any] | None = None) -> dict[str, Any]:
     if channel not in {"email", "line"}:
         raise ValueError("unsupported_delivery_channel")
     if delivery_result not in {"sent", "failed", "suppressed", "dry_run_not_sent", "not_attempted", "already_delivered"}:
@@ -51,8 +51,9 @@ def build_delivery_provenance(*, market: str, window: str, trading_date: str, sn
         raise ValueError("sent_requires_transport_attempt")
     metadata = snapshot.get("metadata") if isinstance(snapshot.get("metadata"), dict) else snapshot
     sync = public_sync if isinstance(public_sync, dict) else {}
+    receipt = delivery_receipt if isinstance(delivery_receipt, dict) else {}
     return {
-        "schema_version": "notification_delivery_provenance_v1",
+        "schema_version": "notification_delivery_provenance_v2",
         "market": market.upper(), "window": window, "trading_date": trading_date,
         "snapshot_id": metadata.get("snapshot_id"), "revision": metadata.get("revision"),
         "source_payload_hash": source_payload_hash(snapshot),
@@ -61,6 +62,10 @@ def build_delivery_provenance(*, market: str, window: str, trading_date: str, sn
         "delivery_channel": channel, "delivery_attempted": bool(delivery_attempted),
         "delivery_result": delivery_result, "delivery_time": delivery_time,
         "recipient_count": max(0, int(recipient_count)), "message_length": len(content),
+        "receipt_ref": receipt_ref,
+        "transport_result": receipt.get("transport_result"),
+        "accepted_recipient_count": receipt.get("accepted_recipient_count"),
+        "final_recipient_delivery_confirmed": receipt.get("final_recipient_delivery_confirmed"),
         "symbol_delivery_accounting": symbol_delivery_accounting or {},
         "public_parity_status": sync.get("status") or "not_attempted",
         "public_expected_identity": (sync.get("public_archive_verification") or {}).get("expected_identity"),

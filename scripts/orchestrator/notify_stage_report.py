@@ -113,20 +113,19 @@ def preview_payload(subject: str, body: str, env_file: str | None) -> dict[str, 
     }
 
 
-def send_message(config: dict[str, str], message: EmailMessage) -> None:
+def send_message(config: dict[str, str], message: EmailMessage):
     port = int(config["port"])
     if port == 465:
         context = ssl.create_default_context()
         with smtplib.SMTP_SSL(config["host"], port, context=context) as server:
             server.login(config["user"], config["password"])
-            server.send_message(message)
-        return
+            return server.send_message(message)
 
     context = ssl.create_default_context()
     with smtplib.SMTP(config["host"], port) as server:
         server.starttls(context=context)
         server.login(config["user"], config["password"])
-        server.send_message(message)
+        return server.send_message(message)
 
 
 def main() -> int:

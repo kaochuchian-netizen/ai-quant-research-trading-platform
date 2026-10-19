@@ -79,6 +79,7 @@ PRESERVED_PATH_PATTERNS = tuple(
         rf"artifacts/runtime/stage_timing/(?:tw_(?:{'|'.join(TW_WINDOWS)})|us_(?:{'|'.join(US_WINDOWS)}))_latest\.json",
         rf"artifacts/runtime/tw_window_decision/(?:{'|'.join(TW_WINDOWS)})_latest\.json",
         r"artifacts/runtime/delivery_receipts/tw/pre_open_0700/[0-9a-f]{64}\.json",
+        r"artifacts/runtime/delivery_receipts/tw/post_close_1500/[0-9a-f]{64}\.json",
         r"artifacts/runtime/delivery_receipts/daily_evaluation_line/[0-9a-f]{64}\.json",
         r"artifacts/runtime/manual_rerun/manual_rerun_manual-[0-9a-f]{16}\.json",
         rf"artifacts/runtime/manual_rerun/progress/manual-[0-9a-f]{{16}}\.jsonl",
