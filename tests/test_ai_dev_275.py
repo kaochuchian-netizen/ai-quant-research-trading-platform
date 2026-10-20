@@ -79,8 +79,8 @@ class TwTacticalPresentationParityTests(unittest.TestCase):
         projected = project_payload(payload, "TW", "post_close_1500")
         self.assertEqual(projected["cards"][0]["evidence"], self.cards[0])
         fields = {field["label"]: field["value"] for field in projected["cards"][0]["fields"]}
-        self.assertEqual(fields["方向預測結果"], "符合預測")
-        self.assertEqual(fields["區間預測結果"], "部分符合")
+        self.assertTrue(fields["方向預測結果"].startswith("符合預測（預測："))
+        self.assertTrue(fields["區間預測結果"].startswith("部分符合（預測："))
 
     def test_dashboard_keeps_not_applicable_reason_distinct_from_missing_data(self):
         payload = {"market": "TW", "window": "post_close_1500", "structured_review_cards": self.cards}

@@ -493,7 +493,7 @@ def _production_email_summary() -> dict[str, Any]:
 def build_email_body(window_id: str, run_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str, admitted_snapshot: dict[str, Any] | None = None) -> str:
     dashboard_url = _delivery_dashboard_url(window_id, dashboard_url)
     normalized_window = "post_close_1500" if window_id == "prediction_review_1500" else window_id
-    selected = admitted_snapshot if window_id == "pre_open_0700" and admitted_snapshot is not None else (resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, "TW", normalized_window).latest or {})
+    selected = admitted_snapshot if admitted_snapshot is not None else (resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, "TW", normalized_window).latest or {})
     selected_payload = selected.get("payload") if isinstance(selected.get("payload"), dict) else {}
     if window_id == "pre_open_0700" and selected_payload:
         return _append_tw_v2(render_tw_0700_email(selected_payload, dashboard_url), project_decision_intelligence_v4("TW", "pre_open_0700", selected_payload))
@@ -509,7 +509,14 @@ def build_email_body(window_id: str, run_id: str, generated_at: str, pipeline_st
         if context:
             return _append_tw_v2(render_tw_1335_email(context), context["projection"])
     if normalized_window == "post_close_1500" and selected_payload.get("structured_review_cards"):
-        return _append_tw_v2(render_tw_1500_email(selected_payload, dashboard_url), project_decision_intelligence_v4("TW", "post_close_1500", selected_payload))
+        from app.reports.mobile_decision_presentation import render_post_close_email
+        return render_post_close_email(selected_payload, "TW", "post_close_1500", dashboard_url)
+    if normalized_window == "post_close_1500" and admitted_snapshot is not None:
+        return "\n".join([
+            "【Stock AI】15:00 台股盤後檢討",
+            "本批次尚未提供正式 structured review cards，不沿用其他窗口內容。",
+            "完整報告：", dashboard_url,
+        ])
     dashboard_url = _delivery_dashboard_url(window_id, dashboard_url)
     if window_id == "pre_open_0700":
         payload, _snapshot = _latest_pre_open_context()
@@ -528,13 +535,8 @@ def build_email_body(window_id: str, run_id: str, generated_at: str, pipeline_st
             return _append_tw_v2(render_tw_1335_email(context), context["projection"])
     if window_id in {"post_close_1500", "prediction_review_1500"}:
         payload, snapshot = _latest_post_close_context()
-        return _append_tw_v2(render_tw_1500_email(
-            payload,
-            dashboard_url,
-            snapshot_id=str(snapshot.get("snapshot_id") or ""),
-            revision=int(snapshot.get("revision") or 1),
-            payload_hash=payload_hash(payload),
-        ), project_decision_intelligence_v4("TW", "post_close_1500", payload))
+        from app.reports.mobile_decision_presentation import render_post_close_email
+        return render_post_close_email(payload, "TW", "post_close_1500", dashboard_url)
     summary = _production_email_summary()
     projection, review = _tw_delivery_projection(window_id)
     titles = {
@@ -624,7 +626,15 @@ def build_line_message(window_id: str, generated_at: str, pipeline_status: str, 
     dashboard_url = _delivery_dashboard_url(window_id, dashboard_url)
     selected = admitted_snapshot if admitted_snapshot is not None else (resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, "TW", window_id).latest or {})
     payload = selected.get("payload") if isinstance(selected.get("payload"), dict) else {}
-    return render_line(payload, "TW", window_id, dashboard_url)
+    if window_id == "post_close_1500" and not payload.get("structured_review_cards"):
+        return "【決策摘要】15:00 台股盤後檢討\n本批次尚未提供正式資料，不沿用其他窗口內容。"
+    return render_line(
+        payload, "TW", window_id, dashboard_url,
+        require_frozen_universe=(
+            window_id in {"post_close_1500", "prediction_review_1500"}
+            and payload.get("input_kind") != "SYNTHETIC"
+        ),
+    )
 
 
 def send_concise_line(window_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str, admitted_snapshot: dict[str, Any] | None = None, receipt_root: Path | None = None, *, rendered_message: str | None = None) -> dict[str, Any]:
@@ -645,12 +655,27 @@ def send_concise_line(window_id: str, generated_at: str, pipeline_status: str, d
         try:
             chunk_delivery = deliver_line_chunks(message, sender)
         except Exception as exc:
+            chunk_failure = getattr(exc, "chunk_delivery", None)
+            timeout = isinstance(exc, TimeoutError) or (
+                isinstance(chunk_failure, dict) and chunk_failure.get("error_type") == "TimeoutError"
+            )
             return {
-                "recipients": detailed_results or [{"recipient": "unresolved-transport", "status": "failed", "error_type": type(exc).__name__}],
-                "attempted_at": generated_at,
+                "recipients": detailed_results or [{
+                    "recipient": "unresolved-transport",
+                    "status": "timeout" if timeout else "failed",
+                    "error_type": type(exc).__name__,
+                }],
+                # ``generated_at`` identifies the report.  A receipt must
+                # instead record the real transport attempt, especially for a
+                # historical, snapshot-bound reissue.
+                "attempted_at": now_taipei().replace(microsecond=0).isoformat(),
                 "chunk_delivery": getattr(exc, "chunk_delivery", None),
             }
-        return {"recipients": detailed_results, "attempted_at": generated_at, "chunk_delivery": chunk_delivery}
+        return {
+            "recipients": detailed_results,
+            "attempted_at": now_taipei().replace(microsecond=0).isoformat(),
+            "chunk_delivery": chunk_delivery,
+        }
     if receipt_root is not None and admitted_snapshot is not None:
         identity = delivery_identity(snapshot=admitted_snapshot, channel="line", market="TW", window=window_id, content=message)
         result = deliver_once(receipt_root=receipt_root, identity=identity, channel="line", sender=send)
