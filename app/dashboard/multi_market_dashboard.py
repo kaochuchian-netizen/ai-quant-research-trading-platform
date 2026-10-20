@@ -1591,11 +1591,24 @@ def _render_tw_window_report_evidence(window: str, artifact: dict[str, Any] | No
     </section>
     """
 
-def render_tw_window_report(window: str, artifact: dict[str, Any] | None = None, *, extra_evidence: str = "") -> str:
+def render_tw_window_report(
+    window: str,
+    artifact: dict[str, Any] | None = None,
+    *,
+    extra_evidence: str = "",
+    quality_projection: dict[str, Any] | None = None,
+) -> str:
     from app.reports.mobile_decision_presentation import render_report
     payload = artifact if artifact is not None else _load_tw_tactical_artifact()
     payload = payload if isinstance(payload, dict) else {}
-    return render_report(payload, "TW", window, _render_tw_window_report_evidence(window, payload), extra_evidence=extra_evidence)
+    return render_report(
+        payload,
+        "TW",
+        window,
+        _render_tw_window_report_evidence(window, payload),
+        extra_evidence=extra_evidence,
+        quality_projection=quality_projection,
+    )
 
 
 def render_us_window_report(window: str, artifacts: list[dict[str, Any]], *, extra_evidence: str = "") -> str:
@@ -1618,7 +1631,19 @@ def _snapshot_decision_content(snapshot: dict[str, Any], *, extra_evidence: str 
     if market == "US":
         return render_us_window_report(window, [payload], extra_evidence=extra_evidence)
     if window in {"pre_open_0700", "intraday_1305", "pre_close_1335", "post_close_1500"}:
-        return render_tw_window_report(window, payload, extra_evidence=extra_evidence)
+        quality_projection = None
+        # Pre-278 legacy snapshots did not preserve a frozen notification
+        # universe. Keep those archives readable; current qualified snapshots
+        # must have one and therefore take the fail-closed quality path.
+        if window == "post_close_1500" and "notification_universe" in payload:
+            from app.reports.post_close_quality_gate import tw_post_close_archive_quality_projection
+            quality_projection = tw_post_close_archive_quality_projection(snapshot)
+        return render_tw_window_report(
+            window,
+            payload,
+            extra_evidence=extra_evidence,
+            quality_projection=quality_projection,
+        )
     report = payload.get("user_facing_report") if isinstance(payload.get("user_facing_report"), dict) else {}
     cards = report.get("stock_cards") if isinstance(report.get("stock_cards"), list) else []
     forbidden_card_markers = ("樣本資料", "fixture", "contract validation", "example", "demo")
@@ -1842,9 +1867,33 @@ def render_snapshot_archive_page(market: str, window: str, selection: str, snaps
     return f'<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{_escape(title)}｜{selection_label}</title><style>{base_css()}</style></head><body {identity} data-archive-presentation-version="{VERSION}"><header>{shared_market_navigation(market, title, selection_label)}</header><main class="wrap">{body}</main></body></html>\n'
 
 
-def build_archive_route(output_dir: Path, market: str, window: str, selection_name: str) -> Path:
+def _archive_expected_identity_matches(snapshot: dict[str, Any] | None, expected_identity: dict[str, Any]) -> bool:
+    required = {"market", "window", "effective_trading_date", "snapshot_id", "revision", "payload_hash"}
+    if set(expected_identity) != required:
+        return False
+    contract = snapshot_parity_contract(snapshot)
+    if not contract:
+        return False
+    actual = {
+        "market": contract["market"], "window": contract["active_window"],
+        "effective_trading_date": contract["effective_trading_date"], "snapshot_id": contract["snapshot_id"],
+        "revision": int(contract["revision"]), "payload_hash": contract["payload_hash"],
+    }
+    return all(actual.get(key) == value for key, value in expected_identity.items())
+
+
+def build_archive_route(
+    output_dir: Path,
+    market: str,
+    window: str,
+    selection_name: str,
+    *,
+    expected_identity: dict[str, Any] | None = None,
+) -> Path:
     selected = resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, market, window)
     snapshot = selected.latest if selection_name == "latest" else selected.previous
+    if expected_identity is not None and not _archive_expected_identity_matches(snapshot, expected_identity):
+        raise ValueError("ARCHIVE_LATEST_IDENTITY_MISMATCH")
     comparison = same_window_change(selected.latest, selected.previous)
     target = output_dir / f"dashboard/archive/{market.lower()}/{window}/{selection_name}/index.html"
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -1852,13 +1901,20 @@ def build_archive_route(output_dir: Path, market: str, window: str, selection_na
     return target
 
 
-def publish_archive_latest_route(market: str, window: str, static_root: Path = STATIC_ROOT, output_dir: Path = Path("/tmp/stock-ai-dashboard-archive-latest")) -> dict[str, Any]:
+def publish_archive_latest_route(
+    market: str,
+    window: str,
+    static_root: Path = STATIC_ROOT,
+    output_dir: Path = Path("/tmp/stock-ai-dashboard-archive-latest"),
+    *,
+    expected_identity: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Manual rerun contract: rebuild and publish this window's latest route only."""
-    source = build_archive_route(output_dir, market, window, "latest")
+    source = build_archive_route(output_dir, market, window, "latest", expected_identity=expected_identity)
     target = static_root / f"dashboard/archive/{market.lower()}/{window}/latest/index.html"
     target.parent.mkdir(parents=True, exist_ok=True)
     _atomic_copy(source, target)
-    return {"published": True, "selection": "latest", "market": market, "window": window, "source": str(source), "target": str(target), "previous_updated": False, "other_windows_updated": False, "notification_sent": False, "production_pipeline_executed": False}
+    return {"published": True, "selection": "latest", "market": market, "window": window, "source": str(source), "target": str(target), "expected_identity": expected_identity, "previous_updated": False, "other_windows_updated": False, "notification_sent": False, "production_pipeline_executed": False}
 
 
 def publish_market_dashboard_alias(market: str, static_root: Path = STATIC_ROOT, output_dir: Path = Path("/tmp/stock-ai-dashboard-market-alias")) -> dict[str, Any]:

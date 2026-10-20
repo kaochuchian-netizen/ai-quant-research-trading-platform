@@ -116,3 +116,55 @@ def batch_gate(cards: list[dict[str, Any]], *, market: str, window: str) -> dict
     return {"schema_version": VERSION, "market": market, "window": window, "cards": items,
             "status": "QUALIFIED" if all(item["status"] == "EVALUATED" for item in items) else "PARTIAL_QUALIFIED" if safe else "BLOCKED_MISLEADING_SUMMARY",
             "line_send_allowed": safe}
+
+
+def tw_post_close_archive_quality_projection(snapshot: dict[str, Any]) -> dict[str, Any]:
+    """Build the exact TW 15:00 presentation projection from one snapshot.
+
+    Archive publication must not reintroduce the older lifecycle renderer after
+    a quality-gated post-close replay has selected formal OHLC and frozen
+    tactical identities. The projection is derived only from the immutable
+    snapshot payload; it neither persists data nor performs any market-data
+    lookup.
+    """
+    payload = snapshot.get("payload") if isinstance(snapshot.get("payload"), dict) else None
+    if (
+        str(snapshot.get("market") or "") != "TW"
+        or str(snapshot.get("window") or snapshot.get("scheduler_window") or "") != "post_close_1500"
+        or not isinstance(payload, dict)
+        or payload.get("market") not in {None, "TW"}
+        or payload.get("window") not in {None, "post_close_1500"}
+        or str(payload.get("effective_trading_date") or snapshot.get("effective_trading_date") or "")
+           != str(snapshot.get("effective_trading_date") or "")
+    ):
+        raise ValueError("TW_POST_CLOSE_ARCHIVE_SNAPSHOT_IDENTITY_INVALID")
+
+    # Import here to keep generic US and pre-open dashboard routes independent
+    # from this route-specific presentation contract.
+    from app.reports.mobile_decision_presentation import post_close_canonical_cards
+
+    cards = post_close_canonical_cards(payload, "TW", "post_close_1500", require_frozen_universe=True)
+    gate = batch_gate(cards, market="TW", window="post_close_1500")
+    complete_rows = all(
+        item.get("actual", {}).get("status") == "AVAILABLE"
+        and item.get("direction", {}).get("status") in {"EVALUATED", "NOT_APPLICABLE"}
+        and item.get("range", {}).get("status") in {"EVALUATED", "NOT_APPLICABLE"}
+        for item in gate["cards"]
+    )
+    if not gate["line_send_allowed"] or not complete_rows or len(gate["cards"]) != len(cards):
+        raise ValueError("TW_POST_CLOSE_ARCHIVE_QUALITY_GATE_BLOCKED")
+    by_symbol = {str(item.get("symbol") or ""): item for item in gate["cards"]}
+    expected = [str(card.get("symbol") or card.get("stock_id") or "") for card in cards]
+    if len(by_symbol) != len(expected) or set(by_symbol) != set(expected):
+        raise ValueError("TW_POST_CLOSE_ARCHIVE_QUALITY_CARD_MISMATCH")
+    return {
+        "schema_version": "tw_post_close_archive_quality_projection_v1",
+        "market": "TW",
+        "window": "post_close_1500",
+        "effective_trading_date": str(snapshot.get("effective_trading_date") or ""),
+        "snapshot_id": str(snapshot.get("snapshot_id") or ""),
+        "revision": int(snapshot.get("revision") or 1),
+        "cards": gate["cards"],
+        "quality_by_symbol": by_symbol,
+        "status": gate["status"],
+    }

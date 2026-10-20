@@ -147,13 +147,13 @@ def _formal_post_close_actual(card, quality):
     }
 
 
-def post_close_dashboard_summary(cards, market, window):
+def post_close_dashboard_summary(cards, market, window, *, quality_cards=None):
     """Return a canonical, evidence-scoped overview for the mobile page."""
     if (market, window) != ("TW", "post_close_1500"):
         return None
     from app.reports.post_close_quality_gate import evaluate_card
 
-    evaluations = [evaluate_card(card, market=market, window=window) for card in cards]
+    evaluations = quality_cards if quality_cards is not None else [evaluate_card(card, market=market, window=window) for card in cards]
 
     def counts(component):
         values = [item[component].get("result") for item in evaluations]
@@ -250,7 +250,7 @@ def news_summary(card, human):
     return result
 
 
-def project_card(card, market, window):
+def project_card(card, market, window, *, quality=None):
     """Read existing human-summary semantics without mutating canonical evidence."""
     original = deepcopy(card)
     human = (build_tw_human_summary if market == "TW" else build_us_human_summary)(deepcopy(card), window)
@@ -265,8 +265,7 @@ def project_card(card, market, window):
         window == "pre_open_0700"
         and (card.get("availability_status") == "unavailable" or bool(card.get("failure_category")))
     )
-    quality = None
-    if window in {"post_close_1500", "us_post_close_review_0630"}:
+    if quality is None and window in {"post_close_1500", "us_post_close_review_0630"}:
         from app.reports.post_close_quality_gate import evaluate_card
         quality = evaluate_card(card, market=market, window=window)
     intraday = card.get("intraday_observed_path_evidence_v1") if isinstance(card.get("intraday_observed_path_evidence_v1"), dict) else {}
@@ -337,18 +336,33 @@ def project_card(card, market, window):
             "line_range": values["預測區間"], "news": news, "evidence": original}
 
 
-def project_payload(payload, market, window):
+def project_payload(payload, market, window, *, quality_projection=None):
+    quality_by_symbol = None
+    if quality_projection is not None:
+        if (
+            quality_projection.get("market") != market
+            or quality_projection.get("window") != window
+            or not isinstance(quality_projection.get("quality_by_symbol"), dict)
+        ):
+            raise ValueError("PRESENTATION_QUALITY_PROJECTION_MISMATCH")
+        quality_by_symbol = quality_projection["quality_by_symbol"]
+    cards = cards_for(payload, window)
+    if quality_by_symbol is not None:
+        symbols = [str(card.get("symbol") or card.get("stock_id") or "") for card in cards]
+        if len(symbols) != len(set(symbols)) or set(symbols) != set(quality_by_symbol):
+            raise ValueError("PRESENTATION_QUALITY_PROJECTION_CARD_MISMATCH")
     return {"schema_version": VERSION, "source_digest": digest(payload), "market": market, "window": window,
-            "cards": [project_card(c, market, window) for c in cards_for(payload, window)]}
+            "cards": [project_card(c, market, window, quality=None if quality_by_symbol is None else quality_by_symbol[str(c.get("symbol") or c.get("stock_id") or "")]) for c in cards]}
 
 
 CSS = """.mobile-decision{box-sizing:border-box;max-width:100%;min-width:0;color:#18343c}.mobile-decision *{box-sizing:border-box;min-width:0;overflow-wrap:anywhere}.mobile-decision-overview{padding:16px;margin:16px 0;background:#f4fafb;border:1px solid #cde1e5;border-radius:14px}.mobile-decision-overview h3{font-size:18px;margin:0 0 10px}.mobile-decision-overview p{font-size:16px;line-height:1.55;margin:6px 0}.mobile-decision-card{padding:18px;margin:16px 0;background:#fff;border:1px solid #dce8eb;border-radius:14px}.mobile-decision-card h3{font-size:21px;margin:0 0 14px}.mobile-decision-card dl{margin:0;display:grid;gap:14px}.mobile-decision-card dt{font-size:13px;color:#526b73;margin-bottom:4px}.mobile-decision-card dd{margin:0;font-size:17px;line-height:1.6}.mobile-decision details{margin:16px 0;border:1px solid #dce8eb;border-radius:10px}.mobile-decision summary{cursor:pointer;min-height:44px;padding:14px;font-size:15px;font-weight:700}.mobile-decision .evidence-body{padding:12px;max-width:100%;overflow:auto}.mobile-decision pre{white-space:pre-wrap;font-size:12px}.mobile-decision .evidence-notice{font-size:13px;color:#526b73}@media(max-width:640px){.mobile-decision-card{width:100%;padding:16px}.mobile-decision-card dd{font-size:16px}.mobile-decision-overview{padding:14px}}"""
 
 
-def render_primary(payload, market, window):
-    projection = project_payload(payload, market, window)
+def render_primary(payload, market, window, *, quality_projection=None):
+    projection = project_payload(payload, market, window, quality_projection=quality_projection)
     overview = post_close_dashboard_summary(
         [item["evidence"] for item in projection["cards"]], market, window,
+        quality_cards=None if quality_projection is None else quality_projection.get("cards"),
     )
     overview_html = ""
     if overview:
@@ -369,9 +383,9 @@ def render_primary(payload, market, window):
     return f'<style>{CSS}</style><section class="mobile-decision" data-presentation-version="{VERSION}" data-source-digest="{projection["source_digest"]}"><h2>{TITLES[window]}</h2>{overview_html}{"".join(out) or "<p>本批次尚未提供正式資料。</p>"}</section>'
 
 
-def render_report(payload, market, window, legacy_html, *, extra_evidence=""):
+def render_report(payload, market, window, legacy_html, *, extra_evidence="", quality_projection=None):
     summary = "詳細評估資料"
-    return render_primary(payload, market, window) + f'<section class="mobile-decision"><details data-ai-dev-255-evidence><summary>{summary}</summary><div class="evidence-body"><p class="evidence-notice">以下保留既有詳細報告、來源鏈與系統診斷；原始來源可能包含英文，未改寫正式預測或評估。</p>{legacy_html}{extra_evidence}</div></details></section>'
+    return render_primary(payload, market, window, quality_projection=quality_projection) + f'<section class="mobile-decision"><details data-ai-dev-255-evidence><summary>{summary}</summary><div class="evidence-body"><p class="evidence-notice">以下保留既有詳細報告、來源鏈與系統診斷；原始來源可能包含英文，未改寫正式預測或評估。</p>{legacy_html}{extra_evidence}</div></details></section>'
 
 
 def _post_close_line_items(card, market, window):
