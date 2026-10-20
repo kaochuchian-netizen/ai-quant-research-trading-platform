@@ -578,17 +578,19 @@ def _mail_recipients(config: dict[str, str]) -> list[str]:
     return [address for _, address in getaddresses([str(config.get("to_addr") or "")]) if address]
 
 
-def send_delivery_email(env_file: Path, window_id: str, run_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str, admitted_snapshot: dict[str, Any] | None = None, receipt_root: Path | None = None) -> dict[str, Any]:
+def send_delivery_email(env_file: Path, window_id: str, run_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str, admitted_snapshot: dict[str, Any] | None = None, receipt_root: Path | None = None, *, rendered_body: str | None = None, subject_prefix: str | None = None) -> dict[str, Any]:
     cfg = window_config(window_id)
     expanded = env_file.expanduser()
     if expanded.exists():
         load_env_file(expanded)
     config = load_mail_config()
     subject = f"[Stock AI] {cfg['label']} approved delivery {generated_at}"
+    if subject_prefix:
+        subject = f"{subject_prefix} {subject}"
     message = build_message(
         config,
         subject,
-        build_email_body(window_id, run_id, generated_at, pipeline_status, dashboard_url, output_tail, admitted_snapshot),
+        rendered_body if rendered_body is not None else build_email_body(window_id, run_id, generated_at, pipeline_status, dashboard_url, output_tail, admitted_snapshot),
     )
     def send() -> dict[str, Any]:
         refused = send_message(config, message) or {}
@@ -625,9 +627,9 @@ def build_line_message(window_id: str, generated_at: str, pipeline_status: str, 
     return render_line(payload, "TW", window_id, dashboard_url)
 
 
-def send_concise_line(window_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str, admitted_snapshot: dict[str, Any] | None = None, receipt_root: Path | None = None) -> dict[str, Any]:
+def send_concise_line(window_id: str, generated_at: str, pipeline_status: str, dashboard_url: str, output_tail: str, admitted_snapshot: dict[str, Any] | None = None, receipt_root: Path | None = None, *, rendered_message: str | None = None) -> dict[str, Any]:
     cfg = window_config(window_id)
-    message = build_line_message(window_id, generated_at, pipeline_status, dashboard_url, output_tail, admitted_snapshot)
+    message = rendered_message if rendered_message is not None else build_line_message(window_id, generated_at, pipeline_status, dashboard_url, output_tail, admitted_snapshot)
     line_module = importlib.import_module("reports.line_report_sender")
     line_sender = getattr(line_module, "send_line_report", None)
     from app.reports.line_chunks import deliver_line_chunks
