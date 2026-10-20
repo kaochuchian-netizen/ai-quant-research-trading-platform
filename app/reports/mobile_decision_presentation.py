@@ -109,6 +109,78 @@ def quality_component_public(component):
     return f"資料不足：{reason}"
 
 
+def _finite_number(value):
+    """Return a display-safe finite number without coercing booleans."""
+    if isinstance(value, bool):
+        return None
+    try:
+        number = float(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
+    return number if number is not None and math.isfinite(number) else None
+
+
+def _formal_post_close_actual(card, quality):
+    """Prefer sealed daily OHLC over sparse intraday observations.
+
+    A Shioaji kbars artifact marked ``SPARSE_UNVERIFIED`` is valid observed
+    evidence, but it cannot displace a complete official post-close OHLC
+    outcome.  This helper is presentation-only: it neither creates nor
+    modifies outcome evidence.
+    """
+    actual = quality.get("actual") if isinstance(quality, dict) else {}
+    if str(card.get("actual_status") or "").lower() != "complete" or actual.get("status") != "AVAILABLE":
+        return None
+    low, high, close = (_finite_number(actual.get(key)) for key in ("low", "high", "close"))
+    opening = _finite_number(card.get("actual_open"))
+    if None in (opening, low, high, close) or low > high or not low <= close <= high:
+        return None
+    direction = "bullish" if close > opening else "bearish" if close < opening else "neutral"
+    return {
+        "status": "FORMAL_COMPLETE",
+        "direction": direction,
+        "low": low,
+        "high": high,
+        "open": opening,
+        "close": close,
+        "source": str(card.get("source_name") or "official_post_close"),
+    }
+
+
+def post_close_dashboard_summary(cards, market, window):
+    """Return a canonical, evidence-scoped overview for the mobile page."""
+    if (market, window) != ("TW", "post_close_1500"):
+        return None
+    from app.reports.post_close_quality_gate import evaluate_card
+
+    evaluations = [evaluate_card(card, market=market, window=window) for card in cards]
+
+    def counts(component):
+        values = [item[component].get("result") for item in evaluations]
+        return {
+            "hit": sum(value == "hit" for value in values),
+            "partial_hit": sum(value == "partial_hit" for value in values),
+            "miss": sum(value == "miss" for value in values),
+            "not_applicable": sum(value == "not_applicable" for value in values),
+            "effective": sum(value in {"hit", "partial_hit", "miss"} for value in values),
+        }
+
+    return {"direction": counts("direction"), "range": counts("range"), "total": len(evaluations)}
+
+
+def _post_close_component_text(component, *, predicted, actual, dimension):
+    public = quality_component_public(component)
+    if component.get("result") not in {"hit", "partial_hit", "miss"}:
+        return public
+    if dimension == "direction":
+        return f"{public}（預測：{zh(predicted)}／實際：{zh(actual)}）"
+    if dimension == "range":
+        predicted_range = interval(*(predicted or (None, None)))
+        actual_range = interval(*(actual or (None, None)))
+        return f"{public}（預測：{predicted_range}／實際：{actual_range}）"
+    return public
+
+
 def post_close_line_summary(cards, market, window):
     """Return compact, component-scoped rates from the same quality gate.
 
@@ -193,28 +265,41 @@ def project_card(card, market, window):
         window == "pre_open_0700"
         and (card.get("availability_status") == "unavailable" or bool(card.get("failure_category")))
     )
+    quality = None
+    if window in {"post_close_1500", "us_post_close_review_0630"}:
+        from app.reports.post_close_quality_gate import evaluate_card
+        quality = evaluate_card(card, market=market, window=window)
     intraday = card.get("intraday_observed_path_evidence_v1") if isinstance(card.get("intraday_observed_path_evidence_v1"), dict) else {}
     observed_only = intraday.get("evidence_status") == "OBSERVED_ONLY"
     observed_direction = intraday.get("observed_close_vs_open_direction")
     observed_range = (intraday.get("observed_low"), intraday.get("observed_high"))
+    formal_actual = _formal_post_close_actual(card, quality) if quality and market == "TW" and window == "post_close_1500" else None
     actual_trend = (
+        f"{zh(formal_actual['direction'])}（正式資料）" if formal_actual else
         f"分時觀測{zh(observed_direction)}（未驗證完整）" if observed_only and observed_direction else
         zh(observed_direction) if intraday.get("evidence_status") == "COMPLETE_PATH" and observed_direction else
         zh(card.get("actual_direction") or review.get("actual_direction") or (card.get("direction") or {}).get("actual") if isinstance(card.get("direction"), dict) else card.get("actual_direction") or review.get("actual_direction"))
     )
     actual_range = (
+        f"{interval(formal_actual['low'], formal_actual['high'])}（正式資料）" if formal_actual else
         f"分時觀測 {interval(observed_range[0], observed_range[1])}（未驗證完整）" if observed_only else
         interval(card.get("actual_low", review.get("actual_low", actual.get("low", card.get("session_low")))),
                  card.get("actual_high", review.get("actual_high", actual.get("high", card.get("session_high")))))
     )
-    quality = None
-    if window in {"post_close_1500", "us_post_close_review_0630"}:
-        from app.reports.post_close_quality_gate import evaluate_card
-        quality = evaluate_card(card, market=market, window=window)
     direction_value = quality["direction"].get("result") if quality else (human.get("direction_result") or (card.get("direction") or {}).get("result") if isinstance(card.get("direction"), dict) else human.get("direction_result"))
     range_value = quality["range"].get("result") if quality else human.get("range_result")
-    direction_public = quality_component_public(quality["direction"]) if quality else (zh(direction_value) if direction_value else MISSING)
-    range_public = quality_component_public(quality["range"]) if quality else (zh(range_value) if range_value else MISSING)
+    if quality and market == "TW" and window == "post_close_1500":
+        source = card.get("source_trade_plan") if isinstance(card.get("source_trade_plan"), dict) else {}
+        forecast = source.get("forecast") if isinstance(source.get("forecast"), dict) else {}
+        predicted_direction = quality["direction"].get("forecast") or card.get("predicted_direction") or forecast.get("direction")
+        actual_direction = formal_actual["direction"] if formal_actual else quality["direction"].get("actual")
+        predicted_range = (forecast.get("predicted_low", card.get("predicted_low")), forecast.get("predicted_high", card.get("predicted_high")))
+        actual_interval = (formal_actual["low"], formal_actual["high"]) if formal_actual else (None, None)
+        direction_public = _post_close_component_text(quality["direction"], predicted=predicted_direction, actual=actual_direction, dimension="direction")
+        range_public = _post_close_component_text(quality["range"], predicted=predicted_range, actual=actual_interval, dimension="range")
+    else:
+        direction_public = quality_component_public(quality["direction"]) if quality else (zh(direction_value) if direction_value else MISSING)
+        range_public = quality_component_public(quality["range"]) if quality else (zh(range_value) if range_value else MISSING)
     values = {
         "走勢預測": "資料不足，暫不判斷" if unavailable_prediction else zh(human.get("direction")), "預測目標": price(human.get("forecast_target")),
         "預測區間": interval(human.get("forecast_low"), human.get("forecast_high")),
@@ -234,7 +319,15 @@ def project_card(card, market, window):
         values["預測區間"] = INTRADAY_MISSING
     # This is a display of separate canonical results, not a new combined grade.
     if quality:
-        values["今日預測結果"] = "已完成方向與區間評估" if quality["status"] == "EVALUATED" else "部分評估：僅呈現已具備正式證據的項目"
+        components = (quality["direction"].get("result"), quality["range"].get("result"))
+        if "not_applicable" in components:
+            values["今日預測結果"] = "正式行情已完成；未提供預測項目列為不適用"
+        elif quality["status"] == "EVALUATED" and formal_actual:
+            values["今日預測結果"] = "已完成正式方向與區間評估"
+        elif quality["status"] == "EVALUATED":
+            values["今日預測結果"] = "已完成評估；未提供預測項目列為不適用"
+        else:
+            values["今日預測結果"] = "部分評估：僅呈現已具備正式證據的項目"
     else:
         values["今日預測結果"] = "已有評估結果" if all(values[k] != MISSING for k in ("方向預測結果", "區間預測結果")) else "評估資料待補"
     return {"schema_version": VERSION, "market": market, "window": window,
@@ -249,16 +342,31 @@ def project_payload(payload, market, window):
             "cards": [project_card(c, market, window) for c in cards_for(payload, window)]}
 
 
-CSS = """.mobile-decision{box-sizing:border-box;max-width:100%;min-width:0;color:#18343c}.mobile-decision *{box-sizing:border-box;min-width:0;overflow-wrap:anywhere}.mobile-decision-card{padding:18px;margin:16px 0;background:#fff;border:1px solid #dce8eb;border-radius:14px}.mobile-decision-card h3{font-size:21px;margin:0 0 14px}.mobile-decision-card dl{margin:0;display:grid;gap:14px}.mobile-decision-card dt{font-size:13px;color:#526b73;margin-bottom:4px}.mobile-decision-card dd{margin:0;font-size:17px;line-height:1.6}.mobile-decision details{margin:16px 0;border:1px solid #dce8eb;border-radius:10px}.mobile-decision summary{cursor:pointer;min-height:44px;padding:14px;font-size:15px;font-weight:700}.mobile-decision .evidence-body{padding:12px;max-width:100%;overflow:auto}.mobile-decision pre{white-space:pre-wrap;font-size:12px}.mobile-decision .evidence-notice{font-size:13px;color:#526b73}@media(max-width:640px){.mobile-decision-card{width:100%;padding:16px}.mobile-decision-card dd{font-size:16px}}"""
+CSS = """.mobile-decision{box-sizing:border-box;max-width:100%;min-width:0;color:#18343c}.mobile-decision *{box-sizing:border-box;min-width:0;overflow-wrap:anywhere}.mobile-decision-overview{padding:16px;margin:16px 0;background:#f4fafb;border:1px solid #cde1e5;border-radius:14px}.mobile-decision-overview h3{font-size:18px;margin:0 0 10px}.mobile-decision-overview p{font-size:16px;line-height:1.55;margin:6px 0}.mobile-decision-card{padding:18px;margin:16px 0;background:#fff;border:1px solid #dce8eb;border-radius:14px}.mobile-decision-card h3{font-size:21px;margin:0 0 14px}.mobile-decision-card dl{margin:0;display:grid;gap:14px}.mobile-decision-card dt{font-size:13px;color:#526b73;margin-bottom:4px}.mobile-decision-card dd{margin:0;font-size:17px;line-height:1.6}.mobile-decision details{margin:16px 0;border:1px solid #dce8eb;border-radius:10px}.mobile-decision summary{cursor:pointer;min-height:44px;padding:14px;font-size:15px;font-weight:700}.mobile-decision .evidence-body{padding:12px;max-width:100%;overflow:auto}.mobile-decision pre{white-space:pre-wrap;font-size:12px}.mobile-decision .evidence-notice{font-size:13px;color:#526b73}@media(max-width:640px){.mobile-decision-card{width:100%;padding:16px}.mobile-decision-card dd{font-size:16px}.mobile-decision-overview{padding:14px}}"""
 
 
 def render_primary(payload, market, window):
     projection = project_payload(payload, market, window)
+    overview = post_close_dashboard_summary(
+        [item["evidence"] for item in projection["cards"]], market, window,
+    )
+    overview_html = ""
+    if overview:
+        direction, interval_summary = overview["direction"], overview["range"]
+        overview_html = (
+            '<section class="mobile-decision-overview" aria-label="盤後評估總覽">'
+            '<h3>評估總覽</h3>'
+            f'<p>方向符合：{direction["hit"]}/{direction["effective"]}｜不適用：{direction["not_applicable"]}</p>'
+            f'<p>區間完全符合：{interval_summary["hit"]}/{interval_summary["effective"]}｜'
+            f'部分符合：{interval_summary["partial_hit"]}｜未符合：{interval_summary["miss"]}｜'
+            f'不適用：{interval_summary["not_applicable"]}</p>'
+            '</section>'
+        )
     out = []
     for c in projection["cards"]:
         fields = "".join(f"<div><dt>{escape(x['label'])}</dt><dd>{escape(x['value'])}</dd></div>" for x in c["fields"])
         out.append(f'<article class="mobile-decision-card" data-source-digest="{c["source_digest"]}"><h3>{escape(c["symbol"])} {escape(c["name"])}</h3><dl>{fields}</dl></article>')
-    return f'<style>{CSS}</style><section class="mobile-decision" data-presentation-version="{VERSION}" data-source-digest="{projection["source_digest"]}"><h2>{TITLES[window]}</h2>{"".join(out) or "<p>本批次尚未提供正式資料。</p>"}</section>'
+    return f'<style>{CSS}</style><section class="mobile-decision" data-presentation-version="{VERSION}" data-source-digest="{projection["source_digest"]}"><h2>{TITLES[window]}</h2>{overview_html}{"".join(out) or "<p>本批次尚未提供正式資料。</p>"}</section>'
 
 
 def render_report(payload, market, window, legacy_html, *, extra_evidence=""):
@@ -318,7 +426,58 @@ def _post_close_compact_line(card, market, window):
     return f"{symbol}{display_name}｜方向：{result(quality['direction'])}｜區間：{result(quality['range'])}"
 
 
-def render_line(payload, market, window, url):
+def post_close_canonical_cards(payload, market, window, *, require_frozen_universe=False):
+    """Order delivery rows by a frozen 07:00 notification universe when present.
+
+    Legacy/synthetic presentation payloads can predate ``notification_universe``.
+    They keep their supplied immutable card order for offline display only.  Any
+    delivery or replay boundary sets ``require_frozen_universe`` and fails
+    closed rather than silently substituting a mutable watchlist.
+    """
+    cards = cards_for(payload, window)
+    universe = payload.get("notification_universe")
+    if universe is None:
+        if require_frozen_universe:
+            raise ValueError("POST_CLOSE_FROZEN_UNIVERSE_MISSING")
+        return cards
+    symbols = [str(value) for value in universe]
+    by_symbol = {str(card.get("symbol") or card.get("stock_id") or ""): card for card in cards}
+    if not symbols or len(symbols) != len(set(symbols)) or len(cards) != len(symbols) or set(by_symbol) != set(symbols):
+        if require_frozen_universe:
+            raise ValueError("POST_CLOSE_FROZEN_UNIVERSE_CARD_MISMATCH")
+        return cards
+    return [by_symbol[symbol] for symbol in symbols]
+
+
+def post_close_canonical_lines(payload, market, window):
+    """One LINE/Email-compatible outcome row for every frozen symbol."""
+    return [_post_close_compact_line(card, market, window) for card in post_close_canonical_cards(payload, market, window)]
+
+
+def render_post_close_email(payload, market, window, url, *, require_frozen_universe=True):
+    """Render a full-universe email from the same quality-gate rows as LINE."""
+    if (market, window) != ("TW", "post_close_1500"):
+        raise ValueError("POST_CLOSE_EMAIL_WINDOW")
+    cards = post_close_canonical_cards(payload, market, window, require_frozen_universe=require_frozen_universe)
+    from app.reports.post_close_quality_gate import batch_gate
+    if not batch_gate(cards, market=market, window=window)["line_send_allowed"]:
+        raise ValueError("POST_CLOSE_EMAIL_QUALITY_GATE_BLOCKED")
+    summary = post_close_line_summary(cards, market, window)
+    return "\n".join([
+        "【Stock AI】15:00 台股盤後檢討",
+        f"交易日：{payload.get('effective_trading_date') or '尚未取得'}",
+        "方向：{}/{} 符合（{}）｜區間：{}/{} 符合（{}）".format(
+            summary["direction_hit_count"], summary["direction_effective_count"], summary["direction_hit_rate"],
+            summary["range_hit_count"], summary["range_effective_count"], summary["range_hit_rate"],
+        ),
+        "有效樣本：方向 {}｜區間 {}".format(summary["direction_effective_count"], summary["range_effective_count"]),
+        *post_close_canonical_lines(payload, market, window),
+        f"完整報告：{url}",
+        "僅供研究參考，非交易指令。",
+    ])
+
+
+def render_line(payload, market, window, url, *, require_frozen_universe=False):
     projection = project_payload(payload, market, window)
     if window in {"post_close_1500", "us_post_close_review_0630"}:
         from app.reports.post_close_quality_gate import batch_gate
@@ -327,7 +486,8 @@ def render_line(payload, market, window, url):
             raise ValueError("LINE_DECISION_QUALITY_GATE_BLOCKED")
     lines = ["【決策摘要】" + TITLES[window]]
     if market == "TW" and window == "post_close_1500":
-        summary = post_close_line_summary([item["evidence"] for item in projection["cards"]], market, window)
+        canonical_cards = post_close_canonical_cards(payload, market, window, require_frozen_universe=require_frozen_universe)
+        summary = post_close_line_summary(canonical_cards, market, window)
         lines.append(
             "方向：{}/{} 符合（{}）｜區間：{}/{} 符合（{}）".format(
                 summary["direction_hit_count"], summary["direction_effective_count"], summary["direction_hit_rate"],
@@ -340,7 +500,6 @@ def render_line(payload, market, window, url):
     for card in projection["cards"]:
         fields = {x["label"]: x["value"] for x in card["fields"]}
         if market == "TW" and window == "post_close_1500":
-            lines.append(_post_close_compact_line(card["evidence"], market, window))
             continue
         if window in {"post_close_1500", "us_post_close_review_0630"}:
             selected = [("今日預測結果", fields["今日預測結果"]), *_post_close_line_items(card["evidence"], market, window)]
@@ -351,6 +510,8 @@ def render_line(payload, market, window, url):
             selected = [(direction, fields[direction]), ("股價區間", card["line_range"]), ("投資策略", fields["投資策略"])]
         lines.append(card["symbol"] + " " + card["name"])
         lines.extend(k + "：" + v for k, v in selected)
+    if market == "TW" and window == "post_close_1500":
+        lines.extend(_post_close_compact_line(card, market, window) for card in canonical_cards)
     if not projection["cards"]:
         lines.append("本批次尚未提供正式資料，不沿用其他窗口內容。")
     lines.extend(["完整報告：", url, "僅供研究參考，非交易指令。"])
