@@ -202,6 +202,10 @@ def apply_known_failure_quarantine(
     results = adjusted.get("results") if isinstance(adjusted.get("results"), list) else []
     for result in results:
         validator_id = str(result.get("validator_id") or "")
+        if result.get("execution_status") in {"TIMEOUT", "PENDING"}:
+            # A timeout has its own terminal contract.  It cannot be converted
+            # into a known failure because there is no stable failure shape.
+            continue
         if result.get("pass"):
             if validator_id in by_validator:
                 stale.append({"validator_id": validator_id, "classification": "RECOVERED_VALIDATOR", "decision": "PASS_STALE_QUARANTINE_REMOVABLE"})
@@ -253,7 +257,12 @@ def apply_known_failure_quarantine(
         if validator_id not in allowed_validators and not any(str(item).startswith(f"{validator_id}:") for item in remaining_errors):
             remaining_errors.append(str(error))
     adjusted["errors"] = remaining_errors
-    adjusted["status"] = "PASS" if not remaining_errors else "FAIL"
+    if remaining_errors:
+        adjusted["status"] = "FAIL"
+    elif registry_gate.get("status") in {"TIMEOUT", "PENDING"}:
+        adjusted["status"] = registry_gate["status"]
+    else:
+        adjusted["status"] = "PASS"
     adjusted["failed_count"] = sum(not row.get("pass") for row in results)
     return {
         "status": adjusted["status"],

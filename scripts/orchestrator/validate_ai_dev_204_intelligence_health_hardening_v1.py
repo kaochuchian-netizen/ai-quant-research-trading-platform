@@ -119,7 +119,7 @@ def main() -> int:
         raise RuntimeError("fixture exception")
     active_exception = evaluate_validator_entry(entries["ai_dev_203_contract_guardrails"], raising_runner)
     superseded = evaluate_validator_entry(entries["ai_dev_115a_preopen_incident"])
-    check("Q_active_exception_fails", active_exception["status"] == "FAIL" and active_exception["reason"] == "ACTIVE_VALIDATOR_EXCEPTION", checks)
+    check("Q_active_exception_is_terminal_error", active_exception["status"] == "ERROR" and active_exception["reason"] == "ACTIVE_VALIDATOR_EXCEPTION", checks)
     check("R_superseded_has_replacement", superseded["status"] == "SUPERSEDED" and superseded["replacement"] == "tw_0700_missing_batch_recovery_v1", checks)
 
     # S: process success cannot promote degraded intelligence.

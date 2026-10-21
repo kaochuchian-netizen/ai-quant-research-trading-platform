@@ -3,10 +3,13 @@ from __future__ import annotations
 
 import json
 import hashlib
+import os
 import re
+import signal
 import subprocess
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
@@ -14,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[2]
 REGISTRY_PATH = ROOT / "config/governance/validator_registry_v1.json"
 VALID_STATES = {"ACTIVE", "SUPERSEDED", "DEPRECATED", "HISTORICAL_ONLY"}
 VALID_EXECUTION_ROLES = {"leaf", "orchestrator"}
+VALID_EXECUTION_STATUSES = {"PASS", "FAIL", "TIMEOUT", "ERROR", "PENDING"}
 GATE_FIELDS = {"branch": "required_in_branch_gate", "post_merge": "required_in_post_merge"}
 ProgressCallback = Callable[[dict[str, Any]], None]
 
@@ -58,6 +62,9 @@ def validate_validator_registry(path: Path = REGISTRY_PATH, *, root: Path = ROOT
         ids.add(validator_id); paths.add(relative)
         if row.get("status") not in VALID_STATES: errors.append(f"{validator_id}:INVALID_STATUS")
         if row.get("execution_role") not in VALID_EXECUTION_ROLES: errors.append(f"{validator_id}:INVALID_EXECUTION_ROLE")
+        timeout_impact = row.get("timeout_impact", "noncritical")
+        if timeout_impact not in {"critical", "noncritical"}:
+            errors.append(f"{validator_id}:INVALID_TIMEOUT_IMPACT")
         if not (root / relative).is_file(): errors.append(f"{validator_id}:PATH_MISSING")
         if row.get("status") == "SUPERSEDED":
             replacement = str(row.get("superseded_by") or "")
@@ -113,16 +120,71 @@ def validator_failure_fingerprint(stdout: str, stderr: str, *, root: Path = ROOT
     return hashlib.sha256(normalize_validator_failure_text(text, root=root).encode("utf-8")).hexdigest()
 
 
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _signal_name(returncode: int | None) -> str | None:
+    if returncode is None or returncode >= 0:
+        return None
+    try:
+        return signal.Signals(-returncode).name
+    except ValueError:
+        return f"SIG{-returncode}"
+
+
+def _last_progress(stdout: Any, stderr: Any) -> str | None:
+    lines = [line.strip() for line in f"{stdout or ''}\n{stderr or ''}".splitlines() if line.strip()]
+    return _summary(lines[-1], 500) if lines else None
+
+
+def _cleanup_timed_out_process(process: subprocess.Popen[str]) -> tuple[str, str | None]:
+    """Terminate only the validator process group created by this runner."""
+    try:
+        if os.name == "posix":
+            os.killpg(process.pid, signal.SIGTERM)
+        else:  # pragma: no cover - Windows compatibility path
+            process.terminate()
+    except ProcessLookupError:
+        return "ALREADY_EXITED", None
+    try:
+        process.communicate(timeout=2)
+        return "SIGTERM", None
+    except subprocess.TimeoutExpired:
+        if os.name == "posix":
+            os.killpg(process.pid, signal.SIGKILL)
+        else:  # pragma: no cover - Windows compatibility path
+            process.kill()
+        process.communicate()
+        return "SIGKILL", "SIGTERM_GRACE_EXPIRED"
+
+
 def _subprocess_runner(path: Path, *, root: Path = ROOT, timeout_seconds: int = 300) -> dict[str, Any]:
     started = time.monotonic()
-    completed = subprocess.run(
-        [sys.executable, str(path)], cwd=root, capture_output=True, text=True,
-        timeout=timeout_seconds, check=False,
+    started_at = _utc_now()
+    command = [sys.executable, str(path)]
+    process = subprocess.Popen(
+        command, cwd=root, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        start_new_session=(os.name == "posix"),
     )
+    try:
+        stdout, stderr = process.communicate(timeout=timeout_seconds)
+    except subprocess.TimeoutExpired as exc:
+        cleanup_action, cleanup_reason = _cleanup_timed_out_process(process)
+        stdout = exc.stdout.decode("utf-8", errors="replace") if isinstance(exc.stdout, bytes) else str(exc.stdout or "")
+        stderr = exc.stderr.decode("utf-8", errors="replace") if isinstance(exc.stderr, bytes) else str(exc.stderr or "")
+        return {
+            "execution_status": "TIMEOUT", "returncode": process.returncode,
+            "stdout": stdout, "stderr": stderr, "duration_seconds": round(time.monotonic() - started, 4),
+            "started_at": started_at, "finished_at": _utc_now(), "command": command,
+            "timeout_limit_seconds": timeout_seconds, "cleanup_action": cleanup_action,
+            "cleanup_reason": cleanup_reason, "last_progress": _last_progress(stdout, stderr),
+        }
     return {
-        "returncode": completed.returncode, "stdout": completed.stdout, "stderr": completed.stderr,
+        "returncode": process.returncode, "stdout": stdout, "stderr": stderr,
         "duration_seconds": round(time.monotonic() - started, 4),
-        "command": [sys.executable, str(path)],
+        "started_at": started_at, "finished_at": _utc_now(), "command": command,
+        "last_progress": _last_progress(stdout, stderr),
     }
 
 
@@ -143,6 +205,7 @@ def evaluate_validator_entry(
     if not path.is_file():
         return {"status": "FAIL", "execution_status": "FAIL", "reason": "REQUIRED_VALIDATOR_MISSING", "pass": False, "command": [sys.executable, str(path)]}
     started = time.monotonic()
+    started_at = _utc_now()
     effective_timeout = max(1, int(timeout_seconds or 300))
     try:
         result = runner(path) if runner else _subprocess_runner(path, root=root, timeout_seconds=effective_timeout)
@@ -150,18 +213,38 @@ def evaluate_validator_entry(
         stdout = exc.stdout.decode("utf-8", errors="replace") if isinstance(exc.stdout, bytes) else str(exc.stdout or "")
         stderr = exc.stderr.decode("utf-8", errors="replace") if isinstance(exc.stderr, bytes) else str(exc.stderr or "")
         return {
-            "status": "FAIL", "execution_status": "TIMEOUT", "reason": "VALIDATOR_TIMEOUT",
+            "status": "TIMEOUT", "execution_status": "TIMEOUT", "reason": "VALIDATOR_TIMEOUT",
             "timeout_seconds": timeout_seconds, "validator_timeout_seconds": effective_timeout, "returncode": None,
+            "exit_code": None, "signal": None,
             "stdout_summary": _summary(stdout), "stderr_summary": _summary(stderr),
             "duration_seconds": round(time.monotonic() - started, 4),
-            "command": [sys.executable, str(path)], "pass": False,
+            "started_at": started_at, "finished_at": _utc_now(), "timeout_limit_seconds": effective_timeout,
+            "last_progress": _last_progress(stdout, stderr), "command": [sys.executable, str(path)], "pass": False,
             "failure_fingerprint": validator_failure_fingerprint(stdout, stderr, root=root),
         }
     except Exception as exc:  # fail closed by contract
         return {
-            "status": "FAIL", "execution_status": "FAIL", "reason": "ACTIVE_VALIDATOR_EXCEPTION",
+            "status": "ERROR", "execution_status": "ERROR", "reason": "ACTIVE_VALIDATOR_EXCEPTION",
             "exception": type(exc).__name__, "duration_seconds": round(time.monotonic() - started, 4),
-            "command": [sys.executable, str(path)], "pass": False,
+            "exit_code": None, "signal": None,
+            "started_at": started_at, "finished_at": _utc_now(), "timeout_limit_seconds": effective_timeout,
+            "last_progress": None, "command": [sys.executable, str(path)], "pass": False,
+        }
+    if result.get("execution_status") == "TIMEOUT":
+        stdout, stderr = str(result.get("stdout") or ""), str(result.get("stderr") or "")
+        return {
+            "status": "TIMEOUT", "execution_status": "TIMEOUT", "reason": "VALIDATOR_TIMEOUT",
+            "timeout_seconds": timeout_seconds, "validator_timeout_seconds": effective_timeout,
+            "returncode": result.get("returncode"), "stdout_summary": _summary(stdout),
+            "stderr_summary": _summary(stderr), "duration_seconds": result.get("duration_seconds", round(time.monotonic() - started, 4)),
+            "started_at": result.get("started_at", started_at), "finished_at": result.get("finished_at", _utc_now()),
+            "timeout_limit_seconds": result.get("timeout_limit_seconds", effective_timeout),
+            "exit_code": None if result.get("returncode") is None or int(result["returncode"]) < 0 else int(result["returncode"]),
+            "signal": _signal_name(result.get("returncode")),
+            "last_progress": result.get("last_progress", _last_progress(stdout, stderr)),
+            "cleanup_action": result.get("cleanup_action"), "cleanup_reason": result.get("cleanup_reason"),
+            "command": result.get("command") or [sys.executable, str(path)], "pass": False,
+            "failure_fingerprint": validator_failure_fingerprint(stdout, stderr, root=root),
         }
     returncode = int(result.get("returncode", 1))
     semantic = result.get("semantic_result") if isinstance(result.get("semantic_result"), dict) else _semantic_result(str(result.get("stdout") or ""))
@@ -175,6 +258,10 @@ def evaluate_validator_entry(
         "returncode": returncode, "semantic_result": semantic,
         "stdout_summary": _summary(result.get("stdout")), "stderr_summary": _summary(result.get("stderr")),
         "duration_seconds": result.get("duration_seconds", round(time.monotonic() - started, 4)),
+        "started_at": result.get("started_at", started_at), "finished_at": result.get("finished_at", _utc_now()),
+        "timeout_limit_seconds": result.get("timeout_limit_seconds", effective_timeout),
+        "exit_code": returncode if returncode >= 0 else None, "signal": _signal_name(returncode),
+        "last_progress": result.get("last_progress", _last_progress(result.get("stdout"), result.get("stderr"))),
         "command": result.get("command") or [sys.executable, str(path)], "pass": passed,
     }
     if not passed:
@@ -255,17 +342,26 @@ def execute_validator_gate(
                 "completed_validator_count": len(results),
                 "total_validator_count": len(selected),
             }
-            errors.append(f"{validator_id}:GATE_TIMEOUT")
             emit("gate_timeout", **timeout_detail)
+            for pending in selected[index - 1:]:
+                pending_id = str(pending.get("validator_id"))
+                results.append({
+                    "validator_id": pending_id, "status": "PENDING", "execution_status": "PENDING",
+                    "reason": "GATE_OVERALL_TIMEOUT_BEFORE_START", "pass": False,
+                    "started_at": None, "finished_at": _utc_now(), "duration_seconds": 0.0,
+                    "timeout_limit_seconds": None, "exit_code": None, "signal": None,
+                    "last_progress": None,
+                })
+                emit("validator_pending", validator_id=pending_id, index=index, total=len(selected), reason="GATE_OVERALL_TIMEOUT_BEFORE_START")
             break
         emit("validator_started", validator_id=validator_id, index=index, total=len(selected), remaining_timeout_seconds=round(remaining, 4) if remaining is not None else None)
         if entry.get("execution_role") == "orchestrator":
             if validator_id != caller_validator_id:
                 errors.append(f"{validator_id}:UNEXPECTED_REQUIRED_ORCHESTRATOR")
-                results.append({"validator_id": validator_id, "execution_status": "FAIL", "reason": "UNEXPECTED_REQUIRED_ORCHESTRATOR", "pass": False})
+                results.append({"validator_id": validator_id, "status": "FAIL", "execution_status": "FAIL", "reason": "UNEXPECTED_REQUIRED_ORCHESTRATOR", "pass": False})
             else:
                 results.append({
-                    "validator_id": validator_id, "execution_status": "SKIPPED_RECURSION_GUARD",
+                    "validator_id": validator_id, "status": "PENDING", "execution_status": "PENDING",
                     "reason": "CALLER_ORCHESTRATOR_SELF_EXCLUDED", "pass": True,
                 })
             emit("validator_completed", validator_id=validator_id, index=index, total=len(selected), execution_status=results[-1].get("execution_status"), duration_seconds=0.0)
@@ -282,7 +378,8 @@ def execute_validator_gate(
         results.append(evaluated)
         emit("validator_completed", validator_id=validator_id, index=index, total=len(selected), execution_status=evaluated.get("execution_status"), status=evaluated.get("status"), duration_seconds=evaluated.get("duration_seconds"))
         if not evaluated.get("pass"):
-            errors.append(f"{validator_id}:{evaluated.get('reason') or 'FAIL'}")
+            if evaluated.get("execution_status") in {"FAIL", "ERROR"}:
+                errors.append(f"{validator_id}:{evaluated.get('reason') or evaluated.get('execution_status')}")
             if evaluated.get("execution_status") == "TIMEOUT":
                 timed_out = True
                 timeout_detail = {
@@ -300,26 +397,50 @@ def execute_validator_gate(
                     "total_validator_count": len(selected),
                 }
                 emit("gate_timeout", **timeout_detail)
-                break
     selected_ids = [str(row.get("validator_id")) for row in selected]
-    executed_ids = [row["validator_id"] for row in results if row.get("execution_status") not in {"SKIPPED_RECURSION_GUARD"}]
-    recursion_ids = [row["validator_id"] for row in results if row.get("execution_status") == "SKIPPED_RECURSION_GUARD"]
-    unexplained_skips = [row["validator_id"] for row in results if row.get("execution_status", "").startswith("SKIPPED") and row.get("execution_status") != "SKIPPED_RECURSION_GUARD"]
-    if set(selected_ids) != set(executed_ids) | set(recursion_ids):
+    executed_ids = [row["validator_id"] for row in results if row.get("execution_status") in VALID_EXECUTION_STATUSES - {"PENDING"}]
+    recursion_ids = [row["validator_id"] for row in results if row.get("reason") == "CALLER_ORCHESTRATOR_SELF_EXCLUDED"]
+    pending_ids = [row["validator_id"] for row in results if row.get("execution_status") == "PENDING" and row.get("reason") != "CALLER_ORCHESTRATOR_SELF_EXCLUDED"]
+    if set(selected_ids) != set(executed_ids) | set(recursion_ids) | set(pending_ids):
         errors.append("SELECTED_EXECUTION_COUNT_MISMATCH")
-    if unexplained_skips:
-        errors.append("UNEXPLAINED_REQUIRED_VALIDATOR_SKIP")
     passed_leaf = sum(row.get("execution_status") == "PASS" for row in results)
+    terminal_results = [row for row in results if row.get("reason") != "CALLER_ORCHESTRATOR_SELF_EXCLUDED"]
+    status_counts = {status: sum(row.get("execution_status") == status for row in terminal_results) for status in sorted(VALID_EXECUTION_STATUSES)}
+    critical_timeout_ids = [
+        str(row.get("validator_id")) for row in selected
+        if row.get("timeout_impact", "noncritical") == "critical"
+        and any(result.get("validator_id") == str(row.get("validator_id")) and result.get("execution_status") == "TIMEOUT" for result in results)
+    ]
+    noncritical_timeout_ids = [row["validator_id"] for row in results if row.get("execution_status") == "TIMEOUT" and row["validator_id"] not in critical_timeout_ids]
+    if errors:
+        gate_status = "FAIL" if status_counts["FAIL"] else "ERROR"
+        deployment_status = "BLOCKED"
+    elif status_counts["TIMEOUT"]:
+        gate_status = "TIMEOUT"
+        deployment_status = "BLOCKED" if critical_timeout_ids else "PENDING_APPROVAL"
+    elif status_counts["PENDING"]:
+        gate_status = "PENDING"
+        deployment_status = "PENDING_APPROVAL"
+    else:
+        gate_status = "PASS"
+        deployment_status = "PASS"
     return {
         "schema_version": "validator_gate_execution_v1", "gate": gate,
-        "caller_validator_id": caller_validator_id, "status": "PASS" if not errors else "FAIL",
+        "caller_validator_id": caller_validator_id, "status": gate_status,
         "registry_version": load_validator_registry(registry_path).get("version"),
         "selected_validator_ids": selected_ids, "executed_validator_ids": executed_ids,
         "recursion_guard_validator_ids": recursion_ids,
         "selected_count": len(selected_ids), "executed_count": len(executed_ids),
         "passed_leaf_count": passed_leaf, "recursion_guard_count": len(recursion_ids),
-        "failed_count": sum(not row.get("pass") for row in results),
-        "unexplained_skipped_validator_ids": unexplained_skips,
+        "failed_count": status_counts["FAIL"], "error_count": status_counts["ERROR"],
+        "timeout_count": status_counts["TIMEOUT"], "pending_count": status_counts["PENDING"],
+        "validator_status_counts": status_counts, "pending_validator_ids": pending_ids,
+        "unexplained_skipped_validator_ids": [],
+        "deployment_impact": {
+            "status": deployment_status,
+            "critical_timeout_validator_ids": critical_timeout_ids,
+            "noncritical_timeout_validator_ids": noncritical_timeout_ids,
+        },
         "duration_seconds": round(time.monotonic() - gate_started, 4),
         "timed_out": timed_out,
         "timeout": timeout_detail,

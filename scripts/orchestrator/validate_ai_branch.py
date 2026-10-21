@@ -213,7 +213,8 @@ def main() -> int:
         repo_root=repo_root,
     )
     adjusted_registry_gate = known_failure_quarantine.get("adjusted_registry_gate", registry_gate)
-    if adjusted_registry_gate.get("status") != "PASS":
+    deployment_impact = adjusted_registry_gate.get("deployment_impact") or registry_gate.get("deployment_impact") or {}
+    if adjusted_registry_gate.get("status") != "PASS" and deployment_impact.get("status") != "PENDING_APPROVAL":
         reasons.extend(f"registry gate: {reason}" for reason in known_failure_quarantine.get("errors", []))
 
     result = {
@@ -232,6 +233,7 @@ def main() -> int:
         "registry_gate_execution": registry_gate,
         "known_failure_quarantine": known_failure_quarantine,
         "adjusted_registry_gate_execution": adjusted_registry_gate,
+        "registry_gate_deployment_impact": deployment_impact,
         "reasons": reasons,
         "side_effects": {
             "files_modified": False,

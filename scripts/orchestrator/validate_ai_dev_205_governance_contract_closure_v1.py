@@ -116,7 +116,7 @@ def main() -> int:
         def exception_runner(_path: Path) -> dict:
             raise RuntimeError("fixture")
         exception = execute_validator_gate("branch", caller_validator_id="branch_gate", registry_path=registry, root=root, runner=exception_runner)
-        check("registry_exception_fails", exception["status"] == "FAIL" and exception["failed_count"] == 2, checks)
+        check("registry_exception_is_terminal_error", exception["status"] == "ERROR" and exception["error_count"] == 2, checks)
 
         def exit_runner(path: Path) -> dict:
             return {"returncode": 3 if path.stem == "a_leaf" else 0, "stdout": "{}", "stderr": "fixture"}
