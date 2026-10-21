@@ -32,6 +32,26 @@ def tree_digest(root: Path) -> str:
     return value.hexdigest()
 
 
+def required_outbox_contract(result: object) -> dict[str, object]:
+    """Return a named failure for an incomplete transport fixture/result."""
+    if not isinstance(result, dict):
+        return {"ok": False, "reason": "TRANSPORT_CONTRACT_RESULT_NOT_OBJECT"}
+    for field in ("outbox_location", "filename", "sha256"):
+        if not isinstance(result.get(field), str) or not str(result.get(field)).strip():
+            return {"ok": False, "reason": f"TRANSPORT_CONTRACT_MISSING_{field.upper()}"}
+    return {"ok": True, "reason": None}
+
+
+def required_export_contract(result: object) -> dict[str, object]:
+    """Validate review-bundle export fields before fixture file access."""
+    if not isinstance(result, dict):
+        return {"ok": False, "reason": "EXPORT_CONTRACT_RESULT_NOT_OBJECT"}
+    value = result.get("safe_export_location")
+    if not isinstance(value, str) or not value.strip():
+        return {"ok": False, "reason": "EXPORT_CONTRACT_MISSING_SAFE_EXPORT_LOCATION"}
+    return {"ok": True, "reason": None}
+
+
 def put_snapshot(root: Path, *, run_kind: str, marker: str) -> dict:
     write_snapshot(
         root, market="US", window="us_pre_market_2000", effective_trading_date="2026-08-14",
@@ -109,19 +129,33 @@ def validate() -> dict:
             revision=2, artifact="pdf", visual_root=visual, export_root=exports, outbox_root=outbox)
         review = prepare_chatgpt_transport(effective_date="2026-08-14", market="US", window="us_pre_market_2000",
             revision="latest_valid", artifact="review_bundle", visual_root=visual, export_root=exports, outbox_root=outbox)
-        checks["case_a_exact_pdf"] = pdf["status"] == "READY_FOR_EXTERNAL_CONNECTOR" and pdf["sha256"] == digest(manual_dir / "dashboard_full.pdf")
-        checks["case_b_review_bundle"] = review["status"] == "READY_FOR_EXTERNAL_CONNECTOR" and review["artifact_type"] == "review_bundle"
-        bundle_path = Path(review["outbox_location"]) / review["filename"]
-        with zipfile.ZipFile(bundle_path) as bundle:
-            names = set(bundle.namelist()); context = json.loads(bundle.read("review_context.json"))
+        checks["case_a_exact_pdf"] = pdf.get("status") == "READY_FOR_EXTERNAL_CONNECTOR" and pdf.get("sha256") == digest(manual_dir / "dashboard_full.pdf")
+        checks["case_b_review_bundle"] = review.get("status") == "READY_FOR_EXTERNAL_CONNECTOR" and review.get("artifact_type") == "review_bundle"
+        outbox_contract = required_outbox_contract(review)
+        missing_outbox_contract = required_outbox_contract({"filename": "review.zip", "sha256": "a" * 64})
+        checks["case_b1_missing_outbox_contract_is_named_failure"] = missing_outbox_contract == {"ok": False, "reason": "TRANSPORT_CONTRACT_MISSING_OUTBOX_LOCATION"}
+        checks["case_b2_outbox_contract_present"] = bool(outbox_contract["ok"])
+        bundle_path = Path(str(review.get("outbox_location") or "")) / str(review.get("filename") or "")
+        if outbox_contract["ok"]:
+            with zipfile.ZipFile(bundle_path) as bundle:
+                names = set(bundle.namelist()); context = json.loads(bundle.read("review_context.json"))
+        else:
+            names = set(); context = {}
         checks["case_c_allowlist_only"] = names == COMPACT_REVIEW_FILES
-        checks["case_d_bundle_identity_hash"] = context["identity"]["snapshot_id"] == manual["snapshot_id"] and digest(bundle_path) == review["sha256"]
-        checks["case_e_manual_provenance"] = context["batch"]["run_kind"] == "manual_rerun" and context["batch"]["runtime_provenance"] == "manual_rerun"
+        checks["case_d_bundle_identity_hash"] = bool(context) and (context.get("identity") or {}).get("snapshot_id") == manual["snapshot_id"] and digest(bundle_path) == review.get("sha256")
+        checks["case_e_manual_provenance"] = bool(context) and (context.get("batch") or {}).get("run_kind") == "manual_rerun" and (context.get("batch") or {}).get("runtime_provenance") == "manual_rerun"
         scheduled_review = export_visual_evidence(effective_date="2026-08-14", market="US", window="us_pre_market_2000",
             revision=1, artifact="review_bundle", visual_root=visual, export_root=exports)
-        with zipfile.ZipFile(scheduled_review["safe_export_location"]) as bundle:
-            scheduled_context = json.loads(bundle.read("review_context.json"))
-        checks["case_f_scheduled_provenance"] = scheduled_context["batch"]["run_kind"] == "scheduled" and scheduled_context["batch"]["runtime_provenance"] == "scheduled_production"
+        export_contract = required_export_contract(scheduled_review)
+        missing_export_contract = required_export_contract({"status": "FAILED"})
+        checks["case_f1_missing_export_contract_is_named_failure"] = missing_export_contract == {"ok": False, "reason": "EXPORT_CONTRACT_MISSING_SAFE_EXPORT_LOCATION"}
+        checks["case_f2_export_contract_present"] = bool(export_contract["ok"])
+        if export_contract["ok"]:
+            with zipfile.ZipFile(str(scheduled_review["safe_export_location"])) as bundle:
+                scheduled_context = json.loads(bundle.read("review_context.json"))
+        else:
+            scheduled_context = {}
+        checks["case_f_scheduled_provenance"] = bool(scheduled_context) and (scheduled_context.get("batch") or {}).get("run_kind") == "scheduled" and (scheduled_context.get("batch") or {}).get("runtime_provenance") == "scheduled_production"
 
         rejected = {
             "traversal": prepare_chatgpt_transport(effective_date="../2026-08-14", market="US", window="us_pre_market_2000", artifact="pdf", visual_root=visual, export_root=exports, outbox_root=outbox),
@@ -133,32 +167,39 @@ def validate() -> dict:
             "unknown_window": prepare_chatgpt_transport(effective_date="2026-08-14", market="US", window="bad", artifact="pdf", visual_root=visual, export_root=exports, outbox_root=outbox),
             "unknown_revision": prepare_chatgpt_transport(effective_date="2026-08-14", market="US", window="us_pre_market_2000", revision=999, artifact="pdf", visual_root=visual, export_root=exports, outbox_root=outbox),
         }
-        checks["case_g_h_j_security_rejected"] = all(value["status"] == "FAILED" for value in rejected.values())
+        checks["case_g_h_j_security_rejected"] = all(value.get("status") == "FAILED" for value in rejected.values())
         outside = base / "outside"; outside.mkdir(); (outside / "manifest.json").write_text("{}")
         symlink_visual = base / "symlink_visual"; symlink_visual.mkdir(); (symlink_visual / "link").symlink_to(outside, target_is_directory=True)
         (symlink_visual / "index.json").write_text(json.dumps({"records": [{**records[0], "manifest_path": "link/manifest.json"}]}))
         symlink = prepare_chatgpt_transport(effective_date="2026-08-14", market="US", window="us_pre_market_2000", revision=1, artifact="manifest", visual_root=symlink_visual, export_root=exports, outbox_root=outbox)
-        checks["case_i_symlink_escape"] = symlink["status"] == "FAILED" and symlink["reason_code"] == "TRANSPORT_FORBIDDEN"
+        checks["case_i_symlink_escape"] = symlink.get("status") == "FAILED" and symlink.get("reason_code") == "TRANSPORT_FORBIDDEN"
         original_manifest_bytes = (manual_dir / "manifest.json").read_bytes()
         mismatch_manifest = json.loads(original_manifest_bytes); mismatch_manifest["snapshot_id"] = "mutated"
         (manual_dir / "manifest.json").write_text(json.dumps(mismatch_manifest), encoding="utf-8")
         mismatch = prepare_chatgpt_transport(effective_date="2026-08-14", market="US", window="us_pre_market_2000", revision=2, artifact="review_bundle", visual_root=visual, export_root=exports, outbox_root=outbox)
-        checks["case_k_identity_mismatch"] = mismatch["status"] == "FAILED" and mismatch["reason_code"] == "SELECTOR_IDENTITY_MISMATCH"
+        checks["case_k_identity_mismatch"] = mismatch.get("status") == "FAILED" and mismatch.get("reason_code") == "SELECTOR_IDENTITY_MISMATCH"
         (manual_dir / "manifest.json").write_bytes(original_manifest_bytes)
-        checks["case_l_unknown_selector"] = rejected["unknown_window"]["status"] == "FAILED" and rejected["unknown_revision"]["status"] == "FAILED"
+        checks["case_l_unknown_selector"] = rejected["unknown_window"].get("status") == "FAILED" and rejected["unknown_revision"].get("status") == "FAILED"
         nonblocking = prepare_transport_non_blocking(effective_date="2099-01-01", market="US", window="us_pre_market_2000", artifact="pdf", visual_root=visual, export_root=exports, outbox_root=outbox)
-        checks["case_m_failure_nonblocking"] = nonblocking["status"] == "FAILED" and nonblocking["production_batch_continues"] is True
+        checks["case_m_failure_nonblocking"] = nonblocking.get("status") == "FAILED" and nonblocking.get("production_batch_continues") is True
         repeat = prepare_chatgpt_transport(effective_date="2026-08-14", market="US", window="us_pre_market_2000", revision=2, artifact="pdf", visual_root=visual, export_root=exports, outbox_root=outbox)
-        checks["case_n_deterministic_envelope"] = repeat["request_id"] == pdf["request_id"] and repeat["envelope_sha256"] == pdf["envelope_sha256"]
+        checks["case_n_deterministic_envelope"] = repeat.get("request_id") == pdf.get("request_id") and isinstance(repeat.get("request_id"), str) and repeat.get("envelope_sha256") == pdf.get("envelope_sha256") and isinstance(repeat.get("envelope_sha256"), str)
         checks["case_o_archive_read_only"] = archive_before == tree_digest(visual)
         checks["case_q_seven_windows"] = sum(len(items) for items in MARKET_WINDOWS.values()) == 7
-        checks["case_t_truthful_transport_boundary"] = review["transport_status"] == TRANSPORT_STATUS and review["external_connector_required"] is True and review["reason_code"] == "TRANSPORT_NOT_CONFIGURED"
-        details = {"pdf": pdf, "review_bundle": review, "rejected": rejected, "transport_capability": TRANSPORT_STATUS}
+        checks["case_t_truthful_transport_boundary"] = review.get("transport_status") == TRANSPORT_STATUS and review.get("external_connector_required") is True and review.get("reason_code") == "TRANSPORT_NOT_CONFIGURED"
+        details = {"pdf": pdf, "review_bundle": review, "outbox_contract": outbox_contract, "missing_outbox_contract": missing_outbox_contract, "export_contract": export_contract, "missing_export_contract": missing_export_contract, "rejected": rejected, "transport_capability": TRANSPORT_STATUS}
 
         ai210 = subprocess.run([sys.executable, str(ROOT / "scripts/orchestrator/validate_ai_dev_210_visual_evidence_pdf_retrieval_v1.py")], cwd=ROOT, text=True, capture_output=True)
         h3 = subprocess.run([sys.executable, str(ROOT / "scripts/orchestrator/validate_ai_dev_209_h3_user_visible_research_presentation_v1.py")], cwd=ROOT, text=True, capture_output=True)
-        checks["case_r_ai210_regression"] = ai210.returncode == 0 and bool(json.loads(ai210.stdout).get("ok"))
-        checks["case_s_h3_regression"] = h3.returncode == 0 and bool(json.loads(h3.stdout).get("ok"))
+        def nested_validator_ok(result: subprocess.CompletedProcess[str]) -> bool:
+            if result.returncode != 0:
+                return False
+            try:
+                return bool(json.loads(result.stdout).get("ok"))
+            except (json.JSONDecodeError, AttributeError):
+                return False
+        checks["case_r_ai210_regression"] = nested_validator_ok(ai210)
+        checks["case_s_h3_regression"] = nested_validator_ok(h3)
     checks["case_p_temporary_root_cleaned"] = not Path(temp_path).exists()
     errors = [name for name, passed in checks.items() if not passed]
     return {"schema_version": "ai_dev_211_transport_validation_v1", "task_id": "AI-DEV-211", "ok": not errors,

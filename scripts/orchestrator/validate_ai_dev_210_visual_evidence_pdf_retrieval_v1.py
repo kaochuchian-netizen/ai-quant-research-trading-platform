@@ -59,10 +59,44 @@ def valid_pdf(path: Path) -> bool:
 
 def manifest_ok(path: Path) -> bool:
     value = json.loads(path.read_text(encoding="utf-8"))
-    return all((path.parent / row["path"]).is_file()
+    files = value.get("files")
+    if not isinstance(files, dict):
+        return False
+    return all(isinstance(row, dict) and isinstance(row.get("path"), str)
+               and isinstance(row.get("sha256"), str) and isinstance(row.get("size_bytes"), int)
+               and (path.parent / row["path"]).is_file()
                and digest(path.parent / row["path"]) == row["sha256"]
                and (path.parent / row["path"]).stat().st_size == row["size_bytes"]
-               for row in value["files"].values())
+               for row in files.values())
+
+
+def required_pdf_contract(manifest: object) -> dict[str, object]:
+    """Validate PDF fields before a fixture dereferences them.
+
+    This is intentionally strict: it turns a malformed fixture into a named
+    validator failure rather than a KeyError or an implicit PDF success.
+    """
+    if not isinstance(manifest, dict):
+        return {"ok": False, "reason": "PDF_CONTRACT_MANIFEST_NOT_OBJECT"}
+    capture = manifest.get("capture")
+    if not isinstance(capture, dict):
+        return {"ok": False, "reason": "PDF_CONTRACT_MISSING_CAPTURE"}
+    pdf = capture.get("pdf")
+    if not isinstance(pdf, dict):
+        return {"ok": False, "reason": "PDF_CONTRACT_MISSING_CAPTURE_PDF"}
+    files = manifest.get("files")
+    if not isinstance(files, dict) or not isinstance(files.get("pdf"), dict):
+        return {"ok": False, "reason": "PDF_CONTRACT_MISSING_FILES_PDF"}
+    identity_source = pdf.get("identity_source")
+    pdf_hash = manifest.get("pdf_hash")
+    file_hash = files["pdf"].get("sha256")
+    if not isinstance(identity_source, str) or not identity_source:
+        return {"ok": False, "reason": "PDF_CONTRACT_MISSING_IDENTITY_SOURCE"}
+    if not isinstance(pdf_hash, str) or not pdf_hash:
+        return {"ok": False, "reason": "PDF_CONTRACT_MISSING_PDF_HASH"}
+    if not isinstance(file_hash, str) or not file_hash:
+        return {"ok": False, "reason": "PDF_CONTRACT_MISSING_FILE_HASH"}
+    return {"ok": True, "reason": None}
 
 
 def validate() -> dict:
@@ -87,7 +121,10 @@ def validate() -> dict:
         checks["case_c_real_chromium_pdf"] = valid_pdf(tw_manifest1.parent / "dashboard_full.pdf") and valid_pdf(us_manifest.parent / "dashboard_full.pdf")
         checks["case_d_all_manifest_hashes"] = manifest_ok(tw_manifest1) and manifest_ok(us_manifest)
         tw_manifest_value = json.loads(tw_manifest1.read_text())
-        checks["case_e_pdf_identity_same_revision"] = tw_manifest_value["capture"]["pdf"]["identity_source"] == "same_browser_page_and_dom" and tw_manifest_value["observed_identity"]["snapshot_id"] == tw_manifest_value["snapshot_id"] and tw_manifest_value["pdf_hash"] == tw_manifest_value["files"]["pdf"]["sha256"]
+        pdf_contract = required_pdf_contract(tw_manifest_value)
+        checks["case_e_pdf_identity_same_revision"] = bool(pdf_contract["ok"]) and tw_manifest_value["capture"]["pdf"]["identity_source"] == "same_browser_page_and_dom" and tw_manifest_value["observed_identity"]["snapshot_id"] == tw_manifest_value["snapshot_id"] and tw_manifest_value["pdf_hash"] == tw_manifest_value["files"]["pdf"]["sha256"]
+        missing_pdf_contract = required_pdf_contract({"capture": {}, "files": {}})
+        checks["case_e1_missing_pdf_contract_is_named_failure"] = missing_pdf_contract == {"ok": False, "reason": "PDF_CONTRACT_MISSING_CAPTURE_PDF"}
 
         put(snapshots, "TW", "intraday_1305", day, "TW2", run_kind="manual_rerun")
         tw2 = resolve_snapshots(snapshots, "TW", "intraday_1305").latest or {}
@@ -157,7 +194,7 @@ def validate() -> dict:
             "artifacts/archive/visual_evidence/daily_reviews/2026-08-14/TW/intraday_1305/dashboard_full.pdf",
             "artifacts/runtime/visual_evidence_exports/2026-08-14/daily_review_2026-08-14.zip",
         ))
-        details = {"tw": tw_result2, "us": us_result, "pdf_failure": failed, "pdf_export": exported,
+        details = {"tw": tw_result2, "us": us_result, "pdf_contract": pdf_contract, "missing_pdf_contract": missing_pdf_contract, "pdf_failure": failed, "pdf_export": exported,
                    "daily_bundle": bundle1, "rejected_selectors": rejected,
                    "chatgpt_transport_status": TRANSPORT_STATUS}
     checks["temporary_validator_root_removed"] = not Path(temp_path).exists()
