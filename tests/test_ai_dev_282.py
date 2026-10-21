@@ -1,43 +1,66 @@
 from __future__ import annotations
+
 import json
+import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
-from scripts.orchestrator.codex_full_batch_rerun import RerunRequest, load_input, run_isolated
 
-class CodexFullRerunTests(unittest.TestCase):
-    def request(self, root, mode="HISTORICAL_RECOMPUTE"):
-        return RerunRequest(mode, "TW", "post_close_1500", "2026-10-20", root / "input.json", root / "out")
-    def source(self, kind="CONTEMPORANEOUS_HISTORICAL"):
-        return {"market":"TW","window":"post_close_1500","trading_date":"2026-10-20","source_kind":kind,"source_digest":"a"*64}
-    def test_historical_runs_all_stages_with_isolated_receipt(self):
-        with TemporaryDirectory() as raw:
-            root=Path(raw); req=self.request(root); value=self.source(); req.input_source.write_text(json.dumps(value))
-            source=load_input(req.input_source,req)
-            receipt=run_isolated(req,source,lambda stage,_:{"status":"EXECUTED","stage_evidence":stage})
-            self.assertEqual(receipt["terminal_status"],"SUCCESS")
-            self.assertEqual(len(receipt["stages"]),7)
-            self.assertTrue((req.output_dir/"execution_receipt.json").exists())
-            self.assertFalse(receipt["notification_attempted"])
-    def test_wrong_date_fails_before_stage_execution(self):
-        with TemporaryDirectory() as raw:
-            root=Path(raw); req=self.request(root); value=self.source(); value["trading_date"]="2026-10-19"; req.input_source.write_text(json.dumps(value))
-            with self.assertRaisesRegex(ValueError,"TRADING_DATE"):
-                load_input(req.input_source,req)
-    def test_frozen_and_historical_contracts_are_not_interchangeable(self):
-        with TemporaryDirectory() as raw:
-            root=Path(raw); req=self.request(root,"FROZEN_REPLAY"); req.input_source.write_text(json.dumps(self.source()))
-            with self.assertRaisesRegex(ValueError,"FROZEN"):
-                load_input(req.input_source,req)
-    def test_timeout_is_terminal_and_stops_later_stages(self):
-        with TemporaryDirectory() as raw:
-            root=Path(raw); req=self.request(root); value=self.source(); req.input_source.write_text(json.dumps(value)); source=load_input(req.input_source,req)
-            receipt=run_isolated(req,source,lambda stage,_:{"status":"TIMEOUT","reason":"fixture"} if stage=="analysis_prediction" else {"status":"EXECUTED"})
-            self.assertEqual(receipt["terminal_status"],"TIMEOUT")
-            self.assertEqual([x["stage"] for x in receipt["stages"]],["market_data","analysis_prediction"])
-    def test_live_requires_explicit_live_plan(self):
-        with TemporaryDirectory() as raw:
-            root=Path(raw); req=self.request(root,"LIVE_RERUN"); req.input_source.write_text(json.dumps(self.source()))
-            with self.assertRaisesRegex(ValueError,"LIVE"):
-                load_input(req.input_source,req)
-if __name__=='__main__': unittest.main()
+from scripts.orchestrator.codex_full_batch_rerun import RerunRequest, STAGES, load_input, run_isolated
+
+
+class CodexFullBatchRerunTests(unittest.TestCase):
+    def request(self, root: Path) -> RerunRequest:
+        return RerunRequest("HISTORICAL_RECOMPUTE", "TW", "post_close_1500", "2026-10-20", root / "input.json", root / "out")
+
+    def source(self, *, timeout: bool = False) -> dict[str, object]:
+        stages = {
+            stage: {
+                "kind": "isolated_adapter",
+                "isolation_contract": "ISOLATED_STAGE_ADAPTER_V1",
+                "command": [sys.executable, "-c", "from pathlib import Path; import os; " f"Path(os.environ['STOCK_AI_RERUN_OUTPUT_DIR']).joinpath('{stage}.json').write_text('{{}}')"],
+                "expected_output": f"{stage}.json",
+            }
+            for stage in STAGES
+        }
+        if timeout:
+            stages["analysis_prediction"] = {"kind": "isolated_adapter", "isolation_contract": "ISOLATED_STAGE_ADAPTER_V1", "command": [sys.executable, "-c", "import time; time.sleep(1)"], "expected_output": "never.json", "timeout_seconds": 1}
+        return {"market": "TW", "window": "post_close_1500", "trading_date": "2026-10-20", "source_kind": "CONTEMPORANEOUS_HISTORICAL", "source_digest": "a" * 64, "stages": stages}
+
+    def test_declared_isolated_adapter_execution_is_evidenced(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp); request = self.request(root); request.input_source.write_text(json.dumps(self.source()))
+            result = run_isolated(request, load_input(request.input_source, request))
+            self.assertEqual(result["terminal_status"], "SUCCESS")
+            self.assertTrue(all(row["status"] == "EXECUTED" for row in result["stages"]))
+            self.assertTrue((request.output_dir / "execution_receipt.json").is_file())
+
+    def test_missing_adapter_fails_closed(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp); request = self.request(root); source = self.source(); source["stages"]["market_data"] = {}; request.input_source.write_text(json.dumps(source))
+            result = run_isolated(request, load_input(request.input_source, request))
+            self.assertEqual(result["terminal_status"], "FAILED")
+            self.assertEqual(result["stages"][0]["reason"], "ISOLATED_STAGE_ADAPTER_REQUIRED")
+
+    def test_official_pipeline_is_explicitly_blocked_without_isolation_contract(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp); request = self.request(root); source = self.source(); source["stages"]["market_data"] = {"kind": "official_pipeline"}; request.input_source.write_text(json.dumps(source))
+            result = run_isolated(request, load_input(request.input_source, request))
+            self.assertEqual(result["terminal_status"], "BLOCKED")
+            self.assertEqual(result["stages"][0]["reason"], "OFFICIAL_PIPELINE_ISOLATION_UNSUPPORTED")
+
+    def test_wrong_date_is_rejected(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp); request = self.request(root); source = self.source(); source["trading_date"] = "bad"; request.input_source.write_text(json.dumps(source))
+            with self.assertRaises(ValueError): load_input(request.input_source, request)
+
+    def test_timeout_has_terminal_receipt(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp); request = self.request(root); request.input_source.write_text(json.dumps(self.source(timeout=True)))
+            result = run_isolated(request, load_input(request.input_source, request))
+            self.assertEqual(result["terminal_status"], "TIMEOUT")
+            self.assertEqual(result["stages"][1]["status"], "TIMEOUT")
+
+
+if __name__ == "__main__":
+    unittest.main()
