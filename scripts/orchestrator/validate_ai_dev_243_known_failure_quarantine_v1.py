@@ -15,13 +15,14 @@ if str(ROOT) not in sys.path:
 
 from app.runtime.validator_known_failures import (  # noqa: E402
     KNOWN_FAILURES_PATH,
+    apply_known_failure_quarantine,
     classify_known_failure_pair,
     failure_fingerprint_from_output,
     load_known_failures,
     validate_known_failures_config,
 )
 
-EXPECTED_FINGERPRINTS = {
+HISTORICAL_FINGERPRINTS = {
     "ai_dev_208_visual_evidence_archive": "12326a1826572a7c27ecea116838be0c012eeb7b7879f2539ad67f41601812a0",
     "ai_dev_209_h2_qualified_news_rre_rendering": "bb8bb8ec310bbccc08fa9579b0b0e76d9a4c425443544ff0139e826d45a75b73",
     "ai_dev_209_h3_user_visible_research_presentation": "49edf6bba36fc0da40e910314b123f5009eea9dfc33b1446a24e38cda7869a0a",
@@ -62,17 +63,25 @@ def run_validation() -> dict:
     config_validation = validate_known_failures_config(KNOWN_FAILURES_PATH, today=date(2026, 9, 15))
     details["config_validation"] = config_validation
     checks["quarantine_config_valid"] = config_validation.get("status") == "PASS"
-    checks["quarantine_contains_expected_final_entries_only"] = len(entries) == len(EXPECTED_FINGERPRINTS)
-    checks["entries_are_exact_canonical_fingerprints"] = {
-        (entry.get("validator_id"), entry.get("failure_fingerprint")) for entry in entries
-    } == set(EXPECTED_FINGERPRINTS.items())
+    checks["active_quarantine_is_empty"] = entries == []
+    evidence_path = ROOT / "docs/audits/ai-dev-281-stale-quarantine-removal-evidence.md"
+    evidence_text = evidence_path.read_text(encoding="utf-8") if evidence_path.is_file() else ""
+    checks["historical_fingerprints_retained_as_audit_evidence"] = all(
+        validator_id in evidence_text and fingerprint in evidence_text
+        for validator_id, fingerprint in HISTORICAL_FINGERPRINTS.items()
+    )
     required = {"validator_id", "failure_fingerprint", "reason", "issue_owner", "baseline_reference", "introduced_by", "expires_at", "review_condition"}
-    checks["required_metadata_present"] = all(required <= set(entry) and all(str(entry.get(field) or "").strip() for field in required) for entry in entries)
-
-    fp_218a = EXPECTED_FINGERPRINTS["ai_dev_218a_tw_preopen_product_intelligence"]
-    exact = _classify(False, False, fp_218a, fp_218a, entries)
-    changed = _classify(False, False, fp_218a, "0" * 64, entries)
-    head_only = _classify(True, False, None, fp_218a, entries)
+    fixture_entry = {
+        "validator_id": "ai_dev_218a_tw_preopen_product_intelligence",
+        "failure_fingerprint": HISTORICAL_FINGERPRINTS["ai_dev_218a_tw_preopen_product_intelligence"],
+        "reason": "fixture known failure", "issue_owner": "test",
+        "baseline_reference": "test", "introduced_by": "test",
+        "expires_at": "2026-12-31", "review_condition": "test",
+    }
+    fp_218a = fixture_entry["failure_fingerprint"]
+    exact = _classify(False, False, fp_218a, fp_218a, [fixture_entry])
+    changed = _classify(False, False, fp_218a, "0" * 64, [fixture_entry])
+    head_only = _classify(True, False, None, fp_218a, [fixture_entry])
     unknown = _classify(False, False, "a" * 64, "a" * 64, entries)
     recovered = _classify(True, True, None, None, entries)
     details["classification_fixtures"] = {
@@ -136,13 +145,30 @@ def run_validation() -> dict:
         == details["normalization_fingerprints"]["runtime_id_b"]
     )
 
-    expired = dict(entries[0])
+    empty_result = validate_known_failures_config(_write_config([]), today=date(2026, 9, 15))
+    checks["empty_quarantine_config_pass"] = empty_result.get("status") == "PASS" and empty_result.get("entry_count") == 0
+    invalid_schema_path = _write_config([])
+    invalid_schema_value = json.loads(invalid_schema_path.read_text(encoding="utf-8"))
+    invalid_schema_value["schema_version"] = "known_validator_failures_v0"
+    invalid_schema_path.write_text(json.dumps(invalid_schema_value), encoding="utf-8")
+    invalid_schema_result = validate_known_failures_config(invalid_schema_path, today=date(2026, 9, 15))
+    checks["invalid_schema_fail"] = invalid_schema_result.get("status") == "FAIL" and "INVALID_SCHEMA_VERSION" in invalid_schema_result.get("errors", [])
+    unregistered_failure = apply_known_failure_quarantine(
+        {"status": "FAIL", "errors": ["future_validator:FAILED"], "results": [{"validator_id": "future_validator", "pass": False, "reason": "FAILED"}]},
+        base_ref="HEAD", head_ref="HEAD", quarantine_path=_write_config([]), today=date(2026, 9, 15),
+    )
+    checks["unregistered_failure_fail_closed"] = unregistered_failure.get("status") == "FAIL" and "future_validator:FAILED" in unregistered_failure.get("errors", [])
+
+    expired = dict(fixture_entry)
     expired["expires_at"] = "2026-09-01"
     expired_result = validate_known_failures_config(_write_config([expired]), today=date(2026, 9, 15))
-    malformed = dict(entries[0])
+    malformed = dict(fixture_entry)
     malformed.pop("issue_owner", None)
     malformed["failure_fingerprint"] = "not-a-fingerprint"
     malformed_result = validate_known_failures_config(_write_config([malformed]), today=date(2026, 9, 15))
+    details["empty_config_validation"] = empty_result
+    details["invalid_schema_config_validation"] = invalid_schema_result
+    details["unregistered_failure"] = unregistered_failure
     details["expired_config_validation"] = expired_result
     details["malformed_config_validation"] = malformed_result
     checks["expired_entry_fail"] = expired_result.get("status") == "FAIL" and any("EXPIRED" in item for item in expired_result.get("errors", []))
