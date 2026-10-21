@@ -55,6 +55,9 @@ jobs:
             --head HEAD \
             --pretty
 
+      - name: Verify frozen delivery-evaluation consistency
+        run: python3 -m unittest tests.test_ai_dev_283
+
       - name: Audit source inventory registry
         run: |
           python3 scripts/orchestrator/audit_source_inventory_registry.py \

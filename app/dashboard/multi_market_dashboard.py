@@ -1837,6 +1837,9 @@ def render_snapshot_archive_page(market: str, window: str, selection: str, snaps
     from app.reports.mobile_decision_presentation import TITLES, VERSION
     title = TITLES.get(window, "批次報告")
     selection_label = "最新報告" if selection == "latest" else "前一份報告"
+    isolated_correction = bool(snapshot and snapshot.get("run_kind") == "isolated_correction")
+    if isolated_correction:
+        selection_label = "隔離更正預覽（未發布）"
     if snapshot is None:
         body = '<section class="section archive-empty-state"><h2>尚無可用 snapshot</h2><p>找不到符合正式、完整 admission policy 且同市場同時段的 immutable snapshot。</p></section>'
         identity = ""
@@ -1862,6 +1865,8 @@ def render_snapshot_archive_page(market: str, window: str, selection: str, snaps
     details = body + _archive_evidence("跨交易日比較", change)
     if snapshot is not None:
         body = render_immutable_snapshot_section(snapshot, show_revision=selection == "latest", extra_evidence=details)
+        if isolated_correction:
+            body = f'<section class="section"><h2>{_escape(snapshot.get("effective_trading_date"))} 15:00 更正報告</h2><p>隔離驗證版本，未正式發布、未發送通知。原始報告完整保留。</p></section>' + body
     else:
         body += _archive_evidence("跨交易日比較", change)
     return f'<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{_escape(title)}｜{selection_label}</title><style>{base_css()}</style></head><body {identity} data-archive-presentation-version="{VERSION}"><header>{shared_market_navigation(market, title, selection_label)}</header><main class="wrap">{body}</main></body></html>\n'

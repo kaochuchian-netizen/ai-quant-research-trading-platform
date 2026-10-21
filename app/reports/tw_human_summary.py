@@ -32,6 +32,11 @@ def _identity(prefix: str, value: Any) -> str:
 def _forecast(card: dict[str, Any], window: str) -> dict[str, Any]:
     projected = project_tw_prediction_card(card, window, strict=False)["prediction_presentation_v1"]
     interval = projected.get("today_range") or {}
+    from app.reports.tw_delivery_evaluation import KEY, validate_projection
+    if window == "pre_open_0700" and KEY in card:
+        frozen = validate_projection(card[KEY])
+        projected["direction"] = frozen["direction"]
+        interval = {"predicted_low": frozen["low"], "predicted_high": frozen["high"]}
     direction = str(projected.get("direction") or "").lower()
     direction = {"bullish": "BULLISH", "bearish": "BEARISH", "neutral": "SIDEWAYS", "range_bound": "SIDEWAYS"}.get(direction)
     low, high = _number(interval.get("predicted_low")), _number(interval.get("predicted_high"))
@@ -117,6 +122,11 @@ def build_tw_human_summary(card: dict[str, Any], window: str) -> dict[str, Any]:
             "short_judgment": product.get("daily_thesis"), "hypothesis_state": "ORIGINATED",
             "evaluation_state": "PENDING_INTRADAY", "new_evidence_identity": all_evidence,
         })
+        from app.reports.tw_delivery_evaluation import KEY, validate_projection
+        if KEY in card:
+            frozen = validate_projection(card[KEY])
+            result.update({"direction": {"bullish": "BULLISH", "bearish": "BEARISH", "neutral": "SIDEWAYS"}.get(frozen["direction"]),
+                           "forecast_low": frozen["low"], "forecast_high": frozen["high"]})
     elif window in {"intraday_1305", "pre_close_1335"}:
         progress = _forecast(card, window)["projected"].get("intraday_prediction_status") or {}
         prior = card.get("prior_card") if isinstance(card.get("prior_card"), dict) else {}

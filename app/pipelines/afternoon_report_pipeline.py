@@ -216,8 +216,29 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
 
     print(f"{pipeline_type} historical CSV update skipped; using existing report-ready data")
 
+    same_day_admitted = [
+        item for item in load_admitted_snapshots(REPO_ROOT / "artifacts/archive/window_snapshots")
+        if item.get("market") == "TW"
+        and item.get("effective_trading_date") == context["run_date"]
+    ]
+    admitted = [item for item in same_day_admitted if item.get("window") == "pre_open_0700"]
+    if pipeline_type == "post_close":
+        admitted = [item for item in admitted if item.get("run_kind") == "scheduled" and not item.get("manual_rerun")]
+        if len(admitted) > 1:
+            raise ValueError("DELIVERY_0700_REVISION_AMBIGUOUS")
+    setup_snapshot = max(admitted, key=lambda item: int(item.get("revision") or 0), default=None)
+    setup_payload = setup_snapshot.get("payload", {}) if setup_snapshot else {}
+    setup_cards = setup_payload.get("structured_pre_open_cards", []) if isinstance(setup_payload, dict) else []
+    setups_by_symbol = {str(item.get("symbol") or item.get("stock_id") or "").zfill(4): item for item in setup_cards if isinstance(item, dict)}
+    if pipeline_type == "post_close":
+        from app.reports.tw_delivery_evaluation import bind_universe
+        if not setup_snapshot:
+            raise ValueError("DELIVERY_0700_SNAPSHOT_MISSING")
+        # Reload the immutable bytes: resolver adds non-hashed archive metadata.
+        frozen_source = json.loads(Path(setup_snapshot["archive_path"]).read_text(encoding="utf-8"))
+        frozen_symbols, setups_by_symbol = bind_universe(frozen_source, session=context["run_date"])
     with timing.stage("market_data"):
-        stock_ids = load_stock_ids()
+        stock_ids = list(frozen_symbols) if pipeline_type == "post_close" else load_stock_ids()
     requested_stock_ids = [str(stock_id).zfill(4) for stock_id in stock_ids]
     bootstrapper = None
     if dry_run:
@@ -246,16 +267,6 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
             error_message_sanitized=quote_failure,
         )
     quotes_by_symbol = {str(item.get("stock_id") or "").zfill(4): item for item in quotes}
-    same_day_admitted = [
-        item for item in load_admitted_snapshots(REPO_ROOT / "artifacts/archive/window_snapshots")
-        if item.get("market") == "TW"
-        and item.get("effective_trading_date") == context["run_date"]
-    ]
-    admitted = [item for item in same_day_admitted if item.get("window") == "pre_open_0700"]
-    setup_snapshot = max(admitted, key=lambda item: int(item.get("revision") or 0), default=None)
-    setup_payload = setup_snapshot.get("payload", {}) if setup_snapshot else {}
-    setup_cards = setup_payload.get("structured_pre_open_cards", []) if isinstance(setup_payload, dict) else []
-    setups_by_symbol = {str(item.get("symbol") or item.get("stock_id") or "").zfill(4): item for item in setup_cards if isinstance(item, dict)}
     prior_window = {"pre_close_1335": "intraday_1305", "post_close_1500": "pre_close_1335"}.get(window)
     prior_candidates = [item for item in same_day_admitted if item.get("window") == prior_window]
     prior_snapshot = max(prior_candidates, key=lambda item: int(item.get("revision") or 0), default=None)
@@ -447,6 +458,10 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
 
     finally:
         news_aggregation_session.close()
+
+    if pipeline_type == "post_close":
+        from app.reports.tw_delivery_evaluation import complete_results
+        decision_cards = complete_results(decision_cards, frozen_symbols, setups_by_symbol, failed_reports)
 
     if not decision_cards and not dry_run:
         from app.runtime.decision_card_diagnostics import decision_card_failure_evidence

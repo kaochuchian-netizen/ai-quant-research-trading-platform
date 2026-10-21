@@ -1,0 +1,279 @@
+{
+  "note": "Entirely invented symbols, prices, dates and identities. No production-derived values.",
+  "post_cards": [
+    {
+      "actual_close": 46,
+      "actual_high": 56,
+      "actual_low": 44,
+      "actual_open": 50,
+      "actual_status": "complete",
+      "direction_hit": false,
+      "market_data_as_of": "2099-04-07T13:30:00+08:00",
+      "plan_status": "watch",
+      "predicted_direction": "bullish",
+      "predicted_high": 51,
+      "predicted_low": 49,
+      "prediction_range_result": "miss",
+      "prediction_revision": 1,
+      "prediction_source_window": "pre_open_0700",
+      "prediction_status": "active",
+      "source_name": "synthetic_official_outcome",
+      "source_revision": 1,
+      "stock_id": "9101",
+      "stock_name": "合成標的1",
+      "symbol": "9101",
+      "trading_date": "2099-04-07"
+    },
+    {
+      "actual_close": 154,
+      "actual_high": 158,
+      "actual_low": 148,
+      "actual_open": 150,
+      "actual_status": "complete",
+      "direction_hit": false,
+      "market_data_as_of": "2099-04-07T13:30:00+08:00",
+      "plan_status": "no_trade",
+      "predicted_direction": "bullish",
+      "predicted_high": 151,
+      "predicted_low": 149,
+      "prediction_range_result": "miss",
+      "prediction_revision": 1,
+      "prediction_source_window": "pre_open_0700",
+      "prediction_status": "active",
+      "source_name": "synthetic_official_outcome",
+      "source_revision": 1,
+      "stock_id": "009991",
+      "stock_name": "合成標的2",
+      "symbol": "009991",
+      "trading_date": "2099-04-07"
+    },
+    {
+      "actual_close": 202,
+      "actual_high": 206,
+      "actual_low": 194,
+      "actual_open": 200,
+      "actual_status": "complete",
+      "direction_hit": false,
+      "market_data_as_of": "2099-04-07T13:30:00+08:00",
+      "plan_status": "watch",
+      "predicted_direction": "bullish",
+      "predicted_high": 201,
+      "predicted_low": 199,
+      "prediction_range_result": "miss",
+      "prediction_revision": 1,
+      "prediction_source_window": "pre_open_0700",
+      "prediction_status": "active",
+      "source_name": "synthetic_official_outcome",
+      "source_revision": 1,
+      "stock_id": "9103",
+      "stock_name": "合成標的3",
+      "symbol": "9103",
+      "trading_date": "2099-04-07"
+    },
+    {
+      "actual_close": 304,
+      "actual_high": 310,
+      "actual_low": 290,
+      "actual_open": 300,
+      "actual_status": "complete",
+      "direction_hit": false,
+      "market_data_as_of": "2099-04-07T13:30:00+08:00",
+      "plan_status": "no_trade",
+      "predicted_direction": "bullish",
+      "predicted_high": 301,
+      "predicted_low": 299,
+      "prediction_range_result": "miss",
+      "prediction_revision": 1,
+      "prediction_source_window": "pre_open_0700",
+      "prediction_status": "active",
+      "source_name": "synthetic_official_outcome",
+      "source_revision": 1,
+      "stock_id": "9104",
+      "stock_name": "合成標的4",
+      "symbol": "9104",
+      "trading_date": "2099-04-07"
+    }
+  ],
+  "pre_cards": [
+    {
+      "entry_readiness": "watch",
+      "predicted_direction": "bullish",
+      "predicted_high": 51,
+      "predicted_low": 49,
+      "prediction_presentation_v1": {
+        "current_window": "pre_open_0700",
+        "direction": "bearish",
+        "origin_window": "pre_open_0700",
+        "prediction_id": "synthetic-prediction-0",
+        "schema_version": "tw_prediction_presentation_v1",
+        "today_range": {
+          "predicted_high": 60,
+          "predicted_low": 40
+        }
+      },
+      "prediction_snapshot_v2": {
+        "direction_forecast": "bearish",
+        "effective_trading_date": "2099-04-07",
+        "market": "TW",
+        "prediction_identity": "synthetic-prediction-0",
+        "prediction_status": "evaluable",
+        "range_forecast": {
+          "high": 60,
+          "low": 40
+        },
+        "reference_price": 50,
+        "schema_version": "tw_prediction_snapshot_v2",
+        "symbol": "9101",
+        "window": "pre_open_0700"
+      },
+      "prediction_status": "active",
+      "stock_id": "9101",
+      "stock_name": "合成標的1",
+      "strategy_type": "synthetic",
+      "symbol": "9101",
+      "trading_date": "2099-04-07",
+      "tw_preopen_product_intelligence_v1": {
+        "predicted_high": 60,
+        "predicted_low": 40,
+        "today_direction": "BEARISH"
+      }
+    },
+    {
+      "entry_readiness": "no_trade",
+      "predicted_direction": "bullish",
+      "predicted_high": 151,
+      "predicted_low": 149,
+      "prediction_presentation_v1": {
+        "current_window": "pre_open_0700",
+        "direction": "bullish",
+        "origin_window": "pre_open_0700",
+        "prediction_id": "synthetic-prediction-1",
+        "schema_version": "tw_prediction_presentation_v1",
+        "today_range": {
+          "predicted_high": 160,
+          "predicted_low": 140
+        }
+      },
+      "prediction_snapshot_v2": {
+        "direction_forecast": "bullish",
+        "effective_trading_date": "2099-04-07",
+        "market": "TW",
+        "prediction_identity": "synthetic-prediction-1",
+        "prediction_status": "evaluable",
+        "range_forecast": {
+          "high": 160,
+          "low": 140
+        },
+        "reference_price": 150,
+        "schema_version": "tw_prediction_snapshot_v2",
+        "symbol": "009991",
+        "window": "pre_open_0700"
+      },
+      "prediction_status": "active",
+      "stock_id": "009991",
+      "stock_name": "合成標的2",
+      "strategy_type": "no_trade",
+      "symbol": "009991",
+      "trading_date": "2099-04-07",
+      "tw_preopen_product_intelligence_v1": {
+        "predicted_high": 160,
+        "predicted_low": 140,
+        "today_direction": "BULLISH"
+      }
+    },
+    {
+      "entry_readiness": "watch",
+      "predicted_direction": "bullish",
+      "predicted_high": 201,
+      "predicted_low": 199,
+      "prediction_presentation_v1": {
+        "current_window": "pre_open_0700",
+        "direction": "neutral",
+        "origin_window": "pre_open_0700",
+        "prediction_id": "synthetic-prediction-2",
+        "schema_version": "tw_prediction_presentation_v1",
+        "today_range": {
+          "predicted_high": 205,
+          "predicted_low": 195
+        }
+      },
+      "prediction_snapshot_v2": {
+        "direction_forecast": "neutral",
+        "effective_trading_date": "2099-04-07",
+        "market": "TW",
+        "prediction_identity": "synthetic-prediction-2",
+        "prediction_status": "evaluable",
+        "range_forecast": {
+          "high": 205,
+          "low": 195
+        },
+        "reference_price": 200,
+        "schema_version": "tw_prediction_snapshot_v2",
+        "symbol": "9103",
+        "window": "pre_open_0700"
+      },
+      "prediction_status": "active",
+      "stock_id": "9103",
+      "stock_name": "合成標的3",
+      "strategy_type": "synthetic",
+      "symbol": "9103",
+      "trading_date": "2099-04-07",
+      "tw_preopen_product_intelligence_v1": {
+        "predicted_high": 205,
+        "predicted_low": 195,
+        "today_direction": "NEUTRAL"
+      }
+    },
+    {
+      "entry_readiness": "no_trade",
+      "predicted_direction": "bullish",
+      "predicted_high": 301,
+      "predicted_low": 299,
+      "prediction_presentation_v1": {
+        "current_window": "pre_open_0700",
+        "direction": "bearish",
+        "origin_window": "pre_open_0700",
+        "prediction_id": "synthetic-prediction-3",
+        "schema_version": "tw_prediction_presentation_v1",
+        "today_range": {
+          "predicted_high": 270,
+          "predicted_low": 250
+        }
+      },
+      "prediction_snapshot_v2": {
+        "direction_forecast": "bearish",
+        "effective_trading_date": "2099-04-07",
+        "market": "TW",
+        "prediction_identity": "synthetic-prediction-3",
+        "prediction_status": "evaluable",
+        "range_forecast": {
+          "high": 270,
+          "low": 250
+        },
+        "reference_price": 300,
+        "schema_version": "tw_prediction_snapshot_v2",
+        "symbol": "9104",
+        "window": "pre_open_0700"
+      },
+      "prediction_status": "active",
+      "stock_id": "9104",
+      "stock_name": "合成標的4",
+      "strategy_type": "no_trade",
+      "symbol": "9104",
+      "trading_date": "2099-04-07",
+      "tw_preopen_product_intelligence_v1": {
+        "predicted_high": 270,
+        "predicted_low": 250,
+        "today_direction": "BEARISH"
+      }
+    }
+  ],
+  "schema_version": "ai_dev_283_synthetic_v1",
+  "session": "2099-04-07",
+  "symbols": [
+    "9101",
+    "009991",
+    "9103",
+    "9104"
+  ]
+}

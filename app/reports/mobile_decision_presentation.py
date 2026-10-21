@@ -38,6 +38,9 @@ ZH = {"up": "偏多", "down": "偏空", "flat": "盤整", "sideways": "盤整", 
       "observe": "觀察等待", "buy": "偏多策略", "sell": "偏空策略", "hold": "續抱觀察", "reduce": "降低曝險", "avoid_overnight": "不留倉", "stop_invalidated": "停損條件失效",
       "not_evaluated": "尚未評估", "pending_evidence": "等待評估證據"}
 QUALITY_REASON_ZH = {
+    "DELIVERY_EVALUATION_INTEGRITY_FAILED": "發布預測與評估來源無法核對",
+    "NO_PUBLISHED_DIRECTION_FORECAST": "未發布方向預測",
+    "NO_PUBLISHED_RANGE_FORECAST": "未發布區間預測",
     "ACTUAL_OUTCOME_MISSING_OR_INVALID": "缺少可驗證的實際收盤資料",
     "DIRECTION_EVALUATION_NOT_ADMITTED": "方向評估所需證據不足",
     "RANGE_EVALUATION_NOT_ADMITTED": "區間評估所需證據不足",
@@ -293,6 +296,8 @@ def project_card(card, market, window, *, quality=None):
         predicted_direction = quality["direction"].get("forecast") or card.get("predicted_direction") or forecast.get("direction")
         actual_direction = formal_actual["direction"] if formal_actual else quality["direction"].get("actual")
         predicted_range = (forecast.get("predicted_low", card.get("predicted_low")), forecast.get("predicted_high", card.get("predicted_high")))
+        if quality["range"].get("scope") == "TW_FROZEN_DELIVERED_FORECAST":
+            predicted_range = (quality["range"].get("forecast_low"), quality["range"].get("forecast_high"))
         actual_interval = (formal_actual["low"], formal_actual["high"]) if formal_actual else (None, None)
         direction_public = _post_close_component_text(quality["direction"], predicted=predicted_direction, actual=actual_direction, dimension="direction")
         range_public = _post_close_component_text(quality["range"], predicted=predicted_range, actual=actual_interval, dimension="range")
