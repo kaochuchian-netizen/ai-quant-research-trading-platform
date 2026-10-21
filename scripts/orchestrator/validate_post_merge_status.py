@@ -500,11 +500,15 @@ def main() -> int:
         "stage_timings": stage_timings,
         "slow_validators": slow_validator_summary(registry_gate),
     }
-    if registry_gate.get("status") != "PASS":
+    deployment_impact = registry_gate.get("deployment_impact") or {}
+    report["registry_gate_deployment_impact"] = deployment_impact
+    if registry_gate.get("status") != "PASS" and deployment_impact.get("status") != "PENDING_APPROVAL":
         report["ok"] = False
         report.setdefault("errors", []).extend(
             f"registry gate: {reason}" for reason in registry_gate.get("errors", [])
         )
+    elif deployment_impact.get("status") == "PENDING_APPROVAL":
+        report.setdefault("warnings", []).append("registry gate timeout requires PM approval before deployment")
     json.dump(report, sys.stdout, ensure_ascii=False, indent=2 if args.pretty else None)
     sys.stdout.write("\n")
     return 0 if report["ok"] else 2

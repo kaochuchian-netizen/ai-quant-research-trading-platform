@@ -85,6 +85,7 @@ def main() -> int:
         rows = [
             entry("a_fast"),
             entry("b_timeout"),
+            entry("c_after_timeout"),
             entry("post_merge_status", role="orchestrator"),
         ]
         registry = fixture_registry(root, rows)
@@ -109,13 +110,14 @@ def main() -> int:
             overall_timeout_seconds=5,
             progress_callback=events.append,
         )
-        check("overall_timeout_fails_closed", timeout_gate["status"] == "FAIL" and timeout_gate["timed_out"] is True, checks)
-        check("timeout_never_passes", timeout_gate["failed_count"] == 1 and timeout_gate["timeout"]["current_validator_id"] == "b_timeout", checks)
+        check("timeout_has_distinct_terminal_status", timeout_gate["status"] == "TIMEOUT" and timeout_gate["timed_out"] is True, checks)
+        check("timeout_never_passes", timeout_gate["timeout_count"] == 1 and timeout_gate["timeout"]["current_validator_id"] == "b_timeout", checks)
         check("overall_timeout_scope_reported", timeout_gate["timeout"]["timeout_scope"] == "overall_budget", checks)
         check("timeout_report_contains_elapsed_fields", {"overall_elapsed_seconds", "overall_budget_seconds", "validator_elapsed_seconds", "validator_timeout_seconds"} <= set(timeout_gate["timeout"]), checks)
         check("completed_validator_timing_retained", timeout_gate["results"][0]["duration_seconds"] == 0.0123, checks)
         check("progress_available_before_gate_completion", any(event.get("event") == "validator_started" for event in events), checks)
-        check("progress_reports_counts", any(event.get("total") == 3 for event in events if event.get("event") == "validator_started"), checks)
+        check("progress_reports_counts", any(event.get("total") == 4 for event in events if event.get("event") == "validator_started"), checks)
+        check("timeout_does_not_stop_independent_validators", any(item.get("validator_id") == "c_after_timeout" and item.get("execution_status") == "PASS" for item in timeout_gate["results"]), checks)
 
     with tempfile.TemporaryDirectory(prefix="ai-dev-244-registry-") as raw:
         root = Path(raw)
