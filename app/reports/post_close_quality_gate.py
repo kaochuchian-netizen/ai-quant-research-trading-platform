@@ -74,6 +74,9 @@ def evaluate_card(card: dict[str, Any], *, market: str, window: str) -> dict[str
     if not actual_ok:
         direction = _insufficient("ACTUAL_OUTCOME_MISSING_OR_INVALID")
         interval = _insufficient("ACTUAL_OUTCOME_MISSING_OR_INVALID")
+    elif market == "TW" and ("frozen_delivery_prediction_v1" in card or "delivery_prediction_evaluation_v1" in card):
+        from app.reports.tw_delivery_evaluation import quality
+        direction, interval = quality(card)
     elif market == "US":
         if direction_eval.get("status") == "evaluated" and isinstance(direction_eval.get("hit"), bool) and direction_eval.get("forecast") and direction_eval.get("actual"):
             direction = _evaluated("hit" if direction_eval["hit"] else "miss", "US_CURRENT_SESSION_DIRECTION")

@@ -11,6 +11,7 @@ import hashlib
 import json
 import math
 from collections import Counter
+from copy import deepcopy
 from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -299,6 +300,8 @@ def upgrade_pre_open_card(card: dict[str, Any], tactical: dict[str, Any] | None,
     if result["prediction_snapshot_v2"].get("prediction_status") == "evaluable":
         with card_stage("PRODUCT_PROJECTION"):
             result = project_tw_preopen_product(result, strict=True)
+    from app.reports.tw_delivery_evaluation import KEY, freeze
+    result[KEY] = freeze(result, result["prediction_presentation_v1"])
     result["verification_record_v1"] = verification_record(result["prediction_snapshot_v2"])
     without_hash = dict(result)
     without_hash.pop("source_payload_hash", None)
@@ -935,7 +938,7 @@ def evaluate_post_close(observed: dict[str, Any], setup: dict[str, Any]) -> dict
         "pct": mae, "unit": "pct", "reference_price": entry,
         "reference_type": "first_entry_trigger", "resolution": "intraday_high_low",
     } if triggered else {"status": "not_applicable"}
-    return {
+    result = {
         "actual_open": actual_open, "actual_high": actual_high, "actual_low": actual_low,
         "actual_close": actual_close, "actual_volume": observed.get("session_volume"),
         "actual_status": "complete" if actual_complete else "unavailable",
@@ -970,6 +973,21 @@ def evaluate_post_close(observed: dict[str, Any], setup: dict[str, Any]) -> dict
             "mae": mae if triggered else "not_applicable", "false_breakout": bool(triggered and stop_hit),
         },
     }
+    from app.reports.tw_delivery_evaluation import KEY, EVALUATION_KEY, evaluate
+    if KEY in setup:
+        result[KEY] = deepcopy(setup[KEY])
+        result["delivery_source_identity"] = deepcopy(setup.get("delivery_source_identity"))
+        try:
+            result[EVALUATION_KEY] = evaluate({**observed, **result}, setup)
+        except ValueError as exc:
+            # Preserve the official outcome and the original card when source
+            # binding fails. The quality gate still rejects this component;
+            # it must not fall back to a different tactical forecast.
+            result[EVALUATION_KEY] = {
+                "schema_version": EVALUATION_KEY, "status": "INSUFFICIENT_EVIDENCE",
+                "reason_code": str(exc), "stage": "DELIVERY_FORECAST_BINDING",
+            }
+    return result
 
 
 def aggregate_cards(window: str, cards: list[dict[str, Any]]) -> dict[str, Any]:
