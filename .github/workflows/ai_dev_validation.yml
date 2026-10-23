@@ -56,7 +56,7 @@ jobs:
             --pretty
 
       - name: Verify frozen delivery-evaluation consistency
-        run: python3 -m unittest tests.test_ai_dev_283 tests.test_ai_dev_284
+        run: python3 -m unittest tests.test_ai_dev_283 tests.test_ai_dev_284 tests.test_ai_dev_285
 
       - name: Audit source inventory registry
         run: |
