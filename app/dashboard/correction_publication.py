@@ -238,6 +238,10 @@ def _publish(source_dir, pre_open_input, post_close_input, *, expected_id, publi
             staged_name = ".correction-" + uuid.uuid4().hex
             fd = os.open(staged_name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=parent_fd)
             with os.fdopen(fd, 'wb') as stream:
+                # Keep the inode allocated through promotion/rollback/cleanup.
+                # Otherwise an unlink/recreate may reuse st_ino on Linux and
+                # turn an identity-only cleanup check into a foreign deletion.
+                public.fds.append(os.dup(stream.fileno()))
                 st = os.fstat(stream.fileno())
                 staged_inode = (st.st_dev, st.st_ino)
                 stream.write(data)

@@ -56,6 +56,8 @@ Concurrent unexpected root maintenance requires operator review, not retry.
 - Route lock is shared across alias and physical callers. Nonregular/symlink
   locks are rejected. Reads reject special files without waiting on FIFOs.
 - Exclusive hard-link promotion is atomic and does not overwrite collisions.
+- Staging keeps an open file descriptor through cleanup to prevent inode reuse
+  after an unlink/replacement (observed by the Linux CI regression).
 - Verification failure removes only the owned new inode with matching hash,
   using the held parent descriptor even after a directory rename.
 - Existing successful receipts permit idempotent repeat; partial/unknown attempts
