@@ -15,9 +15,11 @@ import json
 import os
 from pathlib import Path
 import re
-import tempfile
+import stat
+import uuid
 
 from app.dashboard.multi_market_dashboard import _atomic_copy, render_snapshot_archive_page
+from app.dashboard.trusted_static_root import StaticRoot, read_at, stat_at
 from app.reports.post_close_quality_gate import batch_gate
 from app.reports.tw_delivery_evaluation import correction, digest
 
@@ -130,19 +132,6 @@ def _record(path, value):
     _write(path, json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2).encode())
 
 
-def _public_parent(root, parent):
-    """Create only the new route directories, readable under restrictive umask."""
-    for path in (root, *[root / Path(*parent.relative_to(root).parts[:i])
-                         for i in range(1, len(parent.relative_to(root).parts) + 1)]):
-        safe_path(path)
-        try:
-            path.mkdir(mode=0o755)
-            path.chmod(0o755)
-        except FileExistsError:
-            if not path.is_dir() or path.stat().st_mode & 0o005 != 0o005:
-                raise ValueError("CORRECTION_PUBLIC_DIRECTORY_MODE")
-
-
 def _fsync_dir(path):
     fd = os.open(path, os.O_RDONLY)
     try:
@@ -152,28 +141,41 @@ def _fsync_dir(path):
 
 
 def publish(source_dir, pre_open_input, post_close_input, *, expected_id,
-            static_root, original_html, expected_original_hash, audit_root, verify_public=None):
+            static_root, original_html, expected_original_hash, audit_root, verify_public=None, trusted_root=None):
     """Publish only the exclusive correction URL. A failed attempt is not retried.
 
     verify_public is an optional bounded HTTP verifier provided by the operator;
     returning False rolls back only this attempt's own new inode. Source/latest
     are never rollback targets. Unknown/interrupted attempts require review.
     """
+    if trusted_root is None:
+        safe_path(static_root)  # default remains strict: no symlink anywhere
+    with StaticRoot(static_root, trusted_root) as public:
+        return _publish(source_dir, pre_open_input, post_close_input, expected_id=expected_id,
+                        public=public, original_html=original_html, expected_original_hash=expected_original_hash,
+                        audit_root=audit_root, verify_public=verify_public)
+
+
+def _publish(source_dir, pre_open_input, post_close_input, *, expected_id, public,
+             original_html, expected_original_hash, audit_root, verify_public):
     plan = prepare(source_dir, pre_open_input, post_close_input, expected_id=expected_id)
-    root, audit = safe_path(static_root), safe_path(audit_root)
-    original = safe_path(original_html)
+    root, audit = public.physical, safe_path(audit_root)
+    original_relative = public.relative(original_html)
+    original = root / original_relative if original_relative else safe_path(original_html)
+    def read_original():
+        return public.read(original_relative) if original_relative else original.read_bytes()
     repo = Path(__file__).resolve().parents[2]
     if not root.is_dir() or audit == root or root in audit.parents or audit == repo or repo in audit.parents:
         raise ValueError("CORRECTION_PRIVATE_AUDIT_REQUIRED")
     if any(audit == Path(p).parent or audit in Path(p).parents or Path(p).parent in audit.parents for p in plan["source_files"]):
         raise ValueError("CORRECTION_AUDIT_SOURCE_OVERLAP")
-    target = safe_path(root / plan["route"].lstrip("/"))
-    original_bytes = original.read_bytes()
+    target = root / plan["route"].lstrip("/")
+    original_bytes = read_original()
     if sha(original_bytes) != expected_original_hash:
         raise ValueError("CORRECTION_ORIGINAL_HASH")
     html_identity(original_bytes.decode(), plan["post"])
-    latest = safe_path(root / PREFIX / "latest/index.html")
-    latest_bytes = latest.read_bytes()  # exact backup, never selected as output
+    latest_relative = PREFIX + "/latest/index.html"
+    latest_bytes = public.read(latest_relative)  # exact backup, never selected as output
     latest_body = Bodies(latest_bytes.decode()).bodies
     if len(latest_body) != 1 or latest_body[0].get("data-market") != "TW" or latest_body[0].get("data-window") != "post_close_1500":
         raise ValueError("CORRECTION_LATEST_IDENTITY")
@@ -186,16 +188,20 @@ def publish(source_dir, pre_open_input, post_close_input, *, expected_id,
     audit.mkdir(parents=True, exist_ok=True, mode=0o700)
     # One shared filesystem lock per public correction route, regardless of
     # caller-selected audit directory. No process termination or stale unlink.
-    _public_parent(root, target.parent)
-    lock = safe_path(target.parent / ".publication.lock")
-    with lock.open("a") as stream:
+    parent_fd = public.directory(target.parent.relative_to(root).as_posix(), create=True)
+    public.check()
+    lock_fd = os.open('.publication.lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW | os.O_NONBLOCK, 0o600, dir_fd=parent_fd)
+    with os.fdopen(lock_fd, 'a') as stream:
+        if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+            raise ValueError('CORRECTION_NONREGULAR_LOCK')
         fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
         evidence = safe_path(audit / expected_id)
         final = evidence / "published.json"
-        if target.exists():
+        if stat_at(parent_fd, target.name) is not None:
             if final.is_file():
                 saved = json.loads(final.read_text())
-                if saved.get("status") == "PUBLISHED" and saved.get("target") == str(target) and saved.get("correction_id") == expected_id and saved.get("source_hashes") == plan["source_hashes"] and saved.get("metrics") == plan["metrics"] and saved.get("published_sha256") == sha(plan["html"]) == sha(target.read_bytes()):
+                if saved.get("status") == "PUBLISHED" and saved.get("target") == str(target) and saved.get("correction_id") == expected_id and saved.get("source_hashes") == plan["source_hashes"] and saved.get("metrics") == plan["metrics"] and saved.get("published_sha256") == sha(plan["html"]) == sha(read_at(parent_fd, target.name)):
+                    public.check()
                     return {**saved, "idempotent": True}
             raise ValueError("CORRECTION_ROUTE_COLLISION")
         if evidence.exists():
@@ -206,6 +212,7 @@ def publish(source_dir, pre_open_input, post_close_input, *, expected_id,
         _write(evidence / "original.snapshot.json", json.dumps(plan["post"], ensure_ascii=False, sort_keys=True).encode())
         manifest = {"schema_version": "correction_publication_v1", "correction_id": expected_id,
                     "correction_revision": plan["snapshot"]["correction_revision"], "route": plan["route"],
+                    "root_trust": {"logical": str(public.logical), "physical": str(root), "directories": public.pins.copy(), "alias": public.alias_pin},
                     "target": str(target), "source_hashes": plan["source_hashes"], "metrics": plan["metrics"],
                     "provenance": plan["snapshot"]["payload"]["correction_provenance"],
                     "published_sha256": sha(plan["html"]), "original_sha256": sha(original_bytes),
@@ -215,31 +222,50 @@ def publish(source_dir, pre_open_input, post_close_input, *, expected_id,
         _record(evidence / "prepared.json", {**manifest, "status": "PREPARED"})
         _write(evidence / "published.html", plan["html"])
         _fsync_dir(evidence)
-        staged = None
+        staged_name = None
+        staged_inode = None
+        private_staged = evidence / ".candidate.html"
         owned_inode = None
         try:
-            # Existing atomic-copy primitive stages verified bytes, then hard
-            # link promotion makes the public name visible atomically WITHOUT
-            # overwriting any racing/unrelated file (same immutable convention
-            # as production_evidence_archive).
-            fd, raw = tempfile.mkstemp(prefix=".correction-", dir=target.parent)
-            os.close(fd)
-            staged = Path(raw)
-            _atomic_copy(evidence / "published.html", staged)
-            os.chmod(staged, 0o644)
-            with staged.open("rb") as f:
-                os.fsync(f.fileno())
-            if sha(staged.read_bytes()) != manifest["published_sha256"]:
+            # Keep existing copy validation in the private staging area. All
+            # public writes use pinned dirfds, so a pathname swap cannot redirect
+            # staging, promotion or rollback into an untrusted directory.
+            _atomic_copy(evidence / "published.html", private_staged)
+            data = private_staged.read_bytes()
+            if sha(data) != manifest["published_sha256"]:
                 raise ValueError("CORRECTION_STAGING_HASH")
-            if original.read_bytes() != original_bytes or latest.read_bytes() != latest_bytes:
+            public.check()
+            staged_name = ".correction-" + uuid.uuid4().hex
+            fd = os.open(staged_name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=parent_fd)
+            with os.fdopen(fd, 'wb') as stream:
+                # Keep the inode allocated through promotion/rollback/cleanup.
+                # Otherwise an unlink/recreate may reuse st_ino on Linux and
+                # turn an identity-only cleanup check into a foreign deletion.
+                public.fds.append(os.dup(stream.fileno()))
+                st = os.fstat(stream.fileno())
+                staged_inode = (st.st_dev, st.st_ino)
+                stream.write(data)
+                os.fchmod(stream.fileno(), 0o644)
+                stream.flush()
+                os.fsync(stream.fileno())
+                st = os.fstat(stream.fileno())
+                staged_inode = (st.st_dev, st.st_ino)
+            if read_original() != original_bytes or public.read(latest_relative) != latest_bytes:
                 raise ValueError("CORRECTION_ORIGINAL_OR_LATEST_CHANGED")
             if any(Path(p).read_bytes() != b for p, b in plan["source_files"].items()):
                 raise ValueError("CORRECTION_SOURCE_CHANGED")
-            os.link(staged, target)
-            owned_inode = target.stat().st_ino
-            _fsync_dir(target.parent)
-            if sha(target.read_bytes()) != manifest["published_sha256"] or (verify_public and verify_public(target, plan["route"], manifest["published_sha256"]) is not True):
+            public.check()
+            st = stat_at(parent_fd, staged_name)
+            if st is None or (st.st_dev, st.st_ino) != staged_inode or sha(read_at(parent_fd, staged_name)) != manifest["published_sha256"]:
+                raise ValueError("CORRECTION_STAGING_IDENTITY")
+            os.link(staged_name, target.name, src_dir_fd=parent_fd, dst_dir_fd=parent_fd, follow_symlinks=False)
+            owned_inode = staged_inode
+            os.fsync(parent_fd)
+            public.check()
+            st = stat_at(parent_fd, target.name)
+            if st is None or (st.st_dev, st.st_ino) != owned_inode or sha(read_at(parent_fd, target.name)) != manifest["published_sha256"] or (verify_public and verify_public(target, plan["route"], manifest["published_sha256"]) is not True):
                 raise ValueError("CORRECTION_PUBLIC_VERIFICATION")
+            public.check()
             result = {**manifest, "status": "PUBLISHED", "published_at": datetime.now(timezone.utc).isoformat(),
                       "idempotent": False, "http_verified": verify_public is not None}
             _record(final, result)
@@ -247,14 +273,25 @@ def publish(source_dir, pre_open_input, post_close_input, *, expected_id,
             return result
         except Exception as exc:
             rolled_back = False
-            if owned_inode is not None and target.exists() and not target.is_symlink() and target.stat().st_ino == owned_inode and sha(target.read_bytes()) == manifest["published_sha256"]:
-                target.unlink()  # only the newly published link; bytes retained privately
-                _fsync_dir(target.parent)
-                rolled_back = True
+            if owned_inode is not None:
+                try:
+                    st = stat_at(parent_fd, target.name)
+                    if st is not None and (st.st_dev, st.st_ino) == owned_inode and sha(read_at(parent_fd, target.name)) == manifest["published_sha256"]:
+                        os.unlink(target.name, dir_fd=parent_fd)
+                        os.fsync(parent_fd)
+                        rolled_back = True
+                except (OSError, ValueError):
+                    pass  # replaced/symlink target is not ours to remove
             _record(evidence / "failed.json", {**manifest, "status": "ROLLED_BACK" if rolled_back else "BLOCKED",
                     "exception_type": type(exc).__name__, "rolled_back": rolled_back})
             raise
         finally:
-            if staged is not None:
-                staged.unlink(missing_ok=True)
-                staged.with_name(f".{staged.name}.ai-dev-181d.tmp").unlink(missing_ok=True)
+            if staged_name is not None:
+                try:
+                    st = stat_at(parent_fd, staged_name)
+                    if st is not None and staged_inode == (st.st_dev, st.st_ino):
+                        os.unlink(staged_name, dir_fd=parent_fd)
+                except (FileNotFoundError, ValueError):
+                    pass
+            private_staged.unlink(missing_ok=True)
+            private_staged.with_name(f".{private_staged.name}.ai-dev-181d.tmp").unlink(missing_ok=True)
