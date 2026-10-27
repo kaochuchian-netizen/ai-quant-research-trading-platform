@@ -40,6 +40,7 @@ class CorrectionPublicationTests(unittest.TestCase):
                                           expected_pre_id=self.pre['snapshot_id'], expected_post_id=self.post['snapshot_id'], dashboard_url=URL)
         for name, value in self.artifacts.items():
             (self.source / name).write_text(value if isinstance(value, str) else json.dumps(value, ensure_ascii=False))
+        self.receipt_pin = pub.sha((self.source / 'receipt.json').read_bytes())
         self.id = self.artifacts['correction.json']['snapshot_id']
         self.original = self.static / 'original-revision-1.html'
         self.original.write_text(f'<!doctype html><html><body {identity_attributes(self.post)}>Original synthetic legacy report</body></html>')
@@ -54,10 +55,10 @@ class CorrectionPublicationTests(unittest.TestCase):
         self.post_path.write_text(json.dumps(self.post))
 
     def prepare(self):
-        return pub.prepare(self.source, self.pre_path, self.post_path, expected_id=self.id)
+        return pub.prepare(self.source, self.pre_path, self.post_path, expected_id=self.id, expected_receipt_hash=self.receipt_pin)
 
     def publish(self, **kwargs):
-        return pub.publish(self.source, self.pre_path, self.post_path, expected_id=self.id,
+        return pub.publish(self.source, self.pre_path, self.post_path, expected_id=self.id, expected_receipt_hash=self.receipt_pin,
                            static_root=self.static, original_html=self.original,
                            expected_original_hash=pub.sha(self.original_bytes), audit_root=self.audit, **kwargs)
 
@@ -84,7 +85,7 @@ class CorrectionPublicationTests(unittest.TestCase):
             self.pre_path.write_text(json.dumps(pre));self.post_path.write_text(json.dumps(post))
             for name,value in result.items():
                 (self.source/name).write_text(value if isinstance(value,str) else json.dumps(value,ensure_ascii=False))
-            plan=pub.prepare(self.source,self.pre_path,self.post_path,expected_id=result['correction.json']['snapshot_id'])
+            plan=pub.prepare(self.source,self.pre_path,self.post_path,expected_id=result['correction.json']['snapshot_id'], expected_receipt_hash=pub.sha((self.source/'receipt.json').read_bytes()))
             self.assertEqual(len(plan['snapshot']['payload']['notification_universe']),n)
             self.assertIn('009991',plan['html'].decode())
 
@@ -105,7 +106,7 @@ class CorrectionPublicationTests(unittest.TestCase):
     def test_receipt_provenance_binding(self):
         receipt=deepcopy(self.artifacts['receipt.json']);receipt['provenance']['pre']['revision']=7
         (self.source/'receipt.json').write_text(json.dumps(receipt))
-        with self.assertRaisesRegex(ValueError,'RECEIPT_BINDING'):self.prepare()
+        with self.assertRaisesRegex(ValueError,'RECEIPT_PIN_MISMATCH'):self.prepare()
 
     def test_hash_mismatch(self):
         for name in ('index.html','line.txt','email.txt'):
@@ -119,7 +120,7 @@ class CorrectionPublicationTests(unittest.TestCase):
         (self.source/'index.html').write_text(page)
         receipt=deepcopy(self.artifacts['receipt.json']);receipt['html_sha256']=pub.sha(page.encode())
         (self.source/'receipt.json').write_text(json.dumps(receipt))
-        with self.assertRaisesRegex(ValueError,'RENDERER_MISMATCH'):self.prepare()
+        with self.assertRaisesRegex(ValueError,'RECEIPT_PIN_MISMATCH'):self.prepare()
 
     def test_success_backups_mode_and_idempotency(self):
         result=self.publish()
@@ -227,7 +228,7 @@ class CorrectionPublicationTests(unittest.TestCase):
 
     def test_private_audit_not_public(self):
         with self.assertRaisesRegex(ValueError,'PRIVATE_AUDIT'):
-            pub.publish(self.source,self.pre_path,self.post_path,expected_id=self.id,static_root=self.static,
+            pub.publish(self.source,self.pre_path,self.post_path,expected_id=self.id, expected_receipt_hash=self.receipt_pin,static_root=self.static,
                         original_html=self.original,expected_original_hash=pub.sha(self.original_bytes),audit_root=self.static/'backup')
 
     def test_local_http_200_exact_bytes(self):
@@ -243,7 +244,7 @@ class CorrectionPublicationTests(unittest.TestCase):
     def test_cli_defaults_preview_no_send(self):
         cli=Path(__file__).parents[1]/'scripts/orchestrator/publish_tw_correction_dashboard.py'
         command=[sys.executable,str(cli),'--source-dir',str(self.source),'--pre-open-input',str(self.pre_path),
-                 '--post-close-input',str(self.post_path),'--expected-correction-id',self.id]
+                 '--post-close-input',str(self.post_path),'--expected-correction-id',self.id,'--expected-receipt-hash',self.receipt_pin]
         result=subprocess.run(command,capture_output=True,text=True,timeout=20)
         self.assertEqual(result.returncode,0,result.stderr)
         self.assertEqual(json.loads(result.stdout)['status'],'PREVIEW_ONLY')
