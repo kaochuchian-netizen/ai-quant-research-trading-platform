@@ -18,10 +18,10 @@ import re
 import stat
 import uuid
 
-from app.dashboard.multi_market_dashboard import _atomic_copy, render_snapshot_archive_page
+from app.dashboard.multi_market_dashboard import _atomic_copy
 from app.dashboard.trusted_static_root import StaticRoot, read_at, stat_at
-from app.reports.post_close_quality_gate import batch_gate
-from app.reports.tw_delivery_evaluation import correction, digest
+from app.reports.tw_delivery_evaluation import digest
+from app.dashboard.verified_correction import verify_receipt_pin, verify_existing
 
 PREFIX = "dashboard/archive/tw/post_close_1500"
 
@@ -63,7 +63,7 @@ def metrics(cards):
             for part in ("direction", "range")}
 
 
-def prepare(source_dir: Path, pre_open_input: Path, post_close_input: Path, *, expected_id: str):
+def prepare(source_dir: Path, pre_open_input: Path, post_close_input: Path, *, expected_id: str, expected_receipt_hash=None):
     """Verify both original envelopes, canonical results, receipt and HTML."""
     if not re.fullmatch(r"[0-9a-f]{64}", expected_id):
         raise ValueError("CORRECTION_ID_INVALID")
@@ -71,33 +71,17 @@ def prepare(source_dir: Path, pre_open_input: Path, post_close_input: Path, *, e
     paths = [safe_path(p) for p in (pre_open_input, post_close_input)]
     names = ("correction.json", "receipt.json", "index.html", "line.txt", "email.txt")
     blobs = {name: safe_path(source / name).read_bytes() for name in names}
+    verify_receipt_pin(blobs["receipt.json"], expected_receipt_hash)
     originals = [p.read_bytes() for p in paths]
     pre, post = [json.loads(b) for b in originals]
     value, receipt = json.loads(blobs["correction.json"]), json.loads(blobs["receipt.json"])
     session = value["effective_trading_date"]
-    expected = correction(pre, post, session=session, revision=value["correction_revision"],
-                          expected_pre_id=pre["snapshot_id"], expected_post_id=post["snapshot_id"])
-    if value != expected or value["snapshot_id"] != expected_id:
-        raise ValueError("CORRECTION_CANONICAL_IDENTITY")
+    gate = verify_existing(pre, post, value, receipt, expected_id)
     cards = value["payload"]["structured_review_cards"]
-    gate = batch_gate(cards, market="TW", window="post_close_1500")
-    if gate["status"] != "QUALIFIED":
-        raise ValueError("CORRECTION_QUALITY_REJECTED")
-    if (receipt.get("schema_version") != "tw_delivery_correction_validation_v1"
-        or receipt.get("correction_id") != expected_id
-        or receipt.get("provenance") != value["payload"]["correction_provenance"]
-        or receipt.get("quality") != gate
-        or receipt.get("expected_symbols") != value["payload"]["notification_universe"]
-        or any(receipt.get(k) is not False for k in ("notification_sent", "database_write", "latest_write", "archive_write"))):
-        raise ValueError("CORRECTION_RECEIPT_BINDING")
     for name, key in (("index.html", "html_sha256"), ("line.txt", "line_sha256"), ("email.txt", "email_sha256")):
         if sha(blobs[name]) != receipt.get(key):
             raise ValueError("CORRECTION_OUTPUT_HASH")
     page = blobs["index.html"].decode("utf-8")
-    regenerated = render_snapshot_archive_page("TW", "post_close_1500", "previous", value,
-                        {"available": False, "empty_state": "獨立更正版本，尚未正式發布"})
-    if page != regenerated:
-        raise ValueError("CORRECTION_RENDERER_MISMATCH")
     html_identity(page, value)
     route = f"/{PREFIX}/{session}/corrections/{expected_id}/index.html"
     # Strict, presentation-only replacements. Never rebuild individual cards or
@@ -110,19 +94,29 @@ def prepare(source_dir: Path, pre_open_input: Path, post_close_input: Path, *, e
         f"Source Route：/{PREFIX}/latest/index.html": f"Source Route：{route}",
         "本頁只使用 resolver 選出的 immutable snapshot payload；不讀取全域 latest runtime。": "本頁使用已驗證的 frozen 更正證據；不改寫原始 snapshot 或 latest。",
     }
+    protected = lambda text: [re.findall(pattern, text, re.S) for pattern in
+        (r'<article\b.*?</article>', r'<div class="post-close-overview".*?</div>')]
+    saved_primary = protected(page)
     for old, new in substitutions.items():
         if old not in page:
             raise ValueError("CORRECTION_PRESENTATION_CONTRACT")
         page = page.replace(old, new)
     page = page.replace("<body ", f'<body data-correction-id="{expected_id}" data-correction-revision="{value["correction_revision"]}" data-correction-route="{route}" ', 1)
     html_identity(page, value)
+    if protected(page) != saved_primary:
+        raise ValueError("CORRECTION_PRESENTATION_CHANGED_RESULTS")
     return {"html": page.encode(), "snapshot": value, "post": post, "route": route,
-            "metrics": metrics(cards), "gate": gate, "source_hashes": {n: sha(b) for n, b in blobs.items()},
+            "metrics": metrics(cards), "gate": gate,
+            "verification_mode": "VERIFIED_EXISTING_NO_REEVALUATION",
+            "receipt_sha256": expected_receipt_hash,
+            "input_hashes": {str(p):sha(b) for p,b in zip(paths,originals)},
+            "presentation_transform": {"version":"correction_public_label_v1", "input_sha256":sha(blobs["index.html"]), "output_sha256":sha(page.encode())}, "source_hashes": {n: sha(b) for n, b in blobs.items()},
             "source_files": {**{str(source / n): b for n, b in blobs.items()}, **dict(zip(map(str, paths), originals))}}
 
 
 def _write(path, data):
     with path.open("xb") as stream:
+        os.fchmod(stream.fileno(), 0o600)
         stream.write(data)
         stream.flush()
         os.fsync(stream.fileno())
@@ -130,6 +124,7 @@ def _write(path, data):
 
 def _record(path, value):
     _write(path, json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2).encode())
+    _fsync_dir(path.parent)
 
 
 def _fsync_dir(path):
@@ -141,7 +136,7 @@ def _fsync_dir(path):
 
 
 def publish(source_dir, pre_open_input, post_close_input, *, expected_id,
-            static_root, original_html, expected_original_hash, audit_root, verify_public=None, trusted_root=None):
+            static_root, original_html, expected_original_hash, audit_root, verify_public=None, trusted_root=None, expected_receipt_hash=None, preflight_only=False):
     """Publish only the exclusive correction URL. A failed attempt is not retried.
 
     verify_public is an optional bounded HTTP verifier provided by the operator;
@@ -153,12 +148,12 @@ def publish(source_dir, pre_open_input, post_close_input, *, expected_id,
     with StaticRoot(static_root, trusted_root) as public:
         return _publish(source_dir, pre_open_input, post_close_input, expected_id=expected_id,
                         public=public, original_html=original_html, expected_original_hash=expected_original_hash,
-                        audit_root=audit_root, verify_public=verify_public)
+                        audit_root=audit_root, verify_public=verify_public, expected_receipt_hash=expected_receipt_hash, preflight_only=preflight_only)
 
 
 def _publish(source_dir, pre_open_input, post_close_input, *, expected_id, public,
-             original_html, expected_original_hash, audit_root, verify_public):
-    plan = prepare(source_dir, pre_open_input, post_close_input, expected_id=expected_id)
+             original_html, expected_original_hash, audit_root, verify_public, expected_receipt_hash, preflight_only=False):
+    plan = prepare(source_dir, pre_open_input, post_close_input, expected_id=expected_id, expected_receipt_hash=expected_receipt_hash)
     root, audit = public.physical, safe_path(audit_root)
     original_relative = public.relative(original_html)
     original = root / original_relative if original_relative else safe_path(original_html)
@@ -169,6 +164,8 @@ def _publish(source_dir, pre_open_input, post_close_input, *, expected_id, publi
         raise ValueError("CORRECTION_PRIVATE_AUDIT_REQUIRED")
     if any(audit == Path(p).parent or audit in Path(p).parents or Path(p).parent in audit.parents for p in plan["source_files"]):
         raise ValueError("CORRECTION_AUDIT_SOURCE_OVERLAP")
+    if audit.exists() and (not audit.is_dir() or audit.stat().st_uid != os.geteuid() or audit.stat().st_mode & 0o077):
+        raise ValueError("CORRECTION_PRIVATE_AUDIT_PERMISSIONS")
     target = root / plan["route"].lstrip("/")
     original_bytes = read_original()
     if sha(original_bytes) != expected_original_hash:
@@ -185,6 +182,35 @@ def _publish(source_dir, pre_open_input, post_close_input, *, expected_id, publi
             raise ValueError("CORRECTION_LATEST_IDENTITY")
     if not latest_body[0].get("data-revision", "").isdigit():
         raise ValueError("CORRECTION_LATEST_IDENTITY")
+    # Read-only resource gate. It never probes permission with a write.
+    resource = {}
+    backup_bytes = len(original_bytes) + len(latest_bytes) + len(json.dumps(plan["post"]).encode())
+    for label, destination, required in (("backup", audit, backup_bytes + 3 * len(plan["html"]) + 1048576),
+                                          ("public", target.parent, 2 * len(plan["html"]) + 1048576)):
+        destination = safe_path(destination)
+        ancestor = destination
+        while not ancestor.exists():
+            ancestor = ancestor.parent
+        if not ancestor.is_dir() or not os.access(ancestor, os.W_OK | os.X_OK):
+            raise ValueError("CORRECTION_PERMISSION_" + label.upper())
+        if label == "public":
+            relative = ancestor.relative_to(root).as_posix()
+            if relative != ".":
+                public.directory(relative)
+        fs = os.statvfs(ancestor)
+        if fs.f_bavail * fs.f_frsize < required or (fs.f_favail >= 0 and fs.f_favail < 32):
+            raise ValueError("CORRECTION_SPACE_" + label.upper())
+        resource[label] = {"nearest_existing_parent": str(ancestor), "device": ancestor.stat().st_dev,
+                           "available_bytes": fs.f_bavail * fs.f_frsize, "required_bytes": required}
+    public.check()
+    if preflight_only:
+        # Existing attempts need receipt/inode verification under the publication
+        # lock; preflight cannot certify recovery or idempotency without it.
+        if target.exists() or (audit / expected_id).exists():
+            raise ValueError("CORRECTION_EXISTING_ATTEMPT_REQUIRES_REVIEW")
+        return {"status": "READ_ONLY_PREFLIGHT", "route": plan["route"], "resources": resource,
+                "metrics": plan["metrics"], "receipt_sha256": expected_receipt_hash,
+                "http_verified": False, "production_publication": "PENDING"}
     audit.mkdir(parents=True, exist_ok=True, mode=0o700)
     # One shared filesystem lock per public correction route, regardless of
     # caller-selected audit directory. No process termination or stale unlink.
@@ -198,15 +224,25 @@ def _publish(source_dir, pre_open_input, post_close_input, *, expected_id, publi
         evidence = safe_path(audit / expected_id)
         final = evidence / "published.json"
         if stat_at(parent_fd, target.name) is not None:
-            if final.is_file():
+            if final.is_file() and not (evidence / "failed.json").exists() and (evidence / "promoted.json").is_file():
                 saved = json.loads(final.read_text())
-                if saved.get("status") == "PUBLISHED" and saved.get("target") == str(target) and saved.get("correction_id") == expected_id and saved.get("source_hashes") == plan["source_hashes"] and saved.get("metrics") == plan["metrics"] and saved.get("published_sha256") == sha(plan["html"]) == sha(read_at(parent_fd, target.name)):
+                if saved.get("status") == "PUBLISHED" and saved.get("target") == str(target) and saved.get("correction_id") == expected_id and saved.get("source_hashes") == plan["source_hashes"] and saved.get("input_hashes") == plan["input_hashes"] and saved.get("metrics") == plan["metrics"] and saved.get("published_sha256") == sha(plan["html"]) == sha(read_at(parent_fd, target.name)):
+                    promoted = json.loads((evidence / "promoted.json").read_text())
+                    current = stat_at(parent_fd, target.name)
+                    if promoted.get("owned_inode") != [current.st_dev, current.st_ino] or promoted.get("published_sha256") != saved["published_sha256"]:
+                        raise ValueError("CORRECTION_PRIOR_ATTEMPT_IDENTITY")
+                    if verify_public and (saved.get("http_verified") is not True or verify_public(target, plan["route"], saved["published_sha256"]) is not True):
+                        raise ValueError("CORRECTION_PUBLIC_VERIFICATION")
                     public.check()
+                    after = stat_at(parent_fd, target.name)
+                    if after is None or (after.st_dev, after.st_ino) != (current.st_dev, current.st_ino) or sha(read_at(parent_fd, target.name)) != saved["published_sha256"]:
+                        raise ValueError("CORRECTION_PUBLIC_VERIFICATION")
                     return {**saved, "idempotent": True}
             raise ValueError("CORRECTION_ROUTE_COLLISION")
         if evidence.exists():
             raise ValueError("CORRECTION_PRIOR_ATTEMPT_REQUIRES_REVIEW")
         evidence.mkdir(mode=0o700)
+        _fsync_dir(audit)
         _write(evidence / "original.html", original_bytes)
         _write(evidence / "latest.before.html", latest_bytes)
         _write(evidence / "original.snapshot.json", json.dumps(plan["post"], ensure_ascii=False, sort_keys=True).encode())
@@ -214,6 +250,7 @@ def _publish(source_dir, pre_open_input, post_close_input, *, expected_id, publi
                     "correction_revision": plan["snapshot"]["correction_revision"], "route": plan["route"],
                     "root_trust": {"logical": str(public.logical), "physical": str(root), "directories": public.pins.copy(), "alias": public.alias_pin},
                     "target": str(target), "source_hashes": plan["source_hashes"], "metrics": plan["metrics"],
+                    "receipt_sha256": expected_receipt_hash, "input_hashes": plan["input_hashes"], "presentation_transform": plan["presentation_transform"],
                     "provenance": plan["snapshot"]["payload"]["correction_provenance"],
                     "published_sha256": sha(plan["html"]), "original_sha256": sha(original_bytes),
                     "original_path": str(original), "latest_before_sha256": sha(latest_bytes),
@@ -252,20 +289,29 @@ def _publish(source_dir, pre_open_input, post_close_input, *, expected_id, publi
                 staged_inode = (st.st_dev, st.st_ino)
             if read_original() != original_bytes or public.read(latest_relative) != latest_bytes:
                 raise ValueError("CORRECTION_ORIGINAL_OR_LATEST_CHANGED")
-            if any(Path(p).read_bytes() != b for p, b in plan["source_files"].items()):
+            if any(safe_path(Path(p)).read_bytes() != b for p, b in plan["source_files"].items()):
                 raise ValueError("CORRECTION_SOURCE_CHANGED")
             public.check()
             st = stat_at(parent_fd, staged_name)
             if st is None or (st.st_dev, st.st_ino) != staged_inode or sha(read_at(parent_fd, staged_name)) != manifest["published_sha256"]:
                 raise ValueError("CORRECTION_STAGING_IDENTITY")
+            _record(evidence / "staged.json", {**manifest, "status": "STAGED", "owned_inode": staged_inode})
             os.link(staged_name, target.name, src_dir_fd=parent_fd, dst_dir_fd=parent_fd, follow_symlinks=False)
             owned_inode = staged_inode
             os.fsync(parent_fd)
+            _record(evidence / "promoted.json", {**manifest, "status": "PUBLICATION_PENDING_HTTP", "owned_inode": owned_inode})
             public.check()
             st = stat_at(parent_fd, target.name)
             if st is None or (st.st_dev, st.st_ino) != owned_inode or sha(read_at(parent_fd, target.name)) != manifest["published_sha256"] or (verify_public and verify_public(target, plan["route"], manifest["published_sha256"]) is not True):
                 raise ValueError("CORRECTION_PUBLIC_VERIFICATION")
             public.check()
+            after = stat_at(parent_fd, target.name)
+            if after is None or (after.st_dev, after.st_ino) != owned_inode or sha(read_at(parent_fd, target.name)) != manifest["published_sha256"]:
+                raise ValueError("CORRECTION_PUBLIC_VERIFICATION")
+            if read_original() != original_bytes or public.read(latest_relative) != latest_bytes:
+                raise ValueError("CORRECTION_ORIGINAL_OR_LATEST_CHANGED")
+            if any(safe_path(Path(p)).read_bytes() != b for p, b in plan["source_files"].items()):
+                raise ValueError("CORRECTION_SOURCE_CHANGED")
             result = {**manifest, "status": "PUBLISHED", "published_at": datetime.now(timezone.utc).isoformat(),
                       "idempotent": False, "http_verified": verify_public is not None}
             _record(final, result)

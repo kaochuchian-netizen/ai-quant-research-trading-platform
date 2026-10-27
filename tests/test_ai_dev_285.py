@@ -23,7 +23,7 @@ class TrustedRootTests(unittest.TestCase):
 
     def publish(self, **kwargs):
         f=self.f
-        return pub.publish(f.source,f.pre_path,f.post_path,expected_id=f.id,
+        return pub.publish(f.source,f.pre_path,f.post_path,expected_id=f.id,expected_receipt_hash=f.receipt_pin,
                            static_root=self.alias,original_html=self.alias/f.original.name,
                            expected_original_hash=pub.sha(f.original_bytes),audit_root=f.audit,
                            trusted_root=self.policy,**kwargs)
@@ -174,7 +174,7 @@ class TrustedRootTests(unittest.TestCase):
         policy=self.f.root/'root-policy.json';policy.write_text(json.dumps(self.policy));policy.chmod(0o600)
         command=[sys.executable,str(Path(__file__).parents[1]/'scripts/orchestrator/publish_tw_correction_dashboard.py'),
                  '--source-dir',str(self.f.source),'--pre-open-input',str(self.f.pre_path),
-                 '--post-close-input',str(self.f.post_path),'--expected-correction-id',self.f.id,
+                 '--post-close-input',str(self.f.post_path),'--expected-correction-id',self.f.id,'--expected-receipt-hash',self.f.receipt_pin,
                  '--static-root',str(self.alias),'--trusted-static-root-config',str(policy)]
         result=subprocess.run(command,capture_output=True,text=True,timeout=20)
         self.assertEqual(result.returncode,0,result.stderr)

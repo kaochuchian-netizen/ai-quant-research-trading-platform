@@ -34,7 +34,10 @@ def main():
     parser.add_argument("--pre-open-input", type=Path, required=True)
     parser.add_argument("--post-close-input", type=Path, required=True)
     parser.add_argument("--expected-correction-id", required=True)
-    parser.add_argument("--publish", action="store_true")
+    parser.add_argument("--expected-receipt-hash", required=True, help="Independently approved SHA256 of saved receipt.json")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--publish", action="store_true")
+    mode.add_argument("--preflight", action="store_true", help="Read-only identity, topology, resource and route checks")
     parser.add_argument("--trusted-static-root-config", type=Path, help="Explicit reviewed logical/physical root and device/inode allowlist")
     parser.add_argument("--static-root", type=Path)
     parser.add_argument("--original-html", type=Path)
@@ -42,24 +45,24 @@ def main():
     parser.add_argument("--audit-root", type=Path)
     parser.add_argument("--public-base-url")
     args = parser.parse_args()
-    common = dict(expected_id=args.expected_correction_id)
+    common = dict(expected_id=args.expected_correction_id, expected_receipt_hash=args.expected_receipt_hash)
     policy = load_policy(args.trusted_static_root_config) if args.trusted_static_root_config else None
     if policy is not None:
         if args.static_root is None:
             parser.error("trusted-static-root-config requires static-root")
         with StaticRoot(args.static_root, policy) as checked:
             checked.check()  # read-only preflight even in preview mode
-    if not args.publish:
+    if not args.publish and not args.preflight:
         plan = prepare(args.source_dir, args.pre_open_input, args.post_close_input, **common)
         print(json.dumps({"status": "PREVIEW_ONLY", "route": plan["route"], "metrics": plan["metrics"],
                           "html_sha256": sha(plan["html"]), "notification_sent": False}, ensure_ascii=False))
         return
-    if not all((args.static_root, args.original_html, args.expected_original_hash, args.audit_root, args.public_base_url)):
+    if not all((args.static_root, args.original_html, args.expected_original_hash, args.audit_root)) or (args.publish and not args.public_base_url):
         parser.error("--publish requires static-root, original-html, expected-original-hash, audit-root and public-base-url")
     result = publish(args.source_dir, args.pre_open_input, args.post_close_input, **common,
                      static_root=args.static_root, original_html=args.original_html,
                      expected_original_hash=args.expected_original_hash, audit_root=args.audit_root,
-                     verify_public=http_verifier(args.public_base_url), trusted_root=policy)
+                     verify_public=http_verifier(args.public_base_url) if args.publish else None, trusted_root=policy, preflight_only=args.preflight)
     print(json.dumps(result, ensure_ascii=False))
 
 
