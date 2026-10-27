@@ -147,6 +147,17 @@ class VerifiedExistingTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'SOURCE_CHANGED'): f.publish(verify_public=changed)
         self.assertFalse(f.target.exists())
 
+    def test_source_symlink_swap_is_rejected_before_read(self):
+        f=self.f
+        copy=pub._atomic_copy
+        foreign=f.root/'foreign';foreign.write_bytes((f.source/'line.txt').read_bytes())
+        def swap(source,target):
+            copy(source,target)
+            (f.source/'line.txt').unlink(); (f.source/'line.txt').symlink_to(foreign)
+        with patch.object(pub,'_atomic_copy',side_effect=swap), self.assertRaisesRegex(ValueError,'SYMLINK'):
+            f.publish()
+        self.assertFalse(f.target.exists())
+
     def test_target_swap_during_successful_http_is_not_success(self):
         f=self.f
         def changed(*args):

@@ -289,7 +289,7 @@ def _publish(source_dir, pre_open_input, post_close_input, *, expected_id, publi
                 staged_inode = (st.st_dev, st.st_ino)
             if read_original() != original_bytes or public.read(latest_relative) != latest_bytes:
                 raise ValueError("CORRECTION_ORIGINAL_OR_LATEST_CHANGED")
-            if any(Path(p).read_bytes() != b for p, b in plan["source_files"].items()):
+            if any(safe_path(Path(p)).read_bytes() != b for p, b in plan["source_files"].items()):
                 raise ValueError("CORRECTION_SOURCE_CHANGED")
             public.check()
             st = stat_at(parent_fd, staged_name)
