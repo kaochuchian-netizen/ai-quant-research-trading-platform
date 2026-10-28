@@ -296,7 +296,13 @@ def normalize_yfinance_news(
     counts = {stage: 0 for stage in NEWS_STAGES}
     reasons: dict[str, int] = {}
     counts["DISCOVERED"] = counts["RETRIEVED"] = len(raw)
-    reference = parse_time(observed_at) or datetime.now(timezone.utc)
+    from app.us_stock.news_window import news_window, aware_time, in_window
+    try:
+        window = news_window(observed_at)
+        window_error = None
+    except (ValueError, TypeError, OverflowError) as exc:
+        window, window_error = None, type(exc).__name__
+    reference = parse_time(observed_at)
     candidates: list[dict[str, Any]] = []
     candidate_records: list[dict[str, Any]] = []
 
@@ -329,6 +335,22 @@ def normalize_yfinance_news(
             candidate_records.append({**candidate_base, "admission_status": "REJECTED", "rejection_reason": "PARSER_ERROR"})
             continue
         counts["NORMALIZED"] += 1
+        if window is None:
+            reject("WINDOW_UNAVAILABLE")
+            candidate_records.append({**candidate_base, "admission_status": "REJECTED", "rejection_reason": "WINDOW_UNAVAILABLE"})
+            continue
+        try:
+            published_at = aware_time(published)
+        except (ValueError, TypeError, OverflowError):
+            reject("PARSER_ERROR")
+            candidate_records.append({**candidate_base, "admission_status": "REJECTED", "rejection_reason": "PARSER_ERROR"})
+            continue
+        if not in_window(published, window):
+            code = "OUTSIDE_WINDOW" if published_at > reference else "STALE"
+            reject(code)
+            candidate_records.append({**candidate_base, "admission_status": "REJECTED", "rejection_reason": code})
+            continue
+        counts["FRESH"] += 1
         summary = re.sub(r"<[^>]+>", " ", str(item.get("summary") or item.get("description") or ""))
         attribution = _entity_attribution(item, symbol=symbol, title=title, summary=summary)
         contextual_admission = False
@@ -348,21 +370,6 @@ def normalize_yfinance_news(
             reject("PUBLISHER_UNRESOLVED")
             publisher = "原始來源未解析"
         counts["QUALITY_QUALIFIED"] += 1
-        published_at = parse_time(published)
-        if published_at is None:
-            reject("PARSER_ERROR")
-            candidate_records.append({**candidate_base, "entity_attribution": attribution, "admission_status": "REJECTED", "rejection_reason": "PARSER_ERROR"})
-            continue
-        age_hours = (reference - published_at).total_seconds() / 3600
-        if age_hours < 0:
-            reject("OUTSIDE_WINDOW")
-            candidate_records.append({**candidate_base, "entity_attribution": attribution, "admission_status": "REJECTED", "rejection_reason": "OUTSIDE_WINDOW"})
-            continue
-        if age_hours > 72:
-            reject("STALE")
-            candidate_records.append({**candidate_base, "entity_attribution": attribution, "admission_status": "REJECTED", "rejection_reason": "STALE"})
-            continue
-        counts["FRESH"] += 1
         counts["RELEVANT"] += 1
         content_type = str(item.get("contentType") or "STORY").upper()
         if content_type not in {"STORY", "PRESS_RELEASE", "VIDEO"}:
@@ -411,8 +418,8 @@ def normalize_yfinance_news(
             reject("DUPLICATE")
             primary = unique[key]
             primary.setdefault("duplicate_sources", []).append({"publisher": item.get("publisher"), "source_reference": item.get("source_url")})
-            for record in candidate_records:
-                if record.get("candidate_id") == item.get("candidate_id"):
+            for record in reversed(candidate_records):
+                if record.get("candidate_id") == item.get("candidate_id") and record.get("admission_status") == "ADMITTED":
                     record.update({"admission_status": "REJECTED", "rejection_reason": "DUPLICATE", "duplicate_group": key})
                     break
         else:
@@ -438,8 +445,13 @@ def normalize_yfinance_news(
         "absence_state": absence,
         "source_preference": ["official", "SEC", "company_ir", "company_newsroom", "recognized_financial_media"],
         "retrieval": {"status": "PARTIAL" if retrieval_error and admitted else "FAILED" if retrieval_error else "SUCCESS", "reason_code": "PARTIAL_PROVIDER_FAILURE" if retrieval_error and admitted else "RETRIEVAL_FAILED" if retrieval_error else None},
-        "candidate_records": candidate_records[:MAX_LEDGER_CANDIDATES_PER_SYMBOL_WINDOW],
-        "candidate_retention": {"limit": MAX_LEDGER_CANDIDATES_PER_SYMBOL_WINDOW, "content": "metadata_only_no_article_body", "truncated": len(candidate_records) > MAX_LEDGER_CANDIDATES_PER_SYMBOL_WINDOW},
+        "window": window, "window_error": window_error,
+        "coverage": {"status": "PARTIAL" if raw else "UNKNOWN", "provider": "YAHOO_FINANCE",
+                     "reason_codes": ["PROVIDER_WINDOW_COMPLETENESS_UNPROVEN"] + (["PROVIDER_FAILURE"] if retrieval_error else []),
+                     "candidate_count": len(raw), "pagination": "NO_VERIFIED_WINDOW_CURSOR",
+                     "source_gaps": ["COMPANY_IR_NOT_FETCHED", "NEWSROOM_NOT_FETCHED", "SEC_SEPARATE_FILINGS_NOT_NEWS_COVERAGE"]},
+        "candidate_records": candidate_records,
+        "candidate_retention": {"limit": None, "content": "metadata_only_no_article_body", "truncated": False},
     }
     return admitted, diagnostic
 

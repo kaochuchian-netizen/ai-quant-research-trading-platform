@@ -368,7 +368,7 @@ def _apply_current_news(base: dict[str, Any], current: dict[str, Any],
     updated = json.loads(json.dumps(base))
     selected_refs = {
         str(item.get("source_reference") or "")
-        for item in news_intelligence.get("selected_items", []) if isinstance(item, dict)
+        for item in news_intelligence.get("research_items", news_intelligence.get("selected_items", [])) if isinstance(item, dict)
     } - {""}
     non_news = [
         item for item in updated.get("evidence", [])

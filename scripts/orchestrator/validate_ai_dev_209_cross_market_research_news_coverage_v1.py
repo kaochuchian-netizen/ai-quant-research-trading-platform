@@ -31,6 +31,7 @@ def us_research(items, funnel):
     return {
         "sec": {"ok": False}, "official_sources": {}, "fundamentals": {}, "earnings": {},
         "material_news": {"items": [{
+            "candidate_id": item["candidate_id"], "canonical_event_identity": item["canonical_event_identity"],
             "english_headline": item["english_headline"], "chinese_summary": item["chinese_summary"],
             "event_type": "news", "direction": item["direction"], "direction_status": item["direction_status"],
             "materiality": item["materiality"], "relevance": item["relevance"], "official_source": False,

@@ -207,6 +207,16 @@ def classify_sec_filing(filing: dict[str, Any]) -> dict[str, Any]:
 
 def normalize_news(items: Iterable[dict[str, Any]], observed_at: str, diagnostics: dict[str, Any] | None = None) -> dict[str, Any]:
     """Select bounded current news without assigning an unsafe direction."""
+    from app.us_stock.news_window import news_window, in_window
+    supplied_window = (diagnostics or {}).get("window")
+    records = (diagnostics or {}).get("candidate_records")
+    admitted_ids = {r.get("candidate_id") for r in records if r.get("admission_status") == "ADMITTED"} if isinstance(records, list) else None
+    try:
+        window = news_window(observed_at)
+        if supplied_window is not None and supplied_window != window:
+            window = None
+    except (ValueError, TypeError):
+        window = None
     candidates: list[dict[str, Any]] = []
     observed = datetime.fromisoformat(str(observed_at).replace("Z", "+00:00"))
     if observed.tzinfo is None:
@@ -228,7 +238,7 @@ def normalize_news(items: Iterable[dict[str, Any]], observed_at: str, diagnostic
             age_hours = (observed.astimezone(timezone.utc) - published_time.astimezone(timezone.utc)).total_seconds() / 3600
         except (TypeError, ValueError):
             age_hours = None
-        freshness = "current" if age_hours is not None and 0 <= age_hours <= 72 else "future" if age_hours is not None and age_hours < 0 else "stale"
+        freshness = "current" if window and in_window(published, window) else "future" if age_hours is not None and age_hours < 0 else "stale"
         item = {
             "news_id": "news_" + stable_hash([cluster, reference, headline])[:20],
             "candidate_id": raw.get("candidate_id"), "news_event_id": raw.get("news_event_id") or cluster,
@@ -246,8 +256,8 @@ def normalize_news(items: Iterable[dict[str, Any]], observed_at: str, diagnostic
             "time_horizon": _text(raw.get("time_horizon") or "near_term").lower(),
             "primary_source_confirmed": bool(raw.get("official_source")),
             "freshness": freshness, "age_hours": None if age_hours is None else round(age_hours, 3),
-            "duplicate_of": None, "counted": False, "eligible_for_rre": freshness == "current",
-            "selection_status": "PENDING", "selection_reason": None,
+            "duplicate_of": None, "counted": False, "eligible_for_rre": freshness == "current" and (admitted_ids is None or raw.get("candidate_id") in admitted_ids),
+            "selection_status": "PENDING", "selection_reason": None, "selection_reason_scope": "PRESENTATION_ONLY",
             "entity_attribution": raw.get("entity_attribution") if isinstance(raw.get("entity_attribution"), dict) else None,
             "contextual_role": raw.get("contextual_role"), "related_symbols": list(raw.get("related_symbols") or []),
             "english_headline": raw.get("english_headline") or raw.get("headline"),
@@ -278,18 +288,18 @@ def normalize_news(items: Iterable[dict[str, Any]], observed_at: str, diagnostic
         if item["eligible_for_rre"]:
             eligible.append(item)
         else:
-            item.update({"selection_status": "NOT_SELECTED", "selection_reason": "STALE_OR_INVALID_TIMESTAMP"})
+            item.update({"selection_status": "NOT_SELECTED", "selection_reason": "STALE_OR_INVALID_TIMESTAMP" if item["freshness"] != "current" else "EVIDENCE_NOT_ADMITTED"})
     selected = eligible[:NEWS_SELECTION_LIMIT]
     selected_ids = {item["news_id"] for item in selected}
     for item in candidates:
         if item["news_id"] in selected_ids:
             item.update({"selection_status": "SELECTED_AND_RENDERED", "selection_reason": "HIGHEST_VALUE_CURRENT_EVIDENCE", "selected_for_rre": True, "rendered": True})
         elif item["selection_status"] == "PENDING":
-            item.update({"selection_status": "NOT_SELECTED", "selection_reason": "SELECTION_LIMIT_LOWER_PRIORITY_SOURCE", "selected_for_rre": False, "rendered": False})
+            item.update({"selection_status": "NOT_SELECTED", "selection_reason": "SELECTION_LIMIT_LOWER_PRIORITY_SOURCE", "selected_for_rre": True, "rendered": False})
         else:
             item.update({"selected_for_rre": False, "rendered": False})
     admitted = int(((diagnostics or {}).get("stages") or {}).get("ADMITTED") or sum(x["counted"] for x in candidates))
-    funnel = with_downstream_counts(diagnostics or {}, rre_used=len(selected), rendered=len(selected))
+    funnel = with_downstream_counts(diagnostics or {}, rre_used=len(eligible), rendered=len(selected))
     reasons = dict(funnel.get("rejection_reasons") or {})
     reasons.pop("RRE_NOT_SELECTED", None)
     selection_limited = max(0, admitted - len(selected))
@@ -299,9 +309,12 @@ def normalize_news(items: Iterable[dict[str, Any]], observed_at: str, diagnostic
     if stale_count:
         reasons["STALE"] = reasons.get("STALE", 0) + stale_count
     funnel["rejection_reasons"] = dict(sorted(reasons.items()))
+    funnel["presentation_selection"] = {"selected": len(selected), "not_selected": len(eligible)-len(selected),
+                                        "reason": "PRESENTATION_BUDGET", "research_retained": len(eligible)}
     return {
         "status": "AVAILABLE" if selected else "MISSING",
-        "items": candidates, "selected_items": selected,
+        "items": candidates, "selected_items": selected, "research_items": eligible,
+        "research_count": len(eligible), "window": window,
         "deduplicated_count": sum(x["counted"] for x in candidates),
         "selected_count": len(selected), "selection_limit": NEWS_SELECTION_LIMIT,
         "selection_method": "official_materiality_relevance_freshness_event_uniqueness_v2",
