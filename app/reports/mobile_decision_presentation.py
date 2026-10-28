@@ -10,7 +10,7 @@ import re
 
 from app.reports.tw_human_summary import build_tw_human_summary
 from app.us_stock.human_summary import build_us_human_summary
-from app.reports.presentation_normalization import localize_enum
+from app.reports.presentation_normalization import localize_enum, concise_news_summary
 
 VERSION = "mobile_decision_presentation_v1"
 MISSING = "尚未取得正式資料"
@@ -231,6 +231,9 @@ def cards_for(payload, window):
 
 
 def news_summary(card, human):
+    retrieval = card.get("news_retrieval") or {}
+    if retrieval.get("news_window") and retrieval.get("ai_analysis", {}).get("status") != "SUCCESS":
+        return [{"summary": concise_news_summary(card)["reason"], "source": "", "translation_available": True}]
     items = []
     for key in ("finalized_current_news_projection_v3", "finalized_tw_news_projection_v1", "us_news_product_projection_v1"):
         value = card.get(key) or {}
@@ -262,7 +265,7 @@ def project_card(card, market, window, *, quality=None):
     plan = card.get("trade_plan") or {}
     active = (card.get("eligibility") or {}).get("actionable") is True
     news = news_summary(card, human)
-    news_text = "；".join(f"{x['summary']}（來源：{x['source']}）" for x in news) or "尚無可用新聞內容摘要"
+    news_text = "；".join(f"{x['summary']}（來源：{x['source']}）" if x["source"] else x["summary"] for x in news) or "尚無可用新聞內容摘要"
     strategy = zh(card.get("canonical_intraday_action") or card.get("tactical_adjustment") or card.get("action") or card.get("action_rationale"))
     unavailable_prediction = (
         window == "pre_open_0700"

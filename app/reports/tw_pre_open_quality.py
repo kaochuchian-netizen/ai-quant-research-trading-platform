@@ -326,6 +326,16 @@ def _missing_identity_news_contract(raw_items: list[dict[str, Any]], *, generate
 def news_contract(raw_news: Any, *, generated_at: str | None = None, target_symbol: str | None = None, target_name: str | None = None) -> dict[str, Any]:
     admitted = []
     raw_items = _news_items(raw_news)
+    news_window = raw_news.get("news_window") if isinstance(raw_news, dict) else None
+    if news_window:
+        from app.research.tw_news_window import build_news_window, window_reason, published_time
+        # Do not trust an arbitrary expanded lookback supplied by an upstream.
+        if news_window != build_news_window(news_window.get("as_of")):
+            raise ValueError("NEWS_WINDOW_IDENTITY_MISMATCH")
+        rendering_time = published_time(generated_at)
+        as_of = published_time(news_window["as_of"])
+        if rendering_time is None or rendering_time < as_of or rendering_time.date() != as_of.date():
+            raise ValueError("NEWS_WINDOW_BATCH_DATE_MISMATCH")
     if target_symbol:
         metadata = instrument_metadata("TW", str(target_symbol).strip())
         if metadata.get("status") != "AVAILABLE":
@@ -360,7 +370,18 @@ def news_contract(raw_news: Any, *, generated_at: str | None = None, target_symb
             "materiality": item.get("materiality") or "UNKNOWN", "relevance": item.get("relevance") or "UNKNOWN",
             "research_role": str(item.get("research_role") or item.get("contextual_role") or "NOT_USED").upper(),
             "counted_in_synthesis": bool(item.get("counted_in_synthesis")), "evidence_id": item.get("evidence_id"),
+            "analysis_status": item.get("analysis_status", "NOT_ANALYZED"),
         }
+        if news_window:
+            date_reason = window_reason(published, news_window)
+            if date_reason:
+                reject(date_reason, candidate)
+                continue
+        enrichment = item.get("relevance_materiality_evaluation") or {}
+        if enrichment.get("rejection_reason"):
+            candidate["content_failure_reason"] = enrichment.get("content_failure_reason")
+            reject(str(enrichment["rejection_reason"]), candidate)
+            continue
         if not all(_present(value) for value in (headline, publisher, published, source_url)):
             reject("INSUFFICIENT_PROVENANCE", candidate)
             continue
@@ -391,7 +412,7 @@ def news_contract(raw_news: Any, *, generated_at: str | None = None, target_symb
         quality_count += 1
         published_time = _parse_time(published)
         age_hours = None if not reference or not published_time else max(0.0, (reference - published_time).total_seconds() / 3600)
-        freshness = "fresh" if age_hours is not None and age_hours <= NEWS_LOOKBACK_HOURS else "stale" if age_hours is not None else "unknown"
+        freshness = "fresh" if news_window or (age_hours is not None and age_hours <= NEWS_LOOKBACK_HOURS) else "stale" if age_hours is not None else "unknown"
         if freshness == "stale":
             reject("STALE", candidate)
             continue
@@ -469,7 +490,7 @@ def news_contract(raw_news: Any, *, generated_at: str | None = None, target_symb
             "RRE_USED": 0, "RENDERED": 0,
         },
         "rejection_reasons": dict(sorted(rejection_reasons.items())),
-        "candidate_records": candidate_records[:64],
+        "candidate_records": candidate_records,
     }
     absence_state = (
         "NEWS_SELECTED_AND_RENDERED" if supplied_retrieval.get("rendered_count") else
@@ -484,6 +505,11 @@ def news_contract(raw_news: Any, *, generated_at: str | None = None, target_symb
         "source_quality": quality, "confidence": confidence,
         "evidence_funnel": funnel, "absence_state": absence_state,
         "retrieval": {
+            "news_window": news_window,
+            "coverage": supplied_retrieval.get("coverage", "UNKNOWN"),
+            "source_coverage": supplied_retrieval.get("source_coverage", {}),
+            "funnel": raw_news.get("funnel", {}) if isinstance(raw_news, dict) else {},
+            "ai_analysis": raw_news.get("ai_analysis", {}) if isinstance(raw_news, dict) else {},
             "lookback_hours": int(supplied_retrieval.get("lookback_hours") or NEWS_LOOKBACK_HOURS), "sources_attempted": attempted,
             "sources_succeeded": succeeded,
             "sources_failed": configured_failed,

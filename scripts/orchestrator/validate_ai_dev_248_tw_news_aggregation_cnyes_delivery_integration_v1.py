@@ -97,34 +97,34 @@ def _run() -> dict[str, Any]:
 
     dynamic_symbol = "7777"
     browser = _Browser([[_cnyes_card(dynamic_symbol, url="https://news.cnyes.com/news/id/7777001")]], {"https://news.cnyes.com/news/id/7777001": _body(dynamic_symbol)})
-    session = TwNewsAggregationSession(browser_factory=lambda: browser)
-    aggregate = collect_tw_news(dynamic_symbol, "動態測試", reference="2026-09-18", session=session, google_fetcher=lambda *_: [_google_item(dynamic_symbol, "https://news.example/dynamic")])
+    session = TwNewsAggregationSession(browser_factory=lambda: browser, downstream_fetch_content=False)
+    aggregate = collect_tw_news(dynamic_symbol, "動態測試", reference="2026-09-18T10:00:00+08:00", session=session, google_fetcher=lambda *_: [_google_item(dynamic_symbol, "https://news.example/dynamic")])
     checks["dynamic_watchlist_symbol_google_and_cnyes"] = aggregate["symbol"] == dynamic_symbol and aggregate["source_health"][GOOGLE_SOURCE]["attempted"] and aggregate["source_health"][CNYES_SOURCE]["attempted"]
     checks["no_fixed_symbol_dependency"] = dynamic_symbol in session.symbols_processed and "2330" not in session.symbols_processed
 
-    dup = collect_tw_news("2330", "台積電", reference="2026-09-18", session=TwNewsAggregationSession(browser_factory=lambda: _Browser([[_cnyes_card()]], {"https://news.cnyes.com/news/id/6609020": _body("2330")})), google_fetcher=lambda *_: [_google_item()])
+    dup = collect_tw_news("2330", "台積電", reference="2026-09-18T10:00:00+08:00", session=TwNewsAggregationSession(browser_factory=lambda: _Browser([[_cnyes_card()]], {"https://news.cnyes.com/news/id/6609020": _body("2330")})), google_fetcher=lambda *_: [_google_item()])
     checks["google_rss_and_cnyes_aggregation"] = set(dup["source_health"]) == {GOOGLE_SOURCE, CNYES_SOURCE}
     checks["cross_source_duplicate_collapse"] = dup["retrieval"]["result_count_raw"] >= 2 and dup["retrieval"]["result_count_deduped"] == 1
     item = dup["items"][0]
     checks["full_content_wins_over_title_only"] = bool(item.get("content_status") == "FULL_CONTENT" and item.get("content"))
     checks["source_provenance_preserved"] = {entry.get("source") for entry in item.get("source_provenance", [])} == {GOOGLE_SOURCE, CNYES_SOURCE}
-    checks["two_trading_day_freshness"] = dup["cnyes_collection"]["target_trading_dates"] == ["2026-09-18", "2026-09-17"]
+    checks["calendar_bound_recent_freshness"] = dup["news_window"]["start"] == "2026-09-15T10:00:00+08:00" and dup["news_window"]["as_of"] == "2026-09-18T10:00:00+08:00"
     checks["old_article_never_browser_fetched"] = all("09/15" not in str(article.get("published_at")) for article in dup["cnyes_collection"].get("article_fetch_queue", []))
     prompt_items = select_prompt_news_items(dup["items"])
     prompt = build_aggregation_news_prompt("2330", "台積電", prompt_items)
     checks["full_content_before_ai_prompt"] = "內文摘要" in prompt and "月營收" in prompt and "重大性" in prompt
     checks["bounded_prompt_context"] = len(prompt) < 6000 and len(prompt_items) <= 6
 
-    timeout_session = TwNewsAggregationSession(browser_factory=lambda: _Browser([], fail="timeout"))
-    timeout = collect_tw_news("2330", "台積電", reference="2026-09-18", session=timeout_session, google_fetcher=lambda *_: [_google_item("2330", "https://news.example/google-only")])
+    timeout_session = TwNewsAggregationSession(browser_factory=lambda: _Browser([], fail="timeout"), downstream_fetch_content=False)
+    timeout = collect_tw_news("2330", "台積電", reference="2026-09-18T10:00:00+08:00", session=timeout_session, google_fetcher=lambda *_: [_google_item("2330", "https://news.example/google-only")])
     checks["cnyes_failure_isolation"] = bool(timeout["source_health"][CNYES_SOURCE]["status"] == "degraded" and timeout["source_health"][GOOGLE_SOURCE]["result_count"] == 1 and timeout["items"])
-    google_failed = collect_tw_news("2330", "台積電", reference="2026-09-18", session=TwNewsAggregationSession(browser_factory=lambda: _Browser([[_cnyes_card()]], {"https://news.cnyes.com/news/id/6609020": _body("2330")})), google_fetcher=lambda *_: (_ for _ in ()).throw(RuntimeError("rss down")))
+    google_failed = collect_tw_news("2330", "台積電", reference="2026-09-18T10:00:00+08:00", session=TwNewsAggregationSession(browser_factory=lambda: _Browser([[_cnyes_card()]], {"https://news.cnyes.com/news/id/6609020": _body("2330")})), google_fetcher=lambda *_: (_ for _ in ()).throw(RuntimeError("rss down")))
     checks["google_failure_isolation"] = bool(google_failed["source_health"][GOOGLE_SOURCE]["status"] == "failed" and google_failed["source_health"][CNYES_SOURCE]["status"] == "success" and google_failed["items"])
 
     shared_browser = _Browser([[_cnyes_card("2330")]], {"https://news.cnyes.com/news/id/6609020": _body("2330")})
     shared = TwNewsAggregationSession(browser_factory=lambda: shared_browser)
-    collect_tw_news("2330", "台積電", reference="2026-09-18", session=shared, google_fetcher=lambda *_: [])
-    collect_tw_news("3293", "鈊象", reference="2026-09-18", session=shared, google_fetcher=lambda *_: [])
+    collect_tw_news("2330", "台積電", reference="2026-09-18T10:00:00+08:00", session=shared, google_fetcher=lambda *_: [])
+    collect_tw_news("3293", "鈊象", reference="2026-09-18T10:00:00+08:00", session=shared, google_fetcher=lambda *_: [])
     shared.close()
     checks["browser_session_reuse"] = shared.browser_launches == 1
     checks["browser_concurrency_one"] = dup["retrieval"]["browser_concurrency"] == 1

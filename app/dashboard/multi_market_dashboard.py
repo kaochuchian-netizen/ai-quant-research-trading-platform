@@ -1456,6 +1456,11 @@ def _tw_pre_open_structured_card(card: dict[str, Any]) -> str:
         if value in (None, "", "unavailable", "unknown", "尚未判定", "資料尚未取得") or "無法取得" in str(value)
     })
     news_detail = '' if news['status'] != '分析可用' else f'<details class="decision-details" data-section="news-detail"><summary>完整新聞分析</summary><div class="decision-details__body"><p>{_escape(safe_public_text(card.get("news_summary")))}</p></div></details>'
+    retrieval = card.get("news_retrieval") or {}
+    if retrieval.get("news_window"):
+        diagnostic = {k: retrieval.get(k) for k in ("news_window", "coverage", "source_coverage", "funnel", "ai_analysis", "sources_failed")}
+        news_detail += f'<details class="decision-details" data-section="news-diagnostics"><summary>新聞來源與處理狀態</summary><div class="decision-details__body"><pre style="white-space:pre-wrap;overflow-wrap:anywhere">{_escape(json.dumps(diagnostic, ensure_ascii=False, indent=2))}</pre></div></details>'
+
     technical_text = (f"無法判定｜歷史 {technical.get('history_bars', 0)}/{technical.get('required_bars', 20)} 根" if technical and not technical.get('analysis_eligible') else safe_public_text(card.get('technical_summary')))
     context_metrics = [('市場環境', safe_public_text(card.get('market_context'))), ('技術', technical_text)]
     for label, value in (('隔夜影響', card.get('overnight_context')), ('ADR', format_adr_context(card.get('adr_context'), strategy_action=card.get('action'))), ('籌碼', card.get('chip_summary'))):
