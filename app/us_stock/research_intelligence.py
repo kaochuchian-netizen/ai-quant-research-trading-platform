@@ -180,7 +180,9 @@ class USResearchIntelligenceBuilder:
             "investor_presentations": [],
             "earnings_materials": [],
             "provenance": provenance("company_ir", quality="configured" if registry else "registry_missing"),
-            "missing_reason": None if registry else "official_source_registry_missing_for_symbol",
+            "retrieval_status": "NOT_FETCHED",
+            "coverage": "UNKNOWN",
+            "missing_reason": "official_sources_configured_not_fetched" if registry else "official_source_registry_missing_for_symbol",
         }
 
     def fundamentals(self, symbol: str) -> dict[str, Any]:
@@ -313,11 +315,11 @@ class USResearchIntelligenceBuilder:
     def material_news(self, symbol: str, news_items: list[dict[str, Any]], diagnostics: dict[str, Any] | None = None) -> dict[str, Any]:
         seen = set()
         output = []
-        for item in news_items[:6]:
+        for item in news_items:
             headline = item.get("english_headline")
             if not headline:
                 continue
-            key = re.sub(r"[^a-z0-9]+", " ", headline.lower()).strip()[:90]
+            key = item.get("canonical_event_identity") or item.get("news_event_id") or re.sub(r"[^a-z0-9]+", " ", headline.lower()).strip()
             if key in seen:
                 continue
             seen.add(key)

@@ -296,6 +296,7 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
     generated_at = now_taipei()
     context = session_context(window, reference)
     client = YFinanceUSClient()
+    client.news_as_of = generated_at
     research_builder = USResearchIntelligenceBuilder()
     market_context = client.fetch_context()
     canonical_market_context = normalize_us_market_context(market_context)

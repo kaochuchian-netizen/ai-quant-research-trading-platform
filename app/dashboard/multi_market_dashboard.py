@@ -611,6 +611,9 @@ def _us_window_card(card: dict[str, Any], window: str) -> str:
     sec_text = _research_v3_text(presentation, "sec")
     review_text = _research_v3_text(presentation, "review")
     institutional_research = _institutional_research_html(card)
+    news_funnel = current_news.get("funnel") or {}
+    if news_funnel.get("coverage"):
+        institutional_research += '<details data-section="us-news-diagnostics"><summary>新聞來源與篩選紀錄</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere">' + _escape(json.dumps(news_funnel, ensure_ascii=False)) + '</pre></details>'
     human = card.get("us_human_decision_summary_v1") if isinstance(card.get("us_human_decision_summary_v1"), dict) else build_us_human_summary(card, window)
     important_news_html = "".join(
         f"<li><strong>{_escape(item.get('headline'))}</strong><br>{_escape(item.get('publisher') or '原始來源未解析')}｜{_escape(item.get('role') or 'CONTEXT')}<br>{_escape(item.get('impact_summary'))}</li>"

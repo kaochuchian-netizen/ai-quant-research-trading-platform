@@ -241,9 +241,9 @@ class YFinanceUSClient:
             try:
                 raw_news = ticker.news or []
             except Exception as exc:
-                news_error = f"{type(exc).__name__}: {str(exc)[:120]}"
+                news_error = type(exc).__name__
             news_items, news_diagnostics = normalize_yfinance_news(
-                raw_news, symbol=symbol, observed_at=quote["source_timestamp"], retrieval_error=news_error,
+                raw_news, symbol=symbol, observed_at=getattr(self, "news_as_of", None) or quote["source_timestamp"], retrieval_error=news_error,
             )
             return FetchResult(symbol=symbol, ok=quote["last_price"] is not None and history is not None and not history.empty, quote=quote, history=history, news=news_items, news_diagnostics=news_diagnostics, error=None)
         except Exception as exc:

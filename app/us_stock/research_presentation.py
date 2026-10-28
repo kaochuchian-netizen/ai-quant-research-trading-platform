@@ -110,7 +110,7 @@ def finalized_current_news_projection(bundle: dict[str, Any]) -> dict[str, Any]:
         compact = (
             f"當期個股新聞：{len(selected)} 筆｜{top.get('headline') or '未命名事件'}"
             f"（{top.get('publisher') or '來源未標示'}｜{top.get('published_at') or '時間未標示'}"
-            f"｜{top.get('source_class')}｜方向 {top.get('direction_status')}）"
+            f"｜{'公司官方' if top.get('source_class') == 'company_ir' else '財經媒體'}｜方向{'已評估' if top.get('direction_status') == 'EVALUATED' else '未評估'}）"
         )
     else:
         compact = label
@@ -124,6 +124,8 @@ def finalized_current_news_projection(bundle: dict[str, Any]) -> dict[str, Any]:
         "primary_item": top,
         "compact_summary": compact,
         "funnel": funnel,
+        "coverage_status": (funnel.get("coverage") or {}).get("status", "UNKNOWN"),
+        "coverage_label": "新聞來源僅部分覆蓋" if (funnel.get("coverage") or {}).get("status") == "PARTIAL" else "新聞來源覆蓋未確認",
         "source_contract": "institutional_research.news_intelligence_v2.finalized_selection",
         "decision_authority": False,
     }
