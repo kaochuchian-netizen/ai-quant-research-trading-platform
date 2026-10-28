@@ -387,6 +387,10 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Return a mocked clean main-branch state for format testing without switching branches.",
     )
+    parser.add_argument("--tw-deployment-preflight", type=Path,
+                        help="Read-only candidate checkout check against today's frozen snapshot root; no registry execution")
+    parser.add_argument("--expected-pre-open-id")
+    parser.add_argument("--expected-candidate-sha")
     parser.add_argument("--pretty", action="store_true")
     return parser.parse_args()
 
@@ -423,6 +427,25 @@ def slow_validator_summary(registry_gate: dict[str, Any], *, limit: int = 10) ->
 def main() -> int:
     args = parse_args()
     repo_root = Path(args.repo_root).resolve()
+    if args.tw_deployment_preflight is not None:
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        from app.reports.tw_consumer_compatibility import deployment_preflight
+        candidate_root = Path(__file__).resolve().parents[2]
+        # The executing candidate checkout, not --repo-root or a mutable
+        # Production HEAD, determines which consumer is actually inspected.
+        proc = subprocess.run(["git", "rev-parse", "HEAD"], cwd=candidate_root,
+                              capture_output=True, text=True, timeout=10)
+        dirty = subprocess.run(["git", "status", "--porcelain", "--untracked-files=all", "--", "app", "scripts"],
+                               cwd=candidate_root, capture_output=True, text=True, timeout=10)
+        head = proc.stdout.strip() if proc.returncode == 0 and dirty.returncode == 0 and not dirty.stdout.strip() else "DIRTY_OR_UNKNOWN_CANDIDATE"
+        result = deployment_preflight(
+            args.tw_deployment_preflight,
+            session=datetime.now(ZoneInfo("Asia/Taipei")).date().isoformat(),
+            expected_snapshot_id=args.expected_pre_open_id,
+            candidate_sha=args.expected_candidate_sha, head_sha=head)
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None))
+        return 0 if result["status"] == "PASS" else 2
     runtime_dir = Path(args.runtime_dir).expanduser().resolve()
     stage_timings: dict[str, float] = {}
     started = time.monotonic()
