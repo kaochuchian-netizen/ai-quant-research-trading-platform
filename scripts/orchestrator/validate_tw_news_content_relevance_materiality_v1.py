@@ -201,7 +201,8 @@ def run_validation() -> dict[str, Any]:
     checks["content_fetch_failure_remains_fail_closed"] = (
         no_content_stats["admission_ready"] == 0
         and "relevance" not in no_content_items[0]
-        and no_content_contract["evidence_funnel"]["rejection_reasons"].get("RELEVANCE_NOT_EVALUATED") == 1
+        and no_content_contract["evidence_funnel"]["rejection_reasons"].get("ARTICLE_CONTENT_UNAVAILABLE") == 1
+        and no_content_contract["evidence_funnel"]["stages"]["ADMITTED"] == 0
     )
 
     unrelated_session = _Session({"https://news.example/acer": _Response(_html("宏碁 2353 商用筆電新品上市，訂單需求增加。公司指出商用通路庫存回補，AI PC 產品銷售改善，對宏碁後續營收展望具有明確影響。此消息內容聚焦宏碁品牌與個人電腦市場，未涉及其他半導體供應鏈公司事件。"))})
@@ -209,7 +210,8 @@ def run_validation() -> dict[str, Any]:
     unrelated_contract = _contract(unrelated_items, "2330", "台積電")
     checks["unrelated_article_rejected_without_relevance_fields"] = (
         unrelated_stats["rejection_reasons"].get("CONTENT_SYMBOL_EVIDENCE_MISSING") == 1
-        and unrelated_contract["evidence_funnel"]["rejection_reasons"].get("SYMBOL_ATTRIBUTION_FAILED") == 1
+        and unrelated_contract["evidence_funnel"]["rejection_reasons"].get("CONTENT_SYMBOL_EVIDENCE_MISSING") == 1
+        and unrelated_contract["evidence_funnel"]["stages"]["ADMITTED"] == 0
     )
 
     etf_session = _Session({"https://news.example/company": _Response(_html("台積電 2330 月營收成長，先進製程訂單增加。"))})
@@ -225,7 +227,8 @@ def run_validation() -> dict[str, Any]:
     low_contract = _contract(low_items, "2330", "台積電")
     checks["low_value_forum_content_rejected"] = (
         low_stats["rejection_reasons"].get("LOW_VALUE_METADATA_OR_FORUM_CONTENT") == 1
-        and low_contract["evidence_funnel"]["rejection_reasons"].get("LOW_RELEVANCE") == 1
+        and low_contract["evidence_funnel"]["rejection_reasons"].get("LOW_VALUE_METADATA_OR_FORUM_CONTENT") == 1
+        and low_contract["evidence_funnel"]["stages"]["ADMITTED"] == 0
     )
 
     duplicate_session = _Session({

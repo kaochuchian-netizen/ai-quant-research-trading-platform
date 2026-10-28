@@ -212,7 +212,7 @@ class LifecycleTests(unittest.TestCase):
         from app.research.tw_news_content_relevance import ArticleContent
         body = '台積電 2330 營收成長與新產品訂單。' * 12
         with patch.dict(os.environ, {'STOCK_AI_DISABLE_LIVE_NEWS_NETWORK':'0'}), patch('app.research.tw_news_content_relevance.fetch_article_content', return_value=ArticleContent('success', body)) as fetch:
-            result = collect_tw_news('2330','台積電',session=session,google_fetcher=lambda *_:[{'title':'台積電營收','link':'https://example.com/news'}])
+            result = collect_tw_news('2330','台積電',reference='2026-09-22T07:00:00+08:00',session=session,google_fetcher=lambda *_:[{'title':'台積電營收','link':'https://example.com/news','published':'2026-09-21T12:00:00+08:00'}])
         fetch.assert_called_once()
         self.assertEqual(result['items'][0]['content'], body)
         self.assertEqual(result['content_relevance_enrichment']['content_success'], 1)

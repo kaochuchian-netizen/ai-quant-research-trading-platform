@@ -483,6 +483,7 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
             ),
         )
 
+    news_as_of = datetime.fromisoformat(context["created_at"]).replace(tzinfo=ZoneInfo("Asia/Taipei")).isoformat()
     news_aggregation_session = TwNewsAggregationSession()
     try:
         for stock_id in stock_ids:
@@ -527,7 +528,7 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
                     stock_name,
                     include_evidence=True,
                     aggregation_session=news_aggregation_session,
-                    reference=context["run_date"],
+                    reference=news_as_of,
                 )
                 report_manual_rerun_stage("news_acquisition", "completed", symbol=stock_id)
                 news_result = news_bundle.get("analysis", "")

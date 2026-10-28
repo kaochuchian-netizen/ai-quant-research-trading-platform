@@ -67,7 +67,7 @@ def checks() -> dict[str, bool]:
         "separate_aggregate": aggregate["prediction_range_hit_count"] == 1 and aggregate["trade_pending_count"] == 1 and aggregate["trade_hit_count"] == 0,
         "news_unavailable_truthful": unavailable_news == {
             "direction": "無法判定", "status": "未取得可納入分析的內容",
-            "reason": "最近 72 小時未取得符合品質與重大性門檻的新聞；已檢查：MOPS、TWSE、COMPANY_IR、GENERAL_FINANCIAL_MEDIA",
+            "reason": "本次日期區間未取得符合品質與重大性門檻的新聞；查詢來源：未確認來源",
             "strategy_impact": "不調整原技術／策略排序", "source_quality": "不適用｜無可納入證據", "confidence": "不適用",
         },
         "rr_localized": safe_public_text("reward/risk below 0.8 threshold").startswith("風險報酬比"),

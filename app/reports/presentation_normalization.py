@@ -219,17 +219,26 @@ def concise_news_summary(card: dict[str, Any]) -> dict[str, str]:
     detail = card.get("news_summary") or card.get("news_detail")
     retrieval = card.get("news_retrieval") if isinstance(card.get("news_retrieval"), dict) else {}
     evidence = card.get("news_items") if isinstance(card.get("news_items"), list) else []
-    unavailable = not evidence or not detail or any(token in str(detail).lower() for token in ("gemini error", "deadline_exceeded", "暫時無法取得", "尚未取得可用分析"))
+    ai = retrieval.get("ai_analysis") or {}
+    unavailable = (bool(ai) and ai.get("status") != "SUCCESS") or not evidence or not detail or any(token in str(detail).lower() for token in ("gemini error", "deadline_exceeded", "暫時無法取得", "尚未取得可用分析"))
     if unavailable:
-        attempted = retrieval.get("sources_attempted") or ["MOPS", "TWSE", "COMPANY_IR", "GENERAL_FINANCIAL_MEDIA"]
+        attempted = retrieval.get("sources_attempted") or ["UNSPECIFIED_UPSTREAM"]
         reason = {
-            "NO_RESULT": "最近 72 小時未找到可納入分析的新聞",
-            "NO_MATERIAL_NEWS": "最近 72 小時沒有符合重大性門檻的新聞",
+            "NO_RESULT": "本次日期區間未找到可納入分析的新聞",
+            "NO_MATERIAL_NEWS": "本次日期區間沒有符合重大性門檻的新聞",
             "LOW_QUALITY_ONLY": "查詢結果缺少可追溯來源，未納入決策",
-        }.get(str(retrieval.get("failure_reason")), "最近 72 小時未取得符合品質與重大性門檻的新聞")
+        }.get(str(retrieval.get("failure_reason")), "本次日期區間未取得符合品質與重大性門檻的新聞")
+        if ai.get("status") in {"TIMEOUT", "QUOTA", "TRANSPORT_ERROR", "PARSE_ERROR", "CONFIGURATION_ERROR"}:
+            reason = {"TIMEOUT": "已有新聞證據，AI 分析逾時", "QUOTA": "已有新聞證據，AI 服務額度受限",
+                      "TRANSPORT_ERROR": "已有新聞證據，AI 服務連線失敗", "PARSE_ERROR": "已有新聞證據，AI 回應無效",
+                      "CONFIGURATION_ERROR": "已有新聞證據，AI 服務設定不可用"}[ai["status"]]
+        source_labels = {"GOOGLE_NEWS_RSS": "Google 新聞", "CNYES": "鉅亨網",
+                         "MOPS": "公開資訊觀測站", "TWSE": "證交所", "COMPANY_IR": "公司公告",
+                         "GENERAL_FINANCIAL_MEDIA": "財經媒體", "UNSPECIFIED_UPSTREAM": "未確認來源"}
+        source_text = "、".join(source_labels.get(str(x), "其他新聞來源") for x in attempted)
         return {
             "direction": "無法判定", "status": "未取得可納入分析的內容",
-            "reason": f"{reason}；已檢查：{'、'.join(attempted)}",
+            "reason": f"{reason}；查詢來源：{source_text}",
             "strategy_impact": "不調整原技術／策略排序",
             "source_quality": "不適用｜無可納入證據", "confidence": "不適用",
         }

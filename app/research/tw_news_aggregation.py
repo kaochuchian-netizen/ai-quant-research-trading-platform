@@ -18,6 +18,7 @@ from typing import Any, Callable
 from urllib.parse import parse_qs, unquote, urlparse
 
 from analysis.news_fetcher import fetch_stock_news
+from app.research.tw_news_window import build_news_window, window_reason, published_time
 from app.research.tw_news_content_relevance import (
     CNYES_BROWSER_CONCURRENCY,
     CnyesSearchConfig,
@@ -28,7 +29,7 @@ from app.research.tw_news_content_relevance import (
 
 GOOGLE_SOURCE = "GOOGLE_NEWS_RSS"
 CNYES_SOURCE = "CNYES"
-MAX_ADMITTED_ARTICLES = 6
+MAX_ANALYZED_ARTICLES = 6
 MAX_CHARS_PER_ARTICLE = 900
 MAX_TOTAL_NEWS_CONTEXT_CHARS = 3600
 
@@ -82,12 +83,15 @@ def _content_rank(item: dict[str, Any]) -> int:
 
 
 def _published_key(item: dict[str, Any]) -> str:
-    return _text(item.get("published_at") or item.get("published") or item.get("date"))
+    value = published_time(item.get("published_at") or item.get("published") or item.get("date"))
+    return value.isoformat() if value else ""
 
 
 def _normalize_google_item(item: dict[str, Any], *, stock_id: str, stock_name: str) -> dict[str, Any]:
     url = _canonical_url(item.get("source_url") or item.get("url") or item.get("link"))
     result = dict(item)
+    raw_published = item.get("published_at") or item.get("published")
+    normalized_time = published_time(raw_published)
     result.update({
         "market": "TW",
         "symbol": str(stock_id),
@@ -99,7 +103,8 @@ def _normalize_google_item(item: dict[str, Any], *, stock_id: str, stock_name: s
         "publisher": item.get("publisher") or item.get("source") or GOOGLE_SOURCE,
         "source_url": url,
         "url": url,
-        "published_at": item.get("published_at") or item.get("published"),
+        "published_at": normalized_time.isoformat() if normalized_time else raw_published,
+        "original_published_at": raw_published,
         "content_status": "TITLE_ONLY",
         "fetch_status": item.get("fetch_status") or "title_only",
         "source_provenance": [{"source": GOOGLE_SOURCE, "url": url, "content_status": "TITLE_ONLY"}],
@@ -182,11 +187,21 @@ class TwNewsAggregationSession:
 
     _browser_attempted: bool = False
     _closed: bool = False
+    recovery_attempts: int = 0
     _fallback_reason: str = "BROWSER_ALREADY_ATTEMPTED"
     _browser_lock: Any = field(default_factory=threading.RLock, repr=False)
 
     def get_browser(self) -> Any:
         with self._browser_lock:
+            # One bounded replacement per batch, never retry the same article.
+            if self.browser is not None and getattr(self.browser, "fallback_reason", None):
+                if self.recovery_attempts >= 1:
+                    from app.research.browser_lifecycle import BrowserUnavailable
+                    raise BrowserUnavailable("BROWSER_RECOVERY_BUDGET_EXHAUSTED")
+                self.recovery_attempts += 1
+                old, self.browser = self.browser, None
+                old.close()
+                self._browser_attempted = False
             return self._get_browser()
 
     def _get_browser(self) -> Any:
@@ -253,14 +268,22 @@ def collect_tw_news(
         with TwNewsAggregationSession() as owned_session:
             return collect_tw_news(stock_id, stock_name, reference=reference, session=owned_session,
                                    google_fetcher=google_fetcher, include_cnyes=include_cnyes)
+    # Date-only legacy callers mean the 07:00 window, never system-local midnight.
+    if isinstance(reference, str) and len(reference) == 10:
+        reference += "T07:00:00+08:00"
+    window = build_news_window(reference)
     include_cnyes = session.enable_cnyes if include_cnyes is None else include_cnyes
     source_health: dict[str, dict[str, Any]] = {}
     raw_items: list[dict[str, Any]] = []
     cnyes_result: dict[str, Any] | None = None
 
     try:
-        google_items = google_fetcher(stock_id, stock_name)
-        source_health[GOOGLE_SOURCE] = {"attempted": True, "status": "success" if google_items else "degraded", "result_count": len(google_items)}
+        google_items = (google_fetcher(stock_id, stock_name, window=window)
+                        if google_fetcher is fetch_stock_news else google_fetcher(stock_id, stock_name))
+        source_health[GOOGLE_SOURCE] = {"attempted": True, "status": "success" if google_items else "degraded", "result_count": len(google_items), "coverage": getattr(google_items, "coverage", {"status": "UNKNOWN", "reason_codes": ["SOURCE_COVERAGE_UNPROVEN"]})}
+        coverage = getattr(google_items, "coverage", {})
+        if len(coverage.get("reason_codes", [])) > 1:
+            source_health[GOOGLE_SOURCE].update(status="degraded", reason="RSS_PARTIAL_ACQUISITION")
         raw_items.extend(_normalize_google_item(item, stock_id=str(stock_id), stock_name=stock_name) for item in google_items)
     except Exception as exc:
         source_health[GOOGLE_SOURCE] = {"attempted": True, "status": "failed", "reason": getattr(exc, "reason", exc.__class__.__name__), "result_count": 0}
@@ -277,12 +300,13 @@ def collect_tw_news(
                 reference=reference,
                 content_cache=session.cnyes_cache,
                 config=session.cnyes_search_config,
+                news_window=window,
             )
             after_cache = len(session.cnyes_cache.content_by_identity)
             attempted = int(cnyes_result.get("article_navigation_attempted") or 0)
             session.articles_navigated += attempted
             session.cache_hits += max(0, attempted - max(0, after_cache - before_cache))
-            cnyes_articles = [_normalize_cnyes_item(item, stock_id=str(stock_id), stock_name=stock_name) for item in cnyes_result.get("articles", [])]
+            cnyes_articles = [_normalize_cnyes_item(item, stock_id=str(stock_id), stock_name=stock_name) for item in (cnyes_result.get("articles", []) + cnyes_result.get("rejected_candidates", []))]
             raw_items.extend(cnyes_articles)
             degraded_reason = cnyes_result.get("scroll_stop_reason") if cnyes_result.get("scroll_stop_reason") in {"PROTECTION_BLOCKED", "BROWSER_TIMEOUT", "BROWSER_CRASH"} else None
             degraded_reason = getattr(session.browser, "fallback_reason", None) or degraded_reason
@@ -301,13 +325,25 @@ def collect_tw_news(
     else:
         source_health[CNYES_SOURCE] = {"attempted": False, "status": "skipped", "reason": "DISABLED" if not include_cnyes else "LIVE_NETWORK_DISABLED", "result_count": 0}
 
-    deduped = dedupe_news_items(raw_items)
+    for item in raw_items:
+        item["window_rejection_reason"] = window_reason(item.get("published_at"), window)
+    in_window = [item for item in raw_items if not item["window_rejection_reason"]]
+    outside = [item for item in raw_items if item["window_rejection_reason"]]
+    deduped = dedupe_news_items(in_window)
     deduped, enrichment = enrich_news_items(
         deduped,
         stock_id=str(stock_id),
         stock_name=stock_name,
         fetch_content=session.downstream_fetch_content,
+        max_fetches=12, max_seconds=30,
     )
+    # Use exactly the same formal source/relevance/materiality admission as cards.
+    from app.reports.tw_pre_open_quality import news_contract
+    formal = news_contract({"items": deduped, "news_window": window}, generated_at=window["as_of"],
+                           target_symbol=str(stock_id), target_name=stock_name)
+    admitted_urls = {item["source_url"] for item in formal["evidence"]}
+    for item in deduped:
+        item["admission_status"] = "ADMITTED" if item["source_url"] in admitted_urls else "REJECTED"
     completed_at = _utc_now()
     retrieved_sources = [source for source, health in source_health.items() if health.get("status") in {"success", "degraded"} and health.get("result_count", 0) > 0]
     attempted_sources = [source for source, health in source_health.items() if health.get("attempted") is True]
@@ -316,12 +352,21 @@ def collect_tw_news(
         "market": "TW",
         "symbol": str(stock_id),
         "stock_name": stock_name,
-        "items": deduped,
+        "items": deduped + outside,
+        "news_window": window,
+        "funnel": {"fetched": len(raw_items), "in_window": len(in_window),
+                   "outside_window": len(outside), "deduped": len(deduped),
+                   "duplicates": len(in_window)-len(deduped),
+                   "relevant": sum(str(i.get("relevance")) in {"medium", "high", "critical"} for i in deduped),
+                   "admitted": len(formal["evidence"]), "analyzed": 0},
         "content_relevance_enrichment": enrichment,
         "source_health": source_health,
         "cnyes_collection": cnyes_result,
         "retrieval": {
-            "lookback_hours": 72,
+            "lookback_hours": (published_time(window["as_of"])-published_time(window["start"])).total_seconds()/3600,
+            "news_window": window,
+            "coverage": "PARTIAL" if raw_items else "UNKNOWN",
+            "source_coverage": {key: value.get("coverage", {"status": "PARTIAL" if value.get("result_count") else "UNKNOWN"}) for key, value in source_health.items()},
             "sources_attempted": attempted_sources,
             "sources_succeeded": [source for source, health in source_health.items() if health.get("status") == "success"],
             "sources_failed": [{"source": source, "reason": health.get("reason") or health.get("status")} for source, health in source_health.items() if health.get("status") in {"failed", "degraded"}],
@@ -330,14 +375,14 @@ def collect_tw_news(
             "query_completed_at": completed_at,
             "result_count_raw": len(raw_items),
             "result_count_deduped": len(deduped),
-            "result_count_admitted": int(enrichment.get("admission_ready") or 0),
-            "result_count_evaluation_ready": int(enrichment.get("admission_ready") or 0),
+            "result_count_admitted": len(formal["evidence"]),
+            "result_count_evaluation_ready": len(formal["evidence"]),
             "retrieved_sources": retrieved_sources,
-            "dedup_savings": max(0, len(raw_items) - len(deduped)),
+            "dedup_savings": max(0, len(in_window) - len(deduped)),
             "browser_launches": session.browser_launches,
             "browser_concurrency": CNYES_BROWSER_CONCURRENCY,
             "transient_cache_entries": len(session.cnyes_cache.content_by_identity),
-            "failure_reason": None if deduped else "NO_RESULT",
+            "failure_reason": None if formal["evidence"] else "FILTERED" if raw_items else "NO_RESULT",
         },
         "prompt_policy": news_prompt_policy(),
     }
@@ -345,7 +390,7 @@ def collect_tw_news(
 
 def news_prompt_policy() -> dict[str, int]:
     return {
-        "max_admitted_articles": MAX_ADMITTED_ARTICLES,
+        "max_analyzed_articles": MAX_ANALYZED_ARTICLES,
         "max_chars_per_article": MAX_CHARS_PER_ARTICLE,
         "max_total_news_context_chars": MAX_TOTAL_NEWS_CONTEXT_CHARS,
     }
@@ -356,7 +401,7 @@ def select_prompt_news_items(items: list[dict[str, Any]]) -> list[dict[str, Any]
         mat = {"critical": 3, "high": 2, "medium": 1}.get(str(item.get("materiality") or "").lower(), 0)
         rel = {"critical": 3, "high": 2, "medium": 1}.get(str(item.get("relevance") or "").lower(), 0)
         return (mat, rel, _published_key(item), _text(item.get("source")))
-    selected = sorted(items, key=rank, reverse=True)[:MAX_ADMITTED_ARTICLES]
+    selected = sorted([i for i in items if i.get("admission_status") == "ADMITTED"], key=rank, reverse=True)[:MAX_ANALYZED_ARTICLES]
     total = 0
     bounded: list[dict[str, Any]] = []
     for item in selected:

@@ -56,8 +56,27 @@ def analyze_news(stock_id, stock_name, *, include_evidence=False, aggregation_se
 
     news_items = aggregation.get("items", [])
     prompt_items = select_prompt_news_items(news_items)
-    prompt = build_aggregation_news_prompt(stock_id, stock_name, prompt_items)
-    result = generate_analysis(prompt)
+    if prompt_items:
+        prompt = build_aggregation_news_prompt(stock_id, stock_name, prompt_items)
+        ai = generate_analysis(prompt, structured=True)
+    else:
+        ai = {"status": "SKIPPED", "reason_code": "NO_ADMITTED_EVIDENCE", "text": ""}
+    if (not isinstance(ai, dict)
+            or ai.get("status") not in {"SUCCESS", "TIMEOUT", "QUOTA", "TRANSPORT_ERROR", "PARSE_ERROR", "CONFIGURATION_ERROR", "SKIPPED"}
+            or ai.get("status") == "SUCCESS" and (not isinstance(ai.get("text"), str) or not ai["text"].strip())):
+        ai = {"status": "PARSE_ERROR", "reason_code": "AI_INVALID_RESPONSE", "text": ""}
+    labels = {"TIMEOUT": "新聞分析逾時", "QUOTA": "新聞分析服務額度受限",
+              "TRANSPORT_ERROR": "新聞分析服務連線失敗", "PARSE_ERROR": "新聞分析回應格式無效",
+              "CONFIGURATION_ERROR": "新聞分析服務設定不可用", "SKIPPED": "尚無通過證據門檻的新聞"}
+    result = ai["text"] if ai.get("status") == "SUCCESS" else labels.get(ai.get("status"), "新聞分析未完成")
+    selected = {item.get("source_url") for item in prompt_items}
+    for item in news_items:
+        item["analysis_status"] = ("ANALYZED" if ai.get("status") == "SUCCESS" else "AI_" + ai["status"]) if item.get("source_url") in selected else "ANALYSIS_BUDGET" if item.get("admission_status") == "ADMITTED" else "NOT_ADMITTED"
+    funnel = dict(aggregation.get("funnel") or {})
+    funnel["analysis_selected"] = len(prompt_items)
+    funnel["analyzed"] = len(prompt_items) if ai.get("status") == "SUCCESS" else 0
+    ai = {k: v for k, v in ai.items() if k != "text"}
+    ai["evidence_urls"] = sorted(url for url in selected if url)
 
     if not include_evidence:
         return result
@@ -67,6 +86,9 @@ def analyze_news(stock_id, stock_name, *, include_evidence=False, aggregation_se
     retrieval.setdefault("query_completed_at", datetime.now(timezone.utc).replace(microsecond=0).isoformat())
     return {
         "analysis": result,
+        "ai_analysis": ai,
+        "funnel": funnel,
+        "news_window": aggregation.get("news_window"),
         "items": news_items,
         "content_relevance_enrichment": aggregation.get("content_relevance_enrichment") or _empty_enrichment(),
         "source_health": aggregation.get("source_health") or {},

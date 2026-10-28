@@ -376,6 +376,7 @@ def collect_cnyes_time_window_results(
     holiday_dates: set[str] | set[date] | None = None,
     config: CnyesSearchConfig | None = None,
     elapsed_seconds: float | None = None,
+    news_window: dict | None = None,
 ) -> dict[str, Any]:
     """Collect CNYES search results with a TW-trading-window bounded lazy-load contract.
 
@@ -387,10 +388,18 @@ def collect_cnyes_time_window_results(
     cfg = config or CnyesSearchConfig()
     target = build_cnyes_target_window(reference, holiday_dates=holiday_dates)
     target_dates = set(target["target_trading_dates"])
+    if news_window:
+        from app.research.tw_news_window import published_time
+        lower, upper = published_time(news_window["start"]), published_time(news_window["as_of"])
+        target_dates = {(lower + timedelta(days=n)).date().isoformat()
+                        for n in range((upper.date()-lower.date()).days+1)}
+        target.update(target_window_start=lower.isoformat(), target_window_end=upper.isoformat(),
+                      target_trading_dates=sorted(target_dates), calendar_policy=news_window["policy"])
     lower_day = min((_day(value) for value in target_dates if value), default=None)
     start = monotonic_time.monotonic()
     seen_urls: set[str] = set()
     within_window: list[dict[str, Any]] = []
+    observed_candidates: list[dict[str, Any]] = []
     all_dates: list[datetime] = []
     older_than_window_seen = 0
     search_results_seen = 0
@@ -422,6 +431,7 @@ def collect_cnyes_time_window_results(
                 continue
             if url:
                 seen_urls.add(url)
+            observed_candidates.append(item)
             search_results_seen += 1
             new_items += 1
             published = _parse_published_at(item.get("published_at"))
@@ -429,7 +439,7 @@ def collect_cnyes_time_window_results(
                 all_dates.append(published)
                 batch_parseable.append((item, published))
                 published_day = published.date().isoformat()
-                if published_day in target_dates:
+                if published_day in target_dates and (not news_window or lower <= published <= upper):
                     within_window.append(item)
                     saw_window_result = True
                 elif lower_day and published.date() < lower_day:
@@ -489,6 +499,7 @@ def collect_cnyes_time_window_results(
         "browser_crash_count": 0,
         "usable_for_analysis_count": 0,
         "articles": within_window,
+        "rejected_candidates": [i for i in observed_candidates if i not in within_window],
         "article_fetch_queue": fetch_queue,
         "safety_bounds": {
             "max_scroll_rounds": cfg.max_scroll_rounds,
@@ -549,6 +560,7 @@ def collect_cnyes_browser_news(
     holiday_dates: set[str] | set[date] | None = None,
     config: CnyesSearchConfig | None = None,
     content_cache: CnyesBrowserContentCache | None = None,
+    news_window: dict | None = None,
 ) -> dict[str, Any]:
     """Collect and enrich CNYES news through one bounded Selenium browser session.
 
@@ -572,7 +584,7 @@ def collect_cnyes_browser_news(
                 stock_name=stock_name,
                 reference=reference,
                 holiday_dates=holiday_dates,
-                config=cfg,
+                config=cfg, news_window=news_window,
             )
             if current["scroll_stop_reason"] in {
                 "TRADING_WINDOW_BOUNDARY_REACHED",
@@ -612,7 +624,7 @@ def collect_cnyes_browser_news(
             stock_name=stock_name,
             reference=reference,
             holiday_dates=holiday_dates,
-            config=cfg,
+            config=cfg, news_window=news_window,
         )
         current["scroll_stop_reason"] = reason
 
@@ -622,7 +634,7 @@ def collect_cnyes_browser_news(
         stock_name=stock_name,
         reference=reference,
         holiday_dates=holiday_dates,
-        config=cfg,
+        config=cfg, news_window=news_window,
     )
     if "current" in locals() and current.get("scroll_stop_reason") in {"PROTECTION_BLOCKED", "BROWSER_TIMEOUT", "BROWSER_CRASH"}:
         result["scroll_stop_reason"] = current["scroll_stop_reason"]
@@ -635,7 +647,7 @@ def collect_cnyes_browser_news(
     for article in result["articles"]:
         item = dict(article)
         identity = str(item.get("article_identity") or cnyes_article_identity(item))
-        if identity in fetch_identities:
+        if identity in fetch_identities and not getattr(browser, "fallback_reason", None):
             if identity not in cache.content_by_identity:
                 attempted += 1
                 cache.content_by_identity[identity] = _article_content_from_browser(browser, item)
@@ -661,6 +673,7 @@ def collect_cnyes_browser_news(
                 elif reason == "BROWSER_CRASH":
                     browser_crash_count += 1
         enriched_articles.append(item)
+    result["coverage"] = "PARTIAL" if enriched_articles else "UNKNOWN"
     result["articles"] = enriched_articles
     result["article_navigation_attempted"] = attempted
     result["article_navigation_success"] = success
@@ -984,7 +997,10 @@ def enrich_news_items(
     fetch_content: bool = True,
     resolver: Any = None,
     connection_resolver: Any = None,
+    max_fetches: int | None = None, max_seconds: float | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    deadline = monotonic_time.monotonic() + max_seconds if max_seconds is not None else float("inf")
+    fetches = 0
     enriched: list[dict[str, Any]] = []
     content_cache: dict[str, ArticleContent] = {}
     stats = {
@@ -1006,7 +1022,11 @@ def enrich_news_items(
             content_result = ArticleContent("success", existing_content[:MAX_CONTENT_CHARS], final_url=str(url) if url else None)
         elif fetch_content and url:
             cache_key = str(url)
+            if cache_key not in content_cache and (monotonic_time.monotonic() >= deadline or
+                    (max_fetches is not None and fetches >= max_fetches)):
+                content_cache[cache_key] = ArticleContent("skipped", "", failure_reason="CONTENT_BUDGET_EXHAUSTED")
             if cache_key not in content_cache:
+                fetches += 1
                 content_cache[cache_key] = fetch_article_content(
                     cache_key,
                     session=session,
@@ -1026,6 +1046,8 @@ def enrich_news_items(
         else:
             stats["content_failed"] += 1
         evaluation = evaluate_news_item(item, stock_id=stock_id, stock_name=stock_name, content=content_result.content)
+        if evaluation.get("rejection_reason") == "ARTICLE_CONTENT_UNAVAILABLE":
+            evaluation["content_failure_reason"] = content_result.failure_reason
         item["relevance_materiality_evaluation"] = evaluation
         stats["evaluated"] += 1
         if not evaluation.get("rejection_reason"):
