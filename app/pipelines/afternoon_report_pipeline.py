@@ -303,6 +303,7 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
     ]
     stock_name_warnings = []
 
+    news_as_of = datetime.fromisoformat(context["created_at"]).replace(tzinfo=ZoneInfo("Asia/Taipei")).isoformat()
     news_aggregation_session = TwNewsAggregationSession()
     try:
         for stock_id in stock_ids:
@@ -350,7 +351,7 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
                             stock_name,
                             include_evidence=True,
                             aggregation_session=news_aggregation_session,
-                            reference=context["run_date"],
+                            reference=news_as_of,
                         )
                         news_result = news_bundle.get("analysis", "")
                         news_score_result = calculate_news_score(news_result)
