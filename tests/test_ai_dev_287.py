@@ -152,4 +152,33 @@ class NativeEntryTests(unittest.TestCase):
                 self.assertEqual(check.call_args.kwargs['candidate_sha'],SHA)
 
 
+class DeploymentRunbookContractTests(unittest.TestCase):
+    def test_actual_runbook_requires_candidate_gate_before_deployment(self):
+        root = Path(__file__).resolve().parents[1]
+        text = (root / 'docs/architecture/ai-dev-286-correction-publication-runbook.md').read_text()
+        section = text.split('## A0.', 1)[1].split('## A.', 1)[0]
+        for required in (
+            'every TW consumer deployment',
+            'scripts/orchestrator/validate_post_merge_status.py',
+            '--tw-deployment-preflight "$READONLY_FROZEN_SNAPSHOT_ROOT"',
+            '--expected-pre-open-id "$APPROVED_PRE_OPEN_ID"',
+            '--expected-candidate-sha "$CANDIDATE_SHA"',
+            'test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"',
+            'result.get("status") != "PASS"',
+            'exit 2', 'BLOCKED', 'UNKNOWN', 'nonzero exit means STOP',
+            'source_sha256', 'dynamic notification universe',
+            'frozen_delivery_prediction_v1', 'Asia/Taipei',
+            'active workers/bridge/locks', 'HEAD ancestry',
+            'blocking=0', 'unknown=0', 'invalidates the prior PASS',
+            'Registry, CI and PM approval', 'not a Git hook',
+            'cannot prevent manual Git deployment',
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, section)
+        # Documented flags must remain part of the actual native CLI contract.
+        native = (root / 'scripts/orchestrator/validate_post_merge_status.py').read_text()
+        for flag in ('--tw-deployment-preflight', '--expected-pre-open-id', '--expected-candidate-sha'):
+            self.assertIn(flag, native)
+
+
 if __name__ == "__main__": unittest.main()
