@@ -32,6 +32,70 @@ cd "$REPO"
 export PYTHONDONTWRITEBYTECODE=1
 ```
 
+## A0. Mandatory TW consumer compatibility gate BEFORE source sync
+
+This prerequisite applies to **every TW consumer deployment**, including source
+sync preceding this publication runbook. Run it BEFORE changing Production HEAD;
+section A below checks the deployed HEAD afterward. No sync is authorized by this
+document. See [AI-DEV-287 operator contract](../audits/ai-dev-287-deployment-schema-compatibility.md).
+
+Permission: read-only Production evidence access; local private gate evidence
+only. Use a clean isolated **candidate checkout** at the exact proposed deployment
+SHA, not the currently deployed consumer. Independently pin today's Asia/Taipei
+frozen snapshot ID and original raw SHA-256; copy only the immutable snapshot
+revision inventory into a private read-only local root. Never substitute another
+date, mutable latest, convert a legacy snapshot or copy credentials/recipients.
+
+```sh
+: "${CANDIDATE_REPO:?}" "${CANDIDATE_SHA:?}" "${CANDIDATE_PYTHON:?}"
+: "${READONLY_FROZEN_SNAPSHOT_ROOT:?}" "${APPROVED_PRE_OPEN_ID:?}"
+: "${GATE_RESULT:?private local output outside repository}"
+(
+  set -eu
+  cd "$CANDIDATE_REPO"
+  test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+  PYTHONDONTWRITEBYTECODE=1 "$CANDIDATE_PYTHON" scripts/orchestrator/validate_post_merge_status.py \
+    --tw-deployment-preflight "$READONLY_FROZEN_SNAPSHOT_ROOT" \
+    --expected-pre-open-id "$APPROVED_PRE_OPEN_ID" \
+    --expected-candidate-sha "$CANDIDATE_SHA" --pretty > "$GATE_RESULT"
+  "$CANDIDATE_PYTHON" - "$GATE_RESULT" <<'PY_GATE'
+import json, sys
+with open(sys.argv[1]) as stream:
+    result = json.load(stream)
+if result.get("status") != "PASS":
+    raise SystemExit("STOP: compatibility status is not PASS")
+PY_GATE
+) || { echo 'STOP: TW compatibility gate did not PASS' >&2; exit 2; }
+```
+
+**Only status PASS AND exit code 0 permit consideration of source sync. BLOCKED,
+UNKNOWN, missing/malformed result or any nonzero exit means STOP; do not sync.**
+The candidate gate checks the current Asia/Taipei date (no date override),
+TW/pre_open_0700 natural frozen snapshot identity/hash/revision, strict
+frozen_delivery_prediction_v1 projection and the dynamic notification universe.
+Compare returned source_sha256 against the independently recorded Production raw
+hash, and symbols/symbol_count against the frozen universe; never fix a count.
+Any mismatch means STOP. Preserve the local result and independent pins privately.
+
+Immediately before separately approved ff-only sync, recheck current Taipei date,
+Production snapshot revision inventory, source identity/hash, exact candidate SHA,
+active workers/bridge/locks and batch window, expanded governance blocking=0 and
+unknown=0, and Production HEAD ancestry to that precise candidate. Any UNKNOWN
+means STOP. A date rollover, snapshot/source change or candidate SHA change
+**invalidates the prior PASS**: obtain fresh independent pins and rerun this gate.
+A merge commit differs from a tested PR HEAD and requires its own candidate check.
+Recheck again if approval or execution was delayed; never use yesterday's receipt.
+
+Registry, CI and PM approval remain **independent necessary conditions**. Registry
+NOT_EXECUTED/PENDING/TIMEOUT is not PASS; only a separately explicit PM exception
+under existing governance can authorize a registry exception, never a failed
+compatibility check. Preserve runtime artifacts and existing deployment controls.
+
+This is an operator-enforced Runbook prerequisite, **not a Git hook** or automatic
+interceptor. It cannot prevent manual Git deployment that bypasses this Runbook;
+normal governance invocation does not implicitly enable this optional CLI mode.
+Record this residual procedural risk; do not claim technical enforcement.
+
 ## A. Fresh read-only deployment and scheduling gate
 
 Permission: read only. Write scope: none. Do not install dependencies.
