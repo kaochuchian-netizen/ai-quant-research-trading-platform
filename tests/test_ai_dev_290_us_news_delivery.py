@@ -103,6 +103,57 @@ class NewsFallbackTests(unittest.TestCase):
 
 
 class USNotificationTests(unittest.TestCase):
+    def test_immutable_channel_receipts_prevent_duplicate_send(self):
+        import tempfile
+        from pathlib import Path
+        from scripts.orchestrator.approved_us_stock_delivery import send_us_channel_with_receipt
+        snapshot = {
+            "market": "US", "window": "us_pre_market_2000",
+            "effective_trading_date": "2026-10-29",
+            "generated_at": ASOF,
+            "revision": 1, "snapshot_id": "us-test-snapshot-1",
+            "payload": {"synthetic": True},
+        }
+        with tempfile.TemporaryDirectory() as tmp, \
+             patch("scripts.orchestrator.approved_us_stock_delivery.line_text", return_value="test report"), \\
+             patch("scripts.orchestrator.approved_us_stock_delivery.send_line_if_allowed",
+                   return_value={"attempted": True, "succeeded": True, "recipient_transport": [
+                       {"recipient": "test-user", "status": "accepted"}]}) as send:
+            first = send_us_channel_with_receipt(
+                {}, "us_pre_market_2000", "line", snapshot, Path(tmp))
+            second = send_us_channel_with_receipt(
+                {}, "us_pre_market_2000", "line", snapshot, Path(tmp))
+            self.assertEqual(send.call_count, 1)
+            self.assertTrue(first["succeeded"])
+            self.assertTrue(second["succeeded"])
+            self.assertFalse(second["attempted"])
+            self.assertEqual(first["recipient_count"], 1)
+            self.assertNotIn("test-user", Path(first["receipt_path"]).read_text())
+
+    def test_failed_channel_has_terminal_receipt_no_automatic_resend(self):
+        import tempfile
+        from pathlib import Path
+        from scripts.orchestrator.approved_us_stock_delivery import send_us_channel_with_receipt
+        snapshot = {
+            "market": "US", "window": "us_pre_market_2000",
+            "effective_trading_date": "2026-10-29",
+            "revision": 1, "snapshot_id": "us-failed-test",
+            "payload": {"synthetic": True},
+        }
+        with tempfile.TemporaryDirectory() as tmp, \
+             patch("scripts.orchestrator.approved_us_stock_delivery.line_text", return_value="failed report"), \\
+             patch("scripts.orchestrator.approved_us_stock_delivery.send_line_if_allowed",
+                   return_value={"attempted": True, "succeeded": False,
+                                 "reason": "line_transport_failure"}) as send:
+            first = send_us_channel_with_receipt(
+                {}, "us_pre_market_2000", "line", snapshot, Path(tmp))
+            second = send_us_channel_with_receipt(
+                {}, "us_pre_market_2000", "line", snapshot, Path(tmp))
+            self.assertFalse(first["succeeded"])
+            self.assertFalse(second["succeeded"])
+            self.assertFalse(second["attempted"])
+            self.assertEqual(send.call_count, 1)
+
     @patch("scripts.orchestrator.approved_us_stock_delivery.line_text", return_value="report")
     @patch("reports.line_report_sender.get_line_user_ids", return_value=["u1", "u2"])
     @patch("reports.line_report_sender.send_line_report", return_value=[("u1", 200), ("u2", 200)])
