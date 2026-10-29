@@ -115,7 +115,7 @@ class USNotificationTests(unittest.TestCase):
             "payload": {"synthetic": True},
         }
         with tempfile.TemporaryDirectory() as tmp, \
-             patch("scripts.orchestrator.approved_us_stock_delivery.line_text", return_value="test report"), \\
+             patch("scripts.orchestrator.approved_us_stock_delivery.line_text", return_value="test report"), \
              patch("scripts.orchestrator.approved_us_stock_delivery.send_line_if_allowed",
                    return_value={"attempted": True, "succeeded": True, "recipient_transport": [
                        {"recipient": "test-user", "status": "accepted"}]}) as send:
@@ -141,7 +141,7 @@ class USNotificationTests(unittest.TestCase):
             "payload": {"synthetic": True},
         }
         with tempfile.TemporaryDirectory() as tmp, \
-             patch("scripts.orchestrator.approved_us_stock_delivery.line_text", return_value="failed report"), \\
+             patch("scripts.orchestrator.approved_us_stock_delivery.line_text", return_value="failed report"), \
              patch("scripts.orchestrator.approved_us_stock_delivery.send_line_if_allowed",
                    return_value={"attempted": True, "succeeded": False,
                                  "reason": "line_transport_failure"}) as send:
