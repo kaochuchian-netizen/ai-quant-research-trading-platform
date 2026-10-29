@@ -30,6 +30,34 @@ class NewsFallbackTests(unittest.TestCase):
         self.assertEqual(admitted[0]["discovery_channel"], "GOOGLE_NEWS_RSS")
         self.assertEqual(evidence["stages"]["ADMITTED"], 1)
 
+    def test_live_client_uses_fallback_when_yahoo_empty(self):
+        import pandas as pd
+        from app.us_stock.live_data import YFinanceUSClient
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        ticker = Mock()
+        ticker.fast_info = {"last_price": 402.0, "previous_close": 400.0}
+        ticker.get_info.return_value = {}
+        ticker.history.return_value = pd.DataFrame({"Close": [399.0, 402.0]})
+        ticker.news = []
+        client = YFinanceUSClient()
+        client._ticker_cache["TSLA"] = ticker
+        client.news_as_of = datetime(2026, 10, 29, 20, tzinfo=ZoneInfo("Asia/Taipei"))
+        rss = [{
+            "title": "Tesla battery production update",
+            "publisher": "Synthetic Finance",
+            "pubDate": "2026-10-29T10:00:00Z",
+            "link": "https://news.google.com/rss/articles/test",
+            "contentType": "STORY",
+            "discovery_channel": "GOOGLE_NEWS_RSS",
+        }]
+        with patch("app.us_stock.news_rss_fallback.fetch_us_google_news_rss", return_value=(rss, None)):
+            result = client.fetch_symbol("TSLA")
+        self.assertTrue(result.ok)
+        self.assertEqual(len(result.news), 1)
+        self.assertEqual(result.news_diagnostics["source_attempts"]["YAHOO_FINANCE"]["candidate_count"], 0)
+        self.assertEqual(result.news_diagnostics["source_attempts"]["GOOGLE_NEWS_RSS"]["candidate_count"], 1)
+
     def test_wrong_company_and_stale_news_still_rejected(self):
         response = Mock(content=RSS)
         with patch("app.us_stock.news_rss_fallback.requests.get", return_value=response):
