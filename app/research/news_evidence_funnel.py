@@ -326,7 +326,8 @@ def normalize_yfinance_news(
         source_url = _url(item.get("canonicalUrl") or item.get("clickThroughUrl") or item.get("link") or item.get("url"))
         candidate_base = {
             "record_version": "us_news_candidate_metadata_v1", "market": "US", "symbol": symbol.upper(),
-            "headline": title or None, "publisher": publisher or None, "published_at": published,\n            "discovery_channel": str(value.get("discovery_channel") or "YAHOO_FINANCE"),
+            "headline": title or None, "publisher": publisher or None, "published_at": published,
+            "discovery_channel": str(value.get("discovery_channel") or "YAHOO_FINANCE"),
             "source_reference": source_url, "fetched_at": observed_at,
         }
         candidate_base["candidate_id"] = _stable_id("news_cand_", [symbol.upper(), title, published, source_url])
