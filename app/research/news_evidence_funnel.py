@@ -326,7 +326,7 @@ def normalize_yfinance_news(
         source_url = _url(item.get("canonicalUrl") or item.get("clickThroughUrl") or item.get("link") or item.get("url"))
         candidate_base = {
             "record_version": "us_news_candidate_metadata_v1", "market": "US", "symbol": symbol.upper(),
-            "headline": title or None, "publisher": publisher or None, "published_at": published,
+            "headline": title or None, "publisher": publisher or None, "published_at": published,\n            "discovery_channel": str(value.get("discovery_channel") or "YAHOO_FINANCE"),
             "source_reference": source_url, "fetched_at": observed_at,
         }
         candidate_base["candidate_id"] = _stable_id("news_cand_", [symbol.upper(), title, published, source_url])
@@ -398,7 +398,7 @@ def normalize_yfinance_news(
             "direction": "unavailable", "direction_status": "NOT_EVALUATED",
             "entity_attribution": attribution,
             "publisher_resolution_status": publisher_resolution_status,
-            "discovery_channel": "YAHOO_FINANCE",
+            "discovery_channel": str(value.get("discovery_channel") or "YAHOO_FINANCE"),
             "candidate_id": candidate_base["candidate_id"], "news_event_id": news_event_id,
             "canonical_event_identity": news_event_id, "dedupe_key": news_event_id,
             "related_symbols": attribution.get("related_ticker_metadata") or [],
