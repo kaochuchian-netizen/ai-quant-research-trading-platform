@@ -552,7 +552,7 @@ def send_us_channel_with_receipt(
             snapshot=admitted_snapshot, channel=channel, market="US",
             window=window, content=content,
         )
-        if not identity["snapshot_id"] or not identity["effective_trading_date"]:
+        if not identity["snapshot_id"] or not identity["trading_date"]:
             raise ValueError("incomplete_snapshot_identity")
     except (ValueError, KeyError, TypeError) as exc:
         return {
