@@ -1,0 +1,94 @@
+"""AI-DEV-290: synthetic fallback and transport regression. No network or sends."""
+import unittest
+from unittest.mock import patch, Mock
+
+from app.us_stock.news_rss_fallback import fetch_us_google_news_rss
+from app.research.news_evidence_funnel import normalize_yfinance_news
+from scripts.orchestrator.approved_us_stock_delivery import send_line_if_allowed, send_email_if_allowed
+
+ASOF = "2026-10-29T20:00:00+08:00"
+RSS = b"""<rss><channel><item>
+<title>Tesla announces battery production update</title>
+<link>https://news.google.com/rss/articles/test</link>
+<pubDate>Thu, 29 Oct 2026 10:00:00 GMT</pubDate>
+<source url="https://example.com">Synthetic Finance</source>
+</item></channel></rss>"""
+
+
+class NewsFallbackTests(unittest.TestCase):
+    def test_bounded_rss_candidate_passes_unchanged_admission(self):
+        response = Mock(content=RSS)
+        response.raise_for_status.return_value = None
+        with patch("app.us_stock.news_rss_fallback.requests.get", return_value=response) as get:
+            rows, error = fetch_us_google_news_rss("TSLA")
+        self.assertIsNone(error)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["discovery_channel"], "GOOGLE_NEWS_RSS")
+        self.assertEqual(get.call_args.kwargs["timeout"], 8)
+        admitted, evidence = normalize_yfinance_news(rows, symbol="TSLA", observed_at=ASOF)
+        self.assertEqual(len(admitted), 1)
+        self.assertEqual(admitted[0]["discovery_channel"], "GOOGLE_NEWS_RSS")
+        self.assertEqual(evidence["stages"]["ADMITTED"], 1)
+
+    def test_wrong_company_and_stale_news_still_rejected(self):
+        response = Mock(content=RSS)
+        with patch("app.us_stock.news_rss_fallback.requests.get", return_value=response):
+            rows, error = fetch_us_google_news_rss("GOOGL")
+        self.assertIsNone(error)
+        accepted, evidence = normalize_yfinance_news(rows, symbol="GOOGL", observed_at=ASOF)
+        self.assertEqual(accepted, [])
+        self.assertEqual(evidence["stages"]["ADMITTED"], 0)
+        accepted, evidence = normalize_yfinance_news(rows, symbol="TSLA", observed_at="2026-11-05T20:00:00+08:00")
+        self.assertEqual(accepted, [])
+
+    def test_provider_failure_is_not_silent_success(self):
+        import requests
+        with patch("app.us_stock.news_rss_fallback.requests.get", side_effect=requests.Timeout):
+            rows, error = fetch_us_google_news_rss("TSLA")
+        self.assertEqual(rows, [])
+        self.assertEqual(error, "Timeout")
+        rows, error = fetch_us_google_news_rss("UNKNOWN")
+        self.assertEqual(rows, [])
+        self.assertEqual(error, "UNSUPPORTED_SYMBOL")
+
+
+class USNotificationTests(unittest.TestCase):
+    @patch("scripts.orchestrator.approved_us_stock_delivery.line_text", return_value="report")
+    @patch("reports.line_report_sender.get_line_user_ids", return_value=["u1", "u2"])
+    @patch("reports.line_report_sender.send_line_report", return_value=[("u1", 200), ("u2", 200)])
+    def test_line_all_recipients_accepted(self, sender, recipients, text):
+        result = send_line_if_allowed({}, "us_pre_market_2000", True)
+        self.assertTrue(result["succeeded"])
+        self.assertEqual(result["recipient_count"], 2)
+        self.assertEqual(result["chunk_delivery"]["completed_chunk_count"], 1)
+
+    @patch("scripts.orchestrator.approved_us_stock_delivery.line_text", return_value="report")
+    @patch("reports.line_report_sender.get_line_user_ids", return_value=["u1", "u2"])
+    @patch("reports.line_report_sender.send_line_report", return_value=[("u1", 200)])
+    def test_line_partial_receipt_is_failure(self, sender, recipients, text):
+        result = send_line_if_allowed({}, "us_pre_market_2000", True)
+        self.assertFalse(result["succeeded"])
+        self.assertEqual(result["recipient_count"], 0)
+
+    @patch("scripts.orchestrator.approved_us_stock_delivery.line_text", return_value="text" * 2000)
+    @patch("reports.line_report_sender.get_line_user_ids", return_value=["u1"])
+    @patch("reports.line_report_sender.send_line_report", return_value=[("u1", 200)])
+    def test_line_long_report_uses_lossless_chunks(self, sender, recipients, text):
+        result = send_line_if_allowed({}, "us_pre_market_2000", True)
+        self.assertTrue(result["succeeded"])
+        self.assertGreater(result["chunk_delivery"]["chunk_count"], 1)
+
+    @patch("scripts.orchestrator.approved_us_stock_delivery.load_mail_config", return_value={"to_addr": "a@example.com,b@example.com"})
+    @patch("scripts.orchestrator.approved_us_stock_delivery.build_email_subject", return_value="subject")
+    @patch("scripts.orchestrator.approved_us_stock_delivery.build_email_body", return_value="body")
+    @patch("scripts.orchestrator.approved_us_stock_delivery.build_message")
+    @patch("scripts.orchestrator.approved_us_stock_delivery.send_message", return_value={"b@example.com": (550, b"refused")})
+    def test_email_partial_recipient_refusal(self, send, message, body, subject, config):
+        result = send_email_if_allowed({}, "us_pre_market_2000", True)
+        self.assertFalse(result["succeeded"])
+        self.assertEqual(result["recipient_count"], 1)
+        self.assertEqual(result["rejected_count"], 1)
+
+
+if __name__ == "__main__":
+    unittest.main()
