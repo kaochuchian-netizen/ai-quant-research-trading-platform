@@ -344,6 +344,7 @@ class USResearchIntelligenceBuilder:
                 "source_url": item.get("source_url"),
                 "publisher": item.get("publisher") or item.get("source"),
                 "candidate_id": item.get("candidate_id"),
+                "discovery_channel": item.get("discovery_channel") or "YAHOO_FINANCE",
                 "news_event_id": item.get("news_event_id"),
                 "canonical_event_identity": item.get("canonical_event_identity") or item.get("news_event_id"),
                 "contextual_role": item.get("contextual_role"),

@@ -242,6 +242,7 @@ def normalize_news(items: Iterable[dict[str, Any]], observed_at: str, diagnostic
         item = {
             "news_id": "news_" + stable_hash([cluster, reference, headline])[:20],
             "candidate_id": raw.get("candidate_id"), "news_event_id": raw.get("news_event_id") or cluster,
+            "discovery_channel": raw.get("discovery_channel") or "YAHOO_FINANCE",
             "canonical_event_identity": cluster, "event_cluster_id": cluster, "headline": headline or None,
             "summary": _text(raw.get("chinese_summary") or raw.get("summary") or raw.get("investment_reading")) or None,
             "publisher": raw.get("publisher") or provenance.get("publisher"),

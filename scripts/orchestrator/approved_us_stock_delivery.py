@@ -37,6 +37,7 @@ from app.dashboard.window_snapshot_archive import resolve_snapshots, write_snaps
 from app.dashboard.public_latest_sync import synchronize_admitted_latest, write_sync_artifact
 from app.dashboard.visual_evidence_archive import capture_published_snapshot_non_blocking
 from app.reports.delivery_provenance import build_delivery_provenance, write_delivery_provenance
+from app.reports.channel_delivery_receipt import delivery_identity, deliver_once
 from app.runtime.batch_audit_bundle import enqueue_batch_audit_non_blocking
 from app.reports.window_report_contract import get_window_report_contract
 from app.reports.canonical_outcomes import aggregate_us_post_close_review, normalize_review_card
@@ -465,25 +466,127 @@ def line_text(artifact: dict[str, Any], window: str) -> str:
     return render_line(artifact, "US", window, get_window_report_contract("US", window).dashboard_url)
 
 
-def send_email_if_allowed(artifact: dict[str, Any], window: str, production_approved: bool) -> dict[str, Any]:
+def send_email_if_allowed(artifact: dict[str, Any], window: str, production_approved: bool, *, capture_recipients: bool = False) -> dict[str, Any]:
     if not production_approved:
         return {"attempted": False, "succeeded": False, "reason": "dry_run_no_send"}
-    env_file = MAIL_ENV_FILE.expanduser()
-    if env_file.exists():
-        load_env_file(env_file)
-    config = load_mail_config()
-    msg: EmailMessage = build_message(config, build_email_subject(artifact, window), build_email_body(artifact, window))
-    send_message(config, msg)
-    return {"attempted": True, "succeeded": True, "secret_values_printed": False}
+    from email.utils import getaddresses
+    try:
+        env_file = MAIL_ENV_FILE.expanduser()
+        if env_file.exists():
+            load_env_file(env_file)
+        config = load_mail_config()
+        recipients = [address for _, address in getaddresses([str(config.get("to_addr") or "")]) if address]
+        if not recipients:
+            return {"attempted": False, "succeeded": False, "reason": "no_email_recipients", "recipient_count": 0}
+        msg: EmailMessage = build_message(config, build_email_subject(artifact, window), build_email_body(artifact, window))
+        refused = send_message(config, msg) or {}
+        accepted = len([recipient for recipient in recipients if recipient not in refused])
+        result = {
+            "attempted": True, "succeeded": accepted == len(recipients),
+            "recipient_count": accepted, "rejected_count": len(recipients) - accepted,
+            "secret_values_printed": False,
+        }
+        if capture_recipients:
+            result["recipient_transport"] = [
+                {"recipient": recipient, "status": "rejected" if recipient in refused else "accepted"}
+                for recipient in recipients
+            ]
+        return result
+    except Exception as exc:
+        return {
+            "attempted": True, "succeeded": False, "recipient_count": 0,
+            "reason": "email_transport_failure", "error_type": type(exc).__name__,
+            "secret_values_printed": False,
+        }
 
 
-def send_line_if_allowed(artifact: dict[str, Any], window: str, production_approved: bool) -> dict[str, Any]:
+def send_line_if_allowed(artifact: dict[str, Any], window: str, production_approved: bool, *, capture_recipients: bool = False) -> dict[str, Any]:
     if not production_approved:
         return {"attempted": False, "succeeded": False, "reason": "dry_run_no_send"}
-    line_module = importlib.import_module("reports.line_report_sender")
-    sender = getattr(line_module, "send_" + "line_report")
-    sender(line_text(artifact, window))
-    return {"attempted": True, "succeeded": True, "mode": "concise_reminder_only", "secret_values_printed": False}
+    from app.reports.line_chunks import deliver_line_chunks
+    try:
+        line_module = importlib.import_module("reports.line_report_sender")
+        sender = getattr(line_module, "send_" + "line_report")
+        expected = {str(value) for value in line_module.get_line_user_ids()}
+        if not expected:
+            return {"attempted": False, "succeeded": False, "reason": "no_line_recipients", "recipient_count": 0}
+        accepted_sets = []
+        def send_chunk(chunk: str) -> None:
+            responses = sender(chunk) or []
+            accepted = {str(recipient) for recipient, code in responses if 200 <= int(code) < 300}
+            if accepted != expected:
+                raise RuntimeError("line_recipient_receipt_incomplete")
+            accepted_sets.append(accepted)
+        chunks = deliver_line_chunks(line_text(artifact, window), send_chunk)
+        result = {
+            "attempted": True, "succeeded": bool(accepted_sets),
+            "recipient_count": len(expected), "chunk_delivery": chunks,
+            "mode": "concise_reminder_only", "secret_values_printed": False,
+        }
+        if capture_recipients:
+            result["recipient_transport"] = [
+                {"recipient": recipient, "status": "accepted"} for recipient in sorted(expected)
+            ]
+        return result
+    except Exception as exc:
+        return {
+            "attempted": True, "succeeded": False, "recipient_count": 0,
+            "reason": "line_transport_failure", "error_type": type(exc).__name__,
+            "chunk_delivery": getattr(exc, "chunk_delivery", None),
+            "secret_values_printed": False,
+        }
+
+
+def send_us_channel_with_receipt(
+    artifact: dict[str, Any], window: str, channel: str,
+    admitted_snapshot: dict[str, Any], receipt_root: Path,
+) -> dict[str, Any]:
+    """One immutable channel transport attempt; never auto-resend failures."""
+    if channel not in {"email", "line"}:
+        raise ValueError("unsupported_us_delivery_channel")
+    if not admitted_snapshot or admitted_snapshot.get("market") != "US" or admitted_snapshot.get("window") != window:
+        return {"attempted": False, "succeeded": False, "recipient_count": 0, "reason": "snapshot_identity_mismatch"}
+    try:
+        content = build_email_body(artifact, window) if channel == "email" else line_text(artifact, window)
+        identity = delivery_identity(
+            snapshot=admitted_snapshot, channel=channel, market="US",
+            window=window, content=content,
+        )
+        if not identity["snapshot_id"] or not identity["trading_date"]:
+            raise ValueError("incomplete_snapshot_identity")
+    except (ValueError, KeyError, TypeError) as exc:
+        return {
+            "attempted": False, "succeeded": False, "recipient_count": 0,
+            "reason": "delivery_identity_unavailable", "error_type": type(exc).__name__,
+        }
+
+    def send() -> dict[str, Any]:
+        if channel == "email":
+            result = send_email_if_allowed(artifact, window, True, capture_recipients=True)
+        else:
+            result = send_line_if_allowed(artifact, window, True, capture_recipients=True)
+        rows = list(result.pop("recipient_transport", []) or [])
+        if not rows:
+            rows = [{"recipient": "unresolved-transport", "status": "failed",
+                     "error_type": result.get("error_type") or str(result.get("reason") or "TransportNotAccepted")}]
+        return {"recipients": rows, "chunk_delivery": result.get("chunk_delivery")}
+
+    result = deliver_once(
+        receipt_root=receipt_root, identity=identity,
+        channel=channel, sender=send,
+    )
+    receipt = result.get("receipt") if isinstance(result.get("receipt"), dict) else {}
+    transport_result = str(receipt.get("transport_result") or "")
+    return {
+        "attempted": bool(result.get("send_attempted")),
+        "succeeded": transport_result == "transport_accepted",
+        "recipient_count": int(receipt.get("accepted_recipient_count") or 0),
+        "transport_result": transport_result or "unknown",
+        "reason": result.get("send_status"),
+        "receipt_path": result.get("receipt_path"),
+        "chunk_delivery": receipt.get("chunk_delivery"),
+        "secret_values_printed": False,
+    }
 
 
 def idempotency_path(window: str, reference: datetime) -> Path:
@@ -703,13 +806,32 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             dashboard_result = publish_dashboard(artifact) if persist_formal_runtime and args.publish_dashboard else {"attempted": False, "succeeded": False, "reason": "provenance_not_publishable"}
         idem = idempotency_path(args.window, started)
         delivery_skipped_duplicate = production_approved and idem.exists()
+        latest_snapshot = resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, "US", args.window).latest or {}
+        snapshot_matches_run = (
+            bool(archive_result.get("written")) and
+            latest_snapshot.get("snapshot_id") == archive_result.get("snapshot_id") and
+            latest_snapshot.get("generated_at") == started.isoformat()
+        )
         if delivery_skipped_duplicate:
             email_result = {"attempted": False, "succeeded": False, "reason": "duplicate_delivery_suppressed"}
             line_result = {"attempted": False, "succeeded": False, "reason": "duplicate_delivery_suppressed"}
+        elif production_approved and not snapshot_matches_run:
+            # Never bind a new notification to a stale or unadmitted snapshot.
+            email_result = {"attempted": False, "succeeded": False, "reason": "snapshot_not_current"}
+            line_result = {"attempted": False, "succeeded": False, "reason": "snapshot_not_current"}
+        elif production_approved:
+            # Per-channel immutable receipts. A failed/partial attempt is never
+            # automatically retried, and one channel cannot suppress the other.
+            receipt_root = US_RUNTIME_DIR / "channel_delivery_receipts"
+            email_result = send_us_channel_with_receipt(
+                artifact, args.window, "email", latest_snapshot, receipt_root,
+            )
+            line_result = send_us_channel_with_receipt(
+                artifact, args.window, "line", latest_snapshot, receipt_root,
+            )
         else:
-            email_result = send_email_if_allowed(artifact, args.window, production_approved)
-            line_result = send_line_if_allowed(artifact, args.window, production_approved)
-        latest_snapshot = resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, "US", args.window).latest or {}
+            email_result = send_email_if_allowed(artifact, args.window, False)
+            line_result = send_line_if_allowed(artifact, args.window, False)
         email_preview = build_email_body(artifact, args.window)
         line_preview = line_text(artifact, args.window)
         provenance_results = {}
@@ -778,6 +900,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "email_succeeded": email_result.get("succeeded", False),
             "line_attempted": line_result.get("attempted", False),
             "line_succeeded": line_result.get("succeeded", False),
+            "email_recipient_count": email_result.get("recipient_count", 0),
+            "line_recipient_count": line_result.get("recipient_count", 0),
+            "line_delivery_error_type": line_result.get("error_type"),
+            "email_delivery_error_type": email_result.get("error_type"),
+            "delivery_status": (
+                "suppressed" if delivery_skipped_duplicate else
+                "complete" if email_result.get("succeeded") and line_result.get("succeeded") else
+                "partial_failure" if email_result.get("succeeded") or line_result.get("succeeded") else
+                "failed" if production_approved else "dry_run_no_send"
+            ),
             "line_payload_preview": line_preview,
             "email_payload_preview": email_preview,
             "dashboard_url": get_window_report_contract("US", args.window).dashboard_url,
@@ -801,7 +933,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if persist_formal_runtime:
             write_json(STATUS_PATH, status)
             write_json(US_STATUS_PATH, status)
-        return {"ok": (not production_approved or args.manual_rerun or public_latest_sync.get("status") == "verified"), "status": status, "archive_write": archive_result, "visual_evidence": visual_evidence, "dashboard": dashboard_result, "email": email_result, "line": line_result, "line_payload_preview": status["line_payload_preview"], "email_payload_preview": status["email_payload_preview"], "dashboard_url": get_window_report_contract("US", args.window).dashboard_url}
+        return {"ok": (not production_approved or args.manual_rerun or (public_latest_sync.get("status") == "verified" and (delivery_skipped_duplicate or status["delivery_status"] == "complete"))), "status": status, "archive_write": archive_result, "visual_evidence": visual_evidence, "dashboard": dashboard_result, "email": email_result, "line": line_result, "line_payload_preview": status["line_payload_preview"], "email_payload_preview": status["email_payload_preview"], "dashboard_url": get_window_report_contract("US", args.window).dashboard_url}
     except Exception as exc:
         error = {"ok": False, "status": "failed", "window": args.window, "error_type": type(exc).__name__, "error_message": str(exc)[:240], "line_attempted": False, "email_attempted": False, "trading_or_order_executed": False, "production_pipeline_executed": False}
         if production_approved or production_artifact:

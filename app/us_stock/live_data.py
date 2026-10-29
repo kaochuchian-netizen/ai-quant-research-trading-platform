@@ -242,9 +242,52 @@ class YFinanceUSClient:
                 raw_news = ticker.news or []
             except Exception as exc:
                 news_error = type(exc).__name__
+            observed_at = getattr(self, "news_as_of", None) or quote["source_timestamp"]
             news_items, news_diagnostics = normalize_yfinance_news(
-                raw_news, symbol=symbol, observed_at=getattr(self, "news_as_of", None) or quote["source_timestamp"], retrieval_error=news_error,
+                raw_news, symbol=symbol, observed_at=observed_at, retrieval_error=news_error,
             )
+            # Yahoo ticker.news is not exhaustive. When it yields no admitted
+            # company news, try an independent public RSS feed. Do not relax
+            # entity attribution, date, or materiality admission rules.
+            if not news_items:
+                from app.us_stock.news_rss_fallback import fetch_us_google_news_rss
+                rss_items, rss_error = fetch_us_google_news_rss(symbol)
+                if rss_items:
+                    news_items, news_diagnostics = normalize_yfinance_news(
+                        [*raw_news, *rss_items], symbol=symbol,
+                        observed_at=observed_at, retrieval_error=news_error,
+                    )
+                news_diagnostics["source_attempts"] = {
+                    "YAHOO_FINANCE": {
+                        "candidate_count": len(raw_news),
+                        "status": "FAILED" if news_error else "SUCCESS",
+                        "error_type": news_error,
+                    },
+                    "GOOGLE_NEWS_RSS": {
+                        "candidate_count": len(rss_items),
+                        "status": "FAILED" if rss_error else "SUCCESS",
+                        "error_type": rss_error,
+                    },
+                }
+                news_diagnostics["coverage"]["provider"] = "YAHOO_FINANCE;GOOGLE_NEWS_RSS"
+                if rss_error and not news_items:
+                    news_diagnostics["coverage"]["reason_codes"].append("FALLBACK_PROVIDER_FAILURE")
+                if rss_error and not raw_news:
+                    news_diagnostics["retrieval"] = {
+                        "status": "FAILED",
+                        "reason_code": "ALL_NEWS_PROVIDERS_EMPTY_OR_FAILED",
+                    }
+                elif rss_items:
+                    news_diagnostics["retrieval"]["fallback_used"] = True
+            else:
+                news_diagnostics["source_attempts"] = {
+                    "YAHOO_FINANCE": {
+                        "candidate_count": len(raw_news),
+                        "status": "FAILED" if news_error else "SUCCESS",
+                        "error_type": news_error,
+                    },
+                    "GOOGLE_NEWS_RSS": {"status": "NOT_NEEDED", "candidate_count": 0},
+                }
             return FetchResult(symbol=symbol, ok=quote["last_price"] is not None and history is not None and not history.empty, quote=quote, history=history, news=news_items, news_diagnostics=news_diagnostics, error=None)
         except Exception as exc:
             return FetchResult(symbol=symbol, ok=False, quote={"source_timestamp": now_taipei()}, history=None, news=[], news_diagnostics=None, error=f"{type(exc).__name__}: {str(exc)[:180]}")
