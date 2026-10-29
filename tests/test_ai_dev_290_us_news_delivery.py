@@ -58,6 +58,28 @@ class NewsFallbackTests(unittest.TestCase):
         self.assertEqual(result.news_diagnostics["source_attempts"]["YAHOO_FINANCE"]["candidate_count"], 0)
         self.assertEqual(result.news_diagnostics["source_attempts"]["GOOGLE_NEWS_RSS"]["candidate_count"], 1)
 
+    def test_rss_source_survives_research_and_user_presentation(self):
+        from app.us_stock.research_intelligence import USResearchIntelligenceBuilder
+        from app.us_stock.institutional_research import build_bundle
+        from app.us_stock.research_presentation import finalized_current_news_projection
+        row = {
+            "title": "Tesla announces battery production update",
+            "publisher": "Synthetic Finance",
+            "pubDate": "2026-10-29T10:00:00Z",
+            "link": "https://news.google.com/rss/articles/test",
+            "contentType": "STORY",
+            "discovery_channel": "GOOGLE_NEWS_RSS",
+        }
+        admitted, diagnostics = normalize_yfinance_news([row], symbol="TSLA", observed_at=ASOF)
+        material = USResearchIntelligenceBuilder.material_news(
+            object.__new__(USResearchIntelligenceBuilder), "TSLA", admitted, diagnostics,
+        )
+        bundle = build_bundle("TSLA", {"sec": {"ok": False}, "material_news": material}, {}, ASOF)
+        projection = finalized_current_news_projection(bundle)
+        self.assertEqual(projection["selected_count"], 1)
+        self.assertEqual(projection["primary_item"]["discovery_channel"], "GOOGLE_NEWS_RSS")
+        self.assertEqual(projection["funnel"]["stages"]["RENDERED"], 1)
+
     def test_wrong_company_and_stale_news_still_rejected(self):
         response = Mock(content=RSS)
         with patch("app.us_stock.news_rss_fallback.requests.get", return_value=response):
