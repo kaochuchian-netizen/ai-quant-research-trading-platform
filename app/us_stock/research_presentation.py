@@ -10,7 +10,7 @@ from typing import Any
 
 STATE_LABELS = {
     "AVAILABLE": "當期個股新聞可用",
-    "NO_RELEVANT": "有取得資料，但未找到與本標的足夠相關的當期新聞",
+    "NO_RELEVANT": "未取得符合當期條件的個股新聞（來源涵蓋情況待確認）",
     "RETRIEVAL_FAILED": "新聞來源取得失敗",
     "STALE_ONLY": "僅有過期新聞，不納入本批次研究",
     "DISCOVERED_BUT_FILTERED": "有取得新聞，但未通過個股相關性／品質篩選",
