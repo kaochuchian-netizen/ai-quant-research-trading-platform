@@ -307,6 +307,9 @@ def project_card(card, market, window, *, quality=None):
     else:
         direction_public = quality_component_public(quality["direction"]) if quality else (zh(direction_value) if direction_value else MISSING)
         range_public = quality_component_public(quality["range"]) if quality else (zh(range_value) if range_value else MISSING)
+    if market == "US" and window == "us_pre_market_2000" and not active:
+        from app.us_stock.premarket_decision import plan_gate_explanation
+        strategy = strategy + "；" + plan_gate_explanation(card)
     values = {
         "走勢預測": "資料不足，暫不判斷" if unavailable_prediction else zh(human.get("direction")), "預測目標": price(human.get("forecast_target")),
         "預測區間": interval(human.get("forecast_low"), human.get("forecast_high")),
@@ -355,6 +358,9 @@ def project_payload(payload, market, window, *, quality_projection=None):
             raise ValueError("PRESENTATION_QUALITY_PROJECTION_MISMATCH")
         quality_by_symbol = quality_projection["quality_by_symbol"]
     cards = cards_for(payload, window)
+    if payload.get("batch_universe"):
+        from app.loaders.batch_universe import require_parity
+        require_parity(payload["batch_universe"], [str(c.get("symbol") or c.get("stock_id")) for c in cards])
     if quality_by_symbol is not None:
         symbols = [str(card.get("symbol") or card.get("stock_id") or "") for card in cards]
         if len(symbols) != len(set(symbols)) or set(symbols) != set(quality_by_symbol):
@@ -457,6 +463,9 @@ def post_close_canonical_cards(payload, market, window, *, require_frozen_univer
     closed rather than silently substituting a mutable watchlist.
     """
     cards = cards_for(payload, window)
+    if payload.get("batch_universe"):
+        from app.loaders.batch_universe import require_parity
+        require_parity(payload["batch_universe"], [str(c.get("symbol") or c.get("stock_id")) for c in cards])
     universe = payload.get("notification_universe")
     if universe is None:
         if require_frozen_universe:

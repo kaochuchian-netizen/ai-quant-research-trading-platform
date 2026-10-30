@@ -36,6 +36,8 @@ def _bundle(card: dict[str, Any]) -> dict[str, Any]:
 def _normalize_selected(item: dict[str, Any]) -> dict[str, Any]:
     direction = str(item.get("direction") or "unavailable")
     return {
+        "article_evidence": item.get("article_evidence") or {},
+        "investment_usable": item.get("investment_usable"),
         "news_id": item.get("news_id"),
         "candidate_id": item.get("candidate_id"),
         "news_event_id": item.get("news_event_id") or item.get("event_cluster_id"),
@@ -74,6 +76,7 @@ def finalized_current_news_projection(bundle: dict[str, Any]) -> dict[str, Any]:
     selected = [
         _normalize_selected(item) for item in (raw_selected or [])
         if isinstance(item, dict)
+        and item.get("investment_usable") is not False
         and item.get("freshness") != "stale"
         and item.get("selection_status") not in {"NOT_SELECTED", "REJECTED"}
     ]
@@ -105,6 +108,8 @@ def finalized_current_news_projection(bundle: dict[str, Any]) -> dict[str, Any]:
         state = ABSENCE_TO_STATE.get(absence, "NO_RELEVANT")
 
     label = STATE_LABELS[state]
+    if not selected and funnel.get("content_quality"):
+        label = "尚無可分析的新聞內容：未取得足夠實質且可歸屬的事實證據"
     top = selected[0] if selected else None
     if top:
         compact = (

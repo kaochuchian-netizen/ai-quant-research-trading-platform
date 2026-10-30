@@ -196,7 +196,7 @@ class YFinanceUSClient:
             self._ticker_cache[symbol] = yf.Ticker(symbol)
         return self._ticker_cache[symbol]
 
-    def fetch_symbol(self, symbol: str, period: str = "1y") -> FetchResult:
+    def fetch_symbol(self, symbol: str, period: str = "1y", company: dict | None = None) -> FetchResult:
         try:
             ticker = self._ticker(symbol)
             fast = getattr(ticker, "fast_info", {}) or {}
@@ -239,19 +239,26 @@ class YFinanceUSClient:
             raw_news = []
             news_error = None
             try:
-                raw_news = ticker.news or []
+                raw_news = (ticker.news or []) if company else []
             except Exception as exc:
                 news_error = type(exc).__name__
             observed_at = getattr(self, "news_as_of", None) or quote["source_timestamp"]
+            from app.research.article_evidence import ArticleRetriever, enrich
+            self.article_retriever = ArticleRetriever()
+            company = company or {"symbol":symbol}
+            raw_news = enrich(raw_news, entry=company, as_of=observed_at, retriever=self.article_retriever) if raw_news else []
             news_items, news_diagnostics = normalize_yfinance_news(
                 raw_news, symbol=symbol, observed_at=observed_at, retrieval_error=news_error,
             )
             # Yahoo ticker.news is not exhaustive. When it yields no admitted
             # company news, try an independent public RSS feed. Do not relax
             # entity attribution, date, or materiality admission rules.
-            if not news_items:
+            if not any(x.get("investment_usable") for x in news_items):
                 from app.us_stock.news_rss_fallback import fetch_us_google_news_rss
-                rss_items, rss_error = fetch_us_google_news_rss(symbol)
+                rss_items, rss_error = fetch_us_google_news_rss(symbol, company)
+                cnyes_items, cnyes_error = fetch_us_google_news_rss(symbol, company, source_domain="news.cnyes.com")
+                rss_count, cnyes_count = len(rss_items), len(cnyes_items)
+                rss_items = enrich([*rss_items,*cnyes_items],entry=company,as_of=observed_at,retriever=self.article_retriever)
                 if rss_items:
                     news_items, news_diagnostics = normalize_yfinance_news(
                         [*raw_news, *rss_items], symbol=symbol,
@@ -264,15 +271,16 @@ class YFinanceUSClient:
                         "error_type": news_error,
                     },
                     "GOOGLE_NEWS_RSS": {
-                        "candidate_count": len(rss_items),
+                        "candidate_count": rss_count,
                         "status": "FAILED" if rss_error else "SUCCESS",
                         "error_type": rss_error,
                     },
                 }
-                news_diagnostics["coverage"]["provider"] = "YAHOO_FINANCE;GOOGLE_NEWS_RSS"
-                if rss_error and not news_items:
+                news_diagnostics["source_attempts"]["CNYES"] = {"candidate_count":cnyes_count,"status":"FAILED" if cnyes_error else "SUCCESS","error_type":cnyes_error}
+                news_diagnostics["coverage"]["provider"] = "YAHOO_FINANCE;GOOGLE_NEWS_RSS;CNYES"
+                if (rss_error or cnyes_error) and not news_items:
                     news_diagnostics["coverage"]["reason_codes"].append("FALLBACK_PROVIDER_FAILURE")
-                if rss_error and not raw_news:
+                if rss_error and cnyes_error and not raw_news:
                     news_diagnostics["retrieval"] = {
                         "status": "FAILED",
                         "reason_code": "ALL_NEWS_PROVIDERS_EMPTY_OR_FAILED",
@@ -288,7 +296,7 @@ class YFinanceUSClient:
                     },
                     "GOOGLE_NEWS_RSS": {"status": "NOT_NEEDED", "candidate_count": 0},
                 }
-            return FetchResult(symbol=symbol, ok=quote["last_price"] is not None and history is not None and not history.empty, quote=quote, history=history, news=news_items, news_diagnostics=news_diagnostics, error=None)
+            return FetchResult(symbol=symbol, ok=quote["last_price"] is not None and history is not None and not history.empty, quote=quote, history=history, news=[x for x in news_items if x.get("investment_usable") is True], news_diagnostics=news_diagnostics, error=None)
         except Exception as exc:
             return FetchResult(symbol=symbol, ok=False, quote={"source_timestamp": now_taipei()}, history=None, news=[], news_diagnostics=None, error=f"{type(exc).__name__}: {str(exc)[:180]}")
 

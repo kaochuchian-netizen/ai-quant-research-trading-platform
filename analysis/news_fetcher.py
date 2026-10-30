@@ -13,9 +13,11 @@ class NewsCandidates(list):
         self.coverage = coverage or {}
 
 
-def fetch_stock_news(stock_id, stock_name, max_items=None, *, window=None, reference=None):
+def fetch_stock_news(stock_id, stock_name, max_items=None, *, window=None, reference=None, company=None):
     # max_items retained for caller compatibility, never an early top-N filter.
     window = window or build_news_window(reference)
+    from app.loaders.batch_universe import query as company_query
+    search_terms = company_query(company) if company is not None else f"{stock_name} {stock_id} 股票"
     start = published_time(window['start'])
     end = published_time(window['as_of'])
     items, seen, failures = [], set(), []
@@ -28,7 +30,7 @@ def fetch_stock_news(stock_id, stock_name, max_items=None, *, window=None, refer
         remaining = deadline - time.monotonic()
         if remaining <= 0:
             failures.append('RSS_TIME_BUDGET'); break
-        query = f'{stock_name} {stock_id} 股票 after:{day-timedelta(days=1)} before:{day+timedelta(days=1)}'
+        query = f'{search_terms} after:{day-timedelta(days=1)} before:{day+timedelta(days=1)}'
         url = f'https://news.google.com/rss/search?q={quote(query)}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant'
         requests_made += 1
         try:

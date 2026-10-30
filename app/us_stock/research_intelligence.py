@@ -316,6 +316,8 @@ class USResearchIntelligenceBuilder:
         seen = set()
         output = []
         for item in news_items:
+            if item.get("investment_usable") is False:
+                continue
             headline = item.get("english_headline")
             if not headline:
                 continue
@@ -325,14 +327,16 @@ class USResearchIntelligenceBuilder:
             seen.add(key)
             event_type = self.classify_news(item)
             output.append({
+                "article_evidence": deepcopy(item.get("article_evidence") or {}),
+                "investment_usable": item.get("investment_usable"),
                 "event_type": event_type,
                 "dedup_key": key,
                 "recency_bucket": "recent_reference",
                 "english_headline": headline,
                 "chinese_translation": item.get("chinese_translation") or ("英文標題摘要：" + headline),
-                "english_summary": "Headline-only metadata; no full copyrighted article stored.",
-                "chinese_summary": "僅保存標題層級資訊，未複製完整文章。",
-                "headline_only": True,
+                "english_summary": None,
+                "chinese_summary": item.get("chinese_summary") or "尚無可分析的新聞內容",
+                "headline_only": not bool(item.get("investment_usable")),
                 "vocabulary": vocabulary_for_event(event_type),
                 "investment_reading": item.get("investment_reading") or "新聞作為事件脈絡，不單獨決定評等。",
                 "official_source": bool(item.get("official_source")),
@@ -350,7 +354,7 @@ class USResearchIntelligenceBuilder:
                 "contextual_role": item.get("contextual_role"),
                 "related_symbols": deepcopy(item.get("related_symbols") or []),
                 "entity_attribution": deepcopy(item.get("entity_attribution")) if isinstance(item.get("entity_attribution"), dict) else None,
-                "provenance": provenance("company_official" if item.get("official_source") else "secondary_news", published_at=item.get("published_at"), reference=item.get("source_url") or item.get("source"), quality="headline_only"),
+                "provenance": provenance("company_official" if item.get("official_source") else "secondary_news", published_at=item.get("published_at"), reference=item.get("source_url") or item.get("source"), quality="substantive_content" if item.get("investment_usable") else "headline_only"),
             })
         return {"schema_version": "us_material_news_v1", "symbol": symbol, "items": output, "deduplicated_count": len(output), "missing_reason": None if output else ((diagnostics or {}).get("absence_state") or "NO_RELEVANT_NEWS_DISCOVERED"), "evidence_funnel": diagnostics or {}, "no_full_article_stored": True}
 

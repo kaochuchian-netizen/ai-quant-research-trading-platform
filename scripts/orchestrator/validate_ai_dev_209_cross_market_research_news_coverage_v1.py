@@ -22,9 +22,10 @@ NOW = "2026-08-12T20:00:00+08:00"
 
 
 def nested_news(*, title="Apple announces material product update", published="2026-08-12T08:00:00Z", url="https://finance.yahoo.com/news/apple-update"):
-    return {"content": {"contentType": "STORY", "title": title, "summary": title,
+    from tests.article_content_fixture import with_article
+    return with_article({"content": {"contentType": "STORY", "title": title, "summary": title,
         "pubDate": published, "provider": {"displayName": "Reuters"},
-        "canonicalUrl": {"url": url}}}
+        "canonicalUrl": {"url": url}}},"Apple")
 
 
 def us_research(items, funnel):

@@ -17,9 +17,15 @@ def _empty_enrichment() -> dict:
     }
 
 
-def analyze_news(stock_id, stock_name, *, include_evidence=False, aggregation_session=None, reference=None):
+def analyze_news(stock_id, stock_name, *, include_evidence=False, aggregation_session=None, reference=None, company=None):
     started_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     try:
+        if company is not None:
+            from app.loaders.batch_universe import identity_terms
+            names = identity_terms(company)
+            if not names:
+                raise ValueError("COMPANY_IDENTITY_UNRESOLVED_OR_AMBIGUOUS")
+            stock_name = names[0]
         aggregation = collect_tw_news(
             stock_id,
             stock_name,
@@ -27,6 +33,7 @@ def analyze_news(stock_id, stock_name, *, include_evidence=False, aggregation_se
             session=aggregation_session,
             google_fetcher=fetch_stock_news,
             include_cnyes=aggregation_session is not None,
+            **({"company":company} if company is not None else {}),
         )
     except Exception as exc:
         completed_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()

@@ -7,10 +7,12 @@ from app.us_stock.research_intelligence import USResearchIntelligenceBuilder
 from app.us_stock.research_intelligence_v2 import normalize_news
 from app.us_stock.research_presentation import finalized_current_news_projection
 
+from tests.article_content_fixture import with_article
+
 ASOF='2026-10-28T20:00:00+08:00'
 def raw(n=0,symbol='TSLA',name='Tesla',date='2026-10-28T10:00:00Z'):
-    return {'title':f'{name} {symbol} earnings outlook event {n}', 'publisher':'Synthetic Finance',
-            'link':f'https://example.org/{symbol}/{n}', 'pubDate':date, 'relatedTickers':[symbol], 'contentType':'STORY'}
+    return with_article({'title':f'{name} {symbol} earnings outlook event {n}', 'publisher':'Synthetic Finance',
+            'link':f'https://example.org/{symbol}/{n}', 'pubDate':date, 'relatedTickers':[symbol], 'contentType':'STORY'},name)
 def pipeline(rows, symbol='TSLA', asof=ASOF):
     admitted, diag=normalize_yfinance_news(rows,symbol=symbol,observed_at=asof)
     material=USResearchIntelligenceBuilder.material_news(object.__new__(USResearchIntelligenceBuilder),symbol,admitted,diag)

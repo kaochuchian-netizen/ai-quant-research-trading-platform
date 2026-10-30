@@ -43,14 +43,14 @@ def _clean(value: Any) -> str:
     return str(value or "").strip()
 
 def parse_enabled(value: Any) -> bool:
-    text = _clean(value).lower()
+    text = str(value if value is not None else '').strip().lower()
     if not text:
         return True
     if text in TRUE_VALUES:
         return True
     if text in FALSE_VALUES:
         return False
-    return True
+    raise ValueError("UNKNOWN_ENABLED_VALUE")
 
 def normalize_symbol(value: Any) -> str:
     return _clean(value).upper()
@@ -64,6 +64,9 @@ def _alias_lookup(row: dict[str, Any], logical_name: str) -> Any:
     return None
 
 def normalize_us_watchlist_rows(rows: Iterable[dict[str, Any]], source_sheet: str = US_SOURCE_SHEET) -> list[dict[str, Any]]:
+    from app.loaders.batch_universe import normalize_rows
+    rows = list(rows)
+    validated = {e["symbol"]: e for e in normalize_rows(rows, "US")}
     seen: set[str] = set()
     entries: list[dict[str, Any]] = []
     for row in rows:
@@ -89,4 +92,4 @@ def normalize_us_watchlist_rows(rows: Iterable[dict[str, Any]], source_sheet: st
                 source_kind="google_sheet_us_watchlist",
             ).to_dict()
         )
-    return entries
+    return [{**entry, **validated[entry["symbol"]]} for entry in entries]

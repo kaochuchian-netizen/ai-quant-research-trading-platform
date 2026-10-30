@@ -250,3 +250,33 @@ def validate_premarket_contract(cards: list[dict[str, Any]], summary: dict[str, 
     if expected != (summary.get("groups") or {}).get("top_opportunity", []): errors.append("top opportunity list mismatch")
     if len(expected) != summary.get("top_opportunity_count"): errors.append("top opportunity count mismatch")
     return errors
+
+
+PLAN_REASON_LABELS = {
+    "PREMARKET_DATA_UNAVAILABLE_OR_STALE":"盤前行情缺失或過期",
+    "RR_BELOW_THRESHOLD":"報酬風險比未達既有門檻",
+    "LOW_CONFIDENCE":"判斷把握度未達既有門檻",
+    "DIRECTION_NOT_BULLISH":"目前方向不符合既有多方進場條件",
+    "SETUP_NOT_STABILIZED":"價格尚未止穩／觸發條件未完成",
+    "CHASE_RISK_HIGH":"追價風險過高", "EVENT_RISK_HIGH":"事件風險過高",
+}
+
+def plan_gate_explanation(card):
+    reasons=(card.get("eligibility") or {}).get("reason_codes") or []
+    if (card.get("eligibility") or {}).get("actionable"):
+        return "已通過既有風險門檻；正式計畫仍須依觸發條件確認。"
+    return "正式計畫未建立："+"；".join(PLAN_REASON_LABELS.get(r,"未通過既有計畫門檻") for r in reasons or ["UNKNOWN_GATE"])+"。觀察區間不是正式進場指令。"
+
+def plan_reference_diagnostics(card, quote, technical, as_of):
+    indicators=technical.get("indicators") or {}
+    base=quote.get("last_price") or indicators.get("latest_close")
+    atr=indicators.get("atr_like_range_pct") or indicators.get("daily_range_pct") or indicators.get("return_volatility_pct")
+    pre=card.get("premarket") or {}
+    return {"schema_version":"entry_plan_reference_diagnostics_v1",
+            "risk_thresholds_changed":False, "reason_codes":(card.get("eligibility") or {}).get("reason_codes") or [],
+            "explanation":plan_gate_explanation(card), "observation_is_formal_entry":False,
+            "plan_price_basis":base,"plan_price_source":quote.get("last_price_source"),
+            "premarket_price":pre.get("price"),"previous_close":pre.get("previous_close"),
+            "gap_pct":pre.get("gap_pct"),"premarket_timestamp":pre.get("timestamp"),"batch_as_of":str(as_of),
+            "atr_like_range_ratio":atr,"atr_absolute_at_plan_basis":base*atr if isinstance(base,(float,int)) and isinstance(atr,(float,int)) else None,
+            "price_basis_note":"技術觀察區間沿用策略輸入價格與波動率；未依盤前 Gap 自動改寫正式進場價格。"}

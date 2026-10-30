@@ -20,7 +20,8 @@ def require(value: bool, message: str) -> None:
     if not value: raise AssertionError(message)
 
 def raw(title: str, publisher: str | None = "Reuters") -> dict:
-    return {"content": {"title": title, "provider": {"displayName": publisher} if publisher else {}, "pubDate": "2026-08-22T01:00:00Z", "canonicalUrl": {"url": "https://example.com/" + title[:8].replace(" ", "-")}, "relatedTickers": ["NVDA"], "contentType": "STORY"}}
+    from tests.article_content_fixture import with_article
+    return with_article({"content": {"title": title, "provider": {"displayName": publisher} if publisher else {}, "pubDate": "2026-08-22T01:00:00Z", "canonicalUrl": {"url": "https://example.com/" + title[:8].replace(" ", "-")}, "relatedTickers": ["NVDA"], "contentType": "STORY"}},"Nvidia")
 
 def main() -> int:
     cases: dict[str, str] = {}

@@ -54,8 +54,9 @@ class _ProductionShapedBuilder(USResearchIntelligenceBuilder):
 
 def production_builder_path_checks() -> tuple[dict[str, bool], dict[str, object]]:
     """Exercise normalized news through material_news, builder, RRE and finalization."""
+    from tests.article_content_fixture import with_article
     qualified, diagnostics = attributed(
-        "GOOGL", raw("Google launches Pixel 11 with Gemini AI features", ["GOOGL"]),
+        "GOOGL", with_article(raw("Google launches Pixel 11 with Gemini AI features", ["GOOGL"]),"Google"),
     )
     source = qualified[0]
     source_snapshot = json.loads(json.dumps(source))

@@ -1,0 +1,612 @@
+{
+  "source_snapshot_id": "c60cf1c10aaead2e2b2633649f468d041f418b4d01ab7ffe071bbdda411baac8",
+  "source_sha256": "40911f07a79901d8c0be472f4c2c73debd2951532ab51638454e4a12609a908f",
+  "effective_trading_date": "2026-10-30",
+  "symbols": [
+    "AAPL",
+    "NVDA",
+    "TSLA",
+    "GOOGL",
+    "SPCX",
+    "TSM"
+  ],
+  "cards": [
+    {
+      "symbol": "AAPL",
+      "premarket": {
+        "availability": "available",
+        "change": -1.3653,
+        "change_pct": -0.3971,
+        "freshness": "fresh",
+        "gap_direction": "down",
+        "gap_pct": -0.3971,
+        "previous_close": 343.83,
+        "price": 342.4647,
+        "source": "Yahoo Finance / yfinance",
+        "timestamp": "2026-10-30T07:59:57-04:00",
+        "volume": null
+      },
+      "eligibility": {
+        "actionable": false,
+        "candidate": true,
+        "entry_ready": false,
+        "no_trade": true,
+        "reason_codes": [
+          "RR_BELOW_THRESHOLD",
+          "DIRECTION_NOT_BULLISH",
+          "SETUP_NOT_STABILIZED"
+        ],
+        "top_opportunity": false,
+        "watch_only": false
+      },
+      "trade_plan": {
+        "entry": null,
+        "invalidation_condition": null,
+        "observation_zone": {
+          "high": 351.02,
+          "low": 346.8
+        },
+        "reassessment_condition": "盤前資料完整、信心與報酬風險比達門檻，且價格完成止穩／觸發確認",
+        "reward_risk": 0.35,
+        "status": "no_trade",
+        "stop": null,
+        "target": null
+      },
+      "daily_tactical_summary": {
+        "action": "等待止穩",
+        "chase_risk": "low",
+        "confidence": 35.5,
+        "direction": "neutral",
+        "entry_zone": {
+          "high": 351.02,
+          "low": 346.8
+        },
+        "event_risk": "medium",
+        "factor_version": "us_daily_tactical_factor_v1",
+        "grade": "C-Tactical",
+        "reward_risk_ratio": 0.35,
+        "score": 54.48,
+        "setup_type": "range_trade",
+        "stop_reference": 340.76,
+        "target_zone_1": {
+          "high": 352.53,
+          "low": 351.02
+        }
+      }
+    },
+    {
+      "symbol": "NVDA",
+      "premarket": {
+        "availability": "available",
+        "change": -8.28,
+        "change_pct": -3.8444,
+        "freshness": "fresh",
+        "gap_direction": "down",
+        "gap_pct": -3.8444,
+        "previous_close": 215.38,
+        "price": 207.1,
+        "source": "Yahoo Finance / yfinance",
+        "timestamp": "2026-10-30T08:00:10-04:00",
+        "volume": null
+      },
+      "eligibility": {
+        "actionable": false,
+        "candidate": true,
+        "entry_ready": false,
+        "no_trade": false,
+        "reason_codes": [
+          "DIRECTION_NOT_BULLISH"
+        ],
+        "top_opportunity": false,
+        "watch_only": true
+      },
+      "trade_plan": {
+        "entry": null,
+        "invalidation_condition": null,
+        "observation_zone": {
+          "high": 216.11,
+          "low": 212.84
+        },
+        "reassessment_condition": "盤前資料完整、信心與報酬風險比達門檻，且價格完成止穩／觸發確認",
+        "reward_risk": 1.32,
+        "status": "watch",
+        "stop": null,
+        "target": null
+      },
+      "daily_tactical_summary": {
+        "action": "反彈減碼",
+        "chase_risk": "low",
+        "confidence": 42.6,
+        "direction": "mildly_bearish",
+        "entry_zone": {
+          "high": 216.11,
+          "low": 212.84
+        },
+        "event_risk": "medium",
+        "factor_version": "us_daily_tactical_factor_v1",
+        "grade": "E-Tactical",
+        "reward_risk_ratio": 1.32,
+        "score": 32.48,
+        "setup_type": "mean_reversion",
+        "stop_reference": 219.93,
+        "target_zone_1": {
+          "high": 208.21,
+          "low": 206.3
+        }
+      }
+    },
+    {
+      "symbol": "TSLA",
+      "premarket": {
+        "availability": "available",
+        "change": -9.47,
+        "change_pct": -2.3428,
+        "freshness": "fresh",
+        "gap_direction": "down",
+        "gap_pct": -2.3428,
+        "previous_close": 404.22,
+        "price": 394.75,
+        "source": "Yahoo Finance / yfinance",
+        "timestamp": "2026-10-30T08:00:06-04:00",
+        "volume": null
+      },
+      "eligibility": {
+        "actionable": false,
+        "candidate": true,
+        "entry_ready": false,
+        "no_trade": true,
+        "reason_codes": [
+          "RR_BELOW_THRESHOLD"
+        ],
+        "top_opportunity": false,
+        "watch_only": false
+      },
+      "trade_plan": {
+        "entry": null,
+        "invalidation_condition": null,
+        "observation_zone": {
+          "high": 405.39,
+          "low": 397.02
+        },
+        "reassessment_condition": "盤前資料完整、信心與報酬風險比達門檻，且價格完成止穩／觸發確認",
+        "reward_risk": 0.88,
+        "status": "no_trade",
+        "stop": null,
+        "target": null
+      },
+      "daily_tactical_summary": {
+        "action": "拉回觀察",
+        "chase_risk": "low",
+        "confidence": 42.6,
+        "direction": "mildly_bullish",
+        "entry_zone": {
+          "high": 405.39,
+          "low": 397.02
+        },
+        "event_risk": "medium",
+        "factor_version": "us_daily_tactical_factor_v1",
+        "grade": "B-Tactical",
+        "reward_risk_ratio": 0.88,
+        "score": 67.48,
+        "setup_type": "trend_continuation",
+        "stop_reference": 387.25,
+        "target_zone_1": {
+          "high": 415.86,
+          "low": 410.97
+        }
+      }
+    },
+    {
+      "symbol": "GOOGL",
+      "premarket": {
+        "availability": "available",
+        "change": -43.8661,
+        "change_pct": -13.5018,
+        "freshness": "fresh",
+        "gap_direction": "down",
+        "gap_pct": -13.5018,
+        "previous_close": 324.89,
+        "price": 281.0239,
+        "source": "Yahoo Finance / yfinance",
+        "timestamp": "2026-10-30T08:00:01-04:00",
+        "volume": null
+      },
+      "eligibility": {
+        "actionable": false,
+        "candidate": true,
+        "entry_ready": false,
+        "no_trade": false,
+        "reason_codes": [
+          "DIRECTION_NOT_BULLISH"
+        ],
+        "top_opportunity": false,
+        "watch_only": true
+      },
+      "trade_plan": {
+        "entry": null,
+        "invalidation_condition": null,
+        "observation_zone": {
+          "high": 286.48,
+          "low": 282.93
+        },
+        "reassessment_condition": "盤前資料完整、信心與報酬風險比達門檻，且價格完成止穩／觸發確認",
+        "reward_risk": 1.32,
+        "status": "watch",
+        "stop": null,
+        "target": null
+      },
+      "daily_tactical_summary": {
+        "action": "反彈減碼",
+        "chase_risk": "low",
+        "confidence": 45.9,
+        "direction": "bearish",
+        "entry_zone": {
+          "high": 286.48,
+          "low": 282.93
+        },
+        "event_risk": "medium",
+        "factor_version": "us_daily_tactical_factor_v1",
+        "grade": "E-Tactical",
+        "reward_risk_ratio": 1.32,
+        "score": 26.48,
+        "setup_type": "mean_reversion",
+        "stop_reference": 290.61,
+        "target_zone_1": {
+          "high": 277.92,
+          "low": 275.85
+        }
+      }
+    },
+    {
+      "symbol": "SPCX",
+      "premarket": {
+        "availability": "available",
+        "change": -6.93,
+        "change_pct": -4.7717,
+        "freshness": "fresh",
+        "gap_direction": "down",
+        "gap_pct": -4.7717,
+        "previous_close": 145.23,
+        "price": 138.3,
+        "source": "Yahoo Finance / yfinance",
+        "timestamp": "2026-10-30T08:00:25-04:00",
+        "volume": null
+      },
+      "eligibility": {
+        "actionable": false,
+        "candidate": true,
+        "entry_ready": false,
+        "no_trade": true,
+        "reason_codes": [
+          "RR_BELOW_THRESHOLD",
+          "DIRECTION_NOT_BULLISH",
+          "SETUP_NOT_STABILIZED"
+        ],
+        "top_opportunity": false,
+        "watch_only": false
+      },
+      "trade_plan": {
+        "entry": null,
+        "invalidation_condition": null,
+        "observation_zone": {
+          "high": 145.83,
+          "low": 141.95
+        },
+        "reassessment_condition": "盤前資料完整、信心與報酬風險比達門檻，且價格完成止穩／觸發確認",
+        "reward_risk": 0.35,
+        "status": "no_trade",
+        "stop": null,
+        "target": null
+      },
+      "daily_tactical_summary": {
+        "action": "等待止穩",
+        "chase_risk": "low",
+        "confidence": 37.1,
+        "direction": "neutral",
+        "entry_zone": {
+          "high": 145.83,
+          "low": 141.95
+        },
+        "event_risk": "medium",
+        "factor_version": "us_daily_tactical_factor_v1",
+        "grade": "D-Tactical",
+        "reward_risk_ratio": 0.35,
+        "score": 42.48,
+        "setup_type": "range_trade",
+        "stop_reference": 136.41,
+        "target_zone_1": {
+          "high": 147.21,
+          "low": 145.83
+        }
+      }
+    },
+    {
+      "symbol": "TSM",
+      "premarket": {
+        "availability": "available",
+        "change": -24.15,
+        "change_pct": -5.4948,
+        "freshness": "fresh",
+        "gap_direction": "down",
+        "gap_pct": -5.4948,
+        "previous_close": 439.51,
+        "price": 415.36,
+        "source": "Yahoo Finance / yfinance",
+        "timestamp": "2026-10-30T07:59:21-04:00",
+        "volume": null
+      },
+      "eligibility": {
+        "actionable": false,
+        "candidate": true,
+        "entry_ready": false,
+        "no_trade": false,
+        "reason_codes": [
+          "DIRECTION_NOT_BULLISH"
+        ],
+        "top_opportunity": false,
+        "watch_only": true
+      },
+      "trade_plan": {
+        "entry": null,
+        "invalidation_condition": null,
+        "observation_zone": {
+          "high": 437.33,
+          "low": 429.97
+        },
+        "reassessment_condition": "盤前資料完整、信心與報酬風險比達門檻，且價格完成止穩／觸發確認",
+        "reward_risk": 1.47,
+        "status": "watch",
+        "stop": null,
+        "target": null
+      },
+      "daily_tactical_summary": {
+        "action": "偏空防守",
+        "chase_risk": "low",
+        "confidence": 44.8,
+        "direction": "mildly_bearish",
+        "entry_zone": {
+          "high": 437.33,
+          "low": 429.97
+        },
+        "event_risk": "medium",
+        "factor_version": "us_daily_tactical_factor_v1",
+        "grade": "E-Tactical",
+        "reward_risk_ratio": 1.47,
+        "score": 28.48,
+        "setup_type": "range_trade",
+        "stop_reference": 444.69,
+        "target_zone_1": {
+          "high": 419.55,
+          "low": 415.25
+        }
+      }
+    }
+  ],
+  "source_probe": {
+    "checked_at": "2026-10-30T22:50:40.345651+00:00",
+    "scope": "public_read_only_source_probe_not_historical_replay",
+    "sources": {
+      "CNYES": {
+        "url": "https://news.cnyes.com/news/id/6642202",
+        "failure_reason": null,
+        "content_length": 806,
+        "published_at": "2026-10-30T11:19:22.000Z",
+        "investment_usable_claimed": false
+      },
+      "YAHOO": {
+        "url": "https://finance.yahoo.com/news/",
+        "failure_reason": "RESPONSE_TOO_LARGE",
+        "content_length": 0,
+        "published_at": null,
+        "investment_usable_claimed": false
+      }
+    },
+    "historical": {
+      "snapshot_id": "c60cf1c10aaead2e2b2633649f468d041f418b4d01ab7ffe071bbdda411baac8",
+      "sha256": "40911f07a79901d8c0be472f4c2c73debd2951532ab51638454e4a12609a908f",
+      "symbols": [
+        "AAPL",
+        "NVDA",
+        "TSLA",
+        "GOOGL",
+        "SPCX",
+        "TSM"
+      ],
+      "cards": [
+        {
+          "symbol": "AAPL",
+          "projection_keys": [
+            "market",
+            "qualified_count",
+            "rejection_reasons",
+            "retrieval",
+            "retrieved_count",
+            "schema_version",
+            "selected_count",
+            "selected_items",
+            "source_contract",
+            "state",
+            "state_label"
+          ],
+          "funnel_stages": {
+            "ADMITTED": 19,
+            "DEDUPLICATED": 19,
+            "DISCOVERED": 30,
+            "FRESH": 27,
+            "MATERIAL": 19,
+            "NORMALIZED": 30,
+            "QUALITY_QUALIFIED": 19,
+            "RELEVANT": 19,
+            "RENDERED": 2,
+            "RETRIEVED": 30,
+            "RRE_USED": 19,
+            "SYMBOL_ATTRIBUTED": 19
+          },
+          "has_article_content_evidence": false,
+          "new_gate_retroactively_claimed": false
+        },
+        {
+          "symbol": "NVDA",
+          "projection_keys": [
+            "market",
+            "qualified_count",
+            "rejection_reasons",
+            "retrieval",
+            "retrieved_count",
+            "schema_version",
+            "selected_count",
+            "selected_items",
+            "source_contract",
+            "state",
+            "state_label"
+          ],
+          "funnel_stages": {
+            "ADMITTED": 16,
+            "DEDUPLICATED": 16,
+            "DISCOVERED": 30,
+            "FRESH": 30,
+            "MATERIAL": 16,
+            "NORMALIZED": 30,
+            "QUALITY_QUALIFIED": 16,
+            "RELEVANT": 16,
+            "RENDERED": 2,
+            "RETRIEVED": 30,
+            "RRE_USED": 16,
+            "SYMBOL_ATTRIBUTED": 16
+          },
+          "has_article_content_evidence": false,
+          "new_gate_retroactively_claimed": false
+        },
+        {
+          "symbol": "TSLA",
+          "projection_keys": [
+            "market",
+            "qualified_count",
+            "rejection_reasons",
+            "retrieval",
+            "retrieved_count",
+            "schema_version",
+            "selected_count",
+            "selected_items",
+            "source_contract",
+            "state",
+            "state_label"
+          ],
+          "funnel_stages": {
+            "ADMITTED": 16,
+            "DEDUPLICATED": 16,
+            "DISCOVERED": 30,
+            "FRESH": 21,
+            "MATERIAL": 16,
+            "NORMALIZED": 30,
+            "QUALITY_QUALIFIED": 16,
+            "RELEVANT": 16,
+            "RENDERED": 2,
+            "RETRIEVED": 30,
+            "RRE_USED": 16,
+            "SYMBOL_ATTRIBUTED": 16
+          },
+          "has_article_content_evidence": false,
+          "new_gate_retroactively_claimed": false
+        },
+        {
+          "symbol": "GOOGL",
+          "projection_keys": [
+            "market",
+            "qualified_count",
+            "rejection_reasons",
+            "retrieval",
+            "retrieved_count",
+            "schema_version",
+            "selected_count",
+            "selected_items",
+            "source_contract",
+            "state",
+            "state_label"
+          ],
+          "funnel_stages": {
+            "ADMITTED": 18,
+            "DEDUPLICATED": 18,
+            "DISCOVERED": 30,
+            "FRESH": 30,
+            "MATERIAL": 18,
+            "NORMALIZED": 30,
+            "QUALITY_QUALIFIED": 18,
+            "RELEVANT": 18,
+            "RENDERED": 2,
+            "RETRIEVED": 30,
+            "RRE_USED": 18,
+            "SYMBOL_ATTRIBUTED": 18
+          },
+          "has_article_content_evidence": false,
+          "new_gate_retroactively_claimed": false
+        },
+        {
+          "symbol": "SPCX",
+          "projection_keys": [
+            "market",
+            "qualified_count",
+            "rejection_reasons",
+            "retrieval",
+            "retrieved_count",
+            "schema_version",
+            "selected_count",
+            "selected_items",
+            "source_contract",
+            "state",
+            "state_label"
+          ],
+          "funnel_stages": {
+            "ADMITTED": 20,
+            "DEDUPLICATED": 20,
+            "DISCOVERED": 30,
+            "FRESH": 28,
+            "MATERIAL": 20,
+            "NORMALIZED": 30,
+            "QUALITY_QUALIFIED": 20,
+            "RELEVANT": 20,
+            "RENDERED": 2,
+            "RETRIEVED": 30,
+            "RRE_USED": 20,
+            "SYMBOL_ATTRIBUTED": 20
+          },
+          "has_article_content_evidence": false,
+          "new_gate_retroactively_claimed": false
+        },
+        {
+          "symbol": "TSM",
+          "projection_keys": [
+            "market",
+            "qualified_count",
+            "rejection_reasons",
+            "retrieval",
+            "retrieved_count",
+            "schema_version",
+            "selected_count",
+            "selected_items",
+            "source_contract",
+            "state",
+            "state_label"
+          ],
+          "funnel_stages": {
+            "ADMITTED": 4,
+            "DEDUPLICATED": 4,
+            "DISCOVERED": 30,
+            "FRESH": 23,
+            "MATERIAL": 4,
+            "NORMALIZED": 30,
+            "QUALITY_QUALIFIED": 4,
+            "RELEVANT": 4,
+            "RENDERED": 2,
+            "RETRIEVED": 30,
+            "RRE_USED": 4,
+            "SYMBOL_ATTRIBUTED": 4
+          },
+          "has_article_content_evidence": false,
+          "new_gate_retroactively_claimed": false
+        }
+      ],
+      "refetched": false
+    }
+  }
+}
