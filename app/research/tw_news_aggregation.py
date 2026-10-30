@@ -261,13 +261,14 @@ def collect_tw_news(
     session: TwNewsAggregationSession | None = None,
     google_fetcher: Callable[..., list[dict[str, Any]]] = fetch_stock_news,
     include_cnyes: bool | None = None,
+    company: dict | None = None,
 ) -> dict[str, Any]:
     started_at = _utc_now()
     reference = reference or started_at
     if session is None:
         with TwNewsAggregationSession() as owned_session:
             return collect_tw_news(stock_id, stock_name, reference=reference, session=owned_session,
-                                   google_fetcher=google_fetcher, include_cnyes=include_cnyes)
+                                   google_fetcher=google_fetcher, include_cnyes=include_cnyes, company=company)
     # Date-only legacy callers mean the 07:00 window, never system-local midnight.
     if isinstance(reference, str) and len(reference) == 10:
         reference += "T07:00:00+08:00"
@@ -278,7 +279,7 @@ def collect_tw_news(
     cnyes_result: dict[str, Any] | None = None
 
     try:
-        google_items = (google_fetcher(stock_id, stock_name, window=window)
+        google_items = (google_fetcher(stock_id, stock_name, window=window, **({"company":company} if company is not None else {}))
                         if google_fetcher is fetch_stock_news else google_fetcher(stock_id, stock_name))
         source_health[GOOGLE_SOURCE] = {"attempted": True, "status": "success" if google_items else "degraded", "result_count": len(google_items), "coverage": getattr(google_items, "coverage", {"status": "UNKNOWN", "reason_codes": ["SOURCE_COVERAGE_UNPROVEN"]})}
         coverage = getattr(google_items, "coverage", {})

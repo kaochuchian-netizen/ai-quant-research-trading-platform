@@ -340,6 +340,7 @@ def _write_pre_open_runtime(
         "selected_symbols": list(tracking_symbols),
         "tracking_symbols": summary["tracking_symbols"],
         "stock_universe_evidence": stock_universe_evidence or {},
+        "batch_universe": (stock_universe_evidence or {}).get("batch_universe"),
         "historical_symbol_admission": list(historical_admission or []),
         "structured_card_count": summary["structured_card_count"],
         "rendered_card_count": summary["rendered_card_count"],
@@ -373,6 +374,13 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
     report_manual_rerun_stage("market_data", window="pre_open_0700")
     stage_timing.start("load_stock_universe")
     stock_ids, stock_universe_evidence = load_stock_ids_with_provenance()
+    from app.loaders.batch_universe import freeze
+    loaded_universe = stock_universe_evidence.get("batch_universe") or freeze(
+        [{"symbol":str(s).zfill(4),"market":"TW","enabled":True} for s in stock_ids],
+        market="TW",batch_as_of=context["created_at"],source={"kind":stock_universe_evidence.get("source","injected_loader")})
+    stock_universe_evidence["batch_universe"] = freeze(loaded_universe["entries"],market="TW",
+        batch_as_of=context["created_at"],source=loaded_universe["source"])
+    frozen_companies = {e["symbol"]:e for e in stock_universe_evidence["batch_universe"]["entries"]}
     stage_timing.finish(
         "load_stock_universe",
         stock_count=len(stock_ids),
@@ -408,6 +416,10 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
         stock_ids = stock_ids[:limit]
 
     selected_stock_ids = [str(stock_id).zfill(4) for stock_id in stock_ids]
+    if limit is not None:
+        stock_universe_evidence["batch_universe"] = freeze(
+            [frozen_companies[s] for s in selected_stock_ids],market="TW",
+            batch_as_of=context["created_at"],source={**loaded_universe["source"],"explicit_preview_limit":limit})
     dry_run_bootstrapper = None
     if dry_run:
         dry_run_bootstrapper = lambda symbol, **_: {  # noqa: E731 - explicit no-network dry-run boundary
@@ -489,7 +501,7 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
         for stock_id in stock_ids:
             stock_id = str(stock_id).zfill(4)
             stock_name_result = resolve_stock_name(stock_id)
-            stock_name = str(stock_name_result["stock_name"])
+            stock_name = str((frozen_companies.get(stock_id) or {}).get("name") or stock_name_result["stock_name"])
             if stock_name_result.get("warning"):
                 warning = {
                     "stock_id": stock_id,
@@ -529,6 +541,7 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
                     include_evidence=True,
                     aggregation_session=news_aggregation_session,
                     reference=news_as_of,
+                    company=frozen_companies.get(stock_id),
                 )
                 report_manual_rerun_stage("news_acquisition", "completed", symbol=stock_id)
                 news_result = news_bundle.get("analysis", "")

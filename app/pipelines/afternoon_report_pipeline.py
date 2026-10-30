@@ -95,6 +95,7 @@ def _write_window_runtime(pipeline_type, context, cards, runtime_dir=None, histo
         "tracking_stock_count": summary["tracking_count"],
         "structured_card_count": summary["structured_card_count"],
         "tracking_symbols": summary["symbols"],
+        "batch_universe": context.get("batch_universe"),
         "stock_count": len(cards),
         "historical_symbol_admission": list(historical_admission or []),
         "trading_or_order_executed": False,
@@ -239,6 +240,14 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
         frozen_symbols, setups_by_symbol = bind_universe(frozen_source, session=context["run_date"])
     with timing.stage("market_data"):
         stock_ids = list(frozen_symbols) if pipeline_type == "post_close" else load_stock_ids()
+    from app.loaders.batch_universe import freeze, historical_universe
+    if pipeline_type == "post_close":
+        context["batch_universe"] = historical_universe(frozen_source)
+    else:
+        context["batch_universe"] = freeze(getattr(stock_ids, "entries", None) or
+            [{"symbol":str(s).zfill(4),"market":"TW","enabled":True} for s in stock_ids],
+            market="TW",batch_as_of=context["created_at"],source={"kind":"google_sheet_first_worksheet"})
+    frozen_companies = {e["symbol"]:e for e in context["batch_universe"]["entries"]}
     requested_stock_ids = [str(stock_id).zfill(4) for stock_id in stock_ids]
     bootstrapper = None
     if dry_run:
@@ -351,6 +360,7 @@ def run_afternoon_report_pipeline(pipeline_type, dry_run=False):
                             stock_name,
                             include_evidence=True,
                             aggregation_session=news_aggregation_session,
+                    company=frozen_companies.get(stock_id),
                             reference=news_as_of,
                         )
                         news_result = news_bundle.get("analysis", "")

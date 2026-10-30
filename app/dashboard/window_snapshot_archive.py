@@ -221,6 +221,17 @@ def write_snapshot(
             progress(substage)
 
     report("validate_request")
+    if source_payload.get("batch_universe"):
+        from app.loaders.batch_universe import require_parity
+        try:
+            rows = source_payload.get("items") if market == "US" else source_payload.get({"pre_open_0700":"structured_pre_open_cards","intraday_1305":"structured_intraday_cards","pre_close_1335":"structured_pre_close_cards","post_close_1500":"structured_review_cards","prediction_review_1500":"structured_review_cards"}.get(window,"structured_pre_open_cards"))
+            if rows is None: rows = source_payload.get("cards") or []
+            require_parity(source_payload["batch_universe"], [str(r.get("symbol") or r.get("stock_id")) for r in rows])
+            if market == "US":
+                cards = (source_payload.get("dashboard_ready_contract") or {}).get("cards") or []
+                require_parity(source_payload["batch_universe"], [str(r.get("symbol")) for r in cards])
+        except (ValueError,KeyError,TypeError):
+            return {"written":False,"reason":"batch_universe_parity_mismatch"}
     canonical_window = "post_close_1500" if market == "TW" and window == "prediction_review_1500" else window
     if market not in MARKET_WINDOWS or canonical_window not in MARKET_WINDOWS[market]:
         return {"written": False, "reason": "unsupported_market_window"}

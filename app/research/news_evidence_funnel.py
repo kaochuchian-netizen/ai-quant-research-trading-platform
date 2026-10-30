@@ -132,7 +132,9 @@ def _entity_attribution(item: dict[str, Any], *, symbol: str, title: str, summar
     sufficient to make the target company the primary subject.
     """
     target = symbol.upper()
-    aliases = US_ENTITY_ALIASES.get(target, (target.lower(),))
+    from app.loaders.batch_universe import identity_terms
+    identity = item.get("company_identity")
+    aliases = tuple(n.casefold() for n in identity_terms(identity)) if isinstance(identity, dict) else US_ENTITY_ALIASES.get(target, (target.lower(),))
     title_lower, summary_lower = title.lower(), summary.lower()
     related = item.get("relatedTickers") or item.get("related_tickers") or item.get("symbols") or []
     if isinstance(related, str):
@@ -382,14 +384,20 @@ def normalize_yfinance_news(
             title=title, published_at=published, attribution=attribution,
             event_type=content_type, related_symbols=attribution.get("related_ticker_metadata") or [],
         )
+        evidence = item.get("article_evidence") if isinstance(item.get("article_evidence"), dict) else {
+            "article_content_status":"HEADLINE_ONLY", "investment_usable":False,
+            "reason":"HEADLINE_ONLY", "facts":[],
+        }
         normalized = {
+            "article_evidence": evidence,
+            "investment_usable": evidence.get("investment_usable") is True,
             "source": publisher, "publisher": publisher,
             "published_at": published_at.isoformat().replace("+00:00", "Z"),
             "source_url": source_url, "english_headline": title,
             "chinese_translation": "英文標題摘要：" + title,
             "english_excerpt": None,
-            "chinese_summary": "依可取得標題整理，未複製完整文章。",
-            "investment_reading": "新聞供事件脈絡參考，不單獨決定評等。",
+            "chinese_summary": evidence.get("chinese_summary") or "尚無可分析的新聞內容",
+            "investment_reading": evidence.get("investment_reading") or "證據不足，無法判斷",
             "source_quality": "recognized_financial_media",
             "source_tier": 3, "official_source": False,
             "symbol_attributed": attribution["accepted"], "contextual_admission": contextual_admission,
@@ -427,7 +435,8 @@ def normalize_yfinance_news(
             item["duplicate_sources"] = []
             unique[key] = item
     admitted = list(unique.values())
-    counts["DEDUPLICATED"] = counts["ADMITTED"] = len(admitted)
+    counts["DEDUPLICATED"] = counts["ADMITTED"] = counts["NEWS_ADMITTED"] = len(admitted)
+    counts["INVESTMENT_USABLE"] = sum(x.get("investment_usable") is True for x in admitted)
     if retrieval_error and not admitted:
         reject("RETRIEVAL_FAILED")
         absence = "NEWS_RETRIEVAL_FAILED"
@@ -452,7 +461,9 @@ def normalize_yfinance_news(
                      "candidate_count": len(raw), "pagination": "NO_VERIFIED_WINDOW_CURSOR",
                      "source_gaps": ["COMPANY_IR_NOT_FETCHED", "NEWSROOM_NOT_FETCHED", "SEC_SEPARATE_FILINGS_NOT_NEWS_COVERAGE"]},
         "candidate_records": candidate_records,
-        "candidate_retention": {"limit": None, "content": "metadata_only_no_article_body", "truncated": False},
+        "content_quality": {"policy":"substantive_content_required", "by_candidate": [
+            {"candidate_id":x["candidate_id"], **x["article_evidence"]} for x in admitted]},
+        "candidate_retention": {"limit": None, "content": "metadata_and_bounded_fact_evidence_no_full_article", "truncated": False},
     }
     return admitted, diagnostic
 
@@ -475,7 +486,7 @@ def with_downstream_counts(value: dict[str, Any], *, rre_used: int, rendered: in
     """Finalize selection/render accounting without mutating provider telemetry."""
     output = {**value, "stages": dict(value.get("stages") or {}),
               "rejection_reasons": dict(value.get("rejection_reasons") or {})}
-    admitted = int(output["stages"].get("ADMITTED") or 0)
+    admitted = int(output["stages"].get("INVESTMENT_USABLE", output["stages"].get("ADMITTED")) or 0)
     used = max(0, min(int(rre_used), admitted))
     visible = max(0, min(int(rendered), used))
     output["stages"]["RRE_USED"] = used

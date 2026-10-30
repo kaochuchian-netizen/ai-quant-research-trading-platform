@@ -6,6 +6,8 @@ from app.us_stock.news_rss_fallback import fetch_us_google_news_rss
 from app.research.news_evidence_funnel import normalize_yfinance_news
 from scripts.orchestrator.approved_us_stock_delivery import send_line_if_allowed, send_email_if_allowed
 
+from tests.article_content_fixture import with_article
+
 ASOF = "2026-10-29T20:00:00+08:00"
 RSS = b"""<rss><channel><item>
 <title>Tesla announces battery production update</title>
@@ -20,7 +22,7 @@ class NewsFallbackTests(unittest.TestCase):
         response = Mock(content=RSS)
         response.raise_for_status.return_value = None
         with patch("app.us_stock.news_rss_fallback.requests.get", return_value=response) as get:
-            rows, error = fetch_us_google_news_rss("TSLA")
+            rows, error = fetch_us_google_news_rss("TSLA", {"symbol":"TSLA","name":"Tesla"})
         self.assertIsNone(error)
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["discovery_channel"], "GOOGLE_NEWS_RSS")
@@ -51,12 +53,14 @@ class NewsFallbackTests(unittest.TestCase):
             "contentType": "STORY",
             "discovery_channel": "GOOGLE_NEWS_RSS",
         }]
-        with patch("app.us_stock.news_rss_fallback.fetch_us_google_news_rss", return_value=(rss, None)):
-            result = client.fetch_symbol("TSLA")
+        with patch("app.us_stock.news_rss_fallback.fetch_us_google_news_rss", return_value=(rss, None)), \
+             patch("app.research.article_evidence.enrich", side_effect=lambda rows, **_: [with_article(r) for r in rows]):
+            result = client.fetch_symbol("TSLA",company={"symbol":"TSLA","name":"Tesla"})
         self.assertTrue(result.ok)
         self.assertEqual(len(result.news), 1)
         self.assertEqual(result.news_diagnostics["source_attempts"]["YAHOO_FINANCE"]["candidate_count"], 0)
         self.assertEqual(result.news_diagnostics["source_attempts"]["GOOGLE_NEWS_RSS"]["candidate_count"], 1)
+        self.assertEqual(result.news_diagnostics["source_attempts"]["CNYES"]["candidate_count"], 1)
 
     def test_rss_source_survives_research_and_user_presentation(self):
         from app.us_stock.research_intelligence import USResearchIntelligenceBuilder
@@ -70,7 +74,7 @@ class NewsFallbackTests(unittest.TestCase):
             "contentType": "STORY",
             "discovery_channel": "GOOGLE_NEWS_RSS",
         }
-        admitted, diagnostics = normalize_yfinance_news([row], symbol="TSLA", observed_at=ASOF)
+        admitted, diagnostics = normalize_yfinance_news([with_article(row)], symbol="TSLA", observed_at=ASOF)
         material = USResearchIntelligenceBuilder.material_news(
             object.__new__(USResearchIntelligenceBuilder), "TSLA", admitted, diagnostics,
         )
@@ -83,7 +87,7 @@ class NewsFallbackTests(unittest.TestCase):
     def test_wrong_company_and_stale_news_still_rejected(self):
         response = Mock(content=RSS)
         with patch("app.us_stock.news_rss_fallback.requests.get", return_value=response):
-            rows, error = fetch_us_google_news_rss("GOOGL")
+            rows, error = fetch_us_google_news_rss("GOOGL", {"symbol":"GOOGL","name":"Alphabet"})
         self.assertIsNone(error)
         accepted, evidence = normalize_yfinance_news(rows, symbol="GOOGL", observed_at=ASOF)
         self.assertEqual(accepted, [])
@@ -94,12 +98,12 @@ class NewsFallbackTests(unittest.TestCase):
     def test_provider_failure_is_not_silent_success(self):
         import requests
         with patch("app.us_stock.news_rss_fallback.requests.get", side_effect=requests.Timeout):
-            rows, error = fetch_us_google_news_rss("TSLA")
+            rows, error = fetch_us_google_news_rss("TSLA", {"symbol":"TSLA","name":"Tesla"})
         self.assertEqual(rows, [])
         self.assertEqual(error, "Timeout")
         rows, error = fetch_us_google_news_rss("UNKNOWN")
         self.assertEqual(rows, [])
-        self.assertEqual(error, "UNSUPPORTED_SYMBOL")
+        self.assertEqual(error, "COMPANY_IDENTITY_UNRESOLVED_OR_AMBIGUOUS")
 
 
 class USNotificationTests(unittest.TestCase):

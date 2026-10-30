@@ -155,7 +155,8 @@ def prediction_for_symbol(quote: dict[str, Any], technical: dict[str, Any], wind
         up_mult *= 0.85
         down_mult *= 0.85
     earnings_risk = (research or {}).get("earnings", {}).get("event_risk_level", "low")
-    material_events = (research or {}).get("material_news", {}).get("items", [])
+    material_events = [item for item in (research or {}).get("material_news", {}).get("items", [])
+                       if item.get("investment_usable") is True and (item.get("article_evidence") or {}).get("investment_usable") is True]
     event_mult = 1.18 if earnings_risk == "high" else 1.10 if earnings_risk == "medium" or material_events else 1.0
     next_mult = 1.18 * event_mult
     base_range = base_range * event_mult
@@ -294,9 +295,13 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
     if window not in US_BATCH_WINDOWS:
         raise ValueError(f"unsupported US window: {window}")
     generated_at = now_taipei()
+    from app.loaders.batch_universe import freeze, normalize_rows
+    frozen = freeze(normalize_rows(watchlist, "US"),market="US",batch_as_of=reference.isoformat() if reference else generated_at,
+                    source={"kind":"google_sheet_us_watchlist","worksheet":"工作表2"})
+    watchlist = frozen["entries"]
     context = session_context(window, reference)
     client = YFinanceUSClient()
-    client.news_as_of = generated_at
+    client.news_as_of = frozen["batch_as_of"]
     research_builder = USResearchIntelligenceBuilder()
     market_context = client.fetch_context()
     canonical_market_context = normalize_us_market_context(market_context)
@@ -310,7 +315,7 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
         symbol = str(entry.get("symbol") or "").upper()
         if not symbol:
             continue
-        result = client.fetch_symbol(symbol)
+        result = client.fetch_symbol(symbol, company=entry)
         technical = analyze_history(result.history) if result.history is not None else {"ok": False, "data_quality": {"history_days": 0}, "indicators": {}, "trend_1m": "insufficient_data", "trend_3m": "insufficient_data", "volatility_state": "insufficient_data", "technical_score": None, "technical_summary": "history unavailable"}
         research = research_builder.build_for_symbol(symbol, technical, market_context, result.news, result.news_diagnostics)
         # Preserve the existing Decision Engine inputs and call order.  The
@@ -318,6 +323,11 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
         # strategy construction, so it is a read-only context export.
         score = score_symbol(technical, market_context, result.news, research)
         prediction = prediction_for_symbol(result.quote, technical, window, research)
+        prediction["news_evidence_use"] = {
+            "usage":"range_event_adjustment_only" if prediction.get("event_risk_type") == "material_news" else "not_consumed",
+            "candidate_ids":[i.get("candidate_id") for i in research.get("material_news",{}).get("items",[]) if i.get("investment_usable") is True] if prediction.get("event_risk_type") == "material_news" else [],
+            "direction_inference":False,
+        }
         prediction["one_month_trend"] = technical.get("trend_1m")
         prediction["three_month_trend"] = technical.get("trend_3m")
         strategies = build_dual_strategies(DEFAULT_MARKET, score, prediction, result.quote, technical, market_context=market_context, research=research, generated_at=generated_at)
@@ -363,6 +373,8 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
             # The compatibility card is projected only after bounded RRE
             # selection.  It may not retain provider-stage RRE/rendered zeros.
             card = build_premarket_card(card, result.quote, research, result.news, market_context, reference, finalized_funnel)
+            from app.us_stock.premarket_decision import plan_reference_diagnostics
+            card["entry_plan_diagnostics"] = plan_reference_diagnostics(card,result.quote,technical,frozen["batch_as_of"])
             card["news_evidence"]["finalized_projection"] = True
             card["news_evidence"]["canonical_funnel_identity"] = (
                 (institutional_research.get("research_intelligence_v2") or {}).get("window_research_identity")
@@ -412,7 +424,7 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
         cards.append(card)
         if window in {"us_pre_market_2000", "us_intraday_2300"} and write_snapshots and prediction.get("prediction_status") == "available":
             spath = snapshot_path(context["session_date"], window, symbol)
-            snap = {"schema_version": "us_stock_prediction_snapshot_v1", "market": DEFAULT_MARKET, "session_date": context["session_date"], "window": window, "symbol": symbol, "generated_at": generated_at, "prediction": prediction, "rating": score.get("rating"), "action": score.get("action"), "confidence_score": score.get("confidence_score"), "model_version": MODEL_VERSION, "data_source_timestamps": {"quote": result.quote.get("market_data_as_of")}, "pre_open_setup": card.get("daily_tactical_summary") if window == "us_pre_market_2000" else None, "eligibility": card.get("eligibility") if window == "us_pre_market_2000" else None, "trade_plan": card.get("trade_plan") if window == "us_pre_market_2000" else None, "event_risk": card.get("event_risk") if window == "us_pre_market_2000" else None, "sec_evidence": card.get("sec_evidence") if window == "us_pre_market_2000" else None, "news_evidence": card.get("news_evidence") if window == "us_pre_market_2000" else None, "institutional_research": institutional_research, "research_identity": institutional_research["research_identity"], "structured_intraday_card": card if window == "us_intraday_2300" else None, "fixture": False, "validation_only": False}
+            snap = {"schema_version": "us_stock_prediction_snapshot_v1", "market": DEFAULT_MARKET, "session_date": context["session_date"], "window": window, "symbol": symbol, "batch_universe": frozen, "generated_at": generated_at, "prediction": prediction, "rating": score.get("rating"), "action": score.get("action"), "confidence_score": score.get("confidence_score"), "model_version": MODEL_VERSION, "data_source_timestamps": {"quote": result.quote.get("market_data_as_of")}, "pre_open_setup": card.get("daily_tactical_summary") if window == "us_pre_market_2000" else None, "eligibility": card.get("eligibility") if window == "us_pre_market_2000" else None, "trade_plan": card.get("trade_plan") if window == "us_pre_market_2000" else None, "event_risk": card.get("event_risk") if window == "us_pre_market_2000" else None, "sec_evidence": card.get("sec_evidence") if window == "us_pre_market_2000" else None, "news_evidence": card.get("news_evidence") if window == "us_pre_market_2000" else None, "institutional_research": institutional_research, "research_identity": institutional_research["research_identity"], "structured_intraday_card": card if window == "us_intraday_2300" else None, "fixture": False, "validation_only": False}
             snap["snapshot_path"] = str(spath.relative_to(REPO_ROOT))
             write_json(spath, snap)
         if window == "us_post_close_review_0630":
@@ -470,6 +482,7 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
         "currency": DEFAULT_CURRENCY,
         "window": window,
         "source_sheet": "工作表2",
+        "batch_universe": frozen,
         "session_context": context,
         "runtime_watchlist_validation": {"source_sheet": "工作表2", "enabled_stock_count": len(watchlist), "successfully_analyzed_count": success, "insufficient_data_count": insufficient, "invalid_row_count": 0, "private_values_printed": False},
         "market_context": market_context,

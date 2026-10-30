@@ -325,6 +325,8 @@ def _compact_us_email_block(card: dict[str, Any], window: str) -> str:
         if eligibility.get("actionable"):
             lines.append(f"進場區 {format_price_range(plan.get('entry'))}｜停損 {_num(plan.get('stop'))}｜目標 {format_price_range(plan.get('target'))}")
         else:
+            from app.us_stock.premarket_decision import plan_gate_explanation
+            lines.append(plan_gate_explanation(card))
             lines.append(f"觀察區間 {plan.get('observation_zone') or '尚未取得'}｜正式 Entry / Stop / Target：不建立")
             lines.append(f"重新評估：{plan.get('reassessment_condition') or '等待條件完整'}")
         lines.append(f"SEC：{sec.get('form') or '尚未取得'}｜{sec.get('filing_date') or '日期尚未取得'}")

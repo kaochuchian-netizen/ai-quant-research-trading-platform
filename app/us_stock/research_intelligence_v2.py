@@ -222,7 +222,7 @@ def normalize_news(items: Iterable[dict[str, Any]], observed_at: str, diagnostic
     if observed.tzinfo is None:
         observed = observed.replace(tzinfo=timezone.utc)
     for raw in items:
-        if not isinstance(raw, dict):
+        if not isinstance(raw, dict) or raw.get("investment_usable") is False:
             continue
         provenance = raw.get("provenance") if isinstance(raw.get("provenance"), dict) else {}
         headline = _text(raw.get("english_headline") or raw.get("headline"))
@@ -240,6 +240,8 @@ def normalize_news(items: Iterable[dict[str, Any]], observed_at: str, diagnostic
             age_hours = None
         freshness = "current" if window and in_window(published, window) else "future" if age_hours is not None and age_hours < 0 else "stale"
         item = {
+            "article_evidence": raw.get("article_evidence") or {},
+            "investment_usable": raw.get("investment_usable"),
             "news_id": "news_" + stable_hash([cluster, reference, headline])[:20],
             "candidate_id": raw.get("candidate_id"), "news_event_id": raw.get("news_event_id") or cluster,
             "discovery_channel": raw.get("discovery_channel") or "YAHOO_FINANCE",

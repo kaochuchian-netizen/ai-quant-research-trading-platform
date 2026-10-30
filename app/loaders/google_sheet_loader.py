@@ -47,6 +47,9 @@ def _normalize_tw_symbols(values):
     return symbols, duplicates
 
 
+class SheetSymbols(list):
+    pass
+
 def _extract_tw_stock_ids(rows):
     """Parse only the required TW symbol column; unrelated headers are ignored."""
     rows = list(rows or [])
@@ -57,10 +60,18 @@ def _extract_tw_stock_ids(rows):
     if not matches:
         raise TWWatchlistSchemaError("TW_WATCHLIST_STOCK_ID_HEADER_MISSING")
     column = matches[0]
+    from app.loaders.batch_universe import normalize_rows
+    try:
+        entries = normalize_rows([dict(zip(headers, row)) for row in rows[1:]], "TW")
+    except ValueError as exc:
+        raise TWWatchlistSchemaError(str(exc)) from None
     raw_symbols = [row[column] for row in rows[1:] if len(row) > column]
-    symbols, duplicates = _normalize_tw_symbols(raw_symbols)
+    _, duplicates = _normalize_tw_symbols(raw_symbols)
+    symbols = [entry["symbol"] for entry in entries if entry["enabled"]]
     if not symbols:
         raise TWWatchlistSchemaError("TW_WATCHLIST_HAS_NO_SYMBOLS")
+    symbols = SheetSymbols(symbols)
+    symbols.entries = [e for e in entries if e["enabled"]]
     return symbols, duplicates
 
 
@@ -208,12 +219,14 @@ def load_stock_ids_with_provenance(
     """
     loader = primary_loader or load_stock_ids
     google_sheets_retry_evidence = []
+    sheet_entries = []
     try:
         if primary_loader is None:
             stock_ids, duplicate_symbols, google_sheets_retry_evidence = _load_stock_ids_with_retry_evidence(
                 key_file=key_file,
                 sheet_name=sheet_name,
             )
+            sheet_entries = getattr(stock_ids, "entries", [])
             stock_ids, duplicate_symbols = _normalize_tw_symbols(stock_ids)
         else:
             stock_ids = loader(key_file=key_file, sheet_name=sheet_name)
@@ -228,6 +241,8 @@ def load_stock_ids_with_provenance(
         fallback_snapshot_age = 0
         source_status = "READY"
         current_symbols = list(stock_ids)
+    except TWWatchlistSchemaError:
+        raise
     except Exception as exc:
         google_sheets_retry_evidence = list(getattr(exc, "google_sheets_retry_evidence", google_sheets_retry_evidence))
         if fallback_loader is not None:
@@ -277,7 +292,13 @@ def load_stock_ids_with_provenance(
     missing_symbols = sorted(current_set - fallback_set) if drift_known else []
     extra_symbols = sorted(fallback_set - current_set) if drift_known else []
     symbol_count_drift = len(normalized) - len(current_symbols) if drift_known else 0 if not fallback_used else None
+    from app.loaders.batch_universe import freeze
+    frozen = freeze(sheet_entries or [{"symbol":s,"market":"TW","enabled":True} for s in normalized],
+                    market="TW", batch_as_of=str(as_of_date or date.today()),
+                    source={"kind":source,"source_snapshot_id":source_snapshot_id,
+                            "source_payload_hash":source_payload_hash,"status":source_status})
     return normalized, {
+        "batch_universe": frozen,
         "source": source,
         "source_status": source_status,
         "fallback_used": fallback_used,
