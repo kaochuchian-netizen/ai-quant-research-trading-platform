@@ -179,6 +179,7 @@ class USNotificationTests(unittest.TestCase):
         self.assertTrue(result["succeeded"])
         self.assertGreater(result["chunk_delivery"]["chunk_count"], 1)
 
+    @patch("scripts.orchestrator.approved_us_stock_delivery.load_env_file", new=lambda _: None)
     @patch("scripts.orchestrator.approved_us_stock_delivery.load_mail_config", return_value={"to_addr": "a@example.com,b@example.com"})
     @patch("scripts.orchestrator.approved_us_stock_delivery.build_email_subject", return_value="subject")
     @patch("scripts.orchestrator.approved_us_stock_delivery.build_email_body", return_value="body")
