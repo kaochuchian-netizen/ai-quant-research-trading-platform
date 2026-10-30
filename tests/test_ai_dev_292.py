@@ -46,6 +46,8 @@ class UniverseTests(unittest.TestCase):
   with self.assertRaises(ValueError): query(frozen['entries'][0])
  def test_frozen_history_never_looks_up_current_sheet(self):
   snapshot={'snapshot_id':'immutable','market':'US','effective_trading_date':'2026-10-30','generated_at':ASOF,'payload':{'items':[{'symbol':'OLD'}]}}
+  from app.loaders.batch_universe import digest
+  snapshot['snapshot_id']=digest({k:v for k,v in snapshot.items() if k!='snapshot_id'})
   with patch('app.loaders.google_sheet_loader.load_us_stock_watchlist',side_effect=AssertionError('no live Sheet')):
    self.assertEqual(historical_universe(snapshot)['symbols'],['OLD'])
   frozen=historical_universe(snapshot); frozen['symbols']=['NEW']
@@ -160,5 +162,27 @@ class IntegrationTests(unittest.TestCase):
    fetch_us_google_news_rss('NEWC',company(),source_domain='news.cnyes.com')
    search=get.call_args.kwargs['params']['q']
   self.assertIn('New Company',search);self.assertIn('NEWC',search);self.assertIn('site:news.cnyes.com',search)
+
+
+class ReviewOriginTests(unittest.TestCase):
+ def test_natural_review_uses_original_members_and_rejects_tampering(self):
+  from app.loaders.batch_universe import digest,load_us_review_universe
+  from tests.test_ai_dev_283 import inputs
+  pre,_=inputs();pre.update(market='US',window='us_pre_market_2000',effective_trading_date='2026-10-30')
+  pre['payload']={'market':'US','window':'us_pre_market_2000','items':[{'symbol':'OLD'}]}
+  pre['snapshot_id']=digest({k:v for k,v in pre.items() if k!='snapshot_id'})
+  with tempfile.TemporaryDirectory() as d:
+   folder=Path(d)/'us/us_pre_market_2000/2026-10-30';folder.mkdir(parents=True)
+   p=folder/'revision-0001.json';p.write_text(json.dumps(pre))
+   with patch('app.loaders.google_sheet_loader.load_us_stock_watchlist',side_effect=AssertionError('must not read current Sheet')):
+    self.assertEqual(load_us_review_universe(d,'2026-10-30')['symbols'],['OLD'])
+   pre['payload']['items']=[{'symbol':'NEW'}];p.write_text(json.dumps(pre))
+   with self.assertRaisesRegex(ValueError,'HASH_MISMATCH'):load_us_review_universe(d,'2026-10-30')
+ def test_missing_review_origin_does_not_read_sheet_or_fetch(self):
+  from datetime import datetime
+  from scripts.orchestrator.approved_us_stock_delivery import build_runtime_artifact
+  with tempfile.TemporaryDirectory() as d, patch('app.us_stock.live_pipeline.WINDOW_ARCHIVE_DIR',Path(d)), patch('scripts.orchestrator.approved_us_stock_delivery.load_runtime_watchlist') as sheet, patch('scripts.orchestrator.approved_us_stock_delivery.build_live_runtime_artifact') as live:
+   with self.assertRaisesRegex(ValueError,'REVIEW_ORIGIN_MISSING'):build_runtime_artifact('us_post_close_review_0630',False,datetime.fromisoformat('2026-10-31T06:30:00+08:00'))
+   sheet.assert_not_called();live.assert_not_called()
 
 if __name__=='__main__': unittest.main()

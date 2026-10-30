@@ -291,15 +291,18 @@ def build_review(symbol: str, session_date: str, quote: dict[str, Any], history:
     review["pending_reason"] = evaluated.get("pending_reason") if evaluated.get("trade_review_outcome") == "pending_evidence" else None
     return review
 
-def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *, production_runtime: bool, write_snapshots: bool = True, reference: datetime | None = None, ledger_root: Path | None = None) -> dict[str, Any]:
+def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *, production_runtime: bool, write_snapshots: bool = True, reference: datetime | None = None, ledger_root: Path | None = None, frozen_universe: dict | None = None) -> dict[str, Any]:
     if window not in US_BATCH_WINDOWS:
         raise ValueError(f"unsupported US window: {window}")
     generated_at = now_taipei()
-    from app.loaders.batch_universe import freeze, normalize_rows
-    frozen = freeze(normalize_rows(watchlist, "US"),market="US",batch_as_of=reference.isoformat() if reference else generated_at,
-                    source={"kind":"google_sheet_us_watchlist","worksheet":"工作表2"})
-    watchlist = frozen["entries"]
+    from app.loaders.batch_universe import freeze, normalize_rows, validate, load_us_review_universe
     context = session_context(window, reference)
+    if window == "us_post_close_review_0630" and production_runtime and frozen_universe is None:
+        frozen_universe = load_us_review_universe(WINDOW_ARCHIVE_DIR,context["session_date"])
+    origin = validate(frozen_universe) if frozen_universe is not None else None
+    frozen = freeze(origin["entries"] if origin else normalize_rows(watchlist, "US"),market="US",batch_as_of=reference.isoformat() if reference else generated_at,
+                    source={"kind":"immutable_review_origin","origin_universe_id":origin["universe_id"],"origin_source":origin["source"]} if origin else {"kind":"google_sheet_us_watchlist","worksheet":"工作表2"})
+    watchlist = frozen["entries"]
     client = YFinanceUSClient()
     client.news_as_of = frozen["batch_as_of"]
     research_builder = USResearchIntelligenceBuilder()

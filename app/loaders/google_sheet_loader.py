@@ -230,6 +230,7 @@ def load_stock_ids_with_provenance(
             stock_ids, duplicate_symbols = _normalize_tw_symbols(stock_ids)
         else:
             stock_ids = loader(key_file=key_file, sheet_name=sheet_name)
+            sheet_entries = getattr(stock_ids, "entries", [])
             stock_ids, duplicate_symbols = _normalize_tw_symbols(stock_ids)
         source = "google_sheet_tw_watchlist"
         fallback_used = False
@@ -241,9 +242,12 @@ def load_stock_ids_with_provenance(
         fallback_snapshot_age = 0
         source_status = "READY"
         current_symbols = list(stock_ids)
-    except TWWatchlistSchemaError:
-        raise
     except Exception as exc:
+        if isinstance(exc,TWWatchlistSchemaError) and str(exc) in {
+            "UNKNOWN_ENABLED_VALUE","SHEET_MARKET_MISMATCH","INVALID_SYMBOL",
+            "CONFLICTING_DUPLICATE_SYMBOL","TW_WATCHLIST_HAS_NO_SYMBOLS",
+        }:
+            raise
         google_sheets_retry_evidence = list(getattr(exc, "google_sheets_retry_evidence", google_sheets_retry_evidence))
         if fallback_loader is not None:
             fallback = fallback_loader()
@@ -264,10 +268,16 @@ def load_stock_ids_with_provenance(
                 "effective_trading_date": latest.get("effective_trading_date"),
                 "revision": latest.get("revision"),
                 "source_payload_hash": payload_hash(payload) if payload else None,
+                "batch_universe": payload.get("batch_universe"),
             }
         observed = getattr(exc, "observed_symbols", None)
         current_symbols, duplicate_symbols = _normalize_tw_symbols(observed or [])
         stock_ids = fallback.get("stock_ids") if isinstance(fallback, dict) else []
+        if isinstance(fallback,dict) and fallback.get("batch_universe"):
+            from app.loaders.batch_universe import validate, require_parity
+            inherited = validate(fallback["batch_universe"])
+            require_parity(inherited,stock_ids)
+            sheet_entries = inherited["entries"]
         source_snapshot_id = fallback.get("snapshot_id") if isinstance(fallback, dict) else None
         source_effective_date = fallback.get("effective_trading_date") if isinstance(fallback, dict) else None
         source_revision = fallback.get("revision") if isinstance(fallback, dict) else None

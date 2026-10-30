@@ -159,6 +159,9 @@ def enrich(items,*,entry,as_of,retriever):
    evidence=assess(fetched['text'],title=str(item.get('title') or ''),entry=entry,source_url=fetched['source_url'],published_at=fetched.get('published_at'),modified_at=fetched.get('modified_at'),fetched_at=fetched['fetched_at'],as_of=as_of)
    if fetched.get('failure_reason'): evidence.update(article_content_status='FAILED',investment_usable=False,reason=fetched['failure_reason'])
   item['article_evidence']=evidence; item['company_identity']=entry
+  if evidence.get('investment_usable') and evidence.get('source_url'):
+   item['discovery_url']=url
+   item['canonicalUrl']={'url':evidence['source_url']}
   if evidence.get('published_at'): item['pubDate']=evidence['published_at']
   if 'content' in value: value['content']=item
   else: value.update(item)

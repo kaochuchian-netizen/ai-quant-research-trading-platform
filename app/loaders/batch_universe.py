@@ -87,6 +87,7 @@ def require_parity(universe,symbols):
 def historical_universe(snapshot):
  """Only immutable input, never a live Sheet loader or latest alias."""
  if not snapshot.get('snapshot_id') or not snapshot.get('effective_trading_date'): raise ValueError('IMMUTABLE_SNAPSHOT_REQUIRED')
+ if snapshot['snapshot_id']!=digest({k:v for k,v in snapshot.items() if k!='snapshot_id'}): raise ValueError('IMMUTABLE_SNAPSHOT_HASH_MISMATCH')
  payload=snapshot.get('payload') or {}
  if payload.get('batch_universe'): return validate(payload['batch_universe'])
  rows=payload.get('items') or payload.get('structured_pre_open_cards') or []
@@ -94,3 +95,17 @@ def historical_universe(snapshot):
  if not symbols: symbols=list(payload.get('tracking_symbols') or [])
  if not symbols: raise ValueError('HISTORICAL_UNIVERSE_UNAVAILABLE')
  return freeze([{'symbol':s,'market':snapshot.get('market') or payload.get('market'),'enabled':True} for s in symbols],market=snapshot.get('market') or payload['market'],batch_as_of=snapshot.get('generated_at'),source={'kind':'immutable_legacy_snapshot','snapshot_id':snapshot['snapshot_id'],'revision':snapshot.get('revision')})
+
+def load_us_review_universe(archive_root,session):
+ """Resolve one natural pre-market origin. No current Sheet lookup or latest alias."""
+ from pathlib import Path
+ from app.dashboard.window_snapshot_archive import admission_errors
+ candidates=[]
+ for path in (Path(archive_root)/'us'/'us_pre_market_2000'/session).glob('revision-*.json'):
+  snapshot=json.loads(path.read_text())
+  if snapshot.get('run_kind')!='scheduled' or snapshot.get('manual_rerun'): continue
+  if snapshot.get('effective_trading_date')!=session or snapshot.get('market')!='US': continue
+  if admission_errors(snapshot): raise ValueError('REVIEW_ORIGIN_NOT_ADMITTED')
+  candidates.append(historical_universe(snapshot))
+ if len(candidates)!=1: raise ValueError('REVIEW_ORIGIN_MISSING_OR_AMBIGUOUS')
+ return candidates[0]

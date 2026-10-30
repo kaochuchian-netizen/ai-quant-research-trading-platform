@@ -157,7 +157,15 @@ def load_runtime_watchlist(dry_run: bool) -> tuple[list[dict[str, Any]], dict[st
 
 
 def build_runtime_artifact(window: str, dry_run: bool, reference: datetime, *, live_data: bool = False, production_artifact: bool = False) -> dict[str, Any]:
-    enabled, metadata = load_runtime_watchlist(dry_run=dry_run and not production_artifact)
+    frozen_universe = None
+    if window == "us_post_close_review_0630" and (production_artifact or not dry_run):
+        from app.loaders.batch_universe import load_us_review_universe
+        from app.us_stock.live_pipeline import WINDOW_ARCHIVE_DIR, session_context
+        frozen_universe = load_us_review_universe(WINDOW_ARCHIVE_DIR,session_context(window,reference)["session_date"])
+        enabled = frozen_universe["entries"]
+        metadata = {"mode":"immutable_review_origin","enabled_stock_count":len(enabled),"credentials_read":False}
+    else:
+        enabled, metadata = load_runtime_watchlist(dry_run=dry_run and not production_artifact)
     if live_data or production_artifact or not dry_run:
         artifact = build_live_runtime_artifact(
             window,
@@ -165,6 +173,7 @@ def build_runtime_artifact(window: str, dry_run: bool, reference: datetime, *, l
             production_runtime=production_artifact or not dry_run,
             write_snapshots=production_artifact or not dry_run,
             reference=reference,
+            **({"frozen_universe":frozen_universe} if frozen_universe is not None else {}),
         )
         artifact["runtime_watchlist_validation"].update(metadata)
         artifact["market_phase_context"] = market_phase_context(window, reference)
@@ -404,6 +413,9 @@ def build_email_body(artifact: dict[str, Any], window: str) -> str:
     contract = get_window_report_contract("US", window)
     date = canonical_delivery_date(artifact)
     cards = [card for card in artifact.get("dashboard_ready_contract", {}).get("cards", []) if isinstance(card, dict)]
+    if artifact.get("batch_universe"):
+        from app.loaders.batch_universe import require_parity
+        require_parity(artifact["batch_universe"],[str(c.get("symbol")) for c in cards])
     projection = project_decision_intelligence_v4("US", window, artifact)
     projection_summary = compact_summary(projection, "email") if window != "us_post_close_review_0630" else "預測評估與交易結果分開呈現；不以區間命中宣稱交易命中。"
     lines = [f"{contract.title} {date}", "", f"Dashboard: {contract.dashboard_url}", "", contract.primary_question, "", "Decision Intelligence V4", projection_summary, "內容範圍：" + "、".join(projection["section_inventory"]), "", "本批次內容："]
