@@ -56,11 +56,21 @@ def assess(text,*,title,entry,source_url,published_at,fetched_at,as_of,modified_
  if len(facts)<2: return {**base,'article_content_status':'PARTIAL','reason':'INSUFFICIENT_ATTRIBUTABLE_EVENT_FACTS','facts':facts}
  # Summary states only categories/numbers extracted from facts. No invented translation.
  name=entry.get('name') or entry.get('english_name') or entry['symbol']
- labels=list(dict.fromkeys(label for label,_ in categories))
- numbers=list(dict.fromkeys(re.findall(r'\d[\d,.]*(?:%|億|萬|million|billion)?',' '.join(f['text'] for f in facts))))[:8]
+ summaries=[]
+ for fact,(label,_) in zip(facts,categories):
+  # Keep each value with its original unit and period; never combine unrelated numbers.
+  values=re.findall(r'[$€]?\d[\d,.]*\s*(?:(?:billion|million|trillion)\s*(?:dollars|USD)?|percent|%|億(?:美元|元)?|萬(?:美元|元)?|美元)',fact['text'],re.I)
+  values=[re.sub(r'percent','%',v,flags=re.I).replace('dollars','美元').strip() for v in values]
+  years=re.findall(r'\b20\d{2}\b',fact['text'])
+  quarter=next((zh for en,zh in [('first quarter','第一季'),('second quarter','第二季'),('third quarter','第三季'),('fourth quarter','第四季')] if en in fact['text'].lower()),'')
+  period='／'.join(dict.fromkeys(years))+quarter
+  fragment=label+'：'+('來源披露相關數值 '+ '、'.join(values[:3]) if values else '來源包含量化事件，數值及單位須核對原文事實')
+  if period: fragment+='（原文期間：'+period+'）'
+  fact['chinese_fact_summary']=fragment
+  summaries.append(fragment)
  return {**base,'article_content_status':'FULL_OR_SUBSTANTIVE','investment_usable':True,'reason':'ATTRIBUTABLE_FACTS_VERIFIED',
          'facts':facts,'content_sha256':hashlib.sha256(clean.encode()).hexdigest(),
-         'chinese_summary':f'{name}：來源報導涉及'+ '、'.join(labels)+'；原文數據包含'+ '、'.join(numbers)+'。期間與單位請參照所附事實定位。',
+         'chinese_summary':f'{name}。'+'；'.join(summaries)+'。數值為來源陳述，實際值、變化率或財測須依所附事實核對。',
          'investment_reading':' '.join(dict.fromkeys(reading for _,reading in categories)),
          'uncertainty':'單一來源敘述，尚未與公告及市場預期交叉驗證；證據不足，無法判斷價格方向。',
          'confirmation_condition':'核對公司公告、適用期間、數值單位與同期基準。','invalidation_condition':'來源更正、時間不符或公司歸屬不成立。','confidence':'limited'}

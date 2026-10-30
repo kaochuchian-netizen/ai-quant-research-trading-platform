@@ -155,8 +155,7 @@ def prediction_for_symbol(quote: dict[str, Any], technical: dict[str, Any], wind
         up_mult *= 0.85
         down_mult *= 0.85
     earnings_risk = (research or {}).get("earnings", {}).get("event_risk_level", "low")
-    material_events = [item for item in (research or {}).get("material_news", {}).get("items", [])
-                       if item.get("investment_usable") is True and (item.get("article_evidence") or {}).get("investment_usable") is True]
+    material_events = (research or {}).get("material_news", {}).get("items", [])
     event_mult = 1.18 if earnings_risk == "high" else 1.10 if earnings_risk == "medium" or material_events else 1.0
     next_mult = 1.18 * event_mult
     base_range = base_range * event_mult

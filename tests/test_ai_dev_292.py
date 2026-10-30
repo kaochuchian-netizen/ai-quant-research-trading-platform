@@ -75,6 +75,7 @@ class ContentTests(unittest.TestCase):
   p=finalized_current_news_projection(bundle)
   self.assertEqual(p['selected_count'],1); self.assertEqual(p['primary_item']['direction_status'],'NOT_EVALUATED')
   self.assertTrue(p['primary_item']['chinese_summary']); self.assertTrue(p['primary_item']['article_evidence']['facts'])
+  self.assertIn('25 billion 美元',p['primary_item']['chinese_summary']);self.assertIn('12 %',p['primary_item']['chinese_summary']);self.assertIn('2026第三季',p['primary_item']['chinese_summary'])
  def test_content_fail_closed_matrix(self):
   for text,when in [('New Company earnings','2026-10-30T10:00:00Z'),('subscribe to continue reading','2026-10-30T10:00:00Z'),('Other Company revenue 20 billion. Other Company margin 12 percent.','2026-10-30T10:00:00Z'),('New Company may report revenue of 20 billion. New Company might report margin 20 percent.','2026-10-30T10:00:00Z'),('New Company revenue of 20 billion for the third quarter. New Company margin of 12 percent in the third quarter.','2026-10-30T13:00:00Z')]:
    evidence=assess(text,title='title',entry=company(),source_url='https://finance.yahoo.com/news/a',published_at=when,fetched_at=when,as_of=ASOF)
@@ -137,7 +138,10 @@ class IntegrationTests(unittest.TestCase):
   quote={'last_price':100}; technical={'ok':True,'indicators':{'atr_like_range_pct':.02},'trend_1m':'neutral'}
   base=prediction_for_symbol(quote,technical,'us_pre_market_2000')
   for item in [{}, {'english_headline':'Huge earnings surprise'}, {'investment_usable':False}, {'investment_usable':True,'article_evidence':{'investment_usable':False}}]:
-   self.assertEqual(base,prediction_for_symbol(quote,technical,'us_pre_market_2000',{'material_news':{'items':[item]}}))
+   raw=row();raw['article_evidence']=item.get('article_evidence',{})
+   admitted,diag=normalize_yfinance_news([raw],symbol='NEWC',observed_at=ASOF)
+   guarded=USResearchIntelligenceBuilder.material_news(object.__new__(USResearchIntelligenceBuilder),'NEWC',admitted,diag)
+   self.assertEqual(base,prediction_for_symbol(quote,technical,'us_pre_market_2000',{'material_news':guarded}))
   qualified={'investment_usable':True,'article_evidence':{'investment_usable':True}}
   self.assertTrue(prediction_for_symbol(quote,technical,'us_pre_market_2000',{'material_news':{'items':[qualified]}})['event_adjusted'])
  def test_snapshot_rejects_universe_drift_without_writes(self):

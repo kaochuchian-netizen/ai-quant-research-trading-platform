@@ -255,7 +255,7 @@ def validate_premarket_contract(cards: list[dict[str, Any]], summary: dict[str, 
 PLAN_REASON_LABELS = {
     "PREMARKET_DATA_UNAVAILABLE_OR_STALE":"盤前行情缺失或過期",
     "RR_BELOW_THRESHOLD":"報酬風險比未達既有門檻",
-    "LOW_CONFIDENCE":"信心未達既有門檻",
+    "LOW_CONFIDENCE":"判斷把握度未達既有門檻",
     "DIRECTION_NOT_BULLISH":"目前方向不符合既有多方進場條件",
     "SETUP_NOT_STABILIZED":"價格尚未止穩／觸發條件未完成",
     "CHASE_RISK_HIGH":"追價風險過高", "EVENT_RISK_HIGH":"事件風險過高",
