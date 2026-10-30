@@ -45,11 +45,12 @@ class UniverseTests(unittest.TestCase):
   frozen=freeze([company('ONE','Same Company'),company('TWO','Same Company')],market='US',batch_as_of=ASOF,source={})
   with self.assertRaises(ValueError): query(frozen['entries'][0])
  def test_frozen_history_never_looks_up_current_sheet(self):
-  snapshot={'snapshot_id':'immutable','market':'US','effective_trading_date':'2026-10-30','generated_at':ASOF,'payload':{'items':[{'symbol':'OLD'}]}}
+  snapshot={'snapshot_id':'immutable','market':'US','effective_trading_date':'2026-10-30','generated_at':ASOF,'payload':{'items':[{'symbol':'OLD','name':'Old Company'}]}}
   from app.loaders.batch_universe import digest
   snapshot['snapshot_id']=digest({k:v for k,v in snapshot.items() if k!='snapshot_id'})
   with patch('app.loaders.google_sheet_loader.load_us_stock_watchlist',side_effect=AssertionError('no live Sheet')):
    self.assertEqual(historical_universe(snapshot)['symbols'],['OLD'])
+   self.assertEqual(historical_universe(snapshot)['entries'][0]['name'],'Old Company')
   frozen=historical_universe(snapshot); frozen['symbols']=['NEW']
   with self.assertRaises(ValueError): validate(frozen)
  def test_universe_parity_rejects_channel_subset(self):

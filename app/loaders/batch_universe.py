@@ -94,7 +94,20 @@ def historical_universe(snapshot):
  symbols=[str(r.get('symbol') or r.get('stock_id')) for r in rows if r.get('symbol') or r.get('stock_id')]
  if not symbols: symbols=list(payload.get('tracking_symbols') or [])
  if not symbols: raise ValueError('HISTORICAL_UNIVERSE_UNAVAILABLE')
- return freeze([{'symbol':s,'market':snapshot.get('market') or payload.get('market'),'enabled':True} for s in symbols],market=snapshot.get('market') or payload['market'],batch_as_of=snapshot.get('generated_at'),source={'kind':'immutable_legacy_snapshot','snapshot_id':snapshot['snapshot_id'],'revision':snapshot.get('revision')})
+ # Legacy names may be recovered only from this same immutable payload.
+ archived_cards=(payload.get('dashboard_ready_contract') or {}).get('cards') or []
+ metadata={str(row.get('symbol') or row.get('stock_id')):row for row in [*archived_cards,*rows]}
+ card_metadata={str(row.get('symbol') or row.get('stock_id')):row for row in archived_cards}
+ entries=[]
+ for symbol in symbols:
+  row=metadata.get(symbol,{})
+  card=card_metadata.get(symbol,{})
+  entries.append({'symbol':symbol,'market':snapshot.get('market') or payload.get('market'),'enabled':True,
+                  'name':row.get('name') or row.get('stock_name') or card.get('name') or card.get('stock_name') or '',
+                  'english_name':row.get('english_name') or '',
+                  'aliases':row.get('aliases') if isinstance(row.get('aliases'),list) else [],
+                  'industry':row.get('industry') or ''})
+ return freeze(entries,market=snapshot.get('market') or payload['market'],batch_as_of=snapshot.get('generated_at'),source={'kind':'immutable_legacy_snapshot','snapshot_id':snapshot['snapshot_id'],'revision':snapshot.get('revision')})
 
 def load_us_review_universe(archive_root,session):
  """Resolve one natural pre-market origin. No current Sheet lookup or latest alias."""
