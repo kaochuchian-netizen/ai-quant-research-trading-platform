@@ -13,6 +13,7 @@ import html
 import importlib
 import json
 import os
+import re
 import signal
 import subprocess
 import sys
@@ -504,6 +505,7 @@ def send_line_if_allowed(artifact: dict[str, Any], window: str, production_appro
     if not production_approved:
         return {"attempted": False, "succeeded": False, "reason": "dry_run_no_send"}
     from app.reports.line_chunks import deliver_line_chunks
+    transport_diagnostic = {}
     try:
         line_module = importlib.import_module("reports.line_report_sender")
         sender = getattr(line_module, "send_" + "line_report")
@@ -512,7 +514,21 @@ def send_line_if_allowed(artifact: dict[str, Any], window: str, production_appro
             return {"attempted": False, "succeeded": False, "reason": "no_line_recipients", "recipient_count": 0}
         accepted_sets = []
         def send_chunk(chunk: str) -> None:
-            responses = sender(chunk) or []
+            try:
+                responses = sender(chunk) or []
+            except Exception as exc:
+                # Legacy sender embeds private recipient/body text. Persist only
+                # a numeric HTTP status and an allowlisted provider reason.
+                match = re.match(r"^LINE push failed for [^:]+: ([1-5][0-9]{2}) ", str(exc))
+                if match:
+                    transport_diagnostic["http_status"] = int(match.group(1))
+                    transport_diagnostic["provider_reason"] = (
+                        "monthly_limit_reached" if int(match.group(1)) == 429
+                        and "You have reached your monthly limit." in str(exc)
+                        else "http_rejected"
+                    )
+                raise
+
             accepted = {str(recipient) for recipient, code in responses if 200 <= int(code) < 300}
             if accepted != expected:
                 raise RuntimeError("line_recipient_receipt_incomplete")
@@ -532,7 +548,8 @@ def send_line_if_allowed(artifact: dict[str, Any], window: str, production_appro
         return {
             "attempted": True, "succeeded": False, "recipient_count": 0,
             "reason": "line_transport_failure", "error_type": type(exc).__name__,
-            "chunk_delivery": getattr(exc, "chunk_delivery", None),
+            "chunk_delivery": ({**getattr(exc, "chunk_delivery", {}), **transport_diagnostic}
+                               if getattr(exc, "chunk_delivery", None) is not None else None),
             "secret_values_printed": False,
         }
 
@@ -584,6 +601,7 @@ def send_us_channel_with_receipt(
         "transport_result": transport_result or "unknown",
         "reason": result.get("send_status"),
         "receipt_path": result.get("receipt_path"),
+        "receipt": receipt,
         "chunk_delivery": receipt.get("chunk_delivery"),
         "secret_values_printed": False,
     }
@@ -688,6 +706,23 @@ def supervise_production_worker(args: argparse.Namespace) -> dict[str, Any]:
     except json.JSONDecodeError:
         parsed = None
     if isinstance(parsed, dict) and parsed.get("status") == "lock_busy":
+        parsed["worker"] = {"returncode": completed.returncode, "parsed_nonzero_json": True}
+        return parsed
+    # A completed worker returns exit 2 when only one channel failed. Its
+    # structured channel evidence must not be replaced with "not_attempted".
+    worker_status = parsed.get("status") if isinstance(parsed, dict) else None
+    if (completed.returncode == 2 and isinstance(parsed, dict) and parsed.get("ok") is False
+            and isinstance(worker_status, dict)
+            and worker_status.get("schema_version") == "us_stock_delivery_status_v1"
+            and worker_status.get("market") == "US"
+            and worker_status.get("window") == args.window
+            and worker_status.get("status") == "completed"
+            and all(isinstance(parsed.get(channel), dict)
+                    and type(parsed[channel].get("attempted")) is bool
+                    and type(parsed[channel].get("succeeded")) is bool
+                    and worker_status.get(channel + "_attempted") == parsed[channel]["attempted"]
+                    and worker_status.get(channel + "_succeeded") == parsed[channel]["succeeded"]
+                    for channel in ("email", "line"))):
         parsed["worker"] = {"returncode": completed.returncode, "parsed_nonzero_json": True}
         return parsed
     finished = now_taipei()
@@ -846,6 +881,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 channel=channel, content=content, delivery_result=result_name,
                 delivery_attempted=attempted, recipient_count=int(delivery.get("recipient_count") or 0),
                 public_sync=public_latest_sync,
+                delivery_receipt=delivery.get("receipt"),
+                receipt_ref=delivery.get("receipt_path"),
+                delivery_time=(delivery.get("receipt") or {}).get("attempted_at"),
             )
             if persist_formal_runtime:
                 write_delivery_provenance(
