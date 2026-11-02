@@ -114,9 +114,15 @@ def main() -> int:
         and "send_reports_in_batches" not in pipeline_source
         and "deliver_admitted_pre_open_snapshot(" in wrapper_source
     )
+    snapshot_senders = [node.body for node in ast.walk(ast.parse(wrapper_source))
+                        if isinstance(node, ast.Lambda) and isinstance(node.body, ast.Call)
+                        and isinstance(node.body.func, ast.Name)
+                        and node.body.func.id in {"send_delivery_email", "send_concise_line"}]
     checks["notification_content_accepts_explicit_admitted_snapshot"] = (
-        "admitted_snapshot: dict[str, Any] | None" in wrapper_source
-        and "snapshot,\n            )" in wrapper_source
+        len(snapshot_senders) == 2 and all(
+            any(isinstance(arg, ast.Name) and arg.id == "snapshot" for arg in call.args)
+            and any(kw.arg == "receipt_root" for kw in call.keywords)
+            for call in snapshot_senders)
     )
 
     hash_cards = [_card("009816", unavailable=True), _card("3293")]

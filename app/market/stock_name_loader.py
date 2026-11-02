@@ -78,3 +78,18 @@ def get_stock_name(stock_id: str) -> str:
     Shioaji 或本地 map 不可用時回傳股票代號，避免報告 pipeline 中斷。
     """
     return str(resolve_stock_name(stock_id)["stock_name"])
+
+
+def resolve_contract_identity(symbol):
+    """Authoritative batch identity, never the legacy local display-name map."""
+    from datetime import datetime, timezone
+    try:
+        contract = get_api().Contracts.Stocks[str(symbol)]
+        code = str(getattr(contract, "code", ""))
+        name = str(getattr(contract, "name", "")).strip()
+        if code != str(symbol) or not name:
+            return {"status": "UNRESOLVED", "reason": "CONTRACT_IDENTITY_MISMATCH"}
+        return {"symbol": code, "name": name, "source": "shioaji_contracts",
+                "observed_at": datetime.now(timezone.utc).isoformat()}
+    except Exception as exc:
+        return {"status": "UNRESOLVED", "reason": type(exc).__name__}

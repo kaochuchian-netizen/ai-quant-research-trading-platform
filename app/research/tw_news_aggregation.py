@@ -335,9 +335,36 @@ def collect_tw_news(
         deduped,
         stock_id=str(stock_id),
         stock_name=stock_name,
-        fetch_content=session.downstream_fetch_content,
+        fetch_content=session.downstream_fetch_content if company is None else False,
         max_fetches=12, max_seconds=30,
     )
+    if company is not None:
+        from app.research.article_evidence import assess, ArticleRetriever, aware
+        retriever = ArticleRetriever(request_budget=12, time_budget=30,
+            allowed_hosts={urlparse(i.get("source_url") or "").hostname for i in deduped})
+        historical = (datetime.now(timezone.utc) - aware(window["as_of"])).total_seconds() > 1800
+        for item in deduped:
+            fetched = {"text": "", "failure_reason": "HISTORICAL_CONTENT_REFETCH_FORBIDDEN"} if historical else retriever.fetch(item.get("source_url") or "")
+            item["content"] = fetched.get("text") or ""
+            item["published_at"] = fetched.get("published_at")
+            item["modified_at"] = fetched.get("modified_at")
+            item["article_evidence"] = assess(
+                item.get("content") or "", title=item.get("title") or "",
+                entry=company, source_url=item.get("source_url"),
+                published_at=item.get("published_at"), fetched_at=_utc_now(),
+                as_of=window["as_of"], modified_at=item.get("modified_at"))
+            if fetched.get("failure_reason"):
+                item["article_evidence"].update(investment_usable=False, article_content_status="FAILED", reason=fetched["failure_reason"])
+            item["company_identity"] = company
+            item["investment_usable"] = item["article_evidence"]["investment_usable"]
+            if item["investment_usable"]:
+                from app.research.tw_news_content_relevance import evaluate_news_item
+                item["relevance_materiality_evaluation"] = evaluate_news_item(item, stock_id=str(stock_id), stock_name=stock_name, content=item["content"])
+                for key in ("relevance", "materiality", "relationship_type", "research_role", "summary"):
+                    if key in item["relevance_materiality_evaluation"]:
+                        item[key] = item["relevance_materiality_evaluation"][key]
+            # Event language is not a validated price-direction model.
+            item["direction"] = "unavailable"
     # Use exactly the same formal source/relevance/materiality admission as cards.
     from app.reports.tw_pre_open_quality import news_contract
     formal = news_contract({"items": deduped, "news_window": window}, generated_at=window["as_of"],
@@ -383,7 +410,7 @@ def collect_tw_news(
             "browser_launches": session.browser_launches,
             "browser_concurrency": CNYES_BROWSER_CONCURRENCY,
             "transient_cache_entries": len(session.cnyes_cache.content_by_identity),
-            "failure_reason": None if formal["evidence"] else "FILTERED" if raw_items else "NO_RESULT",
+            "failure_reason": None if formal["evidence"] else "FILTERED" if raw_items else "ALL_SOURCES_FAILED" if any(h.get("status") in {"failed", "degraded"} and h.get("reason") for h in source_health.values()) else "NO_RESULT",
         },
         "prompt_policy": news_prompt_policy(),
     }

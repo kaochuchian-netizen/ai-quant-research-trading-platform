@@ -15,7 +15,7 @@ SCOPES = [
     "https://www.googleapis.com/auth/drive.readonly",
 ]
 
-TW_REQUIRED_HEADERS = ("stock_id", "symbol", "代號")
+TW_REQUIRED_HEADERS = ("stock_id", "symbol", "ticker", "代號", "股票代號")
 GOOGLE_SHEETS_PROVIDER = "google_sheets"
 GOOGLE_SHEETS_STAGE = "historical_csv_update"
 GOOGLE_SHEETS_MAX_ATTEMPTS = 3
@@ -55,7 +55,7 @@ def _extract_tw_stock_ids(rows):
     rows = list(rows or [])
     if not rows:
         raise TWWatchlistSchemaError("TW_WATCHLIST_EMPTY_SHEET")
-    headers = [str(value).strip() for value in rows[0]]
+    headers = [str(value).strip().lower() for value in rows[0]]
     matches = [index for index, header in enumerate(headers) if header in TW_REQUIRED_HEADERS]
     if not matches:
         raise TWWatchlistSchemaError("TW_WATCHLIST_STOCK_ID_HEADER_MISSING")
@@ -72,6 +72,13 @@ def _extract_tw_stock_ids(rows):
         raise TWWatchlistSchemaError("TW_WATCHLIST_HAS_NO_SYMBOLS")
     symbols = SheetSymbols(symbols)
     symbols.entries = [e for e in entries if e["enabled"]]
+    from app.loaders.batch_universe import digest, identity_terms
+    symbols.source_evidence = {
+        "worksheet": "first_worksheet", "headers": headers,
+        "raw_rows_sha256": digest(rows), "normalized_entries": entries,
+        "disabled_symbols": [e["symbol"] for e in entries if not e["enabled"]],
+        "identity_missing_symbols": [e["symbol"] for e in entries if e["enabled"] and not identity_terms(e)],
+    }
     return symbols, duplicates
 
 
@@ -220,6 +227,7 @@ def load_stock_ids_with_provenance(
     loader = primary_loader or load_stock_ids
     google_sheets_retry_evidence = []
     sheet_entries = []
+    sheet_source_evidence = {}
     try:
         if primary_loader is None:
             stock_ids, duplicate_symbols, google_sheets_retry_evidence = _load_stock_ids_with_retry_evidence(
@@ -227,10 +235,12 @@ def load_stock_ids_with_provenance(
                 sheet_name=sheet_name,
             )
             sheet_entries = getattr(stock_ids, "entries", [])
+            sheet_source_evidence = getattr(stock_ids, "source_evidence", {})
             stock_ids, duplicate_symbols = _normalize_tw_symbols(stock_ids)
         else:
             stock_ids = loader(key_file=key_file, sheet_name=sheet_name)
             sheet_entries = getattr(stock_ids, "entries", [])
+            sheet_source_evidence = getattr(stock_ids, "source_evidence", {})
             stock_ids, duplicate_symbols = _normalize_tw_symbols(stock_ids)
         source = "google_sheet_tw_watchlist"
         fallback_used = False
@@ -268,7 +278,7 @@ def load_stock_ids_with_provenance(
                 "effective_trading_date": latest.get("effective_trading_date"),
                 "revision": latest.get("revision"),
                 "source_payload_hash": payload_hash(payload) if payload else None,
-                "batch_universe": payload.get("batch_universe"),
+                "batch_universe": payload.get("batch_universe") or (payload.get("stock_universe_evidence") or {}).get("batch_universe"),
             }
         observed = getattr(exc, "observed_symbols", None)
         current_symbols, duplicate_symbols = _normalize_tw_symbols(observed or [])
@@ -305,7 +315,7 @@ def load_stock_ids_with_provenance(
     from app.loaders.batch_universe import freeze
     frozen = freeze(sheet_entries or [{"symbol":s,"market":"TW","enabled":True} for s in normalized],
                     market="TW", batch_as_of=str(as_of_date or date.today()),
-                    source={"kind":source,"source_snapshot_id":source_snapshot_id,
+                    source={"kind":source,"sheet_evidence":sheet_source_evidence,"source_snapshot_id":source_snapshot_id,
                             "source_payload_hash":source_payload_hash,"status":source_status})
     return normalized, {
         "batch_universe": frozen,

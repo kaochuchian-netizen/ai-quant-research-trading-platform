@@ -188,7 +188,7 @@ def run_validation() -> dict[str, Any]:
     details["2330"] = {"stats": tsmc_stats, "funnel": tsmc_contract["evidence_funnel"]}
 
     igs_session = _Session({
-        "https://news.example/igs": _Response(_html("鈊象 3293 遊戲業務動能延續，營收與海外市場需求增加，法人看好訂單能見度。公司遊戲產品海外授權與平台合作擴大，對未來獲利與市場展望具有明確影響。")),
+        "https://news.example/igs": _Response(_html("鈊象 3293 遊戲業務動能延續，營收與海外市場需求增加，法人看好訂單能見度。公司遊戲產品海外授權與平台合作擴大，對未來獲利與市場展望具有明確影響。公司公告本季營收為新台幣三十億元，海外業務占比達百分之六十。")),
     })
     igs_items, igs_stats = enrich_news_items([_item("鈊象遊戲業務動能延續", "https://news.example/igs")], stock_id="3293", stock_name="鈊象", session=igs_session, resolver=_public_resolver)
     igs_contract = _contract(igs_items, "3293", "鈊象")
@@ -568,7 +568,7 @@ def run_validation() -> dict[str, Any]:
     shared_cache = CnyesBrowserContentCache()
     shared_url = "https://news.cnyes.com/news/id/1220"
     first_browser = _BrowserAdapter([[_cnyes("台積電共同新聞", "2026-09-18", 1220, status="TITLE_ONLY")]], article_bodies={shared_url: "台積電 2330 月營收成長，先進製程需求升溫，客戶訂單能見度提高。公司說明產能利用率維持高檔，資本支出與供應鏈合作延續，對後續營運展望具有明確影響，並補充海外主要客戶需求穩定。"})
-    second_browser = _BrowserAdapter([[_cnyes("鈊象共同新聞", "2026-09-18", 1220, status="TITLE_ONLY")]], article_bodies={shared_url: "鈊象 3293 遊戲業務動能延續，營收與海外市場需求增加，法人看好訂單能見度。公司遊戲產品海外授權與平台合作擴大，對未來獲利與市場展望具有明確影響。"})
+    second_browser = _BrowserAdapter([[_cnyes("鈊象共同新聞", "2026-09-18", 1220, status="TITLE_ONLY")]], article_bodies={shared_url: "鈊象 3293 遊戲業務動能延續，營收與海外市場需求增加，法人看好訂單能見度。公司遊戲產品海外授權與平台合作擴大，對未來獲利與市場展望具有明確影響。公司公告本季營收為新台幣三十億元，海外業務占比達百分之六十。"})
     first_shared = collect_cnyes_browser_news(first_browser, symbol="2330", stock_name="台積電", reference="2026-09-18", content_cache=shared_cache)
     second_shared = collect_cnyes_browser_news(second_browser, symbol="3293", stock_name="鈊象", reference="2026-09-18", content_cache=shared_cache)
     checks["cnyes_multi_symbol_article_page_opened_once"] = (

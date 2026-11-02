@@ -8,7 +8,7 @@ TRUE = {'true', 'yes', '1', 'y', 'enabled', 'on', '是', '啟用'}
 FALSE = {'false', 'no', '0', 'n', 'disabled', 'off', '否', '停用'}
 ALIASES = {
  'symbol': ('symbol','stock_id','ticker','代號','股票代號'),
- 'name': ('name','company_name','公司名稱','名稱','股票名稱'),
+ 'name': ('name','stock_name','company_name','公司名稱','名稱','股票名稱'),
  'english_name': ('english_name','英文名稱','company_english_name'),
  'aliases': ('aliases','alias','別名'), 'industry': ('industry','產業'),
  'market': ('market','市場'), 'enabled': ('enabled','啟用','active'),
@@ -89,7 +89,8 @@ def historical_universe(snapshot):
  if not snapshot.get('snapshot_id') or not snapshot.get('effective_trading_date'): raise ValueError('IMMUTABLE_SNAPSHOT_REQUIRED')
  if snapshot['snapshot_id']!=digest({k:v for k,v in snapshot.items() if k!='snapshot_id'}): raise ValueError('IMMUTABLE_SNAPSHOT_HASH_MISMATCH')
  payload=snapshot.get('payload') or {}
- if payload.get('batch_universe'): return validate(payload['batch_universe'])
+ frozen=payload.get('batch_universe') or (payload.get('stock_universe_evidence') or {}).get('batch_universe')
+ if frozen: return validate(frozen)
  rows=payload.get('items') or payload.get('structured_pre_open_cards') or []
  symbols=[str(r.get('symbol') or r.get('stock_id')) for r in rows if r.get('symbol') or r.get('stock_id')]
  if not symbols: symbols=list(payload.get('tracking_symbols') or [])
@@ -122,3 +123,23 @@ def load_us_review_universe(archive_root,session):
   candidates.append(historical_universe(snapshot))
  if len(candidates)!=1: raise ValueError('REVIEW_ORIGIN_MISSING_OR_AMBIGUOUS')
  return candidates[0]
+
+
+def complete_tw_identities(universe, resolver):
+ """Freeze an authoritative instrument response only for missing Sheet identities.
+
+ The resolver is injected; historical callers must never call this function.
+ Local name maps and symbol-only guesses are not authoritative identity evidence.
+ """
+ original=validate(universe)
+ entries=deepcopy(original['entries'])
+ for entry in entries:
+  if identity_terms(entry): continue
+  resolved=resolver(entry['symbol'])
+  if not isinstance(resolved,dict) or resolved.get('source')!='shioaji_contracts': continue
+  if str(resolved.get('symbol'))!=entry['symbol']: continue
+  name=str(resolved.get('name') or '').strip()
+  if not name or name==entry['symbol']: continue
+  entry['name']=name
+  entry['identity_provenance']={**resolved,'response_sha256':digest(resolved)}
+ return freeze(entries,market=original['market'],batch_as_of=original['batch_as_of'],source=original['source'])

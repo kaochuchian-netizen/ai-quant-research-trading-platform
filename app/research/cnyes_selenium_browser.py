@@ -80,8 +80,10 @@ class CnyesSeleniumBrowser:
         reference: Any | None = None,
         timeouts: CnyesBrowserTimeouts | None = None,
         lifecycle: CnyesBrowserLifecycle | None = None,
+        robots_guard=None,
     ) -> None:
         self._closed = False
+        self.robots_guard = robots_guard
         self.driver = driver
         self.reference = reference
         self.timeouts = timeouts or CnyesBrowserTimeouts()
@@ -109,6 +111,8 @@ class CnyesSeleniumBrowser:
 
     def open_search(self, url: str) -> None:
         try:
+            if self.robots_guard is not None:
+                self.robots_guard(url)
             self.driver.get(url)
         except Exception as exc:
             if "timeout" in f"{exc.__class__.__name__}: {exc}".lower():
@@ -176,6 +180,8 @@ class CnyesSeleniumBrowser:
 
     def open_article(self, url: str) -> None:
         try:
+            if self.robots_guard is not None:
+                self.robots_guard(url)
             self.driver.get(url)
         except Exception as exc:
             if "timeout" in f"{exc.__class__.__name__}: {exc}".lower():
@@ -263,7 +269,9 @@ def _create_local_browser(*, headless, timeouts, profile, lifecycle):
     driver = OnceChrome.__new__(OnceChrome)
     try:
         driver.__init__(options=options)
-        return CnyesSeleniumBrowser(driver, timeouts=timeouts, lifecycle=lifecycle)
+        from app.research.article_evidence import ArticleRetriever
+        policy = ArticleRetriever(request_budget=20, time_budget=timeouts.overall_seconds)
+        return CnyesSeleniumBrowser(driver, timeouts=timeouts, lifecycle=lifecycle, robots_guard=policy.check_policy)
     except BaseException:
         # Constructor/setup exceptions must retain their original identity.
         wrapper = CnyesSeleniumBrowser.__new__(CnyesSeleniumBrowser)

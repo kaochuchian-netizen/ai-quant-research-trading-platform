@@ -380,6 +380,11 @@ def run_pre_open_pipeline(dry_run=False, limit=None):
         market="TW",batch_as_of=context["created_at"],source={"kind":stock_universe_evidence.get("source","injected_loader")})
     stock_universe_evidence["batch_universe"] = freeze(loaded_universe["entries"],market="TW",
         batch_as_of=context["created_at"],source=loaded_universe["source"])
+    if not dry_run:
+        from app.loaders.batch_universe import complete_tw_identities
+        from app.market.stock_name_loader import resolve_contract_identity
+        stock_universe_evidence["batch_universe"] = complete_tw_identities(
+            stock_universe_evidence["batch_universe"], resolve_contract_identity)
     frozen_companies = {e["symbol"]:e for e in stock_universe_evidence["batch_universe"]["entries"]}
     stage_timing.finish(
         "load_stock_universe",

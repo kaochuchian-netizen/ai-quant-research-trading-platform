@@ -338,7 +338,13 @@ def news_contract(raw_news: Any, *, generated_at: str | None = None, target_symb
             raise ValueError("NEWS_WINDOW_BATCH_DATE_MISMATCH")
     if target_symbol:
         metadata = instrument_metadata("TW", str(target_symbol).strip())
-        if metadata.get("status") != "AVAILABLE":
+        from app.loaders.batch_universe import identity_terms
+        dynamic_identity = any(
+            isinstance(i.get("company_identity"), dict)
+            and i["company_identity"].get("symbol") == str(target_symbol)
+            and identity_terms(i["company_identity"])
+            for i in raw_items)
+        if metadata.get("status") != "AVAILABLE" and not dynamic_identity:
             return _missing_identity_news_contract(raw_items, generated_at=generated_at, target_symbol=str(target_symbol).strip(), target_name=target_name)
     rejection_reasons: dict[str, int] = {}
     candidate_records: list[dict[str, Any]] = []
@@ -377,6 +383,11 @@ def news_contract(raw_news: Any, *, generated_at: str | None = None, target_symb
             if date_reason:
                 reject(date_reason, candidate)
                 continue
+        article = item.get("article_evidence")
+        if isinstance(article, dict) and article.get("investment_usable") is not True:
+            candidate["article_evidence"] = article
+            reject(article.get("reason") or "ARTICLE_NOT_INVESTMENT_USABLE", candidate)
+            continue
         enrichment = item.get("relevance_materiality_evaluation") or {}
         if enrichment.get("rejection_reason"):
             candidate["content_failure_reason"] = enrichment.get("content_failure_reason")
@@ -411,6 +422,9 @@ def news_contract(raw_news: Any, *, generated_at: str | None = None, target_symb
             continue
         quality_count += 1
         published_time = _parse_time(published)
+        if reference and published_time and published_time > reference:
+            reject("NEWS_AFTER_AS_OF", candidate)
+            continue
         age_hours = None if not reference or not published_time else max(0.0, (reference - published_time).total_seconds() / 3600)
         freshness = "fresh" if news_window or (age_hours is not None and age_hours <= NEWS_LOOKBACK_HOURS) else "stale" if age_hours is not None else "unknown"
         if freshness == "stale":
@@ -442,6 +456,10 @@ def news_contract(raw_news: Any, *, generated_at: str | None = None, target_symb
             "relationship_type": relationship or "primary", "contextual_role": contextual_role or None,
             "entity_attribution": attribution,
         }
+        if isinstance(article, dict):
+            admitted_item.update(article_evidence=article, investment_usable=True,
+                                 summary=article.get("chinese_summary"),
+                                 investment_reading=article.get("investment_reading"))
         admitted.append(admitted_item)
         candidate.update({"source_tier": tier, "source_quality": admitted_item["source_quality"], "freshness": freshness,
                           "admission_status": "ADMITTED", "rejection_reason": None,

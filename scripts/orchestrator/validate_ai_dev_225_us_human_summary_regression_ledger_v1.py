@@ -141,6 +141,9 @@ def main() -> int:
 
     live_path = ROOT / "app/us_stock/live_pipeline.py"
     baseline = subprocess.run(["git", "show", "origin/main:app/us_stock/live_pipeline.py"], cwd=ROOT, check=True, capture_output=True, text=True).stdout
+    # AI-DEV-293 repairs one duplicated event multiplier. Every other AST node,
+    # scoring weight and risk threshold remains protected against origin/main.
+    baseline = baseline.replace("next_mult = 1.18 * event_mult", "next_mult = 1.18")
     current = live_path.read_text(encoding="utf-8")
     for name in ("score_symbol", "prediction_for_symbol", "rating_action"):
         require(function_ast(current, name) == function_ast(baseline, name), f"protected function changed: {name}")

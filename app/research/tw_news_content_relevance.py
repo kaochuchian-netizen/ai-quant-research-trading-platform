@@ -109,8 +109,6 @@ class _TextExtractor(HTMLParser):
 
     def text(self) -> str:
         parts = []
-        if self.meta_description:
-            parts.append(self.meta_description)
         parts.extend(self._chunks)
         return normalize_text(" ".join(parts))
 
@@ -795,6 +793,8 @@ def _request_with_verified_ip(
             resolved_ip,
             port=port,
             assert_hostname=hostname,
+            cert_reqs="CERT_REQUIRED",
+            ca_certs=requests.certs.where(),
             server_hostname=hostname,
             timeout=timeout_config,
             retries=False,
@@ -833,6 +833,10 @@ def fetch_article_content(
         return ArticleContent("failed", "", failure_reason=reason)
     if session is None and os.environ.get("STOCK_AI_DISABLE_LIVE_NEWS_NETWORK") == "1":
         return ArticleContent("failed", "", failure_reason="LIVE_NEWS_NETWORK_DISABLED")
+    policy = None
+    if session is None:
+        from app.research.article_evidence import ArticleRetriever
+        policy = ArticleRetriever(allowed_hosts={urlparse(url).hostname}, time_budget=30)
     client = session or requests
     current_url = str(url)
     response = None
@@ -849,6 +853,8 @@ def fetch_article_content(
                 )
                 if not ok:
                     return ArticleContent("failed", "", final_url=current_url, failure_reason=reason)
+            if policy is not None:
+                policy.check_policy(current_url)
             response = _request_with_verified_ip(
                 client,
                 current_url,
@@ -874,6 +880,8 @@ def fetch_article_content(
             current_url = next_url
         else:
             return ArticleContent("failed", "", final_url=current_url, failure_reason="TOO_MANY_REDIRECTS")
+    except ValueError as exc:
+        return ArticleContent("failed", "", failure_reason=str(exc))
     except requests.Timeout:
         return ArticleContent("failed", "", failure_reason="REQUEST_TIMEOUT")
     except requests.RequestException as exc:

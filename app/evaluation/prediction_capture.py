@@ -67,8 +67,12 @@ def capture(card, *, root=ROOT, clock=None):
                         frozen_at=frozen_at, reference=reference, atr=atr_feature, calendar=calendar,
                         review_session=day, producer=p["method_version"], learning_used=learning)
         return {"status":"FROZEN", "frozen":frozen}
-    except (OSError, ValueError, KeyError, TypeError):
-        return {"status":"BLOCKED_INPUT", "reason":"NATIVE_FROZEN_PREREQUISITE"}
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        # Classify without logging file paths, provider responses or credentials.
+        safe_codes = {"SYMBOL", "HISTORY_SOURCE", "PREDICTION_NOT_BEFORE_SESSION",
+                      "HISTORY_NOT_COMPLETE", "HISTORY_INSUFFICIENT_OR_DUPLICATE"}
+        code = str(exc) if isinstance(exc, ValueError) and str(exc) in safe_codes else type(exc).__name__
+        return {"status":"BLOCKED_INPUT", "reason":"NATIVE_FROZEN_PREREQUISITE", "prerequisite_error":code}
 
 
 
