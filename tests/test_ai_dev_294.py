@@ -94,6 +94,21 @@ class TechnicalFirstTests(unittest.TestCase):
         complete=us_base(ENTRY,q,t,{},'us_pre_market_2000',ASOF)[0]
         self.assertEqual(complete['technical_data_quality']['level'],'FULL')
 
+    def test_missing_volume_blocks_volume_dependent_breakout_entry(self):
+        q,t=inputs()
+        t['indicators']['volume_ma20']=None
+        gate={'setup_type':'breakout',
+              'trade_plan':{'status':'active','entry':100,'stop':95,'target':110},
+              'eligibility':{'actionable':True,'entry_ready':True,'top_opportunity':True,
+                             'no_trade':False,'reason_codes':[]}}
+        with patch('app.us_stock.premarket_decision.build_premarket_card',return_value=gate):
+            b=us_base(ENTRY,q,t,{},'us_pre_market_2000',ASOF)[0]
+        self.assertEqual(b['status'],'PASS')
+        self.assertEqual(b['technical_data_quality']['level'],'PARTIAL')
+        self.assertFalse(b['eligibility']['actionable'])
+        self.assertIn('VOLUME_CONFIRMATION_UNAVAILABLE',b['eligibility']['reason_codes'])
+        self.assertIsNone(b['trade_plan']['entry'])
+
     def test_headline_wrong_company_stale_future_rejected(self):
         for kind in ('headline','company','old','future','modified','facts'):
             a=article()
