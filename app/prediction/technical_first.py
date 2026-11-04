@@ -135,9 +135,24 @@ def news_adjustment(*, entry, as_of, items, retrieval=None):
         if reason:
             rejected.append({"source_url": ev.get("source_url") or item.get("source_url"), "reason": reason})
         else:
+            # An unproven high-risk label must not masquerade as verified news.
+            risk_claimed = item.get("event_risk") == "high"
+            risk = item.get("event_risk_evidence") or {}
+            proven = False
+            if risk_claimed and isinstance(risk, dict):
+                try:
+                    proven = (bool(risk.get("event_type") and risk.get("reason") and risk.get("evidence_id"))
+                              and risk.get("source_url") == ev.get("source_url")
+                              and risk.get("content_sha256") == ev.get("content_sha256")
+                              and 0 <= (aware(as_of) - aware(risk.get("observed_at"))).total_seconds()
+                              and any(risk["evidence_id"] in {f.get("locator"), f.get("evidence_id")} for f in facts))
+                except (ValueError, TypeError, OverflowError):
+                    proven = False
             accepted.append({"candidate_id": item.get("candidate_id") or digest(ev),
                              "article_evidence": deepcopy(ev), "company_identity": deepcopy(entry),
-                             "event_risk": "high" if item.get("event_risk") == "high" else "UNQUANTIFIED"})
+                             "event_risk": "high" if proven else "UNKNOWN" if risk_claimed else "UNQUANTIFIED",
+                             "event_risk_evidence": deepcopy(risk) if proven else None,
+                             "event_risk_review_required": risk_claimed and not proven})
     attempts = retrieval.get("source_attempts") or {}
     content_failures = [e for e in (retrieval.get("content_quality") or {}).get("by_candidate", [])
                         if e.get("article_content_status") == "FAILED"]
@@ -148,11 +163,13 @@ def news_adjustment(*, entry, as_of, items, retrieval=None):
     observed = bool(retrieval) and not failed
     status = "AVAILABLE" if accepted else "UNAVAILABLE" if failed or not observed else "NO_RELEVANT_NEWS"
     high_risk = any(a["event_risk"] == "high" for a in accepted)
+    review_required = any(a["event_risk_review_required"] for a in accepted)
     return {"schema_version": "news_adjustment_v1", "as_of": as_of, "news_status": status,
-            "event_risk": "high" if high_risk else "UNQUANTIFIED" if accepted else "UNKNOWN", "accepted": accepted,
+            "event_risk": "high" if high_risk else "UNKNOWN" if review_required else "UNQUANTIFIED" if accepted else "UNKNOWN",
+            "event_risk_review_required": review_required, "accepted": accepted,
             "rejected": rejected, "retrieval": retrieval, "confidence_delta": 0,
             "direction_adjustment": None, "range_adjustment": None,
-            "adjustment_reason": "EVENT_RISK_HIGH" if high_risk else "QUALIFIED_EVENT_CONTEXT_ONLY_UNCALIBRATED" if accepted else "NO_NEWS_ADJUSTMENT",
+            "adjustment_reason": "EVENT_RISK_HIGH" if high_risk else "EVENT_RISK_UNVERIFIED_REVIEW" if review_required else "QUALIFIED_EVENT_CONTEXT_ONLY_UNCALIBRATED" if accepted else "NO_NEWS_ADJUSTMENT",
             "stages": {"discovery": "OBSERVED" if retrieval or items else "UNKNOWN",
                        "fetch": "BODY_EVIDENCE_RETAINED" if accepted else "SEE_REJECTIONS_OR_UNKNOWN",
                        "parse": "BODY_FACTS_RETAINED" if accepted else "UNKNOWN",
@@ -174,11 +191,14 @@ def final_decision(base, adjustment):
              "technical_research_usable": valid, "news_evidence_usable": usable,
              "combined_research_usable": valid and usable,
              "news_adjustment_applied": False, "adjustment_reason": adjustment["adjustment_reason"]}
-    if valid and usable and adjustment["event_risk"] == "high":
+    final["technical_data_quality"] = deepcopy(base.get("technical_data_quality"))
+    if valid and usable and (adjustment["event_risk"] == "high" or adjustment.get("event_risk_review_required")):
+        reason = "EVENT_RISK_HIGH" if adjustment["event_risk"] == "high" else "EVENT_RISK_UNVERIFIED_REVIEW"
         final["trade_plan"].update(status="no_trade", entry=None, stop=None, target=None)
-        final["eligibility"].update(actionable=False, entry_ready=False, top_opportunity=False, no_trade=True,
-                                    reason_codes=list(dict.fromkeys([*final["eligibility"].get("reason_codes", []), "EVENT_RISK_HIGH"])))
-        final["news_adjustment_applied"] = True
+        final["eligibility"].update(actionable=False, entry_ready=False, top_opportunity=False,
+                                    no_trade=True, watch_only=False,
+                                    reason_codes=list(dict.fromkeys([*final["eligibility"].get("reason_codes", []), reason])))
+        final["news_adjustment_applied"] = adjustment["event_risk"] == "high"
     result = {"schema_version": KEY, "technical_base": deepcopy(base), "news_adjustment": deepcopy(adjustment),
               "final_decision": final}
     result["decision_id"] = digest(result)
