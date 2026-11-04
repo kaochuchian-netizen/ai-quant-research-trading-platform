@@ -36,6 +36,15 @@ def us_base(entry, quote, technical, market_context, window, as_of):
         gate["eligibility"]["reason_codes"].append("NATIVE_WINDOW_PLAN_REQUIRED")
         gate["trade_plan"].update(status="watch", entry=None, stop=None, target=None)
     features = technical.get("indicators") or {}
+    # Volume-free price forecasts remain PARTIAL, not FULL.
+    # An explicitly volume-dependent breakout cannot be actionable.
+    volume = features.get("volume_ma20")
+    if (not isinstance(volume, (int, float)) or not 0 < volume < float("inf")) and gate.get("setup_type") == "breakout":
+        gate["eligibility"].update(actionable=False, entry_ready=False, top_opportunity=False,
+                                    no_trade=True, watch_only=False)
+        gate["eligibility"]["reason_codes"] = list(dict.fromkeys([
+            *gate["eligibility"].get("reason_codes", []), "VOLUME_CONFIRMATION_UNAVAILABLE"]))
+        gate["trade_plan"].update(status="no_trade", entry=None, stop=None, target=None)
     base = technical_base(market="US", symbol=entry["symbol"], as_of=as_of, features=features,
                           bars=(technical.get("data_quality") or {}).get("history_days"),
                           source_time=quote.get("market_data_as_of"), prediction=prediction,
@@ -109,8 +118,8 @@ def attach_tw(card, tactical):
         card["prediction_snapshot_v2"] = deepcopy(base["prediction"])
         from app.loaders.batch_universe import digest
         card["prediction_snapshot_v2"]["prediction_identity"] = "twpred_" + digest(base)
-    elif decision["final_decision"]["news_adjustment_applied"]:
+    elif decision["final_decision"]["news_adjustment_applied"] or decision["news_adjustment"].get("event_risk_review_required"):
         card.update(actionable=False, entry_readiness="no_trade", entry_zone=None, stop_level=None,
                     target_level=None, entry_low=None, entry_high=None, target_1=None, target_2=None,
-                    do_not_trade_reason="EVENT_RISK_HIGH")
+                    do_not_trade_reason=decision["final_decision"]["adjustment_reason"])
     return card
