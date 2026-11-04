@@ -4,7 +4,7 @@
 
 This document records the current VM timer operating model for the AI Quant Research & Trading Platform.
 
-The timer is responsible for periodically refreshing the repository and running one safe orchestrator loop iteration.
+The timer is responsible for running one safe orchestrator loop iteration. It must never update the checked-out Production source. Git updates belong to a separately approved deployment process.
 
 ## Current Operating Model
 
@@ -18,9 +18,8 @@ The VM uses a user-level systemd timer:
 The wrapper runs the following high-level sequence:
 
 1. Enter `~/stock-ai`.
-2. Run `git pull --ff-only`.
-3. Run `scripts/orchestrator/run_loop_once.py --check-remote --pretty`.
-4. Write runtime status files.
+2. Run `scripts/orchestrator/run_loop_once.py --check-remote --pretty` against the already deployed source.
+3. Write runtime status files. The remote status probe is not authorization to fetch or pull source.
 
 ## Runtime Files
 
@@ -49,7 +48,8 @@ latest_notice.md
 The normal safe state is:
 
 - Git branch is `main`.
-- Git working tree is clean.
+- Git working tree is inspected. Existing preserved runtime artifacts are not cleaned or overwritten.
+- No `git pull`, source checkout, or deployment occurs as part of timer execution.
 - Timer is enabled.
 - Timer is active.
 - Loop status is writable.
@@ -85,7 +85,7 @@ systemctl --user status stock-ai-orchestrator-loop.service --no-pager
 journalctl --user -u stock-ai-orchestrator-loop.service -n 100 --no-pager
 ```
 
-If `git pull --ff-only` fails, check whether the working tree is dirty before taking any recovery action:
+If the remote check or Git worktree verification fails, inspect status before taking any recovery action:
 
 ```bash
 cd ~/stock-ai
@@ -97,3 +97,26 @@ Do not run reset or clean commands without confirming the cause.
 ## Change Control
 
 Timer service changes should remain explicit and minimal. Any modification to the timer, service, or wrapper should be reviewed as an operations change.
+
+## AI-DEV-300: deployment separation and already-installed wrappers
+
+Source fix: `scripts/orchestrator/bootstrap_timer_pull_loop.sh` no longer generates
+a wrapper that performs `git pull --ff-only`. The scheduled loop remains
+read-only with respect to checked-out Git source (its normal runtime status
+files are written separately). Repository code/CI changes **do not** alter the
+existing VM-local `~/.local/bin/stock-ai-orchestrator-loop.sh` automatically.
+
+Before any Production activation, a separately authorized operations change
+must inspect the *actual* VM-installed wrapper, service, timer, runtime
+permissions, active batch locks, and source SHA. Do not run the bootstrap
+script as part of this GitHub change: it writes user systemd files and
+restarts/starts units. Preserve the existing wrapper as rollback evidence.
+Use an explicit, approved change window away from TW/US batch lifecycles;
+perform a no-send/no-trade controlled validation of the proposed wrapper.
+If any approval, governance, active-batch, or rollback evidence is missing,
+stop and do not apply an update.
+
+Scope boundaries: this change does not repair Portal HTTP 502, the
+orchestrator-loop service failure, Docker socket permissions, Google package
+drift, recipient delivery receipts or historical governance. These require
+separate read-only VM diagnostics and explicitly approved fixes.
