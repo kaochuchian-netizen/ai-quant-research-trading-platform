@@ -269,6 +269,16 @@ class TechnicalFirstTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'FUTURE_OR_DUPLICATE'):
             validate_observation(value,snapshot,q)
 
+    def test_lifecycle_fixture_identity_is_clock_independent(self):
+        from scripts.orchestrator.validate_tw_preopen_lifecycle_contract_v1 import fixture
+        from app.reports.tw_pre_open_delivery_contract import delivery_identity
+        with patch('app.reports.tw_pre_open_structured.datetime') as clock:
+            clock.now.return_value=datetime.fromisoformat('2026-11-04T09:00:00+08:00')
+            first=fixture()[2]
+            clock.now.return_value=datetime.fromisoformat('2026-11-04T09:00:01+08:00')
+            second=fixture()[2]
+        self.assertEqual(delivery_identity(first,'email'),delivery_identity(second,'email'))
+
     def test_new_status_mobile_viewport(self):
         from playwright.sync_api import sync_playwright
         from app.reports.mobile_decision_presentation import render_primary
