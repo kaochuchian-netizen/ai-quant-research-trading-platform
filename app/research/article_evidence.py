@@ -31,7 +31,7 @@ def aware(value):
  return d.astimezone(timezone.utc)
 
 def assess(text,*,title,entry,source_url,published_at,fetched_at,as_of,modified_at=None):
- base={'article_content_status':'HEADLINE_ONLY','investment_usable':False,'source_url':source_url,'published_at':published_at,'fetched_at':fetched_at,'content_length':len(text or ''),'facts':[],'direction':'unavailable','direction_status':'NOT_EVALUATED','prediction_consumed':False}
+ base={'article_content_status':'HEADLINE_ONLY','investment_usable':False,'source_url':source_url,'published_at':published_at,'modified_at':modified_at,'fetched_at':fetched_at,'content_length':len(text or ''),'facts':[],'direction':'unavailable','direction_status':'NOT_EVALUATED','prediction_consumed':False}
  try:
   cutoff=aware(as_of)
   if aware(published_at)<cutoff-timedelta(hours=96): return {**base,'article_content_status':'FAILED','reason':'OUTSIDE_NEWS_WINDOW'}
@@ -161,6 +161,30 @@ class ArticleRetriever:
    result={'text':'','source_url':url,'fetched_at':datetime.now(timezone.utc).isoformat(),'failure_reason':reason}
    self.cache[original]=result; return dict(result)
 
+def enrich_us_candidates(items, *, entry, as_of, retriever):
+ """Spend the same bounded body budget only after metadata admission.
+
+ Metadata is only a prefilter. Every survivor still needs real body evidence.
+ Preserve rejected candidates and their unattempted stage for forensics.
+ """
+ from app.research.news_evidence_funnel import normalize_yfinance_news
+ admitted,diagnostics=normalize_yfinance_news(items,symbol=entry['symbol'],observed_at=as_of)
+ urls={x.get('source_url') for x in admitted}
+ result=[]
+ for raw in items:
+  item=dict(raw.get('content') or raw)
+  url=item.get('canonicalUrl') or item.get('clickThroughUrl') or item.get('link') or item.get('url')
+  if isinstance(url,dict): url=url.get('url')
+  if url in urls:
+   result.extend(enrich([raw],entry=entry,as_of=as_of,retriever=retriever))
+  else:
+   item['article_evidence']={'article_content_status':'NOT_ATTEMPTED','investment_usable':False,'reason':'METADATA_ADMISSION_REJECTED','facts':[]}
+   item['article_stages']={'discovery':{'status':'CANDIDATE','source_url':url},'fetch':{'status':'NOT_ATTEMPTED'},
+                           'parse':{'status':'NOT_ATTEMPTED'},'admission':{'status':'METADATA_REJECTED'},'publish':{'status':'NOT_ADMITTED'}}
+   result.append({**raw,'content':item} if isinstance(raw.get('content'),dict) else item)
+ return result
+
+
 def enrich(items,*,entry,as_of,retriever):
  result=[]
  historical=(datetime.now(timezone.utc)-aware(as_of)).total_seconds()>1800
@@ -175,6 +199,13 @@ def enrich(items,*,entry,as_of,retriever):
    evidence=assess(fetched['text'],title=str(item.get('title') or ''),entry=entry,source_url=fetched['source_url'],published_at=fetched.get('published_at'),modified_at=fetched.get('modified_at'),fetched_at=fetched['fetched_at'],as_of=as_of)
    if fetched.get('failure_reason'): evidence.update(article_content_status='FAILED',investment_usable=False,reason=fetched['failure_reason'])
   item['article_evidence']=evidence; item['company_identity']=entry
+  item['article_stages']={
+   'discovery':{'status':'CANDIDATE','source_url':url},
+   'fetch':{'status':'FAILED' if evidence.get('article_content_status')=='FAILED' else 'OBSERVED', 'reason':evidence.get('reason'), 'fetched_at':evidence.get('fetched_at')},
+   'parse':{'body_length':evidence.get('content_length'), 'content_sha256':evidence.get('content_sha256'), 'status':evidence.get('article_content_status')},
+   'admission':{'investment_usable':evidence.get('investment_usable') is True,'reason':evidence.get('reason')},
+   'publish':{'status':'PENDING_DOWNSTREAM' if evidence.get('investment_usable') else 'NOT_ADMITTED'},
+  }
   if evidence.get('investment_usable') and evidence.get('source_url'):
    item['discovery_url']=url
    item['canonicalUrl']={'url':evidence['source_url']}

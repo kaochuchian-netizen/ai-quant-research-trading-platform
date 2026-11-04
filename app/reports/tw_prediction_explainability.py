@@ -193,9 +193,7 @@ def _expected_path(direction: str, technical: str, *, conflict: bool) -> str:
 
 def _confidence(snapshot: dict[str, Any], card: dict[str, Any]) -> dict[str, Any]:
     score = _number(snapshot.get("confidence"))
-    if score is None:
-        news_confidence = card.get("news_confidence") if isinstance(card.get("news_confidence"), dict) else {}
-        score = _number(news_confidence.get("score"))
+    # News confidence cannot substitute for missing technical confidence.
     band = "insufficient" if score is None else "high" if score >= 75 else "medium" if score >= 50 else "low"
     return {"score": score, "band": band}
 

@@ -29,6 +29,14 @@ def derive(report_date, markets):
             "fix": {"id": CONTROL, "state": "PROPOSED_DIAGNOSTIC_CONTROL",
                     "description": "Verify frozen feature provenance and session horizon before retaining native prediction evidence."},
         }
+        from app.evaluation.technical_ablation import summarize
+        paired = []
+        for window in data.get("review_evidence", []):
+            for card in window.get("cards", []):
+                row = card.get("technical_news_ablation_v1") or (card.get("review") or {}).get("technical_news_ablation_v1")
+                if row:
+                    paired.append(row)
+        scope[market]["technical_news_ablation_v1"] = summarize(paired)
     body = {"schema_version": VERSION, "kind": "DAILY_LEARNING_ARTIFACT", "report_date": report_date,
             "markets": scope, "lifecycle_mutation": False, "model_mutation": False,
             "strategy_mutation": False, "weights_mutation": False}

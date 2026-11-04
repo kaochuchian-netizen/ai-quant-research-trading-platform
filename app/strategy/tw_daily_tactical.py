@@ -251,10 +251,11 @@ def factor_coverage(tech: dict[str, Any], stock_id: str) -> dict[str, Any]:
         "prediction_snapshot": "available" if days >= 10 else "unavailable",
         "review_outcome": "partial" if days >= 10 else "unavailable",
     }
-    complete = sum(1 for v in coverage.values() if v == "available")
-    partial = sum(1 for v in coverage.values() if v == "partial")
-    unavailable = sum(1 for v in coverage.values() if v == "unavailable")
-    not_applicable = sum(1 for v in coverage.values() if v == "not_applicable")
+    technical_coverage = {k: v for k, v in coverage.items() if k != "event_news"}
+    complete = sum(1 for v in technical_coverage.values() if v == "available")
+    partial = sum(1 for v in technical_coverage.values() if v == "partial")
+    unavailable = sum(1 for v in technical_coverage.values() if v == "unavailable")
+    not_applicable = sum(1 for v in technical_coverage.values() if v == "not_applicable")
     quality = "complete" if unavailable == 0 and partial <= 2 else "partial" if days >= 20 and unavailable <= 5 else "limited" if days >= 10 else "insufficient"
     return {"statuses": coverage, "instrument_type": inst_type, "summary": {"available": complete, "partial": partial, "unavailable": unavailable, "stale": 0, "not_applicable": not_applicable}, "data_quality": quality, "downgrade_policy": "missing or stale TW tactical inputs lower confidence/position size; insufficient core OHLCV forces no_trade"}
 

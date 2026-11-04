@@ -26,7 +26,9 @@ US_PRODUCTION_DATA_PATHS = {"data/stock_analysis.db"}
 
 
 def card(symbol: str, unavailable: bool = False) -> dict:
-    value = unavailable_card(symbol, "TEST-" + symbol, "2026-09-04", "historical_unavailable")
+    # Retry the identical synthetic snapshot even if execution crosses a clock
+    # second. A new wall-clock timestamp changes its payload/receipt identity.
+    value = unavailable_card(symbol, "TEST-" + symbol, "2026-09-04", "historical_unavailable", generated_at="2026-09-04T07:00:00+08:00")
     if not unavailable:
         value.update({"availability_status": "partial", "entry_readiness": "watch", "opportunity_group": "watch", "action": "觀察"})
     return seal_card_source_payload_hash(value)

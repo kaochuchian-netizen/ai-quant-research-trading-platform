@@ -236,69 +236,82 @@ class YFinanceUSClient:
                 "market_data_as_of": market_time_iso(info.get("regularMarketTime")),
                 "market_data_source": "Yahoo Finance / yfinance",
             }
-            raw_news = []
-            news_error = None
+            # Optional acquisition must never erase successful price/history reads.
             try:
-                raw_news = (ticker.news or []) if company else []
+                news_items, news_diagnostics = self._fetch_news(ticker, symbol, company, quote)
             except Exception as exc:
-                news_error = type(exc).__name__
-            observed_at = getattr(self, "news_as_of", None) or quote["source_timestamp"]
-            from app.research.article_evidence import ArticleRetriever, enrich
-            self.article_retriever = ArticleRetriever()
-            company = company or {"symbol":symbol}
-            raw_news = enrich(raw_news, entry=company, as_of=observed_at, retriever=self.article_retriever) if raw_news else []
-            news_items, news_diagnostics = normalize_yfinance_news(
-                raw_news, symbol=symbol, observed_at=observed_at, retrieval_error=news_error,
-            )
-            # Yahoo ticker.news is not exhaustive. When it yields no admitted
-            # company news, try an independent public RSS feed. Do not relax
-            # entity attribution, date, or materiality admission rules.
-            if not any(x.get("investment_usable") for x in news_items):
-                from app.us_stock.news_rss_fallback import fetch_us_google_news_rss
-                rss_items, rss_error = fetch_us_google_news_rss(symbol, company)
-                cnyes_items, cnyes_error = fetch_us_google_news_rss(symbol, company, source_domain="news.cnyes.com")
-                rss_count, cnyes_count = len(rss_items), len(cnyes_items)
-                rss_items = enrich([*rss_items,*cnyes_items],entry=company,as_of=observed_at,retriever=self.article_retriever)
-                if rss_items:
-                    news_items, news_diagnostics = normalize_yfinance_news(
-                        [*raw_news, *rss_items], symbol=symbol,
-                        observed_at=observed_at, retrieval_error=news_error,
-                    )
-                news_diagnostics["source_attempts"] = {
-                    "YAHOO_FINANCE": {
-                        "candidate_count": len(raw_news),
-                        "status": "FAILED" if news_error else "SUCCESS",
-                        "error_type": news_error,
-                    },
-                    "GOOGLE_NEWS_RSS": {
-                        "candidate_count": rss_count,
-                        "status": "FAILED" if rss_error else "SUCCESS",
-                        "error_type": rss_error,
-                    },
-                }
-                news_diagnostics["source_attempts"]["CNYES"] = {"candidate_count":cnyes_count,"status":"FAILED" if cnyes_error else "SUCCESS","error_type":cnyes_error}
-                news_diagnostics["coverage"]["provider"] = "YAHOO_FINANCE;GOOGLE_NEWS_RSS;CNYES"
-                if (rss_error or cnyes_error) and not news_items:
-                    news_diagnostics["coverage"]["reason_codes"].append("FALLBACK_PROVIDER_FAILURE")
-                if rss_error and cnyes_error and not raw_news:
-                    news_diagnostics["retrieval"] = {
-                        "status": "FAILED",
-                        "reason_code": "ALL_NEWS_PROVIDERS_EMPTY_OR_FAILED",
-                    }
-                elif rss_items:
-                    news_diagnostics["retrieval"]["fallback_used"] = True
-            else:
-                news_diagnostics["source_attempts"] = {
-                    "YAHOO_FINANCE": {
-                        "candidate_count": len(raw_news),
-                        "status": "FAILED" if news_error else "SUCCESS",
-                        "error_type": news_error,
-                    },
-                    "GOOGLE_NEWS_RSS": {"status": "NOT_NEEDED", "candidate_count": 0},
-                }
+                news_items = []
+                news_diagnostics = {"retrieval": {"status": "FAILED", "reason_code": "NEWS_PROCESSING_FAILED"},
+                                    "failure_reason": type(exc).__name__, "stage": "news",
+                                    "price_data_preserved": True}
             return FetchResult(symbol=symbol, ok=quote["last_price"] is not None and history is not None and not history.empty, quote=quote, history=history, news=[x for x in news_items if x.get("investment_usable") is True], news_diagnostics=news_diagnostics, error=None)
         except Exception as exc:
             return FetchResult(symbol=symbol, ok=False, quote={"source_timestamp": now_taipei()}, history=None, news=[], news_diagnostics=None, error=f"{type(exc).__name__}: {str(exc)[:180]}")
+
+    def _fetch_news(self, ticker, symbol, company, quote):
+        if not company:
+            return [], {"retrieval": {"status": "NOT_REQUESTED", "reason_code": "MARKET_CONTEXT_ONLY"}}
+        raw_news = []
+        news_error = None
+        try:
+            raw_news = (ticker.news or []) if company else []
+        except Exception as exc:
+            news_error = type(exc).__name__
+        observed_at = getattr(self, "news_as_of", None) or quote["source_timestamp"]
+        from app.research.article_evidence import ArticleRetriever, enrich_us_candidates as enrich
+        self.article_retriever = ArticleRetriever()
+        company = company or {"symbol":symbol}
+        raw_news = enrich(raw_news, entry=company, as_of=observed_at, retriever=self.article_retriever) if raw_news else []
+        news_items, news_diagnostics = normalize_yfinance_news(
+            raw_news, symbol=symbol, observed_at=observed_at, retrieval_error=news_error,
+        )
+        # Yahoo ticker.news is not exhaustive. When it yields no admitted
+        # company news, try an independent public RSS feed. Do not relax
+        # entity attribution, date, or materiality admission rules.
+        if not any(x.get("investment_usable") for x in news_items):
+            from app.us_stock.news_rss_fallback import fetch_us_google_news_rss
+            rss_items, rss_error = fetch_us_google_news_rss(symbol, company)
+            cnyes_items, cnyes_error = fetch_us_google_news_rss(symbol, company, source_domain="news.cnyes.com")
+            rss_count, cnyes_count = len(rss_items), len(cnyes_items)
+            rss_items = enrich([*rss_items,*cnyes_items],entry=company,as_of=observed_at,retriever=self.article_retriever)
+            if rss_items:
+                news_items, news_diagnostics = normalize_yfinance_news(
+                    [*raw_news, *rss_items], symbol=symbol,
+                    observed_at=observed_at, retrieval_error=news_error,
+                )
+            news_diagnostics["source_attempts"] = {
+                "YAHOO_FINANCE": {
+                    "candidate_count": len(raw_news),
+                    "status": "FAILED" if news_error else "SUCCESS",
+                    "error_type": news_error,
+                },
+                "GOOGLE_NEWS_RSS": {
+                    "candidate_count": rss_count,
+                    "status": "FAILED" if rss_error else "SUCCESS",
+                    "error_type": rss_error,
+                },
+            }
+            news_diagnostics["source_attempts"]["CNYES"] = {"candidate_count":cnyes_count,"status":"FAILED" if cnyes_error else "SUCCESS","error_type":cnyes_error}
+            news_diagnostics["coverage"]["provider"] = "YAHOO_FINANCE;GOOGLE_NEWS_RSS;CNYES"
+            if (rss_error or cnyes_error) and not news_items:
+                news_diagnostics["coverage"]["reason_codes"].append("FALLBACK_PROVIDER_FAILURE")
+            if rss_error and cnyes_error and not raw_news:
+                news_diagnostics["retrieval"] = {
+                    "status": "FAILED",
+                    "reason_code": "ALL_NEWS_PROVIDERS_EMPTY_OR_FAILED",
+                }
+            elif rss_items:
+                news_diagnostics["retrieval"]["fallback_used"] = True
+        else:
+            news_diagnostics["source_attempts"] = {
+                "YAHOO_FINANCE": {
+                    "candidate_count": len(raw_news),
+                    "status": "FAILED" if news_error else "SUCCESS",
+                    "error_type": news_error,
+                },
+                "GOOGLE_NEWS_RSS": {"status": "NOT_NEEDED", "candidate_count": 0},
+            }
+        return news_items, news_diagnostics
 
     def fetch_intraday_bars(self, symbol: str) -> pd.DataFrame | None:
         """Return bounded 5-minute evidence; callers must fail closed on None."""

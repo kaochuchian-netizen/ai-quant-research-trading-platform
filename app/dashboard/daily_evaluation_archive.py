@@ -103,7 +103,7 @@ def collect_windows(archive, market, days, cutoff):
                     "actual_status","actual_missing_reason","source_name","source_type","source_record_time","source_timezone",
                     "market_data_as_of","fetched_at","freshness_status","prediction_range_result","trade_outcome",
                     "prediction_evaluation_v2","canonical_outcome","review","outcome_evidence","trigger_evidence",
-                    "mfe","mae","mfe_pct","mae_pct")
+                    "mfe","mae","mfe_pct","mae_pct","technical_first_decision_v1","technical_news_ablation_v1")
             observations=[]
             if market=="US" and window=="us_post_close_review_0630":
                 for path in files(directory/".frozen",128):
