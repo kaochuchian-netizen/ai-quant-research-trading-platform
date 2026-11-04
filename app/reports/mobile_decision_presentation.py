@@ -453,7 +453,9 @@ def _post_close_compact_line(card, market, window):
     symbol = str(card.get("symbol") or card.get("stock_id") or "")
     name = str(card.get("name") or card.get("stock_name") or "")
     display_name = f" {name}" if name else ""
-    return f"{symbol}{display_name}｜方向：{result(quality['direction'])}｜區間：{result(quality['range'])}"
+    from app.prediction.technical_first import KEY, status_text
+    basis = "\n" + status_text(card) if card.get(KEY) else ""
+    return f"{symbol}{display_name}｜方向：{result(quality['direction'])}｜區間：{result(quality['range'])}" + basis
 
 
 def post_close_canonical_cards(payload, market, window, *, require_frozen_universe=False):

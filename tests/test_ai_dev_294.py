@@ -127,6 +127,8 @@ class TechnicalFirstTests(unittest.TestCase):
         status=status_text(card)
         for text in (render_primary(p,'US','us_pre_market_2000'),render_line(p,'US','us_pre_market_2000','https://example.test'),build_email_body(p,'us_pre_market_2000')):
             self.assertIn(status,text)
+        from app.reports.mobile_decision_presentation import _post_close_compact_line
+        self.assertIn(status,_post_close_compact_line(card,'TW','post_close_1500'))
 
     def test_native_pipeline_four_scenarios_no_send(self):
         import pandas as pd
