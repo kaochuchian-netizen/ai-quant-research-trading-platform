@@ -36,18 +36,20 @@ def analyze_news(stock_id, stock_name, *, include_evidence=False, aggregation_se
             **({"company":company} if company is not None else {}),
         )
     except Exception as exc:
+        identity_failure = isinstance(exc, ValueError) and str(exc) == "COMPANY_IDENTITY_UNRESOLVED_OR_AMBIGUOUS"
+        reason = "COMPANY_IDENTITY_UNRESOLVED_OR_AMBIGUOUS" if identity_failure else "AGGREGATION_FAILED"
         completed_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
         aggregation = {
             "schema_version": "tw_news_aggregation_v1",
             "items": [],
             "content_relevance_enrichment": _empty_enrichment(),
             "source_health": {
-                "GOOGLE_NEWS_RSS": {"attempted": True, "status": "failed", "reason": exc.__class__.__name__, "result_count": 0},
-                "CNYES": {"attempted": True, "status": "degraded", "reason": "AGGREGATION_FAILED", "result_count": 0},
+                "GOOGLE_NEWS_RSS": {"attempted": not identity_failure, "status": "failed", "reason": reason, "result_count": 0},
+                "CNYES": {"attempted": not identity_failure, "status": "degraded", "reason": reason, "result_count": 0},
             },
             "retrieval": {
                 "lookback_hours": 72,
-                "sources_attempted": ["GOOGLE_NEWS_RSS", "CNYES"],
+                "sources_attempted": [] if identity_failure else ["GOOGLE_NEWS_RSS", "CNYES"],
                 "sources_succeeded": [],
                 "sources_failed": [{"source": "TW_NEWS_AGGREGATION", "reason": exc.__class__.__name__}],
                 "sources_degraded": ["CNYES"],
@@ -57,7 +59,9 @@ def analyze_news(stock_id, stock_name, *, include_evidence=False, aggregation_se
                 "result_count_deduped": 0,
                 "result_count_admitted": 0,
                 "result_count_evaluation_ready": 0,
-                "failure_reason": "AGGREGATION_FAILED",
+                "failure_reason": reason,
+                "failure_stage": "COMPANY_IDENTITY" if identity_failure else "AGGREGATION",
+                "exception_type": type(exc).__name__,
             },
         }
 

@@ -1226,10 +1226,12 @@ def main() -> int:
             email_sender=lambda snapshot: send_delivery_email(
                 Path(args.mail_env_file), args.window, run_id, generated_at,
                 pipeline_status, args.dashboard_url, output_tail, snapshot,
+                receipt_root=TW_PREOPEN_CHANNEL_RECEIPTS / "transport",
             ),
             line_sender=lambda snapshot: send_concise_line(
                 args.window, generated_at, pipeline_status, args.dashboard_url,
                 output_tail, snapshot,
+                receipt_root=TW_PREOPEN_CHANNEL_RECEIPTS / "transport",
             ),
             receipt_root=TW_PREOPEN_CHANNEL_RECEIPTS,
         )

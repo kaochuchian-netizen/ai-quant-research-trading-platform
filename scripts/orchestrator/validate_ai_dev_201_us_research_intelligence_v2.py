@@ -103,6 +103,8 @@ def function_ast(path: str, name: str, revision: str | None = None) -> bool:
         tree = ast.parse(source)
         node = next(x for x in tree.body if isinstance(x, ast.FunctionDef) and x.name == name)
         return ast.dump(node, include_attributes=False)
+    # AI-DEV-293: allow only removal of the duplicated event multiplier.
+    baseline = baseline.replace("next_mult = 1.18 * event_mult", "next_mult = 1.18")
     return find(current) == find(baseline)
 
 

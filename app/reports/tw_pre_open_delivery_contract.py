@@ -90,7 +90,7 @@ def _channel_delivery(channel: str, sender: Callable[[dict[str, Any]], dict[str,
     if path and result.get("send_status") == "sent" and result.get("send_attempted") is True:
         path.parent.mkdir(parents=True, exist_ok=True)
         temporary = path.with_suffix(".tmp")
-        temporary.write_text(json.dumps({"schema_version": CHANNEL_RECEIPT_SCHEMA_VERSION, "delivery_result": "sent", "send_attempted": True, "identity": identity}, sort_keys=True) + "\n", encoding="utf-8")
+        temporary.write_text(json.dumps({"schema_version": CHANNEL_RECEIPT_SCHEMA_VERSION, "delivery_result": "sent", "send_attempted": True, "identity": identity, "transport_receipt": result.get("receipt"), "receipt_path": result.get("receipt_path")}, sort_keys=True) + "\n", encoding="utf-8")
         temporary.replace(path)
     return result
 

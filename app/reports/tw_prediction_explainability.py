@@ -28,6 +28,7 @@ ETF_EVENT_MARKERS = {
     "index_exposure": ("指數", "cpi", "市場曝險"),
 }
 RETRIEVAL_FAILURE_CODES = {
+    "AGGREGATION_FAILED", "COMPANY_IDENTITY_UNRESOLVED_OR_AMBIGUOUS", "ALL_SOURCES_FAILED",
     "RETRIEVAL_FAILED", "TIMEOUT", "UPSTREAM_ERROR", "PARSER_ERROR",
     "HTTP_ERROR", "RATE_LIMITED", "ENCODING_ERROR", "SOURCE_UNAVAILABLE",
 }
@@ -117,7 +118,7 @@ def finalized_tw_news_projection(card: dict[str, Any]) -> dict[str, Any]:
         or news.get("absence_state")
         or ""
     ).upper()
-    retrieval_failed = retrieval_reason in RETRIEVAL_FAILURE_CODES and not raw
+    retrieval_failed = (retrieval_reason in RETRIEVAL_FAILURE_CODES or bool(retrieval.get("sources_failed")) and not retrieval.get("sources_succeeded")) and not raw
     stale = len(classified) - len(current)
     screened = [
         item for item in current

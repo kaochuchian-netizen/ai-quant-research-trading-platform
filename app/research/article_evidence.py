@@ -3,7 +3,7 @@
 Network uses the existing DNS-pinned TW transport. No cookies, credentials,
 browser evasion, login or paywall bypass. Bodies remain ephemeral.
 """
-from datetime import datetime,timezone
+from datetime import datetime,timezone,timedelta
 import hashlib,json,re,time
 from urllib.parse import urlparse,urljoin
 from urllib.robotparser import RobotFileParser
@@ -34,6 +34,7 @@ def assess(text,*,title,entry,source_url,published_at,fetched_at,as_of,modified_
  base={'article_content_status':'HEADLINE_ONLY','investment_usable':False,'source_url':source_url,'published_at':published_at,'fetched_at':fetched_at,'content_length':len(text or ''),'facts':[],'direction':'unavailable','direction_status':'NOT_EVALUATED','prediction_consumed':False}
  try:
   cutoff=aware(as_of)
+  if aware(published_at)<cutoff-timedelta(hours=96): return {**base,'article_content_status':'FAILED','reason':'OUTSIDE_NEWS_WINDOW'}
   if aware(published_at)>cutoff or (modified_at and aware(modified_at)>cutoff): return {**base,'article_content_status':'FAILED','reason':'AFTER_BATCH_AS_OF'}
  except (ValueError,TypeError,OverflowError): return {**base,'article_content_status':'FAILED','reason':'CONTENT_TIME_UNVERIFIED'}
  names=identity_terms(entry)
@@ -76,11 +77,12 @@ def assess(text,*,title,entry,source_url,published_at,fetched_at,as_of,modified_
          'confirmation_condition':'核對公司公告、適用期間、數值單位與同期基準。','invalidation_condition':'來源更正、時間不符或公司歸屬不成立。','confidence':'limited'}
 
 class ArticleRetriever:
- def __init__(self,*,request_budget=12,time_budget=30):
+ def __init__(self,*,request_budget=12,time_budget=30,allowed_hosts=None):
+  self.allowed_hosts=set(ALLOWED_HOSTS if allowed_hosts is None else allowed_hosts)
   self.remaining=request_budget; self.deadline=time.monotonic()+time_budget; self.robots={}; self.cache={}; self.last_request=0.0; self.minimum_interval=0.25
  def _get(self,url):
   parsed=urlparse(url)
-  if parsed.scheme!='https' or parsed.hostname not in ALLOWED_HOSTS or parsed.username or parsed.password or parsed.port not in (None,443): raise ValueError('SOURCE_NOT_ALLOWLISTED')
+  if parsed.scheme!='https' or parsed.hostname not in self.allowed_hosts or parsed.username or parsed.password or parsed.port not in (None,443): raise ValueError('SOURCE_NOT_ALLOWLISTED')
   if self.remaining<=0 or time.monotonic()>=self.deadline: raise ValueError('CONTENT_FETCH_BUDGET_EXHAUSTED')
   ok,reason,ips=_validate_public_url(url)
   if not ok: raise ValueError(reason)
@@ -94,19 +96,22 @@ class ArticleRetriever:
    if err: raise ValueError(err)
    return status,headers,body
   finally: response.close()
+ def check_policy(self,url):
+  host=urlparse(url).hostname
+  if host not in self.allowed_hosts: raise ValueError('SOURCE_NOT_ALLOWLISTED')
+  if host not in self.robots:
+   status,_,text=self._get('https://'+str(host)+'/robots.txt')
+   if status!=200: raise ValueError('ROBOTS_POLICY_UNAVAILABLE')
+   robot=RobotFileParser(); robot.parse(text.splitlines()); self.robots[host]=robot
+  if not self.robots[host].can_fetch(UA,url): raise ValueError('ROBOTS_DISALLOWED')
+  policy=self.robots[host]; rate=policy.request_rate(UA)
+  self.minimum_interval=max(0.25,float(policy.crawl_delay(UA) or 0),rate.seconds/rate.requests if rate and rate.requests else 0)
  def fetch(self,url):
   if url in self.cache: return dict(self.cache[url])
   original=url
   try:
    for _ in range(4):
-    host=urlparse(url).hostname
-    if host not in self.robots:
-     status,_,text=self._get('https://'+str(host)+'/robots.txt')
-     if status!=200: raise ValueError('ROBOTS_POLICY_UNAVAILABLE')
-     robot=RobotFileParser(); robot.parse(text.splitlines()); self.robots[host]=robot
-    if not self.robots[host].can_fetch(UA,url): raise ValueError('ROBOTS_DISALLOWED')
-    policy=self.robots[host]; rate=policy.request_rate(UA)
-    self.minimum_interval=max(0.25,float(policy.crawl_delay(UA) or 0),rate.seconds/rate.requests if rate and rate.requests else 0)
+    self.check_policy(url)
     status,headers,html=self._get(url)
     if status in (301,302,303,307,308):
      url=urljoin(url,headers.get('location') or headers.get('Location') or ''); continue
@@ -147,7 +152,8 @@ class ArticleRetriever:
     if not published:
      node=soup.select_one('meta[property="article:published_time"]')
      published=node.get('content') if node else None
-    result={'text':' '.join(bodies)[:24000],'source_url':url,'published_at':published,'modified_at':modified,'fetched_at':datetime.now(timezone.utc).isoformat(),'failure_reason':None}
+    title_node=soup.select_one('h1')
+    result={'title':title_node.get_text(' ',strip=True) if title_node else None,'text':' '.join(bodies)[:24000],'source_url':url,'published_at':published,'modified_at':modified,'fetched_at':datetime.now(timezone.utc).isoformat(),'failure_reason':None}
     self.cache[original]=result; return dict(result)
    raise ValueError('REDIRECT_LIMIT')
   except Exception as exc:
