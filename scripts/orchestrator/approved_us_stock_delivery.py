@@ -469,6 +469,8 @@ def build_email_body(artifact: dict[str, Any], window: str) -> str:
     lines.append("個股摘要：")
     for card in cards:
         lines.append(_compact_us_email_block(card, window))
+        from app.prediction.technical_first import status_text
+        lines.append(status_text(card))
         lines.append("")
     if window == "us_post_close_review_0630":
         lines.extend(["", "研究方法與資料範圍：", "- 結果只由 canonical structured review cards 與 actual evidence 彙整。", "- 待確認不計入成功、失敗或無交易。"])

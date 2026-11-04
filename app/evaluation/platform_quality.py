@@ -48,11 +48,22 @@ def check_snapshot(snapshot, receipts=()):
         eligibility = card.get('eligibility') or plan
         blocked = eligibility.get('actionable') is False
         plan_reasons = eligibility.get('reason_codes') or eligibility.get('blocking_reasons') or eligibility.get('reason')
+        from app.prediction.technical_first import KEY
+        decision = card.get(KEY) or {}
+        split = decision.get('final_decision') or {}
+        split_quality = {
+            'technical_research_usable': ('PASS' if split['technical_research_usable'] else 'FAIL') if 'technical_research_usable' in split else 'UNKNOWN',
+            'news_evidence_usable': 'PASS' if split.get('news_evidence_usable') else 'FAIL' if items or reasons else 'UNKNOWN',
+            'combined_research_usable': ('PASS' if split['combined_research_usable'] else 'FAIL') if 'combined_research_usable' in split else 'UNKNOWN',
+        }
+        if decision and decision.get('decision_id') != digest({k:v for k,v in decision.items() if k != 'decision_id'}):
+            split_quality = {k: 'FAIL' for k in split_quality}
+            reasons.append('DECISION_HASH_MISMATCH')
         rows.append({'symbol': symbol, 'identity': entries.get(symbol), 'status': 'FAIL' if reasons else 'PASS', 'reasons': reasons, 'article_body_coverage': counts, 'articles': article_rows,
                      'research_evidence': 'PASS' if counts['success'] and all(a['facts'] for a in article_rows if a['category'] == 'success') else 'UNKNOWN',
                      'prediction_factors': forecast.get('news_evidence_use') or {'status': 'UNKNOWN', 'reason': 'NEWS_FACTOR_LINEAGE_MISSING'},
                      'entry_plan_gate': 'PASS' if blocked and plan_reasons else 'UNKNOWN', 'entry_plan_reasons': plan_reasons,
-                     'learning_effectiveness': 'UNKNOWN'})
+                     'learning_effectiveness': 'UNKNOWN', **split_quality})
     channels = {}
     for channel in ('email', 'line'):
         matching = [r for r in receipts if (r.get('identity') or {}).get('snapshot_id') == snapshot['snapshot_id'] and (r.get('channel') or (r.get('identity') or {}).get('channel')) == channel]
