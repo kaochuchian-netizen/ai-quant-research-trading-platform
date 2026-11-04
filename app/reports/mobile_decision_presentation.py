@@ -392,9 +392,10 @@ def render_primary(payload, market, window, *, quality_projection=None):
         )
     out = []
     for c in projection["cards"]:
-        from app.prediction.technical_first import status_text
+        from app.prediction.technical_first import KEY, status_text
         fields = "".join(f"<div><dt>{escape(x['label'])}</dt><dd>{escape(x['value'])}</dd></div>" for x in c["fields"])
-        fields += f"<div><dt>技術與新聞</dt><dd>{escape(status_text(c['evidence']))}</dd></div>"
+        if c['evidence'].get(KEY):
+            fields += f"<div><dt>技術與新聞</dt><dd>{escape(status_text(c['evidence']))}</dd></div>"
         out.append(f'<article class="mobile-decision-card" data-source-digest="{c["source_digest"]}"><h3>{escape(c["symbol"])} {escape(c["name"])}</h3><dl>{fields}</dl></article>')
     return f'<style>{CSS}</style><section class="mobile-decision" data-presentation-version="{VERSION}" data-source-digest="{projection["source_digest"]}"><h2>{TITLES[window]}</h2>{overview_html}{"".join(out) or "<p>本批次尚未提供正式資料。</p>"}</section>'
 
@@ -544,8 +545,9 @@ def render_line(payload, market, window, url, *, require_frozen_universe=False):
             direction = "走勢預測（現在→收盤）" if "intraday" in window else "走勢預測"
             selected = [(direction, fields[direction]), ("股價區間", card["line_range"]), ("投資策略", fields["投資策略"])]
         lines.append(card["symbol"] + " " + card["name"])
-        from app.prediction.technical_first import status_text
-        lines.append(status_text(card["evidence"]))
+        from app.prediction.technical_first import KEY, status_text
+        if card['evidence'].get(KEY):
+            lines.append(status_text(card["evidence"]))
         lines.extend(k + "：" + v for k, v in selected)
     if market == "TW" and window == "post_close_1500":
         lines.extend(_post_close_compact_line(card, market, window) for card in canonical_cards)

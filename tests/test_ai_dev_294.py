@@ -253,4 +253,26 @@ class TechnicalFirstTests(unittest.TestCase):
         self.assertFalse(technical_coverage_only(base,head.replace('partial <= 2','partial <= 99')))
         self.assertFalse(technical_coverage_only(base,head.replace('days >= 20','days >= 1')))
 
+    def test_new_status_mobile_viewport(self):
+        from playwright.sync_api import sync_playwright
+        from app.reports.mobile_decision_presentation import render_primary
+        with sync_playwright() as p:
+            browser=p.chromium.launch(headless=True)
+            try:
+                page=browser.new_page(viewport={'width':393,'height':852})
+                page.route('**/*',lambda route:route.abort())
+                for kind in ('no_news','valid_news','price_failure'):
+                    q,t=inputs()
+                    if kind=='price_failure': q['market_data_as_of']='2026-10-01T00:00:00Z'
+                    b=us_base(ENTRY,q,t,{},'us_pre_market_2000',ASOF)[0]
+                    d=final_decision(b,news_adjustment(entry=ENTRY,as_of=ASOF,items=[article()] if kind=='valid_news' else [],retrieval={'status':'SUCCESS'}))
+                    card=apply_us({'symbol':'EXAM','name':'Example Company'},d)
+                    payload={'dashboard_ready_contract':{'cards':[card]}}
+                    page.set_content(render_primary(payload,'US','us_pre_market_2000'))
+                    self.assertIn(status_text(card),page.locator('body').inner_text())
+                    self.assertLessEqual(page.evaluate('document.documentElement.scrollWidth'),393)
+                    self.assertEqual(page.locator('dt',has_text='技術與新聞').count(),1)
+            finally:
+                browser.close()
+
 if __name__=='__main__': unittest.main()
