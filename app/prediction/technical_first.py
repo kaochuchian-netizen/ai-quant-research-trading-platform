@@ -77,6 +77,16 @@ def technical_base(*, market, symbol, as_of, features, bars, source_time,
         if "range_forecast" in base["prediction"]:
             base["prediction"]["range_forecast"] = {"low": None, "high": None, "interval_width": None}
         base["confidence"] = None
+    volume = number(features.get("volume_ma20"))
+    base["technical_data_quality"] = {
+        "level": "BLOCKED" if reasons else "FULL" if volume is not None and volume > 0 else "PARTIAL",
+        "factor_status": {
+            "price": "BLOCKED" if reasons else "AVAILABLE",
+            "ma20": "AVAILABLE" if number(features.get("ma20")) is not None else "UNAVAILABLE",
+            "atr": "AVAILABLE" if atr is not None else "UNAVAILABLE",
+            "volume": "AVAILABLE" if volume is not None and volume > 0 else "UNAVAILABLE",
+        },
+    }
     base["base_id"] = digest(base)
     return base
 
