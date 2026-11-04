@@ -253,6 +253,22 @@ class TechnicalFirstTests(unittest.TestCase):
         self.assertFalse(technical_coverage_only(base,head.replace('partial <= 2','partial <= 99')))
         self.assertFalse(technical_coverage_only(base,head.replace('days >= 20','days >= 1')))
 
+    def test_replay_rejects_wrong_origin_and_future_bars(self):
+        from app.loaders.batch_universe import digest
+        from scripts.orchestrator.verify_technical_first import validate_observation
+        q,_=inputs()
+        snapshot={'generated_at':ASOF,'effective_trading_date':'2026-11-02'}
+        value={'reference_as_of':q['market_data_as_of'],'quote_digest':digest(q),'review_session':'2026-11-02','rows':[{'date':'2026-10-30'}]}
+        value['content_hash']=digest(value)
+        self.assertEqual(validate_observation(value,snapshot,q),value)
+        changed=deepcopy(q);changed['last_price']=101
+        with self.assertRaisesRegex(ValueError,'QUOTE_BINDING'):
+            validate_observation(value,snapshot,changed)
+        value['rows'].append({'date':'2026-11-02'})
+        value['content_hash']=digest({k:v for k,v in value.items() if k!='content_hash'})
+        with self.assertRaisesRegex(ValueError,'FUTURE_OR_DUPLICATE'):
+            validate_observation(value,snapshot,q)
+
     def test_new_status_mobile_viewport(self):
         from playwright.sync_api import sync_playwright
         from app.reports.mobile_decision_presentation import render_primary

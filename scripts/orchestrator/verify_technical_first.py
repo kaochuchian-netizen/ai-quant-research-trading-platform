@@ -25,6 +25,23 @@ def load(path):
     return json.loads(Path(path).read_text())
 
 
+def validate_observation(value, snapshot, quote):
+    from app.research.article_evidence import aware
+    if value.get('content_hash') != digest({k:v for k,v in value.items() if k != 'content_hash'}):
+        raise ValueError('FROZEN_OBSERVATION_HASH_MISMATCH')
+    if value.get('review_session') != snapshot['effective_trading_date']:
+        raise ValueError('FROZEN_OBSERVATION_SESSION_MISMATCH')
+    if value.get('quote_digest') != digest(quote) or value.get('reference_as_of') != quote.get('market_data_as_of'):
+        raise ValueError('FROZEN_OBSERVATION_QUOTE_BINDING_MISMATCH')
+    reference = aware(value['reference_as_of'])
+    if reference > aware(snapshot['generated_at']) or not value.get('rows'):
+        raise ValueError('FROZEN_OBSERVATION_TIME_UNVERIFIED')
+    dates = [datetime.fromisoformat(r['date']).date() for r in value['rows']]
+    if dates != sorted(set(dates)) or dates[-1] > reference.date():
+        raise ValueError('FROZEN_OBSERVATION_FUTURE_OR_DUPLICATE_BARS')
+    return value
+
+
 def replay(tw, us, frozen_dir):
     from app.reports.tw_four_window_decision import upgrade_pre_open_card
     from app.strategy.tw_daily_tactical import build_tactical
@@ -42,10 +59,7 @@ def replay(tw, us, frozen_dir):
         value = load(path)
         if value.get('kind') != 'US_MARKET_OBSERVATION':
             continue
-        if value.get('content_hash') != digest({k:v for k,v in value.items() if k != 'content_hash'}):
-            raise ValueError('FROZEN_OBSERVATION_HASH_MISMATCH')
-        if value.get('review_session') != us['effective_trading_date']:
-            raise ValueError('FROZEN_OBSERVATION_SESSION_MISMATCH')
+        validate_observation(value, us, rows[value['symbol']]['quote'])
         if value['symbol'] in observations:
             raise ValueError('AMBIGUOUS_FROZEN_OBSERVATION')
         observations[value['symbol']] = value
