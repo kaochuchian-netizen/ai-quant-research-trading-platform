@@ -331,6 +331,8 @@ def normalize_yfinance_news(
             "headline": title or None, "publisher": publisher or None, "published_at": published,
             "discovery_channel": str(value.get("discovery_channel") or "YAHOO_FINANCE"),
             "source_reference": source_url, "fetched_at": observed_at,
+            "article_evidence": item.get("article_evidence"),
+            "article_stages": item.get("article_stages"),
         }
         candidate_base["candidate_id"] = _stable_id("news_cand_", [symbol.upper(), title, published, source_url])
         if not title or not published or not source_url:

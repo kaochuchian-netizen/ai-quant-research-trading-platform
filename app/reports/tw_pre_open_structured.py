@@ -97,6 +97,25 @@ def _coverage(cards: list[dict[str, Any]]) -> dict[str, dict[str, int]]:
 
 
 def _market_bias(coverage: dict[str, dict[str, int]], cards: list[dict[str, Any]]) -> dict[str, Any]:
+    from app.prediction.technical_first import KEY, number
+    if cards and all(card.get(KEY) for card in cards):
+        bases = [card[KEY]["technical_base"] for card in cards]
+        scores = [number(b.get("confidence")) for b in bases]
+        score = round(sum(s if s is not None else 0 for s in scores) / len(cards))
+        reasons = ["TECHNICAL_DATA_BLOCKED"] if any(b["status"] != "PASS" for b in bases) else []
+        directions = [b["prediction"].get("direction_forecast") for b in bases]
+        bias = "cautious" if directions.count("bearish") >= directions.count("bullish") else "neutral"
+        canonical = {"score": score, "level": "high" if score >= 75 else "medium" if score >= 50 else "low",
+                     "method": "MEAN_TECHNICAL_CONFIDENCE_NOT_CALIBRATED_PROBABILITY", "reason_codes": reasons,
+                     "news_adjustment": 0, "news_coverage": coverage["news"]}
+        # Preserve the public component schema; optional coverage is disclosed
+        # separately and has no weight in technical confidence.
+        canonical["components"] = market_confidence(coverage, len(cards))["components"]
+        for name, component in canonical["components"].items():
+            component["weight"] = 1.0 if name == "technical" else 0.0
+        canonical["components"]["technical"]["score"] = score
+        return {"market_bias": bias, "market_bias_confidence": canonical["level"],
+                "market_bias_reason_codes": reasons, "market_confidence": canonical}
     technical = coverage["technical"]["available"]
     supporting = sum(coverage[key]["available"] for key in ("adr", "chip", "news", "gap", "event_risk"))
     bearish = sum("偏空" in str(card.get("technical_summary")) for card in cards)
@@ -328,6 +347,8 @@ def render_email(payload: dict[str, Any], url: str) -> str:
                 f"  策略影響：{news['strategy_impact']}｜來源品質：{news['source_quality']}｜信心：{news['confidence']}",
             ])
     coverage=summary["coverage"]
+    from app.prediction.technical_first import status_text
+    lines.extend(str(c.get("symbol")) + " " + status_text(c) for c in cards.values())
     lines += [f"觀察等待：{'、'.join(summary['watch_only_symbols']) or '無'}",f"暫不交易：{'、'.join(summary['no_trade_symbols']) or '無'}",f"避免追價：{'、'.join(summary['avoid_chase_symbols']) or '無'}",f"資料覆蓋：行情 {coverage['quote_available']['available']}/{coverage['quote_available']['total']}｜技術可執行 {coverage['history_sufficient']['available']}/{coverage['history_sufficient']['total']}｜趨勢確認 {coverage['trend_confirmed']['available']}/{coverage['trend_confirmed']['total']}｜新聞 {coverage['news']['available']}/{coverage['news']['total']}",f"報告產生：{format_timestamp(_report_generated_at(payload))}","完整報告：",url,"僅供研究參考，非交易指令。"]
     return "\n".join(lines)
 

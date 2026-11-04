@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from copy import deepcopy
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -286,6 +287,14 @@ def build_review(symbol: str, session_date: str, quote: dict[str, Any], history:
         "source_trade_plan": source_plan, "intraday_evidence": intraday_evidence, "fabricated": False, **evaluated,
     }
     review["prediction_evaluation_v2"] = prediction_evaluation(pred, review)
+    from app.prediction.technical_first import KEY
+    from app.evaluation.technical_ablation import evaluate as evaluate_ablation, native_outcome, immutable_us_decision
+    origin_decision = immutable_us_decision(source_plan, archive_root)
+    review[KEY] = deepcopy(origin_decision)
+    review["technical_news_ablation_v1"] = evaluate_ablation(origin_decision, native_outcome(
+        "US", symbol, session_date, high=actual_high, low=actual_low, close=actual_close,
+        complete=bool(history is not None and not history.empty and str(history.index[-1])[:10] == session_date),
+        source_ref=quote.get("market_data_source"), observed_at=quote.get("market_data_as_of")))
     review["next_session_action"] = trade_next_session_action(str(review.get("trade_review_outcome")))
     review["pending_reason"] = evaluated.get("pending_reason") if evaluated.get("trade_review_outcome") == "pending_evidence" else None
     return review
@@ -319,20 +328,18 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
             continue
         result = client.fetch_symbol(symbol, company=entry)
         technical = analyze_history(result.history) if result.history is not None else {"ok": False, "data_quality": {"history_days": 0}, "indicators": {}, "trend_1m": "insufficient_data", "trend_3m": "insufficient_data", "volatility_state": "insufficient_data", "technical_score": None, "technical_summary": "history unavailable"}
-        research = research_builder.build_for_symbol(symbol, technical, market_context, result.news, result.news_diagnostics)
-        # Preserve the existing Decision Engine inputs and call order.  The
-        # institutional bundle is attached only after scoring/prediction/
-        # strategy construction, so it is a read-only context export.
-        score = score_symbol(technical, market_context, result.news, research)
-        prediction = prediction_for_symbol(result.quote, technical, window, research)
-        prediction["news_evidence_use"] = {
-            "usage":"range_event_adjustment_only" if prediction.get("event_risk_type") == "material_news" else "not_consumed",
-            "candidate_ids":[i.get("candidate_id") for i in research.get("material_news",{}).get("items",[]) if i.get("investment_usable") is True] if prediction.get("event_risk_type") == "material_news" else [],
-            "direction_inference":False,
-        }
-        prediction["one_month_trend"] = technical.get("trend_1m")
-        prediction["three_month_trend"] = technical.get("trend_3m")
-        strategies = build_dual_strategies(DEFAULT_MARKET, score, prediction, result.quote, technical, market_context=market_context, research=research, generated_at=generated_at)
+        from app.prediction.technical_first_adapters import us_base, apply_us
+        from app.prediction.technical_first import KEY, news_adjustment, final_decision
+        base, score, prediction, strategies = us_base(entry, result.quote, technical, market_context, window, frozen["batch_as_of"])
+        try:
+            research = research_builder.build_for_symbol(symbol, technical, market_context, result.news, result.news_diagnostics)
+        except Exception as exc:
+            research = {"material_news": {"items": [], "evidence_funnel": {}},
+                        "optional_research_failure": type(exc).__name__}
+        adjustment = news_adjustment(entry=entry, as_of=frozen["batch_as_of"], items=result.news,
+                                     retrieval=result.news_diagnostics)
+        decision = final_decision(base, adjustment)
+        prediction = decision["final_decision"]["prediction"]
         # 253 sidecar only: existing report/model objects are never modified.
         try:
             from app.evaluation.us_session_direction import capture_safely
@@ -375,6 +382,7 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
             # The compatibility card is projected only after bounded RRE
             # selection.  It may not retain provider-stage RRE/rendered zeros.
             card = build_premarket_card(card, result.quote, research, result.news, market_context, reference, finalized_funnel)
+            card = apply_us(card, decision)
             from app.us_stock.premarket_decision import plan_reference_diagnostics
             card["entry_plan_diagnostics"] = plan_reference_diagnostics(card,result.quote,technical,frozen["batch_as_of"])
             card["news_evidence"]["finalized_projection"] = True
@@ -415,6 +423,11 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
             card["window_research_identity"] = institutional_research["research_intelligence_v2"].get("window_research_identity")
             card["us_intraday_research_continuity_v1"] = intraday_continuity(institutional_research, observed)
             structured_intraday_cards.append(card)
+        if window == "us_pre_market_2000":
+            card = apply_us(card, decision)
+        else:
+            from app.prediction.technical_first_adapters import observe_us
+            card = observe_us(card, decision, resolve_source_trade_plan(WINDOW_ARCHIVE_DIR, context["session_date"], symbol), WINDOW_ARCHIVE_DIR)
         if window in {"us_pre_market_2000", "us_intraday_2300"}:
             card["us_human_decision_summary_v1"] = build_us_human_summary(card, window)
         if result.ok and prediction.get("prediction_status") == "available":
@@ -422,15 +435,21 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
         else:
             insufficient += 1
         item = {"symbol": symbol, "name": entry.get("name"), "market": DEFAULT_MARKET, "quote": result.quote, "fetch_ok": result.ok, "fetch_error": result.error, "technical": technical, "market_context_ref": "market_context", "news": result.news, "research_intelligence": research, "institutional_research": institutional_research, "research_identity": institutional_research["research_identity"], "strategies": strategies, "score": score, "prediction": prediction, "structured_intraday_card": card if window == "us_intraday_2300" else None, "data_quality": {"quote_available": result.quote.get("last_price") is not None, "history_days": technical.get("data_quality", {}).get("history_days"), "news_count": len(result.news), "sec_ok": research.get("sec", {}).get("ok"), "research_factor_version": research.get("research_factors", {}).get("research_factor_version")}, "source_timestamp": result.quote.get("source_timestamp")}
+        item[KEY] = deepcopy(card.get(KEY))
+        if window != "us_pre_market_2000":
+            item["technical_observation_v1"] = deepcopy(decision)
         items.append(item)
         cards.append(card)
         if window in {"us_pre_market_2000", "us_intraday_2300"} and write_snapshots and prediction.get("prediction_status") == "available":
             spath = snapshot_path(context["session_date"], window, symbol)
             snap = {"schema_version": "us_stock_prediction_snapshot_v1", "market": DEFAULT_MARKET, "session_date": context["session_date"], "window": window, "symbol": symbol, "batch_universe": frozen, "generated_at": generated_at, "prediction": prediction, "rating": score.get("rating"), "action": score.get("action"), "confidence_score": score.get("confidence_score"), "model_version": MODEL_VERSION, "data_source_timestamps": {"quote": result.quote.get("market_data_as_of")}, "pre_open_setup": card.get("daily_tactical_summary") if window == "us_pre_market_2000" else None, "eligibility": card.get("eligibility") if window == "us_pre_market_2000" else None, "trade_plan": card.get("trade_plan") if window == "us_pre_market_2000" else None, "event_risk": card.get("event_risk") if window == "us_pre_market_2000" else None, "sec_evidence": card.get("sec_evidence") if window == "us_pre_market_2000" else None, "news_evidence": card.get("news_evidence") if window == "us_pre_market_2000" else None, "institutional_research": institutional_research, "research_identity": institutional_research["research_identity"], "structured_intraday_card": card if window == "us_intraday_2300" else None, "fixture": False, "validation_only": False}
+            snap[KEY] = deepcopy(card.get(KEY))
             snap["snapshot_path"] = str(spath.relative_to(REPO_ROOT))
             write_json(spath, snap)
         if window == "us_post_close_review_0630":
             review = build_review(symbol, context["session_date"], result.quote, result.history, client.fetch_intraday_bars(symbol))
+            item["review"] = deepcopy(review)
+            item["technical_news_ablation_v1"] = deepcopy(review.get("technical_news_ablation_v1"))
             reviews.append(review)
     structured_review_cards = build_structured_review_cards(cards, reviews) if window == "us_post_close_review_0630" else []
     for review_card in structured_review_cards:
@@ -447,6 +466,8 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
             review_card["institutional_research"] = bundle
             review_card["window_research_identity"] = bundle["research_intelligence_v2"]["window_research_identity"]
         review_card["research_review_diagnosis"] = review_diagnosis(review_card)
+        review_card["technical_first_decision_v1"] = deepcopy(review_payload.get("technical_first_decision_v1"))
+        review_card["technical_news_ablation_v1"] = deepcopy(review_payload.get("technical_news_ablation_v1"))
         review_card["us_human_decision_summary_v1"] = build_us_human_summary(review_card, window)
     premarket_context = normalize_market_context(market_context, reference) if window == "us_pre_market_2000" else None
     premarket_summary = summarize_premarket(cards, premarket_context) if window == "us_pre_market_2000" else None
@@ -541,7 +562,7 @@ def build_live_runtime_artifact(window: str, watchlist: list[dict[str, Any]], *,
         artifact["evidence_regression_append_result"] = append_regression_records(
             ledger_records, ledger_root or (REPO_ROOT / LEDGER_ROOT),
         )
-    if window == "us_post_close_review_0630":
+    if window == "us_post_close_review_0630" and write_snapshots:
         review_path = REVIEW_DIR / context["session_date"] / "us_post_close_review_0630.json"
         write_json(review_path, artifact)
     return artifact

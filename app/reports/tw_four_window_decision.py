@@ -228,7 +228,8 @@ def upgrade_pre_open_card(card: dict[str, Any], tactical: dict[str, Any] | None,
         and reward_risk is not None and reward_risk >= PRE_OPEN_ACTION_GATE["minimum_reward_risk"]
         and tactical.get("chase_risk") != "high" else "watch" if safe_levels else "unavailable"
     )
-    missing = set(str(item) for item in result.get("missing_fields", []) if item)
+    missing = set(str(item) for item in result.get("missing_fields", [])
+                  if item and item not in {"news", "news_analysis", "news_evidence", "event_news"})
     for name, value in (("entry", entry_low), ("stop", stop_level), ("target_1", target_1)):
         if value is None and not no_trade:
             missing.add(name)
@@ -295,6 +296,8 @@ def upgrade_pre_open_card(card: dict[str, Any], tactical: dict[str, Any] | None,
         result["prediction_snapshot_v2"] = build_research_prediction_v2(
             result, effective_date=trading_date, generated_at=result.get("generated_at") or result.get("as_of"),
         )
+    from app.prediction.technical_first_adapters import attach_tw
+    result = attach_tw(result, tactical)
     with card_stage("PREDICTION_PROJECTION"):
         result = project_tw_prediction_card(result, "pre_open_0700", strict=True)
     if result["prediction_snapshot_v2"].get("prediction_status") == "evaluable":
@@ -795,6 +798,7 @@ def build_observed_card(
         "data_status": data_status, "evidence_status": evidence_status,
         "missing_fields": sorted(missing), "strategies": {"daily_tactical": dict(tactical)},
         "technical_data": dict(evaluation_setup.get("technical_data") or {}),
+        "technical_first_decision_v1": deepcopy(evaluation_setup.get("technical_first_decision_v1")),
         "news_evidence": dict(evaluation_setup.get("news_evidence") or {}),
         "news_items": list(evaluation_setup.get("news_items") or []),
         "news_direction": evaluation_setup.get("news_direction"), "news_summary": evaluation_setup.get("news_summary"),
@@ -973,6 +977,12 @@ def evaluate_post_close(observed: dict[str, Any], setup: dict[str, Any]) -> dict
             "mae": mae if triggered else "not_applicable", "false_breakout": bool(triggered and stop_hit),
         },
     }
+    from app.evaluation.technical_ablation import evaluate as evaluate_ablation, native_outcome
+    result["technical_first_decision_v1"] = deepcopy(setup.get("technical_first_decision_v1"))
+    result["technical_news_ablation_v1"] = evaluate_ablation(setup.get("technical_first_decision_v1"), native_outcome(
+        "TW", str(setup.get("symbol") or setup.get("stock_id")), str(setup.get("trading_date") or ""),
+        high=actual_high, low=actual_low, close=actual_close, complete=actual_complete,
+        source_ref=observed.get("source_snapshot_id"), observed_at=observed.get("market_data_as_of")))
     from app.reports.tw_delivery_evaluation import KEY, EVALUATION_KEY, evaluate
     if KEY in setup:
         result[KEY] = deepcopy(setup[KEY])
