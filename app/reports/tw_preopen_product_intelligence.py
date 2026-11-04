@@ -346,8 +346,8 @@ def render_line(cards: list[dict[str, Any]], url: str) -> str:
             f" 目標{_format_price(product.get('target_price'))} 區間{low}～{high}"
         )
     lines.append("標的：" + ("；".join(dispositions) if dispositions else "資料待接"))
-    from app.prediction.technical_first import status_text
-    lines.extend(str(card.get("symbol")) + " " + status_text(card) for card in cards)
+    from app.prediction.technical_first import KEY, status_text
+    lines.extend(str(card.get("symbol")) + " " + status_text(card) for card in cards if card.get(KEY))
     lines.append(f"新聞：抓取 {news_retrieved}｜可用 {news_available}")
     lines.extend([url, "僅供研究參考，非交易指令。"])
     return "\n".join(lines)

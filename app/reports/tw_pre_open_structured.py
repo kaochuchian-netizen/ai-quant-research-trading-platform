@@ -108,6 +108,12 @@ def _market_bias(coverage: dict[str, dict[str, int]], cards: list[dict[str, Any]
         canonical = {"score": score, "level": "high" if score >= 75 else "medium" if score >= 50 else "low",
                      "method": "MEAN_TECHNICAL_CONFIDENCE_NOT_CALIBRATED_PROBABILITY", "reason_codes": reasons,
                      "news_adjustment": 0, "news_coverage": coverage["news"]}
+        # Preserve the public component schema; optional coverage is disclosed
+        # separately and has no weight in technical confidence.
+        canonical["components"] = market_confidence(coverage, len(cards))["components"]
+        for name, component in canonical["components"].items():
+            component["weight"] = 1.0 if name == "technical" else 0.0
+        canonical["components"]["technical"]["score"] = score
         return {"market_bias": bias, "market_bias_confidence": canonical["level"],
                 "market_bias_reason_codes": reasons, "market_confidence": canonical}
     technical = coverage["technical"]["available"]

@@ -86,12 +86,12 @@ def attach_tw(card, tactical):
     plan = {"status": "active" if actionable else "watch", "entry": deepcopy(card.get("entry_zone")) if actionable else None,
             "stop": card.get("stop_level") if actionable else None, "target": deepcopy(card.get("target_level")) if actionable else None,
             "observation_zone": deepcopy(card.get("entry_zone")), "reward_risk": card.get("risk_reward")}
-    as_of = (card.get("data_freshness") or {}).get("report_generated_at") or tactical.get("generated_at")
+    as_of = (card.get("data_freshness") or {}).get("report_generated_at") or card.get("generated_at") or card.get("as_of") or tactical.get("generated_at")
     base = technical_base(market="TW", symbol=card["symbol"], as_of=as_of, features=factors,
                           bars=factors.get("history_days"), source_time=factors.get("history_end") or factors.get("latest_date"),
                           prediction=forecast, confidence=forecast.get("confidence"), plan=plan,
                           eligibility={"actionable": actionable, "reason_codes": gate_reasons},
-                          price=factors.get("latest_close"), source=factors.get("source"))
+                          price=factors.get("latest_close"), source=factors.get("source"), session_date=card.get("trading_date"))
     news = card.get("news_evidence") or {}
     entry = {"symbol": card["symbol"], "name": card.get("name"), "market": "TW"}
     adjustment = news_adjustment(entry=entry, as_of=as_of, items=news.get("evidence") or [], retrieval=news.get("retrieval"))

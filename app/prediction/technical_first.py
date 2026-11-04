@@ -33,6 +33,7 @@ def technical_base(*, market, symbol, as_of, features, bars, source_time,
     Fetch timestamps are never used as market-data timestamps.
     """
     reasons = []
+    target_session = session_date
     if number(price) is None or number(price) <= 0:
         reasons.append("PRICE_INVALID")
     if number(bars) is None or number(bars) < 20:
@@ -45,6 +46,7 @@ def technical_base(*, market, symbol, as_of, features, bars, source_time,
         reasons.append("ATR_UNAVAILABLE")
     try:
         cutoff = aware(as_of)
+        target_session = target_session or cutoff.astimezone(ZoneInfo("Asia/Taipei" if market == "TW" else "America/New_York")).date().isoformat()
         # Historical daily dates are trading dates, not invented intraday ticks.
         if len(str(source_time)) == 10:
             age = (cutoff.date() - datetime.fromisoformat(source_time).date()).days
@@ -57,7 +59,7 @@ def technical_base(*, market, symbol, as_of, features, bars, source_time,
     if prediction.get("prediction_status") not in {"available", "evaluable"}:
         reasons.append("TECHNICAL_FORECAST_UNAVAILABLE")
     base = dict(schema_version="technical_base_v1", market=market, symbol=str(symbol), as_of=as_of,
-                session_date=session_date or aware(as_of).astimezone(ZoneInfo("Asia/Taipei" if market == "TW" else "America/New_York")).date().isoformat(),
+                session_date=target_session,
                 source=source, source_time=source_time, reference_price=price, history_bars=bars,
                 indicators=deepcopy(features), prediction=deepcopy(prediction), confidence=confidence,
                 trade_plan=deepcopy(plan), eligibility=deepcopy(eligibility),

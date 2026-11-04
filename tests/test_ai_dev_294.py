@@ -242,4 +242,13 @@ class TechnicalFirstTests(unittest.TestCase):
         retriever.fetch.assert_not_called()
         self.assertEqual(rows[0]['article_stages']['fetch']['status'],'NOT_ATTEMPTED')
 
+    def test_coverage_scope_exception_rejects_any_risk_change(self):
+        from pathlib import Path
+        from scripts.orchestrator.validate_ai_dev_226_tw_four_window_summary_regression_ledger_v1 import technical_coverage_only
+        head=(Path(__file__).resolve().parents[1]/'app/strategy/tw_daily_tactical.py').read_text()
+        base=head.replace('    technical_coverage = {k: v for k, v in coverage.items() if k != "event_news"}\n','').replace('technical_coverage.values()','coverage.values()')
+        self.assertTrue(technical_coverage_only(base,head))
+        self.assertFalse(technical_coverage_only(base,head.replace('partial <= 2','partial <= 99')))
+        self.assertFalse(technical_coverage_only(base,head.replace('days >= 20','days >= 1')))
+
 if __name__=='__main__': unittest.main()

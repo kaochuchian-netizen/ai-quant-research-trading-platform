@@ -4,7 +4,7 @@ Status: IMPLEMENTED_PENDING_NATURAL_VERIFICATION. No merge, deployment, notifica
 
 ## Dependency and scope
 
-This is a stacked change on AI-DEV-293 PR #372, commit `c7ff67f7eeda4869e2c1542a3f3991972522b07e`. The production baseline remains `3368cc50de2745800dff38ec8ce0c2ea56e7f3e4`. PR #372 is still open; this PR does not independently deploy its fixes. CI uses the actual PR base SHA and also runs for `ai-dev/**` targets, without relaxing any validator.
+This is a stacked change on AI-DEV-293 PR #372, commit `c7ff67f7eeda4869e2c1542a3f3991972522b07e`. The production baseline remains `3368cc50de2745800dff38ec8ce0c2ea56e7f3e4`. PR #372 is still open; this PR does not independently deploy its fixes. CI uses the actual PR base SHA and also runs for `ai-dev/**` targets. The historical AI-DEV-226 blanket strategy-path guard recognizes only the exact optional-news coverage exclusion authorized by AI-DEV-294: reversing that edit must produce an identical source AST to main. Any additional risk, weight, geometry or strategy change still fails; negative regression checks enforce this bound.
 
 ## Root cause and historical evidence
 

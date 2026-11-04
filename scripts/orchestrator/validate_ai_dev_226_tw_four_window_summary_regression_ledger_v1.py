@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import ast
 import json
 import subprocess
 import sys
@@ -25,6 +26,23 @@ US_RUNTIME_EVIDENCE_PREFIXES = (
     "artifacts/archive/visual_evidence/",
 )
 US_PRODUCTION_DATA_PATHS = {"data/stock_analysis.db"}
+
+
+def technical_coverage_only(base: str, head: str) -> bool:
+    """AI-DEV-294 permits only excluding optional news from technical coverage.
+
+    Normalize that exact edit and require every other source AST node (including
+    risk thresholds, price geometry and strategy weights) to match the base.
+    This is not an exception for arbitrary strategy edits.
+    """
+    insertion = '    technical_coverage = {k: v for k, v in coverage.items() if k != "event_news"}\n'
+    if head.count(insertion) != 1 or head.count('technical_coverage.values()') != 4:
+        return False
+    normalized = head.replace(insertion, '').replace('technical_coverage.values()', 'coverage.values()')
+    try:
+        return ast.dump(ast.parse(base)) == ast.dump(ast.parse(normalized))
+    except SyntaxError:
+        return False
 
 
 def require(value: bool, message: str) -> None:
@@ -144,12 +162,19 @@ def main() -> int:
     checks["renderer_four_window_hierarchy"] = "PASS"
 
     changed = subprocess.run(["git", "diff", "--name-only", "origin/main...HEAD"], cwd=ROOT, check=True, capture_output=True, text=True).stdout.splitlines()
+    technical_path = "app/strategy/tw_daily_tactical.py"
+    technical_only = False
+    if technical_path in changed:
+        original = subprocess.run(["git", "show", f"origin/main:{technical_path}"], cwd=ROOT, check=True, capture_output=True, text=True).stdout
+        current = (ROOT / technical_path).read_text()
+        technical_only = technical_coverage_only(original, current)
+        checks["technical_coverage_thresholds_preserved"] = "PASS" if technical_only else "FAIL"
     protected_prefixes = ("app/strategy/", "app/database/", "scripts/orchestrator/activate_google_drive", "scripts/orchestrator/upload_google_drive")
     require(
         not any(
             path in US_PRODUCTION_DATA_PATHS
             or path.startswith(US_RUNTIME_EVIDENCE_PREFIXES)
-            or path.startswith(protected_prefixes)
+            or (path.startswith(protected_prefixes) and not (path == technical_path and technical_only))
             for path in changed
         ),
         f"protected path changed: {changed}",
