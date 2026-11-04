@@ -13,8 +13,9 @@ cd "$HOME/stock-ai"
 
 echo "$(date -Iseconds) bootstrap_loop start" >> "$HOME/.local/state/stock-ai-orchestrator/loop.log"
 
-git pull --ff-only
-
+# AI-DEV-300: scheduled orchestration MUST NOT update Production source.
+# Source updates require a separate, explicitly approved deployment workflow.
+# Remote awareness is delegated to the read-only run_loop_once.py checker.
 "$HOME/stock-ai/venv/bin/python" "$HOME/stock-ai/scripts/orchestrator/run_loop_once.py" --check-remote --pretty
 
 echo "$(date -Iseconds) bootstrap_loop done" >> "$HOME/.local/state/stock-ai-orchestrator/loop.log"
