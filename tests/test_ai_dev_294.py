@@ -64,11 +64,35 @@ class TechnicalFirstTests(unittest.TestCase):
 
     def test_valid_event_can_veto_never_create_or_increase(self):
         a=article();a['event_risk']='high';b=base()
+        ev=a['article_evidence']
+        a['event_risk_evidence']={'event_type':'earnings','reason':'earnings surprise review',
+            'source_url':ev['source_url'],'content_sha256':ev['content_sha256'],
+            'evidence_id':ev['facts'][0]['locator'],'observed_at':ASOF}
         d=final_decision(b,news_adjustment(entry=ENTRY,as_of=ASOF,items=[a]))
         self.assertFalse(d['final_decision']['eligibility']['actionable'])
         self.assertIn('EVENT_RISK_HIGH',d['final_decision']['eligibility']['reason_codes'])
         self.assertEqual(b,d['technical_base'])
         self.assertEqual(d['final_decision']['confidence'],b['confidence'])
+
+    def test_unverified_high_risk_requires_review_not_proven_veto(self):
+        a=article(); a['event_risk']='high'
+        d=final_decision(base(),news_adjustment(entry=ENTRY,as_of=ASOF,items=[a]))
+        self.assertEqual(d['final_decision']['event_risk'],'UNKNOWN')
+        self.assertTrue(d['news_adjustment']['event_risk_review_required'])
+        self.assertIn('EVENT_RISK_UNVERIFIED_REVIEW',d['final_decision']['eligibility']['reason_codes'])
+        self.assertFalse(d['final_decision']['eligibility']['actionable'])
+        self.assertFalse(d['final_decision']['news_adjustment_applied'])
+
+    def test_volume_absence_marks_technical_quality_partial_without_price_block(self):
+        q,t=inputs()
+        t['indicators']['volume_ma20']=None
+        b=us_base(ENTRY,q,t,{},'us_pre_market_2000',ASOF)[0]
+        self.assertEqual(b['technical_data_quality']['level'],'PARTIAL')
+        self.assertEqual(b['technical_data_quality']['factor_status']['volume'],'UNAVAILABLE')
+        self.assertEqual(b['status'],'PASS')
+        t['indicators']['volume_ma20']=100000
+        complete=us_base(ENTRY,q,t,{},'us_pre_market_2000',ASOF)[0]
+        self.assertEqual(complete['technical_data_quality']['level'],'FULL')
 
     def test_headline_wrong_company_stale_future_rejected(self):
         for kind in ('headline','company','old','future','modified','facts'):
