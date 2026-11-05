@@ -62,6 +62,9 @@ jobs:
       - name: Validate AI-DEV-302 public Traditional Chinese decision presentation
         run: python3 -m unittest tests.test_ai_dev_302
 
+      - name: Validate AI-DEV-302 TW 07:00 email frozen forecast parity
+        run: python3 -m unittest tests.test_ai_dev_302_email_parity
+
       - name: Validate AI-DEV-300 no-auto-sync timer contract
         run: python3 -m unittest tests.test_ai_dev_300
 
