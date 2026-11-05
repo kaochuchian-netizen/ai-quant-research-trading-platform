@@ -223,6 +223,11 @@ _PUBLIC_EVENT_RISK = {
 }
 
 
+def public_event_risk(value):
+    """Shared public label for canonical event-risk evidence; unknown fails closed."""
+    return _PUBLIC_EVENT_RISK.get(value, "尚無法判定")
+
+
 def status_text(card):
     """Present frozen decision states in Traditional Chinese without mutating evidence.
 
@@ -240,7 +245,7 @@ def status_text(card):
         f"分析依據：{_PUBLIC_MODE.get(final.get('mode'), '尚無法判定')}"
         f"｜技術：{technical}"
         f"｜新聞：{_PUBLIC_NEWS.get(final.get('news_status'), '尚無法判定')}"
-        f"｜事件風險：{_PUBLIC_EVENT_RISK.get(final.get('event_risk'), '尚無法判定')}"
+        f"｜事件風險：{public_event_risk(final.get('event_risk'))}"
         f"｜信心：{confidence_text}（技術信心，非校準勝率）"
     )
 
