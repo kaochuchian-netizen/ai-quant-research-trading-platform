@@ -45,6 +45,7 @@ from app.reports.canonical_outcomes import aggregate_us_post_close_review, norma
 from app.reports.presentation_normalization import (
     format_distance, format_price_range, format_timestamp, localize_enum, next_action_for_outcome, safe_public_text,
 )
+from app.prediction.technical_first import public_event_risk
 from app.us_stock.watchlist import normalize_us_watchlist_rows
 from app.us_stock.runtime_provenance import ADMITTED_PROVENANCE, RuntimeProvenance, provenance_admission
 from app.us_stock.research_presentation import research_review_lines
@@ -329,7 +330,7 @@ def _compact_us_email_block(card: dict[str, Any], window: str) -> str:
             f"{symbol} {name}｜{state}",
             f"盤前 {_num(pre.get('price'))}｜前收 {_num(pre.get('previous_close'))}｜Gap {gap}",
             f"資料時間 {format_timestamp(pre.get('timestamp'), timezone_name='America/New_York')}｜來源 {pre.get('source') or '尚未取得'}",
-            f"報酬風險比 {_num(plan.get('reward_risk'))}｜信心 {_num((card.get('confidence_policy') or {}).get('score'), '%')}｜事件風險 {localize_enum(event.get('canonical_level'))}",
+            f"報酬風險比 {_num(plan.get('reward_risk'))}｜信心 {_num((card.get('confidence_policy') or {}).get('score'), '%')}｜事件風險 {public_event_risk(event.get('canonical_level'))}",
         ]
         if eligibility.get("actionable"):
             lines.append(f"進場區 {format_price_range(plan.get('entry'))}｜停損 {_num(plan.get('stop'))}｜目標 {format_price_range(plan.get('target'))}")
