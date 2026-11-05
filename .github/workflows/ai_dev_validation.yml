@@ -59,6 +59,9 @@ jobs:
       - name: Verify frozen delivery-evaluation consistency
         run: python3 -m unittest tests.test_ai_dev_283 tests.test_ai_dev_284 tests.test_ai_dev_285 tests.test_ai_dev_286 tests.test_ai_dev_286_e2e tests.test_ai_dev_287 tests.test_ai_dev_288 tests.test_ai_dev_289 tests.test_ai_dev_290_us_news_delivery tests.test_ai_dev_291 tests.test_ai_dev_292 tests.test_ai_dev_293 tests.test_ai_dev_294
 
+      - name: Validate AI-DEV-302 public Traditional Chinese decision presentation
+        run: python3 -m unittest tests.test_ai_dev_302
+
       - name: Validate AI-DEV-300 no-auto-sync timer contract
         run: python3 -m unittest tests.test_ai_dev_300
 

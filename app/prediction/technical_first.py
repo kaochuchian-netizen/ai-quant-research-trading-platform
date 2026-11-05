@@ -205,15 +205,49 @@ def final_decision(base, adjustment):
     return result
 
 
+# Presentation-only vocabulary. Canonical enums in frozen decisions remain unchanged.
+_PUBLIC_MODE = {
+    "TECHNICAL_ONLY": "僅依技術分析",
+    "TECHNICAL_PLUS_NEWS": "技術分析與新聞佐證",
+    "DATA_BLOCKED": "技術資料不足",
+}
+_PUBLIC_NEWS = {
+    "AVAILABLE": "有可用新聞證據",
+    "NO_RELEVANT_NEWS": "未取得符合條件的相關新聞",
+    "UNAVAILABLE": "新聞資料無法取得",
+}
+_PUBLIC_EVENT_RISK = {
+    "high": "高風險",
+    "UNQUANTIFIED": "尚未量化",
+    "UNKNOWN": "尚無法判定",
+}
+
+
+def public_event_risk(value):
+    """Shared public label for canonical event-risk evidence; unknown fails closed."""
+    return _PUBLIC_EVENT_RISK.get(value, "尚無法判定")
+
+
 def status_text(card):
+    """Present frozen decision states in Traditional Chinese without mutating evidence.
+
+    Never fall through to an unknown raw internal enum in a public channel.
+    Missing or future enum values retain uncertainty rather than claiming safety.
+    """
     decision = card.get(KEY) or {}
     final = decision.get("final_decision") or {}
     if not final:
-        return "技術／新聞分層：UNKNOWN（舊產物未保存分層證據）"
-    technical = "可用" if final["technical_research_usable"] else "資料阻擋"
-    return (f"{final['mode']}｜技術：{technical}｜新聞：{final['news_status']}"
-            f"｜事件風險：{final['event_risk']}｜信心：{final['confidence']}"
-            "（技術信心，非校準勝率）")
+        return "技術／新聞分層：舊產物未保存分層證據"
+    technical = "可用" if final.get("technical_research_usable") is True else "資料不足"
+    confidence = number(final.get("confidence"))
+    confidence_text = str(final["confidence"]) if confidence is not None else "尚未取得"
+    return (
+        f"分析依據：{_PUBLIC_MODE.get(final.get('mode'), '尚無法判定')}"
+        f"｜技術：{technical}"
+        f"｜新聞：{_PUBLIC_NEWS.get(final.get('news_status'), '尚無法判定')}"
+        f"｜事件風險：{public_event_risk(final.get('event_risk'))}"
+        f"｜信心：{confidence_text}（技術信心，非校準勝率）"
+    )
 
 
 def attach(card, decision):
