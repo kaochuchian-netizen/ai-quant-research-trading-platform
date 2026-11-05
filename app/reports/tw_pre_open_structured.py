@@ -325,6 +325,50 @@ def _report_generated_at(payload: dict[str, Any]) -> Any:
     return payload.get("generated_at")
 
 
+def _preopen_email_decision_lines(cards: list[dict[str, Any]]) -> list[str]:
+    """Display every frozen 07:00 forecast; no recalculation or trade inference.
+
+    Prefer the same product projection used by the canonical LINE output. For
+    older admitted cards, reuse the existing Dashboard presentation projection.
+    """
+    from app.reports.mobile_decision_presentation import project_card
+    from app.reports.tw_preopen_product_intelligence import _format_price
+    from app.prediction.technical_first import KEY, status_text
+
+    lines = ["逐檔走勢預測、區間與決策："]
+    for card in cards:
+        symbol = str(card.get("symbol") or card.get("stock_id") or "")
+        name = safe_public_text(card.get("name") or card.get("stock_name"))
+        product = card.get("tw_preopen_product_intelligence_v1")
+        if isinstance(product, dict):
+            direction = safe_public_text(product.get("direction_label"))
+            low, high = product.get("predicted_low"), product.get("predicted_high")
+            target = product.get("target_price")
+            forecast_range = (
+                f"{_format_price(low)}～{_format_price(high)}"
+                if isinstance(low, (int, float)) and not isinstance(low, bool)
+                and isinstance(high, (int, float)) and not isinstance(high, bool)
+                else "尚未建立"
+            )
+            target_text = _format_price(target) if isinstance(target, (int, float)) and not isinstance(target, bool) else "尚未建立"
+            decision = product.get("decision") or {}
+            action = safe_public_text(decision.get("action")) if isinstance(decision, dict) else "尚未取得"
+        else:
+            projection = project_card(card, "TW", "pre_open_0700")
+            values = {field["label"]: field["value"] for field in projection["fields"]}
+            direction = values["走勢預測"]
+            forecast_range = values["預測區間"]
+            target_text = values["預測目標"]
+            action = values["投資策略"]
+        lines.append(
+            f"- {symbol} {name}｜方向：{direction}｜預測區間：{forecast_range}"
+            f"｜預測目標：{target_text}｜決策：{action}"
+        )
+        if card.get(KEY):
+            lines.append("  " + status_text(card))
+    return lines
+
+
 def render_email(payload: dict[str, Any], url: str) -> str:
     summary=payload.get("pre_open_summary") or aggregate(payload.get("structured_pre_open_cards",[]),payload.get("tracking_symbols",[]))
     if not summary.get("coverage"):
@@ -347,8 +391,7 @@ def render_email(payload: dict[str, Any], url: str) -> str:
                 f"  策略影響：{news['strategy_impact']}｜來源品質：{news['source_quality']}｜信心：{news['confidence']}",
             ])
     coverage=summary["coverage"]
-    from app.prediction.technical_first import status_text
-    lines.extend(str(c.get("symbol")) + " " + status_text(c) for c in cards.values())
+    lines.extend(_preopen_email_decision_lines(list(cards.values())))
     lines += [f"觀察等待：{'、'.join(summary['watch_only_symbols']) or '無'}",f"暫不交易：{'、'.join(summary['no_trade_symbols']) or '無'}",f"避免追價：{'、'.join(summary['avoid_chase_symbols']) or '無'}",f"資料覆蓋：行情 {coverage['quote_available']['available']}/{coverage['quote_available']['total']}｜技術可執行 {coverage['history_sufficient']['available']}/{coverage['history_sufficient']['total']}｜趨勢確認 {coverage['trend_confirmed']['available']}/{coverage['trend_confirmed']['total']}｜新聞 {coverage['news']['available']}/{coverage['news']['total']}",f"報告產生：{format_timestamp(_report_generated_at(payload))}","完整報告：",url,"僅供研究參考，非交易指令。"]
     return "\n".join(lines)
 
