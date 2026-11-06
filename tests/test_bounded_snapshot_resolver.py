@@ -61,3 +61,29 @@ def test_archive_payload_not_retained_in_global_cache(tmp_path):
     with patch.object(archive, "admission_errors", return_value=[]):
         archive.resolve_snapshots(root, "TW", "pre_open_0700")
     assert not hasattr(archive, "_ADMITTED_SNAPSHOT_CACHE")
+
+def test_large_archive_does_not_read_unrelated_payloads(tmp_path):
+    """Regression: a single route must not deserialize the entire archive."""
+    from datetime import date, timedelta
+
+    root = tmp_path / "archive"
+    target = "pre_open_0700"
+    start = date(2026, 1, 1)
+    for offset in range(300):
+        day = (start + timedelta(days=offset)).isoformat()
+        _put(root, "TW", target, day, 1)
+        _put(root, "US", "us_pre_market_2000", day, 1)
+
+    original = Path.read_text
+    opened = []
+
+    def tracked_read(path, *args, **kwargs):
+        opened.append(str(path))
+        return original(path, *args, **kwargs)
+
+    with patch.object(archive, "admission_errors", return_value=[]), patch.object(Path, "read_text", tracked_read):
+        selected = archive.resolve_snapshots(root, "TW", target)
+    assert selected.latest is not None
+    assert selected.previous is not None
+    assert len(opened) == 2, f"Unexpected full-archive payload reads: {len(opened)}"
+    assert all("/tw/pre_open_0700/" in path for path in opened)
