@@ -26,8 +26,9 @@ class WorkerEvidenceTests(unittest.TestCase):
             "line": {"attempted": True, "succeeded": False, "receipt_path": "line.json"}}
 
     def supervise(self, payload, code=2):
-        process = subprocess.CompletedProcess([], code, json.dumps(payload), "benign warning")
-        with patch.object(delivery.subprocess, "run", return_value=process), \
+        process = dict(payload) if isinstance(payload, dict) else {"status":"failed"}
+        process["worker"] = {"returncode":code}
+        with patch.object(delivery, "supervise", return_value=process), \
              patch.object(delivery, "_persist_reliability_failure") as persist:
             result = delivery.supervise_production_worker(self.args())
         return result, persist

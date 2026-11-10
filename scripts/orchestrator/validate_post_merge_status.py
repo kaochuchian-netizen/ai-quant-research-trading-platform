@@ -138,7 +138,15 @@ TW_PREOPEN_TRANSPORT_PATH = re.compile(
 )
 
 
-def _read_governed_json(repo_root: Path, relative_path: str, limit: int) -> dict[str, Any]:
+RECOVERY_TRANSPORT_PATH = re.compile(
+    r"artifacts/runtime/(?:delivery_receipts/tw/(?:pre_open_0700|post_close_1500)/transport|us_stock/channel_delivery_receipts)/[0-9a-f]{64}\.(?:json|attempt)"
+)
+SUPERVISOR_PATH = re.compile(
+    rf"artifacts/runtime/(?P<root>delivery_supervisor|us_stock/supervisor)/(?P<run>(?:tw-(?:{'|'.join(TW_WINDOWS)})|us-(?:{'|'.join(US_WINDOWS)}))-[0-9a-f]{{32}})-[a-z0-9_]{{8}}/(?P<file>manifest\.json|worker\.log|progress\.jsonl|facts\.json|result\.json)"
+)
+
+
+def _read_governed_bytes(repo_root: Path, relative_path: str, limit: int) -> bytes:
     """Read a regular file beneath root without following any symlink or FIFO.
 
     Directory descriptors keep checks and opens anchored even if a path is
@@ -164,6 +172,11 @@ def _read_governed_json(repo_root: Path, relative_path: str, limit: int) -> dict
             after.st_size, after.st_mtime_ns, after.st_ctime_ns
         ):
             raise ValueError("file_changed_during_read")
+    return raw
+
+
+def _read_governed_json(repo_root: Path, relative_path: str, limit: int) -> dict[str, Any]:
+    raw = _read_governed_bytes(repo_root, relative_path, limit)
     def unique_object(pairs):
         value = {}
         for key, item in pairs:
@@ -190,20 +203,24 @@ def transport_receipt_error(path: str, repo_root: Path | None) -> str | None:
     Preservation does not imply successful delivery or authorize any retry.
     Missing context is UNKNOWN, never a reason to fall back to a path allowlist.
     """
-    if not TW_PREOPEN_TRANSPORT_PATH.fullmatch(path):
+    if not RECOVERY_TRANSPORT_PATH.fullmatch(path):
         return "invalid_transport_path"
     if repo_root is None:
         return "receipt_source_root_missing"
     try:
         receipt = _read_governed_json(repo_root, path, 1024 * 1024)
         identity = receipt.get("identity")
-        if receipt.get("schema_version") != "channel_delivery_receipt_v1" or not isinstance(identity, dict):
+        claim = path.endswith(".attempt")
+        if (not claim and receipt.get("schema_version") != "channel_delivery_receipt_v1") or not isinstance(identity, dict):
             return "receipt_schema"
         if set(identity) != {"market", "window", "trading_date", "snapshot_id", "revision", "payload_hash", "channel", "content_sha256"}:
             return "receipt_identity_fields"
-        if identity["market"] != "TW" or identity["window"] != "pre_open_0700":
+        market, window = identity["market"], identity["window"]
+        expected_root = (f"artifacts/runtime/delivery_receipts/tw/{window}/transport" if market == "TW" else "artifacts/runtime/us_stock/channel_delivery_receipts")
+        if (market not in {"TW", "US"} or window not in (TW_WINDOWS if market == "TW" else US_WINDOWS)
+                or str(Path(path).parent) != expected_root):
             return "receipt_market_window"
-        if identity["channel"] not in {"email", "line"} or receipt.get("channel") != identity["channel"]:
+        if identity["channel"] not in {"email", "line"} or (not claim and receipt.get("channel") != identity["channel"]):
             return "receipt_channel"
         revision = identity["revision"]
         if type(revision) is not int or not 1 <= revision <= 9999:
@@ -214,35 +231,40 @@ def transport_receipt_error(path: str, repo_root: Path | None) -> str | None:
         if any(not isinstance(identity[key], str) or not re.fullmatch(r"[0-9a-f]{64}", identity[key])
                for key in ("snapshot_id", "payload_hash", "content_sha256")):
             return "receipt_hash_fields"
-        if Path(path).stem != _identity_hash(identity):
+        filename_identity = {k:v for k,v in identity.items() if k != "content_sha256"} if claim else identity
+        if Path(path).stem != _identity_hash(filename_identity):
             return "receipt_filename_identity"
-        recipients = receipt.get("recipients")
-        if not isinstance(recipients, list) or any(
-            not isinstance(row, dict) or not isinstance(row.get("recipient_mask"), str)
-            or not row["recipient_mask"] or row.get("status") not in {"accepted", "rejected", "timeout", "failed", "unknown"}
-            for row in recipients
-        ):
-            return "receipt_recipients"
-        if (type(receipt.get("recipient_count")) is not int or receipt["recipient_count"] != len(recipients)
-                or type(receipt.get("accepted_recipient_count")) is not int
-                or receipt["accepted_recipient_count"] != sum(row["status"] == "accepted" for row in recipients)
-                or receipt.get("final_recipient_delivery_confirmed") is not False):
-            return "receipt_counts_or_delivery_claim"
-        states = {row["status"] for row in recipients}
-        expected = ("unknown" if not states else "transport_accepted" if states == {"accepted"}
-                    else ("timeout" if len(states) == 1 else "partial_failure") if "timeout" in states
-                    else "partial_failure" if "accepted" in states
-                    else "failed" if states <= {"rejected", "failed"} else "unknown")
-        if receipt.get("transport_result") != expected:
-            return "receipt_transport_result"
-        if datetime.fromisoformat(receipt["attempted_at"]).utcoffset() is None:
-            return "receipt_attempt_time"
-        source = f"artifacts/archive/window_snapshots/tw/pre_open_0700/{trading_date}/revision-{revision:04d}.json"
+        if claim:
+            if set(receipt) != {"identity", "receipt_path"} or Path(str(receipt.get("receipt_path"))).name != _identity_hash(identity) + ".json":
+                return "attempt_receipt_binding"
+        else:
+            recipients = receipt.get("recipients")
+            if not isinstance(recipients, list) or any(
+                not isinstance(row, dict) or not isinstance(row.get("recipient_mask"), str)
+                or not row["recipient_mask"] or row.get("status") not in {"accepted", "rejected", "timeout", "failed", "unknown"}
+                for row in recipients
+            ):
+                return "receipt_recipients"
+            if (type(receipt.get("recipient_count")) is not int or receipt["recipient_count"] != len(recipients)
+                    or type(receipt.get("accepted_recipient_count")) is not int
+                    or receipt["accepted_recipient_count"] != sum(row["status"] == "accepted" for row in recipients)
+                    or receipt.get("final_recipient_delivery_confirmed") is not False):
+                return "receipt_counts_or_delivery_claim"
+            states = {row["status"] for row in recipients}
+            expected = ("unknown" if not states else "transport_accepted" if states == {"accepted"}
+                        else ("timeout" if len(states) == 1 else "partial_failure") if "timeout" in states
+                        else "partial_failure" if "accepted" in states
+                        else "failed" if states <= {"rejected", "failed"} else "unknown")
+            if receipt.get("transport_result") != expected:
+                return "receipt_transport_result"
+            if datetime.fromisoformat(receipt["attempted_at"]).utcoffset() is None:
+                return "receipt_attempt_time"
+        source = f"artifacts/archive/window_snapshots/{market.lower()}/{window}/{trading_date}/revision-{revision:04d}.json"
         snapshot = _read_governed_json(repo_root, source, 64 * 1024 * 1024)
         from app.dashboard.window_snapshot_archive import admission_errors
         if admission_errors(snapshot):
             return "snapshot_not_admitted"
-        if (snapshot.get("market") != "TW" or snapshot.get("window") != "pre_open_0700"
+        if (snapshot.get("market") != market or snapshot.get("window") != window
                 or snapshot.get("effective_trading_date") != trading_date
                 or type(snapshot.get("revision")) is not int or snapshot["revision"] != revision
                 or snapshot.get("snapshot_id") != identity["snapshot_id"]
@@ -254,9 +276,38 @@ def transport_receipt_error(path: str, repo_root: Path | None) -> str | None:
     return None
 
 
+def supervisor_evidence_valid(path: str, repo_root: Path | None) -> bool:
+    match = SUPERVISOR_PATH.fullmatch(path)
+    if not match or repo_root is None:
+        return False
+    try:
+        parent = str(Path(path).parent)
+        manifest = _read_governed_json(repo_root, parent + "/manifest.json", 8192)
+        run_id = match["run"]
+        market = "US" if match["root"] == "us_stock/supervisor" else "TW"
+        if (manifest.get("schema_version") != "delivery_supervisor_evidence_v1"
+                or manifest.get("run_id") != run_id or manifest.get("market") != market
+                or manifest.get("window") not in (US_WINDOWS if market == "US" else TW_WINDOWS)
+                or not run_id.startswith(market.lower()+"-"+manifest["window"]+"-")
+                or manifest.get("terminal_status") not in {"completed", "failed", "timed_out"}):
+            return False
+        files = manifest.get("files")
+        if not isinstance(files, dict) or not files or not set(files) <= {"worker.log", "progress.jsonl", "facts.json", "result.json"}:
+            return False
+        for name, digest in files.items():
+            limit = 2 * 1024 * 1024 if name == "worker.log" else 64 * 1024 * 1024
+            if hashlib.sha256(_read_governed_bytes(repo_root, parent+"/"+name, limit)).hexdigest() != digest:
+                return False
+        return match["file"] == "manifest.json" or match["file"] in files
+    except (OSError, ValueError, TypeError, KeyError):
+        return False
+
+
 def is_preserved_runtime_artifact(path: str, *, repo_root: Path | None = None) -> bool:
-    if TW_PREOPEN_TRANSPORT_PATH.fullmatch(path):
+    if RECOVERY_TRANSPORT_PATH.fullmatch(path):
         return transport_receipt_error(path, repo_root) is None
+    if SUPERVISOR_PATH.fullmatch(path):
+        return supervisor_evidence_valid(path, repo_root)
     return path in PRESERVED_EXACT_PATHS or any(pattern.fullmatch(path) for pattern in PRESERVED_PATH_PATTERNS)
 
 
@@ -272,7 +323,7 @@ def classify_dirty_paths(status_entries: list[str], *, repo_root: Path | None = 
         path = status_path(entry)
         # A renamed/deleted/type-changed transport file or a quoted/spoofed
         # status path is not evidence of a retained ordinary receipt.
-        if TW_PREOPEN_TRANSPORT_PATH.fullmatch(path) and (
+        if (RECOVERY_TRANSPORT_PATH.fullmatch(path) or SUPERVISOR_PATH.fullmatch(path)) and (
             " -> " in entry or not entry.endswith(path)
             or entry[:3].strip() not in {"??", "M", "A", "AM", "MM"}
         ):

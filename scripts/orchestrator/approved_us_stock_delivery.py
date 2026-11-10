@@ -51,6 +51,7 @@ from app.us_stock.runtime_provenance import ADMITTED_PROVENANCE, RuntimeProvenan
 from app.us_stock.research_presentation import research_review_lines
 from app.us_stock.trading_calendar import resolve_us_effective_trading_date
 from app.us_stock.batch_reliability import acquire_pid_lock, build_failure_status, contract_for_window, release_pid_lock
+from app.runtime.delivery_supervisor import supervise, checkpoint, run_identity
 from app.runtime.operations_provenance import build_operations_provenance, write_operations_provenance
 from scripts.orchestrator.notify_stage_report import build_message, load_env_file, load_mail_config, send_message
 
@@ -488,6 +489,7 @@ def send_email_if_allowed(artifact: dict[str, Any], window: str, production_appr
     if not production_approved:
         return {"attempted": False, "succeeded": False, "reason": "dry_run_no_send"}
     from email.utils import getaddresses
+    recipients = []
     try:
         env_file = MAIL_ENV_FILE.expanduser()
         if env_file.exists():
@@ -514,6 +516,7 @@ def send_email_if_allowed(artifact: dict[str, Any], window: str, production_appr
         return {
             "attempted": True, "succeeded": False, "recipient_count": 0,
             "reason": "email_transport_failure", "error_type": type(exc).__name__,
+            "recipient_transport": [{"recipient":r, "status":"timeout" if isinstance(exc, TimeoutError) else "unknown", "error_type":type(exc).__name__} for r in recipients] if capture_recipients else [],
             "secret_values_printed": False,
         }
 
@@ -523,6 +526,8 @@ def send_line_if_allowed(artifact: dict[str, Any], window: str, production_appro
         return {"attempted": False, "succeeded": False, "reason": "dry_run_no_send"}
     from app.reports.line_chunks import deliver_line_chunks
     transport_diagnostic = {}
+    expected = set()
+    observed_rows = []
     try:
         line_module = importlib.import_module("reports.line_report_sender")
         sender = getattr(line_module, "send_" + "line_report")
@@ -534,6 +539,7 @@ def send_line_if_allowed(artifact: dict[str, Any], window: str, production_appro
             try:
                 responses = sender(chunk) or []
             except Exception as exc:
+                observed_rows.extend(getattr(exc, "recipient_transport", []))
                 # Legacy sender embeds private recipient/body text. Persist only
                 # a numeric HTTP status and an allowlisted provider reason.
                 match = re.match(r"^LINE push failed for [^:]+: ([1-5][0-9]{2}) ", str(exc))
@@ -546,6 +552,7 @@ def send_line_if_allowed(artifact: dict[str, Any], window: str, production_appro
                     )
                 raise
 
+            observed_rows.extend({"recipient":str(r), "status":"accepted" if 200 <= int(c) < 300 else "rejected", "status_code":int(c)} for r,c in responses)
             accepted = {str(recipient) for recipient, code in responses if 200 <= int(code) < 300}
             if accepted != expected:
                 raise RuntimeError("line_recipient_receipt_incomplete")
@@ -565,6 +572,7 @@ def send_line_if_allowed(artifact: dict[str, Any], window: str, production_appro
         return {
             "attempted": True, "succeeded": False, "recipient_count": 0,
             "reason": "line_transport_failure", "error_type": type(exc).__name__,
+            "recipient_transport": observed_rows + [{"recipient":r, "status":"unknown"} for r in sorted(expected - {x["recipient"] for x in observed_rows})] if capture_recipients else [],
             "chunk_delivery": ({**getattr(exc, "chunk_delivery", {}), **transport_diagnostic}
                                if getattr(exc, "chunk_delivery", None) is not None else None),
             "secret_values_printed": False,
@@ -650,124 +658,41 @@ def _persist_reliability_failure(status: dict[str, Any]) -> None:
 
 
 def supervise_production_worker(args: argparse.Namespace) -> dict[str, Any]:
-    """Run production delivery in a child process so parent can fail closed.
-
-    This parent path is intentionally lightweight. If the child is killed by a
-    process-level failure such as SIGKILL/OOM or exceeds the window contract
-    timeout, the parent persists durable failure evidence and never claims
-    Email/LINE/Dashboard success.
-    """
     started = now_taipei()
-    contract = contract_for_window(args.window)
-    timeout_seconds = int(args.timeout_seconds or contract.timeout_seconds)
-    command = [
-        sys.executable,
-        str(Path(__file__).resolve()),
-        "--window",
-        args.window,
-        "--production-approved",
-        "--worker-mode",
-    ]
-    if args.live_data:
-        command.append("--live-data")
-    if args.publish_dashboard:
-        command.append("--publish-dashboard")
-    if args.pretty:
-        command.append("--pretty")
+    command = [sys.executable, str(Path(__file__).resolve()), "--window", args.window,
+               "--production-approved", "--worker-mode"]
+    for flag in ("live_data", "publish_dashboard", "pretty", "manual_rerun"):
+        if getattr(args, flag, False):
+            command.append("--" + flag.replace("_", "-"))
     if args.as_of:
         command.extend(["--as-of", args.as_of])
-    if args.manual_rerun:
-        command.append("--manual-rerun")
-    try:
-        completed = subprocess.run(
-            command,
-            cwd=str(REPO_ROOT),
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            timeout=timeout_seconds,
-            check=False,
-        )
-    except subprocess.TimeoutExpired as exc:
-        finished = now_taipei()
-        status = build_failure_status(
-            window=args.window,
-            started_at=started,
-            finished_at=finished,
-            reason="worker_timeout",
-            error_type="TimeoutExpired",
-            error_message=str(exc),
-            timeout_seconds=timeout_seconds,
-        )
-        _persist_reliability_failure(status)
-        return {"ok": False, "status": status, "worker": {"timeout": True, "timeout_seconds": timeout_seconds}}
-    if completed.returncode == 0:
-        try:
-            return json.loads(completed.stdout)
-        except json.JSONDecodeError:
-            finished = now_taipei()
-            status = build_failure_status(
-                window=args.window,
-                started_at=started,
-                finished_at=finished,
-                reason="worker_invalid_json",
-                error_type="JSONDecodeError",
-                error_message=completed.stdout[:240],
-                returncode=completed.returncode,
-                timeout_seconds=timeout_seconds,
-            )
-            _persist_reliability_failure(status)
-            return {"ok": False, "status": status, "worker": {"returncode": completed.returncode}}
-    try:
-        parsed = json.loads(completed.stdout)
-    except json.JSONDecodeError:
-        parsed = None
-    if isinstance(parsed, dict) and parsed.get("status") == "lock_busy":
-        parsed["worker"] = {"returncode": completed.returncode, "parsed_nonzero_json": True}
-        return parsed
-    # A completed worker returns exit 2 when only one channel failed. Its
-    # structured channel evidence must not be replaced with "not_attempted".
-    worker_status = parsed.get("status") if isinstance(parsed, dict) else None
-    if (completed.returncode == 2 and isinstance(parsed, dict) and parsed.get("ok") is False
-            and isinstance(worker_status, dict)
-            and worker_status.get("schema_version") == "us_stock_delivery_status_v1"
-            and worker_status.get("market") == "US"
-            and worker_status.get("window") == args.window
-            and worker_status.get("status") == "completed"
-            and all(isinstance(parsed.get(channel), dict)
-                    and type(parsed[channel].get("attempted")) is bool
-                    and type(parsed[channel].get("succeeded")) is bool
-                    and worker_status.get(channel + "_attempted") == parsed[channel]["attempted"]
-                    and worker_status.get(channel + "_succeeded") == parsed[channel]["succeeded"]
-                    for channel in ("email", "line"))):
-        parsed["worker"] = {"returncode": completed.returncode, "parsed_nonzero_json": True}
-        return parsed
-    finished = now_taipei()
-    reason = "worker_terminated_signal" if completed.returncode < 0 else "worker_failed"
-    status = build_failure_status(
-        window=args.window,
-        started_at=started,
-        finished_at=finished,
-        reason=reason,
-        error_type="WorkerProcessFailed",
-        error_message=(completed.stderr or completed.stdout)[:240],
-        returncode=completed.returncode,
-        timeout_seconds=timeout_seconds,
-    )
-    _persist_reliability_failure(status)
-    return {
-        "ok": False,
-        "status": status,
-        "worker": {
-            "returncode": completed.returncode,
-            "stdout_tail": completed.stdout[-1000:],
-            "stderr_tail": completed.stderr[-1000:],
-        },
-    }
+    result = supervise(command, cwd=REPO_ROOT, market="US", window=args.window,
+        timeout_seconds=args.timeout_seconds or contract_for_window(args.window).timeout_seconds,
+        evidence_root=US_RUNTIME_DIR / "supervisor")
+    status = result.get("status")
+    if (isinstance(status, dict) and status.get("market") == "US" and status.get("window") == args.window
+            and status.get("status") == "completed" and (result.get("worker") or {}).get("returncode", 0) >= 0
+            and all(isinstance(result.get(c), dict)
+                    and type(result[c].get("attempted")) is bool and type(result[c].get("succeeded")) is bool
+                    and status.get(c+"_attempted") == result[c]["attempted"]
+                    and status.get(c+"_succeeded") == result[c]["succeeded"] for c in ("email", "line"))):
+        return result
+    if status == "lock_busy":
+        return result
+    facts = result.get("retained_facts") or {}
+    failure = build_failure_status(window=args.window, started_at=started,
+        finished_at=now_taipei(), reason=result.get("failure_reason", "worker_failed"),
+        returncode=(result.get("worker") or {}).get("returncode"),
+        run_id=result.get("run_id"), retained_facts=facts)
+    failure["worker"] = result.get("worker")
+    _persist_reliability_failure(failure)
+    return {**result, "ok":False, "status":failure}
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
     started = now_taipei()
+    run_id = run_identity(f"us-{args.window}")
+    checkpoint("runtime_started")
     batch_reference = datetime.fromisoformat(args.as_of).astimezone(TAIPEI) if args.as_of else started
     production_approved = bool(args.production_approved and not args.dry_run)
     production_artifact = bool(args.production_artifact and not args.production_approved)
@@ -778,6 +703,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         return {
             "ok": False,
             "status": "lock_busy",
+            "run_id": run_id,
             "window": args.window,
             "lock": lock_result,
             "line_attempted": False,
@@ -824,10 +750,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 source_payload=artifact,
                 status="completed",
                 run_kind="manual_rerun" if args.manual_rerun else "scheduled",
-                run_id=f"us-{args.window}-{started.strftime('%Y%m%d-%H%M%S')}",
+                run_id=run_id,
                 source_artifact_path=str(out_path),
                 rebuild_routes=args.manual_rerun,
             )
+        checkpoint("archive_publish", archive_write=archive_result)
         public_latest_sync = {"status": "not_attempted", "reason": "not_scheduled_production"}
         if production_approved and persist_formal_runtime and archive_result.get("written") is True and not args.manual_rerun:
             public_latest_sync = synchronize_admitted_latest(
@@ -839,6 +766,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 US_RUNTIME_DIR / "public_latest_sync" / f"{args.window}_latest.json",
                 public_latest_sync,
             )
+        checkpoint("chromium_visual", public_latest_sync=public_latest_sync)
         visual_evidence = capture_published_snapshot_non_blocking(
             market="US",
             window=str(archive_result.get("window") or args.window),
@@ -856,6 +784,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             }
         else:
             dashboard_result = publish_dashboard(artifact) if persist_formal_runtime and args.publish_dashboard else {"attempted": False, "succeeded": False, "reason": "provenance_not_publishable"}
+        checkpoint("notification")
         idem = idempotency_path(args.window, started)
         delivery_skipped_duplicate = production_approved and idem.exists()
         latest_snapshot = resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, "US", args.window).latest or {}
@@ -878,12 +807,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             email_result = send_us_channel_with_receipt(
                 artifact, args.window, "email", latest_snapshot, receipt_root,
             )
+            checkpoint("notification", email=email_result)
             line_result = send_us_channel_with_receipt(
                 artifact, args.window, "line", latest_snapshot, receipt_root,
             )
         else:
             email_result = send_email_if_allowed(artifact, args.window, False)
             line_result = send_line_if_allowed(artifact, args.window, False)
+        checkpoint("notification", email=email_result, line=line_result)
         email_preview = build_email_body(artifact, args.window)
         line_preview = line_text(artifact, args.window)
         provenance_results = {}
@@ -938,6 +869,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         finished = now_taipei()
         status = {
             "schema_version": "us_stock_delivery_status_v1",
+            "run_id": run_id,
             "market": "US",
             "window": args.window,
             "scheduled_at": args.as_of or US_BATCH_WINDOWS[args.window]["scheduled_time_tw"],
@@ -988,9 +920,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if persist_formal_runtime:
             write_json(STATUS_PATH, status)
             write_json(US_STATUS_PATH, status)
-        return {"ok": (not production_approved or args.manual_rerun or (public_latest_sync.get("status") == "verified" and (delivery_skipped_duplicate or status["delivery_status"] == "complete"))), "status": status, "archive_write": archive_result, "visual_evidence": visual_evidence, "dashboard": dashboard_result, "email": email_result, "line": line_result, "line_payload_preview": status["line_payload_preview"], "email_payload_preview": status["email_payload_preview"], "dashboard_url": get_window_report_contract("US", args.window).dashboard_url}
+        return {"run_id": run_id, "ok": (not production_approved or args.manual_rerun or (public_latest_sync.get("status") == "verified" and (delivery_skipped_duplicate or status["delivery_status"] == "complete"))), "status": status, "archive_write": archive_result, "visual_evidence": visual_evidence, "dashboard": dashboard_result, "email": email_result, "line": line_result, "line_payload_preview": status["line_payload_preview"], "email_payload_preview": status["email_payload_preview"], "dashboard_url": get_window_report_contract("US", args.window).dashboard_url}
     except Exception as exc:
-        error = {"ok": False, "status": "failed", "window": args.window, "error_type": type(exc).__name__, "error_message": str(exc)[:240], "line_attempted": False, "email_attempted": False, "trading_or_order_executed": False, "production_pipeline_executed": False}
+        error = {"run_id": run_id, "ok": False, "status": "failed", "window": args.window, "error_type": type(exc).__name__, "error_message": str(exc)[:240], "line_attempted": False, "email_attempted": False, "trading_or_order_executed": False, "production_pipeline_executed": False}
         if production_approved or production_artifact:
             write_json(STATUS_PATH, error)
             write_json(US_STATUS_PATH, error)

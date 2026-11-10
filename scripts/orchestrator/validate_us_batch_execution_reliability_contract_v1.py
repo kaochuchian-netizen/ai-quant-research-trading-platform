@@ -109,14 +109,14 @@ def _idempotency_cases() -> list[dict[str, Any]]:
     first_email = channel_state(attempted=True, succeeded=True)
     duplicate_email = channel_state(attempted=False, succeeded=False, reason="duplicate_delivery_suppressed")
     partial_email = channel_state(attempted=True, succeeded=False, reason="smtp_failed")
-    line_23 = channel_state(attempted=False, succeeded=False, reason="line_not_allowed_for_window")
-    line_0630 = channel_state(attempted=False, succeeded=False, reason="line_not_allowed_for_window")
+    line_23 = channel_state(attempted=False, succeeded=False, reason="worker_failed_line_not_attempted")
+    line_0630 = channel_state(attempted=False, succeeded=False, reason="worker_failed_line_not_attempted")
     return [
         _case("sent_implies_attempted", first_email["sent"] and first_email["attempted"]),
         _case("duplicate_retry_not_attempted", duplicate_email["state"] == "suppressed" and not duplicate_email["attempted"]),
         _case("partial_channel_failure_truthful", partial_email["attempted"] and not partial_email["sent"] and partial_email["state"] == "failed"),
-        _case("us_2300_line_not_attempted_by_policy", line_23["state"] == "not_attempted" and not line_23["attempted"]),
-        _case("us_0630_line_not_attempted_by_policy", line_0630["state"] == "not_attempted" and not line_0630["attempted"]),
+        _case("us_2300_line_not_attempted_after_failure", line_23["state"] == "not_attempted" and not line_23["attempted"]),
+        _case("us_0630_line_not_attempted_after_failure", line_0630["state"] == "not_attempted" and not line_0630["attempted"]),
     ]
 
 
@@ -151,12 +151,12 @@ def validate() -> dict[str, Any]:
         "0630_normal_contract_defined",
         "0630_contract_for_window_supported",
         "0630_no_longer_unsupported",
-        "0630_email_allowed_line_not_allowed",
+        "0630_email_and_line_allowed",
         "0630_worker_failure_fail_closed",
         "20_worker_oom_equivalent_fail_closed",
         "20_timeout_fail_closed",
         "20_failure_does_not_mutate_23_contract",
-        "23_line_not_allowed_email_allowed",
+        "23_email_and_line_allowed",
         "partial_channel_failure_truthful",
         "retry_after_delivery_suppressed",
         "sent_implies_attempted",
@@ -168,8 +168,8 @@ def validate() -> dict[str, Any]:
         "duplicate_retry_not_attempted",
         "partial_channel_failure_truthful",
         "sent_implies_attempted",
-        "us_2300_line_not_attempted_by_policy",
-        "us_0630_line_not_attempted_by_policy",
+        "us_2300_line_not_attempted_after_failure",
+        "us_0630_line_not_attempted_after_failure",
     })
     formal_windows = {"us_pre_market_2000", "us_intraday_2300", "us_post_close_review_0630"}
     failed = [case for case in cases if not case.get("passed")]

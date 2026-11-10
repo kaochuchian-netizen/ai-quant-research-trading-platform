@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
@@ -50,13 +51,22 @@ def receipt_path(root: Path, identity: dict[str, Any]) -> Path:
 
 
 def _valid_terminal_receipt(value: Any, identity: dict[str, Any]) -> bool:
-    return (
-        isinstance(value, dict)
-        and value.get("schema_version") == SCHEMA_VERSION
-        and value.get("identity") == identity
-        and value.get("transport_result") in TERMINAL_RESULTS
-        and isinstance(value.get("recipients"), list)
-    )
+    if not (isinstance(value, dict) and value.get("schema_version") == SCHEMA_VERSION
+            and value.get("identity") == identity and value.get("channel") == identity.get("channel")
+            and value.get("transport_result") in TERMINAL_RESULTS
+            and isinstance(value.get("recipients"), list)):
+        return False
+    rows = value["recipients"]
+    if not rows or any(not isinstance(r, dict) or not str(r.get("recipient_mask", "")).startswith("sha256:")
+                       or r.get("status") not in {"accepted", "rejected", "timeout", "failed", "unknown"} for r in rows):
+        return False
+    if len({r["recipient_mask"] for r in rows}) != len(rows):
+        return False
+    accepted = sum(r["status"] == "accepted" for r in rows)
+    return (type(value.get("recipient_count")) is int and value["recipient_count"] == len(rows)
+            and type(value.get("accepted_recipient_count")) is int and value["accepted_recipient_count"] == accepted
+            and (value["transport_result"] == "transport_accepted") == (accepted == len(rows))
+            and value.get("final_recipient_delivery_confirmed") is False)
 
 
 def build_transport_evidence(*, channel: str, recipients: list[dict[str, Any]], attempted_at: str | None = None) -> dict[str, Any]:
@@ -80,6 +90,14 @@ def build_transport_evidence(*, channel: str, recipients: list[dict[str, Any]], 
         if row.get("error_type"):
             item["error_type"] = str(row["error_type"])
         safe.append(item)
+    # Multiple LINE chunks are one recipient outcome, not multiple recipients.
+    merged: dict[str, dict[str, Any]] = {}
+    priority = {"accepted":0, "unknown":1, "failed":2, "rejected":3, "timeout":4}
+    for item in safe:
+        previous = merged.get(item["recipient_mask"])
+        if previous is None or priority[item["status"]] > priority[previous["status"]]:
+            merged[item["recipient_mask"]] = item
+    safe = list(merged.values())
     states = {item["status"] for item in safe}
     if not safe:
         result = "unknown"
@@ -110,6 +128,8 @@ def deliver_once(*, receipt_root: Path, identity: dict[str, Any], channel: str, 
     A prior failed/partial/timeout receipt is intentionally not retried here:
     an operator must explicitly approve any later re-delivery plan.
     """
+    if channel != identity.get("channel"):
+        raise ValueError("receipt_channel_mismatch")
     path = receipt_path(Path(receipt_root), identity)
     if path.exists():
         try:
@@ -120,6 +140,20 @@ def deliver_once(*, receipt_root: Path, identity: dict[str, Any], channel: str, 
             return {"send_attempted": False, "send_status": "failed", "error_type": "InvalidDeliveryReceipt", "receipt_path": str(path)}
         status = "already_delivered" if retained["transport_result"] == "transport_accepted" else "suppressed_prior_delivery_attempt"
         return {"send_attempted": False, "send_status": status, "receipt_path": str(path), "receipt": retained}
+    # Claim the snapshot/channel before transport. A crash leaves an explicit
+    # uncertain attempt; neither concurrent callers nor changed content resend.
+    path.parent.mkdir(parents=True, exist_ok=True)
+    claim_identity = {k:v for k,v in identity.items() if k != "content_sha256"}
+    claim = path.parent / (hashlib.sha256(_canonical(claim_identity).encode()).hexdigest() + ".attempt")
+    try:
+        fd = os.open(claim, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError:
+        return {"send_attempted":False, "send_status":"suppressed_prior_delivery_attempt",
+                "error_type":"PriorOrInFlightAttempt", "receipt_path":str(path)}
+    with os.fdopen(fd, "w") as handle:
+        handle.write(_canonical({"identity":identity, "receipt_path":str(path)}))
+        handle.flush()
+        os.fsync(handle.fileno())
     try:
         raw = dict(sender())
         evidence = build_transport_evidence(
@@ -127,6 +161,13 @@ def deliver_once(*, receipt_root: Path, identity: dict[str, Any], channel: str, 
             recipients=list(raw.get("recipients") or []),
             attempted_at=raw.get("attempted_at"),
         )
+        chunk = raw.get("chunk_delivery")
+        if isinstance(chunk, dict) and chunk.get("completed_chunk_count") != chunk.get("chunk_count"):
+            for row in evidence["recipients"]:
+                if row["status"] == "accepted":
+                    row["status"] = "unknown"
+            evidence["accepted_recipient_count"] = 0
+            evidence["transport_result"] = "unknown"
         if raw.get("chunk_delivery") is not None:
             evidence["chunk_delivery"] = raw["chunk_delivery"]
     except Exception as exc:

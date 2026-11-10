@@ -1,0 +1,67 @@
+{
+  "ok": true,
+  "rows": [
+    {
+      "market": "TW",
+      "window": "pre_open_0700",
+      "effective_trading_date": "2026-11-06",
+      "snapshot_id": "a2832fd2ca12f289850e1daa4ba6f2b77f3fabf19d0976eaf5b649ffd772362e",
+      "source_sha256": "dbc45827fbdc50bfa6d052335f9876e4f2ce92b7fe39aa39eddd8588646d64f0",
+      "public_parity": "verified",
+      "publish_repeat_suppressed": true,
+      "receipts": [
+        {
+          "channel": "email",
+          "simulated_result": "partial_failure",
+          "recipient_count": 2,
+          "accepted_recipient_count": 1,
+          "repeat_suppressed": true,
+          "content_sha256": "89bb423052dd5fa532fb22bdbb4a0a9e32a74981e2a8d6a800bad28a721c416e"
+        },
+        {
+          "channel": "line",
+          "simulated_result": "partial_failure",
+          "recipient_count": 2,
+          "accepted_recipient_count": 1,
+          "repeat_suppressed": true,
+          "content_sha256": "7d2ac5bc0a5c7c5f18c05552767b9ca03ea4f471501964b59b39884dbbf81d4e"
+        }
+      ]
+    },
+    {
+      "market": "US",
+      "window": "us_post_close_review_0630",
+      "effective_trading_date": "2026-11-05",
+      "snapshot_id": "fb0243b8ccb0a6911fd560703fb69b0108f594262b43cc167a6c7f1ba510c4bc",
+      "source_sha256": "47415713b8103d207d2582fb5d472167dc00ff460abd28238a3f970e15064b1e",
+      "public_parity": "verified",
+      "publish_repeat_suppressed": true,
+      "receipts": [
+        {
+          "channel": "email",
+          "simulated_result": "partial_failure",
+          "recipient_count": 2,
+          "accepted_recipient_count": 1,
+          "repeat_suppressed": true,
+          "content_sha256": "1aa1202e4e27cf297f76ce7c6ba133320a69708ed49af4e5839ca19bad8897d6"
+        },
+        {
+          "channel": "line",
+          "simulated_result": "partial_failure",
+          "recipient_count": 2,
+          "accepted_recipient_count": 1,
+          "repeat_suppressed": true,
+          "content_sha256": "3fedf63aad3714196309c9c26792606abff48b0d10bee98775c7c5748a2b4082"
+        }
+      ]
+    }
+  ],
+  "real_transport_calls": 0,
+  "analysis_executed": false,
+  "trading": false,
+  "production_publish": false,
+  "mutation_guard": "temporary_root_only",
+  "network_guard": "deny_all",
+  "immutable_source_parity": true,
+  "isolated_archive_parity": true
+}

@@ -68,6 +68,9 @@ jobs:
       - name: Validate AI-DEV-302 transport receipt governance
         run: python3 -m unittest tests.test_validate_post_merge_status tests.test_ai_dev_302_receipt_governance
 
+      - name: Validate delivery recovery supervisor and evidence governance
+        run: python3 -m unittest tests.test_delivery_recovery tests.test_delivery_recovery_governance
+
       - name: Validate AI-DEV-300 no-auto-sync timer contract
         run: python3 -m unittest tests.test_ai_dev_300
 
