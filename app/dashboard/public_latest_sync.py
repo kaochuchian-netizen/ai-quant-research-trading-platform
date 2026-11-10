@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import fcntl
 import os
 import re
 from datetime import datetime
@@ -73,12 +74,35 @@ def verify_identity(expected: dict[str, Any], path: Path) -> dict[str, Any]:
 
 
 def synchronize_admitted_latest(*, market: str, window: str, static_root: Path, output_dir: Path) -> dict[str, Any]:
+    # Market alias is shared by all windows. Serialize the complete verification
+    # and publish transaction, including callers using different build dirs.
+    static_root.mkdir(parents=True, exist_ok=True)
+    with (static_root / f".publish-{market.lower()}.lock").open("a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        return _synchronize_admitted_latest(market=market, window=window, static_root=static_root, output_dir=output_dir)
+
+
+def _synchronize_admitted_latest(*, market: str, window: str, static_root: Path, output_dir: Path) -> dict[str, Any]:
     market = market.upper()
     admitted_snapshot = resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, market, window).latest
     expected = expected_latest_identity(market, window, admitted_snapshot=admitted_snapshot)
     if not expected:
         return {"status": "not_attempted", "failure_category": "admission_rejected", "reason": "no_admitted_snapshot"}
     build_started = datetime.now(ZoneInfo("Asia/Taipei")).replace(microsecond=0).isoformat()
+    archive_path = static_root / f"dashboard/archive/{market.lower()}/{window}/latest/index.html"
+    active = resolve_active_snapshot(WINDOW_SNAPSHOT_ARCHIVE, market)
+    active_identity = expected_latest_identity(market, window, admitted_snapshot=active) if active else None
+    retained_archive = verify_identity(expected, archive_path)
+    retained_market = verify_identity(active_identity, static_root / f"dashboard/{market.lower()}/index.html") if active_identity else {}
+    if retained_archive.get("status") == retained_market.get("status") == "verified":
+        payload = admitted_snapshot.get("payload") or {}
+        return {"schema_version":"admission_public_latest_sync_v1", "status":"verified",
+                "publish_attempted":False, "idempotency":"already_published",
+                "snapshot_id":expected["snapshot_id"], "revision":expected["revision"],
+                "source_payload_hash":expected["payload_hash"],
+                "rendered_symbols":[str(v) for v in payload.get("tracking_symbols", [])],
+                "public_archive_verification":retained_archive, "market_dashboard_verification":retained_market,
+                "failure_category":None}
     try:
         archive = publish_archive_latest_route(market, window, static_root=static_root, output_dir=output_dir / "archive")
         market_alias = publish_market_dashboard_alias(market, static_root=static_root, output_dir=output_dir / "market")

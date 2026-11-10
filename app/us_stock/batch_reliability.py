@@ -57,14 +57,14 @@ US_BATCH_EXECUTION_RELIABILITY_CONTRACT: dict[str, WindowReliabilityContract] = 
         scheduled_time_tw=US_BATCH_WINDOWS["us_intraday_2300"]["scheduled_time_tw"],
         timeout_seconds=45 * 60,
         stale_runtime_max_age_seconds=20 * 60,
-        channel_policy=ChannelPolicy(email_allowed=True, line_allowed=False),
+        channel_policy=ChannelPolicy(email_allowed=True, line_allowed=True),
     ),
     "us_post_close_review_0630": WindowReliabilityContract(
         window="us_post_close_review_0630",
         scheduled_time_tw=US_BATCH_WINDOWS["us_post_close_review_0630"]["scheduled_time_tw"],
         timeout_seconds=45 * 60,
         stale_runtime_max_age_seconds=30 * 60,
-        channel_policy=ChannelPolicy(email_allowed=True, line_allowed=False),
+        channel_policy=ChannelPolicy(email_allowed=True, line_allowed=True),
     ),
 }
 
@@ -243,9 +243,26 @@ def build_failure_status(
     returncode: int | None = None,
     timeout_seconds: int | None = None,
     effective_trading_date: str | None = None,
+    run_id: str | None = None,
+    retained_facts: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     contract = contract_for_window(window)
     channels = fail_closed_channel_states(window, reason)
+    facts = retained_facts or {}
+    archive = facts.get("archive_write") or {}
+    snapshot = {}
+    if archive.get("written") and archive.get("path"):
+        try:
+            from app.dashboard.window_snapshot_archive import admission_errors
+            candidate = json.loads(Path(archive["path"]).read_text())
+            if (candidate.get("run_id") == run_id and candidate.get("window") == window
+                    and candidate.get("market") == "US" and not admission_errors(candidate)):
+                snapshot = candidate
+        except (OSError, ValueError, TypeError):
+            pass
+    for channel in ("email", "line"):
+        if isinstance(facts.get(channel), dict):
+            channels[channel] = facts[channel]
     signal_name = None
     if returncode is not None and returncode < 0:
         signal_name = f"SIG{abs(returncode)}"
@@ -253,14 +270,16 @@ def build_failure_status(
         "schema_version": RELIABILITY_SCHEMA_VERSION,
         "market": "US",
         "window": window,
-        "run_id": run_id_for(window, started_at),
+        "run_id": run_id or run_id_for(window, started_at),
         "effective_trading_date": effective_trading_date,
         "started_at": started_at.isoformat(),
         "finished_at": finished_at.isoformat(),
         "status": "failed_closed",
         "pipeline_completed": False,
         "runtime_artifact_admitted": False,
-        "snapshot_admitted": False,
+        "snapshot_admitted": bool(snapshot),
+        "snapshot_id": snapshot.get("snapshot_id"),
+        "retained_facts": facts,
         "dashboard_publication_verified": False,
         "delivery_success_claimed": False,
         "failure_reason": reason,
@@ -272,9 +291,9 @@ def build_failure_status(
         "email": channels["email"],
         "line": channels["line"],
         "email_attempted": channels["email"]["attempted"],
-        "email_succeeded": channels["email"]["sent"],
+        "email_succeeded": bool(channels["email"].get("sent", channels["email"].get("succeeded"))),
         "line_attempted": channels["line"]["attempted"],
-        "line_succeeded": channels["line"]["sent"],
+        "line_succeeded": bool(channels["line"].get("sent", channels["line"].get("succeeded"))),
         "production_pipeline_executed": False,
         "trading_or_order_executed": False,
         "secret_values_printed": False,
@@ -300,7 +319,7 @@ def validate_status(status: dict[str, Any]) -> list[str]:
         if status.get("status") == "failed_closed" and channel.get("sent"):
             errors.append(f"{channel_name}_sent_on_failed_closed")
     if status.get("status") == "failed_closed":
-        for key in ("pipeline_completed", "runtime_artifact_admitted", "snapshot_admitted", "dashboard_publication_verified", "delivery_success_claimed"):
+        for key in ("pipeline_completed", "runtime_artifact_admitted", "dashboard_publication_verified", "delivery_success_claimed"):
             if status.get(key) is not False:
                 errors.append(f"failed_closed_{key}_must_be_false")
     return errors
@@ -386,7 +405,7 @@ def behavioral_contract_cases() -> list[dict[str, Any]]:
         "dashboard_publication_verified": True,
         "delivery_success_claimed": True,
         "email": channel_state(attempted=True, succeeded=True),
-        "line": channel_state(attempted=False, succeeded=False, reason="line_not_allowed_for_window"),
+        "line": channel_state(attempted=False, succeeded=False, reason="worker_failed_line_not_attempted"),
     }
     review_started = datetime.fromisoformat("2026-09-09T06:30:01+08:00")
     review_failure = build_failure_status(
@@ -403,26 +422,26 @@ def behavioral_contract_cases() -> list[dict[str, Any]]:
         "status": "partial_channel_failure",
         "delivery_success_claimed": False,
         "email": channel_state(attempted=True, succeeded=False, reason="smtp_failed"),
-        "line": channel_state(attempted=False, succeeded=False, reason="line_not_allowed_for_window"),
+        "line": channel_state(attempted=False, succeeded=False, reason="worker_failed_line_not_attempted"),
     }
     duplicate_retry = {
         **intraday_normal,
         "status": "already_delivered",
         "delivery_success_claimed": False,
         "email": channel_state(attempted=False, succeeded=False, reason="duplicate_delivery_suppressed"),
-        "line": channel_state(attempted=False, succeeded=False, reason="line_not_allowed_for_window"),
+        "line": channel_state(attempted=False, succeeded=False, reason="worker_failed_line_not_attempted"),
     }
     return [
         {"case": "20_normal_contract_defined", "passed": "us_pre_market_2000" in US_BATCH_EXECUTION_RELIABILITY_CONTRACT},
         {"case": "23_normal_contract_defined", "passed": "us_intraday_2300" in US_BATCH_EXECUTION_RELIABILITY_CONTRACT},
         {"case": "0630_normal_contract_defined", "passed": "us_post_close_review_0630" in US_BATCH_EXECUTION_RELIABILITY_CONTRACT},
         {"case": "0630_contract_for_window_supported", "passed": contract_for_window("us_post_close_review_0630").window == "us_post_close_review_0630"},
-        {"case": "0630_email_allowed_line_not_allowed", "passed": contract_for_window("us_post_close_review_0630").channel_policy.email_allowed is True and contract_for_window("us_post_close_review_0630").channel_policy.line_allowed is False},
+        {"case": "0630_email_and_line_allowed", "passed": contract_for_window("us_post_close_review_0630").channel_policy.email_allowed is True and contract_for_window("us_post_close_review_0630").channel_policy.line_allowed is True},
         {"case": "0630_worker_failure_fail_closed", "passed": not validate_status(review_failure) and review_failure["email_attempted"] is False and review_failure["line_attempted"] is False, "status": review_failure},
         {"case": "20_worker_oom_equivalent_fail_closed", "passed": not validate_status(pre_failure), "status": pre_failure},
         {"case": "20_timeout_fail_closed", "passed": not validate_status(timeout), "status": timeout},
         {"case": "20_failure_does_not_mutate_23_contract", "passed": contract_for_window("us_intraday_2300").independent_scheduler_required},
-        {"case": "23_line_not_allowed_email_allowed", "passed": intraday_normal["line"]["state"] == "not_attempted" and intraday_normal["email"]["state"] == "sent"},
+        {"case": "23_email_and_line_allowed", "passed": contract_for_window("us_intraday_2300").channel_policy.line_allowed and contract_for_window("us_intraday_2300").channel_policy.email_allowed},
         {"case": "partial_channel_failure_truthful", "passed": partial_channel["email"]["attempted"] and not partial_channel["email"]["sent"] and partial_channel["line"]["state"] == "not_attempted"},
         {"case": "retry_after_delivery_suppressed", "passed": duplicate_retry["email"]["state"] == "suppressed" and not duplicate_retry["email"]["attempted"]},
         {"case": "sent_implies_attempted", "passed": not validate_status(intraday_normal)},

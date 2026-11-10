@@ -149,9 +149,11 @@ def _signal_group(pgid: int, sig: signal.Signals, termination: list[dict[str, An
         termination.append({"pgid": pgid, "signal": sig.name, "sent": False, "reason": "already_exited"})
 
 
-def _wait_group_exit(pgid: int, seconds: float) -> bool:
+def _wait_group_exit(pgid: int, seconds: float, process: subprocess.Popen | None = None) -> bool:
     deadline = time.monotonic() + max(seconds, 0.0)
     while time.monotonic() < deadline:
+        if process is not None:
+            process.poll()  # Reap the exited leader before testing group liveness.
         if not _group_alive(pgid):
             return True
         time.sleep(0.05)
@@ -230,9 +232,9 @@ def run_process_group(
         if now - started >= timeout_seconds:
             timed_out = True
             _signal_group(pgid, signal.SIGTERM, termination)
-            if not _wait_group_exit(pgid, terminate_grace_seconds):
+            if not _wait_group_exit(pgid, terminate_grace_seconds, process):
                 _signal_group(pgid, signal.SIGKILL, termination)
-                _wait_group_exit(pgid, kill_grace_seconds)
+                _wait_group_exit(pgid, kill_grace_seconds, process)
             break
         time.sleep(min(0.1, max(heartbeat_seconds / 4.0, 0.02)))
     try:
@@ -243,11 +245,22 @@ def run_process_group(
             returncode = process.wait(timeout=max(kill_grace_seconds, 0.1))
         except subprocess.TimeoutExpired:
             returncode = -int(signal.SIGKILL)
-    process.stdout.close()
+    # A worker may exit while its children still own the output pipe.
+    if _group_alive(pgid):
+        _signal_group(pgid, signal.SIGTERM, termination)
+        if not _wait_group_exit(pgid, terminate_grace_seconds, process):
+            _signal_group(pgid, signal.SIGKILL, termination)
     drain.join(timeout=max(kill_grace_seconds, 0.1))
     if drain.is_alive():
         writer.truncated = True
     _read_progress(progress_path, offset, state)
+    if not drain.is_alive():
+        process.stdout.close()
+    terminal = "timed_out" if timed_out else "failed" if returncode else "completed"
+    for timing in state["stage_timings"].values():
+        if timing.get("status") == "running":
+            timing["status"] = terminal
+            timing["finished_at"] = datetime.now().astimezone().isoformat()
     elapsed = time.monotonic() - started
     return ProcessResult(
         returncode=returncode,

@@ -49,6 +49,7 @@ from app.reports.tw_four_window_decision import render_intraday_email as render_
 from app.reports.tw_line_completeness import build_symbol_delivery_accounting, payload_symbols, rendered_symbols_from_text  # noqa: E402
 from app.runtime.production_run_guard import evaluate_pre_open_run_guard  # noqa: E402
 from app.runtime.runtime_diagnostics import build_guard_result, write_json  # noqa: E402
+from app.runtime.delivery_supervisor import supervise, checkpoint, run_identity
 from app.runtime.timeout_policy import TimeoutPolicy, timeout_policy_from_env  # noqa: E402
 from app.runtime.operations_provenance import build_operations_provenance, write_operations_provenance  # noqa: E402
 from app.runtime.stage_timing import record_stage_result  # noqa: E402
@@ -648,7 +649,11 @@ def send_concise_line(window_id: str, generated_at: str, pipeline_status: str, d
         def sender(chunk: str) -> Any:
             if not callable(line_sender):
                 raise RuntimeError("line_transport_sender_missing")
-            result = line_sender(chunk)
+            try:
+                result = line_sender(chunk)
+            except Exception as exc:
+                detailed_results.extend(getattr(exc, "recipient_transport", []))
+                raise
             for recipient, status_code in result or []:
                 detailed_results.append({"recipient": str(recipient), "status": "accepted" if int(status_code) < 300 else "rejected", "status_code": int(status_code)})
             return result
@@ -888,6 +893,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--manual-rerun", action="store_true")
     parser.add_argument("--effective-trading-date")
+    parser.add_argument("--worker-mode", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--timeout-seconds", type=int, default=None)
     parser.add_argument("--stale-threshold-seconds", type=int, default=None)
     parser.add_argument("--terminate-grace-seconds", type=int, default=None)
@@ -896,11 +902,19 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    if not args.dry_run and not args.manual_rerun and not args.worker_mode:
+        result = supervise([sys.executable, str(Path(__file__).resolve()), *sys.argv[1:], "--worker-mode"],
+            cwd=REPO_ROOT, market="TW", window=args.window,
+            timeout_seconds=args.timeout_seconds or window_timeout_seconds(args.window),
+            evidence_root=REPO_ROOT / "artifacts/runtime/delivery_supervisor")
+        write_json(args.output, result)
+        print(stable_json(result))
+        return 0 if result.get("ok") else 1
     args.dashboard_url = _delivery_dashboard_url(args.window, args.dashboard_url)
     cfg = window_config(args.window)
     generated = now_taipei()
     generated_at = generated.isoformat()
-    run_id = f"approved-{args.window}-delivery-{generated.strftime('%Y%m%d-%H%M%S')}"
+    run_id = run_identity(f"approved-{args.window}-delivery")
 
     if args.dry_run:
         result = dry_run_result(args, generated_at, run_id)
@@ -943,6 +957,7 @@ def main() -> int:
 
     python_bin = os.environ.get("PYTHON_BIN", sys.executable)
     progress = write_progress_artifact(args.window, generated_at, "pipeline_launched", "running", policy.production_pipeline_timeout_seconds)
+    checkpoint("runtime_started")
     pipeline_run = run_pipeline(python_bin, args.window, policy)
     completed = pipeline_run["completed"]
     output = completed.stdout or ""
@@ -1152,6 +1167,7 @@ def main() -> int:
         error_category=None if archive_write.get("written") is True else "admission_rejected",
         error_message_sanitized=None if archive_write.get("written") is True else str(archive_write.get("reason") or "not_written")[:120],
     )
+    checkpoint("archive_publish", archive_write=archive_write)
     public_latest_sync = {"status": "not_attempted", "reason": "snapshot_not_admitted"}
     if archive_write.get("written") is True and not args.manual_rerun:
         public_latest_sync = synchronize_admitted_latest(
@@ -1163,7 +1179,7 @@ def main() -> int:
             REPO_ROOT / "artifacts/runtime/public_latest_sync" / f"tw_{args.window}_latest.json",
             public_latest_sync,
         )
-    report_manual_rerun_stage("chromium_visual")
+    checkpoint("chromium_visual", public_latest_sync=public_latest_sync)
     visual_evidence = capture_published_snapshot_non_blocking(
         market="TW",
         window=str(archive_write.get("window") or args.window),
@@ -1174,7 +1190,7 @@ def main() -> int:
         capture_origin="manual_rerun" if args.manual_rerun else "scheduled",
     )
     report_manual_rerun_stage("chromium_visual", "completed" if str((visual_evidence.get("capture") or {}).get("status") or visual_evidence.get("status")) in {"SUCCESS", "DEGRADED"} else "failed")
-    report_manual_rerun_stage("archive_publish")
+    report_manual_rerun_stage("archive_publish", "completed")
     sync_stage_ok = public_latest_sync.get("status") == "verified" or (args.manual_rerun and archive_write.get("written") is True)
     record_stage_result(stage_timing_path, "archive_build", status="completed" if sync_stage_ok else "failed", error_category=None if sync_stage_ok else "route_build_failure")
     record_stage_result(stage_timing_path, "publish", status="completed" if sync_stage_ok else "failed", error_category=None if sync_stage_ok else "public_verification_failure")
@@ -1208,7 +1224,7 @@ def main() -> int:
         }))
     dashboard = publish_dashboard(Path(args.dashboard_publish_dir), args.window, run_id, generated_at, pipeline_status, output_tail)
     report_manual_rerun_stage("archive_publish", "completed" if sync_stage_ok else "failed")
-    report_manual_rerun_stage("notification")
+    checkpoint("notification")
     latest_snapshot = resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, "TW", args.window).latest or {}
     delivery_consistency = None
     if args.manual_rerun:
