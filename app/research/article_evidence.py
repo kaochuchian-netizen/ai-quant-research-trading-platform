@@ -5,6 +5,7 @@ browser evasion, login or paywall bypass. Bodies remain ephemeral.
 """
 from datetime import datetime,timezone,timedelta
 import hashlib,json,re,time
+import ipaddress
 from urllib.parse import urlparse,urljoin
 from urllib.robotparser import RobotFileParser
 from bs4 import BeautifulSoup
@@ -86,6 +87,7 @@ class ArticleRetriever:
   if self.remaining<=0 or time.monotonic()>=self.deadline: raise ValueError('CONTENT_FETCH_BUDGET_EXHAUSTED')
   ok,reason,ips=_validate_public_url(url)
   if not ok: raise ValueError(reason)
+  ips.sort(key=lambda ip: ipaddress.ip_address(ip).version)
   delay=max(0,self.minimum_interval-(time.monotonic()-self.last_request))
   if time.monotonic()+delay>=self.deadline: raise ValueError('CONTENT_FETCH_BUDGET_EXHAUSTED')
   if delay: time.sleep(delay)
