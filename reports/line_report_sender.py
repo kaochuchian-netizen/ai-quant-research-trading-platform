@@ -44,26 +44,19 @@ def send_line_report(message):
             ]
         }
 
-        try:
-            response = requests.post(url, headers=headers, json=payload, timeout=10)
-        except requests.RequestException as exc:
-            exc.recipient_transport = [
-                {"recipient":r, "status":"accepted" if 200 <= c < 300 else "rejected", "status_code":c}
-                for r,c in status_codes
-            ] + [{"recipient":user_id, "status":"timeout" if isinstance(exc, requests.Timeout) else "unknown"}]
-            raise
+        response = requests.post(
+            url,
+            headers=headers,
+            json=payload,
+            timeout=10
+        )
 
         status_codes.append((user_id, response.status_code))
 
         if response.status_code >= 300:
-            error = Exception(
+            raise Exception(
                 f"LINE push failed for {user_id}: "
                 f"{response.status_code} {response.text}"
             )
-            error.recipient_transport = [
-                {"recipient":r, "status":"accepted" if 200 <= c < 300 else "rejected", "status_code":c}
-                for r,c in status_codes
-            ]
-            raise error
 
     return status_codes

@@ -21,3 +21,7 @@ Governance accepts only exact receipt/claim paths bound to admitted immutable so
 ## Remaining authorization
 
 CI must pass before review readiness. Actual historical publication/resend needs a separate explicit authorization and a recipient/receipt plan; this change neither deletes prior receipts nor bypasses failure suppression. Natural verification remains pending.
+
+## CI correction 1
+
+The first CI branch gate passed every registered semantic validator but rejected `reports/line_report_sender.py` as outside the existing allowed source paths. The legacy sender extension was removed from the PR without changing any governance allowlist or threshold. Receipt adapters retain known returned outcomes; when the legacy LINE sender raises before returning per-recipient responses, unobservable recipients remain unknown and cannot establish transport acceptance. No resend is authorized by that uncertainty.
