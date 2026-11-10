@@ -87,3 +87,59 @@ def test_large_archive_does_not_read_unrelated_payloads(tmp_path):
     assert selected.previous is not None
     assert len(opened) == 2, f"Unexpected full-archive payload reads: {len(opened)}"
     assert all("/tw/pre_open_0700/" in path for path in opened)
+
+
+def test_signature_is_metadata_only_and_excludes_all_sidecars(tmp_path):
+    path = _put(tmp_path, "TW", "pre_open_0700", "2026-11-06", 1)
+    expected = ((str(path), path.stat().st_size, path.stat().st_mtime_ns),)
+    for name in (".evaluation", ".frozen", ".evidence", ".outcome",
+                 ".assessment", ".review", ".daily_evaluation"):
+        sidecar = path.parent / name / "ignored.json"
+        sidecar.parent.mkdir()
+        sidecar.write_text("not a snapshot")
+    with patch.object(Path, "read_text", side_effect=AssertionError("payload read")):
+        assert archive._archive_signature(tmp_path) == expected
+        assert archive._archive_signature(tmp_path / "missing") == ()
+    path.write_text("changed size")
+    assert archive._archive_signature(tmp_path) != expected
+    assert not hasattr(archive, "_ADMITTED_SNAPSHOT_CACHE")
+
+
+def test_real_admission_ranking_hash_and_write_parity(tmp_path):
+    """Compare the bounded resolver with the original full-scan selection rule."""
+    import hashlib
+
+    window = "pre_open_0700"
+    for day in ("2026-11-04", "2026-11-05", "2026-11-06"):
+        for revision in (1, 2):
+            result = archive.write_snapshot(
+                tmp_path, market="TW", window=window,
+                effective_trading_date=day, generated_at=f"{day}T07:00:00+08:00",
+                source_payload={"runtime_provenance": "scheduled_production", "value": revision},
+                status="completed", run_kind="scheduled", rebuild_routes=False,
+            )
+            assert result["written"] and result["revision"] == revision
+    # Newer invalid date cannot displace admitted dates; corrupted JSON is ignored.
+    bad = _put(tmp_path, "TW", window, "2026-11-07", 1, admitted=False)
+    (bad.parent / "broken.json").write_text("{")
+    paths = list(tmp_path.rglob("*.json"))
+    before = {p: hashlib.sha256(p.read_bytes()).hexdigest() for p in paths}
+    admitted = archive.load_admitted_snapshots(tmp_path)
+    by_date = {}
+    for item in admitted:
+        day = item["effective_trading_date"]
+        rank = (int(item["revision"]), item["admitted_at"], item["snapshot_id"])
+        if day not in by_date or rank > by_date[day][0]:
+            by_date[day] = (rank, item)
+    dates = sorted(by_date, reverse=True)
+    selected = archive.resolve_snapshots(tmp_path, "TW", window)
+    assert selected.latest == by_date[dates[0]][1]
+    assert selected.previous == by_date[dates[1]][1]
+    revisions = archive.revisions_for_snapshot(tmp_path, "TW", window, dates[0])
+    assert [v["revision"] for v in revisions] == [1, 2]
+    for item in revisions:
+        stored = json.loads(Path(item["archive_path"]).read_text())
+        assert not archive.admission_errors(stored)
+        assert stored["snapshot_id"] == archive.snapshot_id(
+            {k: v for k, v in stored.items() if k != "snapshot_id"})
+    assert before == {p: hashlib.sha256(p.read_bytes()).hexdigest() for p in paths}

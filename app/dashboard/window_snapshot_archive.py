@@ -114,6 +114,22 @@ def _candidate_snapshot_paths(
     return sorted(path for path in root.rglob("*.json") if not excluded.intersection(path.parts))
 
 
+def _archive_signature(archive_root: Path) -> tuple[tuple[str, int, int], ...]:
+    """Compatibility fingerprint of report paths, sizes and modification times.
+
+    Sidecars are excluded by the same path filter as snapshot loading. This
+    function never opens payloads or retains a process-global payload cache.
+    """
+    signature: list[tuple[str, int, int]] = []
+    for path in _candidate_snapshot_paths(archive_root):
+        try:
+            stat = path.stat()
+        except OSError:
+            continue
+        signature.append((str(path), stat.st_size, stat.st_mtime_ns))
+    return tuple(signature)
+
+
 def load_admitted_snapshots(
     archive_root: Path,
     *,
