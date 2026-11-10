@@ -19,10 +19,6 @@ MARKET_WINDOWS = {
     "US": ("us_pre_market_2000", "us_intraday_2300", "us_post_close_review_0630"),
 }
 REJECTED_RUN_KINDS = {"fixture", "validator", "test", "failed", "incomplete"}
-_ADMITTED_SNAPSHOT_CACHE: dict[
-    str,
-    tuple[tuple[tuple[str, int, int], ...], tuple[dict[str, Any], ...]],
-] = {}
 
 
 @dataclass(frozen=True)
@@ -91,14 +87,41 @@ def _normalized_admission_metadata(item: dict[str, Any]) -> dict[str, Any]:
     return normalized
 
 
+def _candidate_snapshot_paths(
+    archive_root: Path,
+    *,
+    market: str | None = None,
+    window: str | None = None,
+    effective_trading_date: str | None = None,
+) -> list[Path]:
+    """Narrow filesystem traversal before opening large canonical payloads."""
+    root = Path(archive_root)
+    if market is not None:
+        if market not in MARKET_WINDOWS:
+            return []
+        root = root / market.lower()
+    if window is not None:
+        if market is None or window not in MARKET_WINDOWS[market]:
+            return []
+        root = root / window
+    if effective_trading_date is not None:
+        if market is None or window is None:
+            raise ValueError("date_filter_requires_market_and_window")
+        root = root / effective_trading_date
+    if not root.is_dir():
+        return []
+    excluded = {".evaluation", ".frozen", ".evidence", ".outcome", ".assessment", ".review", ".daily_evaluation"}
+    return sorted(path for path in root.rglob("*.json") if not excluded.intersection(path.parts))
+
+
 def _archive_signature(archive_root: Path) -> tuple[tuple[str, int, int], ...]:
-    """Cheaply identify archive changes without reparsing every large payload."""
+    """Compatibility fingerprint of report paths, sizes and modification times.
+
+    Sidecars are excluded by the same path filter as snapshot loading. This
+    function never opens payloads or retains a process-global payload cache.
+    """
     signature: list[tuple[str, int, int]] = []
-    if not archive_root.exists():
-        return ()
-    for path in sorted(archive_root.rglob("*.json")):
-        if {".evaluation", ".frozen", ".evidence", ".outcome", ".assessment", ".review", ".daily_evaluation"}.intersection(path.parts):
-            continue
+    for path in _candidate_snapshot_paths(archive_root):
         try:
             stat = path.stat()
         except OSError:
@@ -107,25 +130,23 @@ def _archive_signature(archive_root: Path) -> tuple[tuple[str, int, int], ...]:
     return tuple(signature)
 
 
-def load_admitted_snapshots(archive_root: Path) -> list[dict[str, Any]]:
-    """Load admitted snapshots once per unchanged archive state.
+def load_admitted_snapshots(
+    archive_root: Path,
+    *,
+    market: str | None = None,
+    window: str | None = None,
+    effective_trading_date: str | None = None,
+) -> list[dict[str, Any]]:
+    """Load only requested snapshots, without retaining payloads in a process-global cache.
 
-    Natural archives contain large canonical payloads. Dashboard builders resolve
-    every market/window repeatedly, so reparsing the complete archive for each
-    lookup made validation and controlled builds scale with ``routes * bytes``.
-    The path/size/mtime signature preserves resolver semantics and automatically
-    invalidates after an immutable snapshot is added or replaced.
+    Callers requiring the latest snapshot should use resolve_snapshots(), which
+    retains at most the latest two dates of one market/window in memory.
     """
     admitted: list[dict[str, Any]] = []
-    signature = _archive_signature(archive_root)
-    if not signature:
-        return admitted
-    cache_key = str(archive_root.resolve())
-    cached = _ADMITTED_SNAPSHOT_CACHE.get(cache_key)
-    if cached and cached[0] == signature:
-        return list(cached[1])
-    for path_value, _, _ in signature:
-        path = Path(path_value)
+    for path in _candidate_snapshot_paths(
+        archive_root, market=market, window=window,
+        effective_trading_date=effective_trading_date,
+    ):
         try:
             item = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
@@ -135,33 +156,47 @@ def load_admitted_snapshots(archive_root: Path) -> list[dict[str, Any]]:
         item = _normalized_admission_metadata(item)
         if admission_errors(item):
             continue
+        if market is not None and item.get("market") != market:
+            continue
+        if window is not None and (item.get("window") or item.get("scheduler_window")) != window:
+            continue
+        if effective_trading_date is not None and item.get("effective_trading_date") != effective_trading_date:
+            continue
         item["snapshot_id"] = item.get("snapshot_id") or snapshot_id(item)
         item["archive_path"] = str(path)
         admitted.append(item)
-    _ADMITTED_SNAPSHOT_CACHE[cache_key] = (signature, tuple(admitted))
     return admitted
 
 
+def _snapshot_rank(item: dict[str, Any]) -> tuple[int, str, str]:
+    return (
+        int(item.get("revision") or 0),
+        str(item.get("admitted_at") or item.get("revision_created_at") or item.get("generated_at") or ""),
+        str(item["snapshot_id"]),
+    )
+
+
 def resolve_snapshots(archive_root: Path, market: str, window: str) -> SnapshotSelection:
-    candidates = [
-        item for item in load_admitted_snapshots(archive_root)
-        if item.get("market") == market and (item.get("window") or item.get("scheduler_window")) == window
-    ]
+    """Select two latest trading dates without accumulating the archive payloads."""
+    root = Path(archive_root) / market.lower() / window
     by_date: dict[str, dict[str, Any]] = {}
-    for item in candidates:
-        trading_date = str(item["effective_trading_date"])
-        admitted_at = str(item.get("admitted_at") or item.get("revision_created_at") or item.get("generated_at") or "")
-        rank = (int(item.get("revision") or 0), admitted_at, str(item["snapshot_id"]))
-        current = by_date.get(trading_date)
-        current_rank = (-1, "", "") if current is None else (
-            int(current.get("revision") or 0), str(current.get("admitted_at") or current.get("revision_created_at") or current.get("generated_at") or ""), str(current["snapshot_id"])
-        )
-        if rank > current_rank:
-            by_date[trading_date] = item
+    if market in MARKET_WINDOWS and window in MARKET_WINDOWS[market] and root.is_dir():
+        # Date directory ordering is an optimization only: invalid/unadmitted
+        # snapshots must never displace the latest admitted trading date.
+        for date_dir in sorted((p for p in root.iterdir() if p.is_dir()), reverse=True):
+            if len(by_date) >= 2:
+                break
+            for item in load_admitted_snapshots(
+                archive_root, market=market, window=window,
+                effective_trading_date=date_dir.name,
+            ):
+                trading_date = str(item["effective_trading_date"])
+                current = by_date.get(trading_date)
+                if current is None or _snapshot_rank(item) > _snapshot_rank(current):
+                    by_date[trading_date] = item
     dates = sorted(by_date, reverse=True)
     return SnapshotSelection(
-        market=market,
-        window=window,
+        market=market, window=window,
         latest=by_date[dates[0]] if dates else None,
         previous=by_date[dates[1]] if len(dates) > 1 else None,
     )
@@ -169,10 +204,10 @@ def resolve_snapshots(archive_root: Path, market: str, window: str) -> SnapshotS
 
 def revisions_for_snapshot(archive_root: Path, market: str, window: str, effective_trading_date: str) -> list[dict[str, Any]]:
     return sorted(
-        [item for item in load_admitted_snapshots(archive_root)
-         if item.get("market") == market
-         and (item.get("window") or item.get("scheduler_window")) == window
-         and item.get("effective_trading_date") == effective_trading_date],
+        load_admitted_snapshots(
+            archive_root, market=market, window=window,
+            effective_trading_date=effective_trading_date,
+        ),
         key=lambda item: (int(item.get("revision") or 0), str(item.get("revision_created_at") or item.get("generated_at") or "")),
     )
 
@@ -294,10 +329,10 @@ def write_snapshot(
         return {"written": False, "reason": "source_not_admissible"}
     report("resolve_existing_revisions")
     existing = [
-        item for item in load_admitted_snapshots(archive_root)
-        if item.get("market") == market
-        and (item.get("window") or item.get("scheduler_window")) == canonical_window
-        and item.get("effective_trading_date") == effective_trading_date
+        item for item in load_admitted_snapshots(
+            archive_root, market=market, window=canonical_window,
+            effective_trading_date=effective_trading_date,
+        )
     ]
     revision = max([int(item.get("revision") or 0) for item in existing] or [0]) + 1
     original_batch_time = min(

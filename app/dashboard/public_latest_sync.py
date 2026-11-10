@@ -29,9 +29,9 @@ def identity_parity(*identities: dict[str, Any] | None) -> dict[str, Any]:
     return {"status": "verified" if not mismatch else "failed_verification", "mismatch_fields": mismatch}
 
 
-def expected_latest_identity(market: str, window: str, archive_root: Path | None = None) -> dict[str, Any] | None:
+def expected_latest_identity(market: str, window: str, archive_root: Path | None = None, *, admitted_snapshot: dict[str, Any] | None = None) -> dict[str, Any] | None:
     archive_root = archive_root or WINDOW_SNAPSHOT_ARCHIVE
-    latest = resolve_snapshots(archive_root, market.upper(), window).latest
+    latest = admitted_snapshot if admitted_snapshot is not None else resolve_snapshots(archive_root, market.upper(), window).latest
     contract = snapshot_parity_contract(latest)
     if not contract:
         return None
@@ -75,7 +75,7 @@ def verify_identity(expected: dict[str, Any], path: Path) -> dict[str, Any]:
 def synchronize_admitted_latest(*, market: str, window: str, static_root: Path, output_dir: Path) -> dict[str, Any]:
     market = market.upper()
     admitted_snapshot = resolve_snapshots(WINDOW_SNAPSHOT_ARCHIVE, market, window).latest
-    expected = expected_latest_identity(market, window)
+    expected = expected_latest_identity(market, window, admitted_snapshot=admitted_snapshot)
     if not expected:
         return {"status": "not_attempted", "failure_category": "admission_rejected", "reason": "no_admitted_snapshot"}
     build_started = datetime.now(ZoneInfo("Asia/Taipei")).replace(microsecond=0).isoformat()
