@@ -7,6 +7,8 @@ from app.research.news_evidence_funnel import normalize_yfinance_news
 from scripts.orchestrator.approved_us_stock_delivery import send_line_if_allowed, send_email_if_allowed
 
 from tests.article_content_fixture import with_article
+# Keep direct-source regressions in the existing CI news suite.
+from tests.test_us_direct_news import DirectNewsTests
 
 ASOF = "2026-10-29T20:00:00+08:00"
 RSS = b"""<rss><channel><item>
@@ -32,7 +34,7 @@ class NewsFallbackTests(unittest.TestCase):
         self.assertEqual(admitted[0]["discovery_channel"], "GOOGLE_NEWS_RSS")
         self.assertEqual(evidence["stages"]["ADMITTED"], 1)
 
-    def test_live_client_uses_fallback_when_yahoo_empty(self):
+    def test_live_client_reports_unavailable_when_yahoo_empty(self):
         import pandas as pd
         from app.us_stock.live_data import YFinanceUSClient
         from datetime import datetime
@@ -53,14 +55,16 @@ class NewsFallbackTests(unittest.TestCase):
             "contentType": "STORY",
             "discovery_channel": "GOOGLE_NEWS_RSS",
         }]
-        with patch("app.us_stock.news_rss_fallback.fetch_us_google_news_rss", return_value=(rss, None)), \
+        with patch("app.us_stock.news_rss_fallback.fetch_us_google_news_rss", return_value=(rss, None)) as fallback, \
              patch("app.research.article_evidence.enrich", side_effect=lambda rows, **_: [with_article(r) for r in rows]):
             result = client.fetch_symbol("TSLA",company={"symbol":"TSLA","name":"Tesla"})
         self.assertTrue(result.ok)
-        self.assertEqual(len(result.news), 1)
+        self.assertEqual(len(result.news), 0)
+        fallback.assert_not_called()
+        self.assertEqual(result.news_diagnostics["news_status"], "NEWS_UNAVAILABLE")
         self.assertEqual(result.news_diagnostics["source_attempts"]["YAHOO_FINANCE"]["candidate_count"], 0)
-        self.assertEqual(result.news_diagnostics["source_attempts"]["GOOGLE_NEWS_RSS"]["candidate_count"], 1)
-        self.assertEqual(result.news_diagnostics["source_attempts"]["CNYES"]["candidate_count"], 1)
+        self.assertEqual(result.news_diagnostics["source_attempts"]["GOOGLE_NEWS_RSS"]["candidate_count"], 0)
+        self.assertEqual(result.news_diagnostics["source_attempts"]["CNYES"]["candidate_count"], 0)
 
     def test_rss_source_survives_research_and_user_presentation(self):
         from app.us_stock.research_intelligence import USResearchIntelligenceBuilder

@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
+from urllib.parse import urlsplit
 
 from app.research.news_evidence_funnel import normalize_yfinance_news
 
@@ -259,58 +260,60 @@ class YFinanceUSClient:
             news_error = type(exc).__name__
         observed_at = getattr(self, "news_as_of", None) or quote["source_timestamp"]
         from app.research.article_evidence import ArticleRetriever, enrich_us_candidates as enrich
-        self.article_retriever = ArticleRetriever()
-        company = company or {"symbol":symbol}
-        raw_news = enrich(raw_news, entry=company, as_of=observed_at, retriever=self.article_retriever) if raw_news else []
+        # Restrict this US path, including redirects, without changing shared guards.
+        self.article_retriever = ArticleRetriever(allowed_hosts={"finance.yahoo.com", "news.cnyes.com"})
+        candidates = {"finance.yahoo.com": [], "news.cnyes.com": []}
+        excluded = 0
+        for raw in raw_news:
+            item = raw.get("content") or raw
+            url = item.get("canonicalUrl") or item.get("clickThroughUrl") or item.get("link") or item.get("url")
+            if isinstance(url, dict):
+                url = url.get("url")
+            try:
+                parsed = urlsplit(url or "")
+                host = parsed.hostname if parsed.scheme == "https" else None
+            except ValueError:
+                host = None
+            if host in candidates:
+                candidates[host].append(raw)
+            else:
+                excluded += 1
+        yahoo = candidates["finance.yahoo.com"]
+        cnyes = candidates["news.cnyes.com"]
+        enriched = enrich(yahoo, entry=company, as_of=observed_at, retriever=self.article_retriever) if yahoo else []
         news_items, news_diagnostics = normalize_yfinance_news(
-            raw_news, symbol=symbol, observed_at=observed_at, retrieval_error=news_error,
+            enriched, symbol=symbol, observed_at=observed_at, retrieval_error=news_error,
         )
-        # Yahoo ticker.news is not exhaustive. When it yields no admitted
-        # company news, try an independent public RSS feed. Do not relax
-        # entity attribution, date, or materiality admission rules.
-        if not any(x.get("investment_usable") for x in news_items):
-            from app.us_stock.news_rss_fallback import fetch_us_google_news_rss
-            rss_items, rss_error = fetch_us_google_news_rss(symbol, company)
-            cnyes_items, cnyes_error = fetch_us_google_news_rss(symbol, company, source_domain="news.cnyes.com")
-            rss_count, cnyes_count = len(rss_items), len(cnyes_items)
-            rss_items = enrich([*rss_items,*cnyes_items],entry=company,as_of=observed_at,retriever=self.article_retriever)
-            if rss_items:
-                news_items, news_diagnostics = normalize_yfinance_news(
-                    [*raw_news, *rss_items], symbol=symbol,
-                    observed_at=observed_at, retrieval_error=news_error,
-                )
-            news_diagnostics["source_attempts"] = {
-                "YAHOO_FINANCE": {
-                    "candidate_count": len(raw_news),
-                    "status": "FAILED" if news_error else "SUCCESS",
-                    "error_type": news_error,
-                },
-                "GOOGLE_NEWS_RSS": {
-                    "candidate_count": rss_count,
-                    "status": "FAILED" if rss_error else "SUCCESS",
-                    "error_type": rss_error,
-                },
-            }
-            news_diagnostics["source_attempts"]["CNYES"] = {"candidate_count":cnyes_count,"status":"FAILED" if cnyes_error else "SUCCESS","error_type":cnyes_error}
-            news_diagnostics["coverage"]["provider"] = "YAHOO_FINANCE;GOOGLE_NEWS_RSS;CNYES"
-            if (rss_error or cnyes_error) and not news_items:
-                news_diagnostics["coverage"]["reason_codes"].append("FALLBACK_PROVIDER_FAILURE")
-            if rss_error and cnyes_error and not raw_news:
-                news_diagnostics["retrieval"] = {
-                    "status": "FAILED",
-                    "reason_code": "ALL_NEWS_PROVIDERS_EMPTY_OR_FAILED",
-                }
-            elif rss_items:
-                news_diagnostics["retrieval"]["fallback_used"] = True
-        else:
-            news_diagnostics["source_attempts"] = {
-                "YAHOO_FINANCE": {
-                    "candidate_count": len(raw_news),
-                    "status": "FAILED" if news_error else "SUCCESS",
-                    "error_type": news_error,
-                },
-                "GOOGLE_NEWS_RSS": {"status": "NOT_NEEDED", "candidate_count": 0},
-            }
+        yahoo_usable = any(x.get("investment_usable") for x in news_items)
+        fallback_used = bool(cnyes) and not yahoo_usable
+        if fallback_used:
+            enriched += enrich(cnyes, entry=company, as_of=observed_at, retriever=self.article_retriever)
+            news_items, news_diagnostics = normalize_yfinance_news(
+                enriched, symbol=symbol, observed_at=observed_at, retrieval_error=news_error,
+            )
+        usable = any(x.get("investment_usable") for x in news_items)
+        news_diagnostics["source_attempts"] = {
+            "YAHOO_FINANCE": {
+                "candidate_count": len(yahoo), "retrieved_count": len(raw_news),
+                "excluded_source_count": excluded,
+                "status": "FAILED" if news_error else ("SUCCESS" if yahoo_usable else "NEWS_UNAVAILABLE"),
+                "error_type": news_error,
+                "reason_code": news_error or (None if yahoo_usable else "NO_USABLE_ARTICLE"),
+            },
+            "CNYES": {
+                "candidate_count": len(cnyes),
+                "status": ("SUCCESS" if usable else "NEWS_UNAVAILABLE") if fallback_used else
+                          ("NOT_NEEDED" if cnyes else "SOURCE_UNAVAILABLE"),
+                "reason_code": None if cnyes else "NO_COMPLIANT_DISCOVERY_PATH",
+            },
+            "GOOGLE_NEWS_RSS": {"status": "DISABLED", "candidate_count": 0,
+                                "reason_code": "AGGREGATOR_NOT_ARTICLE_SOURCE"},
+        }
+        news_diagnostics["coverage"]["provider"] = "YAHOO_FINANCE;CNYES"
+        news_diagnostics["retrieval"]["fallback_used"] = fallback_used
+        news_diagnostics["news_status"] = "AVAILABLE" if usable else "NEWS_UNAVAILABLE"
+        if not usable:
+            news_diagnostics["coverage"]["reason_codes"].append("NEWS_UNAVAILABLE")
         return news_items, news_diagnostics
 
     def fetch_intraday_bars(self, symbol: str) -> pd.DataFrame | None:
