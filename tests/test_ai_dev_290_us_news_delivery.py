@@ -7,6 +7,8 @@ from app.research.news_evidence_funnel import normalize_yfinance_news
 from scripts.orchestrator.approved_us_stock_delivery import send_line_if_allowed, send_email_if_allowed
 
 from tests.article_content_fixture import with_article
+# Keep direct-source regressions in the existing CI news suite.
+from tests.test_us_direct_news import DirectNewsTests
 
 ASOF = "2026-10-29T20:00:00+08:00"
 RSS = b"""<rss><channel><item>
