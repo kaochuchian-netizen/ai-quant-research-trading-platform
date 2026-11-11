@@ -140,6 +140,7 @@ TW_PREOPEN_TRANSPORT_PATH = re.compile(
 
 RECOVERY_TRANSPORT_PATH = re.compile(
     r"artifacts/runtime/(?:delivery_receipts/tw/(?:pre_open_0700|post_close_1500)/transport|us_stock/channel_delivery_receipts)/[0-9a-f]{64}\.(?:json|attempt)"
+    r"|artifacts/runtime/delivery_receipts/tw/post_close_1500/[0-9a-f]{64}\.attempt"
 )
 SUPERVISOR_PATH = re.compile(
     rf"artifacts/runtime/(?P<root>delivery_supervisor|us_stock/supervisor)/(?P<run>(?:tw-(?:{'|'.join(TW_WINDOWS)})|us-(?:{'|'.join(US_WINDOWS)}))-[0-9a-f]{{32}})-[a-z0-9_]{{8}}/(?P<file>manifest\.json|worker\.log|progress\.jsonl|facts\.json|result\.json)"
@@ -217,8 +218,13 @@ def transport_receipt_error(path: str, repo_root: Path | None) -> str | None:
             return "receipt_identity_fields"
         market, window = identity["market"], identity["window"]
         expected_root = (f"artifacts/runtime/delivery_receipts/tw/{window}/transport" if market == "TW" else "artifacts/runtime/us_stock/channel_delivery_receipts")
+        expected_roots = {expected_root}
+        # Existing post-close writer stores claims beside its top-level receipts.
+        # Keep every identity/hash/admitted-source check below; never path-only.
+        if claim and market == "TW" and window == "post_close_1500":
+            expected_roots.add("artifacts/runtime/delivery_receipts/tw/post_close_1500")
         if (market not in {"TW", "US"} or window not in (TW_WINDOWS if market == "TW" else US_WINDOWS)
-                or str(Path(path).parent) != expected_root):
+                or str(Path(path).parent) not in expected_roots):
             return "receipt_market_window"
         if identity["channel"] not in {"email", "line"} or (not claim and receipt.get("channel") != identity["channel"]):
             return "receipt_channel"
