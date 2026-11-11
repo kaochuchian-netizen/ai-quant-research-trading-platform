@@ -9,6 +9,7 @@ from typing import Any
 
 
 STATE_LABELS = {
+    "NEWS_PAUSED": "新聞功能暫停",
     "AVAILABLE": "當期個股新聞可用",
     "NO_RELEVANT": "未取得符合當期條件的個股新聞（來源涵蓋情況待確認）",
     "RETRIEVAL_FAILED": "新聞來源取得失敗",
@@ -19,6 +20,7 @@ STATE_LABELS = {
 }
 
 ABSENCE_TO_STATE = {
+    "NEWS_PAUSED": "NEWS_PAUSED",
     "NEWS_RETRIEVAL_FAILED": "RETRIEVAL_FAILED",
     "NO_RELEVANT_NEWS_DISCOVERED": "NO_RELEVANT",
     "NEWS_DISCOVERED_BUT_FILTERED": "DISCOVERED_BUT_FILTERED",
@@ -108,7 +110,7 @@ def finalized_current_news_projection(bundle: dict[str, Any]) -> dict[str, Any]:
         state = ABSENCE_TO_STATE.get(absence, "NO_RELEVANT")
 
     label = STATE_LABELS[state]
-    if not selected and funnel.get("content_quality"):
+    if not selected and state != "NEWS_PAUSED" and funnel.get("content_quality"):
         label = "尚無可分析的新聞內容：未取得足夠實質且可歸屬的事實證據"
     top = selected[0] if selected else None
     if top:

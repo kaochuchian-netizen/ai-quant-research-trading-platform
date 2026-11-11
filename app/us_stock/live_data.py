@@ -4,6 +4,7 @@ yfinance/Yahoo is used as an external market reference, not official company
 disclosure. The client normalizes missing fields and never fabricates prices.
 """
 from __future__ import annotations
+from app.research.news_policy import news_fetch_enabled
 
 import math
 from dataclasses import dataclass
@@ -250,6 +251,9 @@ class YFinanceUSClient:
             return FetchResult(symbol=symbol, ok=False, quote={"source_timestamp": now_taipei()}, history=None, news=[], news_diagnostics=None, error=f"{type(exc).__name__}: {str(exc)[:180]}")
 
     def _fetch_news(self, ticker, symbol, company, quote):
+        if not news_fetch_enabled():
+            from app.research.news_policy import paused_diagnostics
+            return [], paused_diagnostics("US", symbol)
         if not company:
             return [], {"retrieval": {"status": "NOT_REQUESTED", "reason_code": "MARKET_CONTEXT_ONLY"}}
         raw_news = []

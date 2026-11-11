@@ -40,4 +40,22 @@ class RecoveryGovernanceTests(unittest.TestCase):
             self.assertTrue(self.classify(root,directory/'manifest.json')['unknown_dirty_paths'])
             extra=directory/'extra.py';extra.write_text('pass')
             self.assertTrue(self.classify(root,extra)['unknown_dirty_paths'])
+    def test_postclose_top_level_claim_still_requires_admitted_source(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)
+            snapshot={'schema_version':'window_snapshot_archive_v1','market':'TW','window':'post_close_1500','effective_trading_date':'2026-11-11','revision':1,'generated_at':'2026-11-11T15:00:00+08:00','status':'complete','run_kind':'scheduled','runtime_provenance':'scheduled_production','admitted':True,'payload':{'runtime_provenance':'scheduled_production'}}
+            snapshot['snapshot_id']=digest(snapshot)
+            source=root/'artifacts/archive/window_snapshots/tw/post_close_1500/2026-11-11/revision-0001.json'
+            source.parent.mkdir(parents=True);source.write_text(json.dumps(snapshot))
+            receipts=root/'artifacts/runtime/delivery_receipts/tw/post_close_1500'
+            identity=delivery_identity(snapshot=snapshot,market='TW',window=snapshot['window'],channel='line',content='no-send')
+            deliver_once(receipt_root=receipts,identity=identity,channel='line',sender=lambda:{'recipients':[]})
+            claim=next(receipts.glob('*.attempt'))
+            self.assertEqual(len(self.classify(root,claim)['preserved_runtime_artifacts']),1)
+            original=claim.read_text();data=json.loads(original);data['identity']['payload_hash']='0'*64
+            claim.write_text(json.dumps(data))
+            self.assertTrue(self.classify(root,claim)['unknown_dirty_paths'])
+            claim.write_text(original);source.write_text('{}')
+            self.assertTrue(self.classify(root,claim)['unknown_dirty_paths'])
+
 if __name__=='__main__':unittest.main()

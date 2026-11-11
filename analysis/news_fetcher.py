@@ -1,4 +1,5 @@
 """Bounded public RSS discovery. Google RSS has no guaranteed exhaustive cursor."""
+from app.research.news_policy import news_fetch_enabled
 import time
 from datetime import timedelta
 from urllib.parse import quote
@@ -14,6 +15,8 @@ class NewsCandidates(list):
 
 
 def fetch_stock_news(stock_id, stock_name, max_items=None, *, window=None, reference=None, company=None):
+    if not news_fetch_enabled():
+        return NewsCandidates(coverage={"status": "NEWS_PAUSED", "reason_codes": ["NEWS_PAUSED"], "request_count": 0, "candidate_count": 0})
     # max_items retained for caller compatibility, never an early top-N filter.
     window = window or build_news_window(reference)
     from app.loaders.batch_universe import query as company_query

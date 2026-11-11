@@ -491,7 +491,7 @@ def news_contract(raw_news: Any, *, generated_at: str | None = None, target_symb
         confidence = {"score": None, "level": "not_applicable", "components": {}, "reason_codes": ["NO_ADMITTED_NEWS_EVIDENCE"]}
     supplied_retrieval = raw_news.get("retrieval") if isinstance(raw_news, dict) and isinstance(raw_news.get("retrieval"), dict) else {}
     failure = str(supplied_retrieval.get("failure_reason") or ("NO_RESULT" if not raw_items else "FILTERED"))
-    attempted = list(supplied_retrieval.get("sources_attempted") or ["UNSPECIFIED_UPSTREAM"])
+    attempted = [] if failure == "NEWS_PAUSED" else list(supplied_retrieval.get("sources_attempted") or ["UNSPECIFIED_UPSTREAM"])
     configured_failed = list(supplied_retrieval.get("sources_failed") or [])
     succeeded = list(supplied_retrieval.get("sources_succeeded") or [])
     discovered = max(len(raw_items), int(supplied_retrieval.get("result_count_discovered") or supplied_retrieval.get("result_count_raw") or 0))
@@ -511,6 +511,7 @@ def news_contract(raw_news: Any, *, generated_at: str | None = None, target_symb
         "candidate_records": candidate_records,
     }
     absence_state = (
+        "NEWS_PAUSED" if failure == "NEWS_PAUSED" and not raw_items else
         "NEWS_SELECTED_AND_RENDERED" if supplied_retrieval.get("rendered_count") else
         "NEWS_ADMITTED_NOT_SELECTED" if usable else
         "NEWS_RETRIEVAL_FAILED" if failure in {"RETRIEVAL_FAILED", "TIMEOUT", "UPSTREAM_ERROR", "PARSER_ERROR"} else

@@ -130,6 +130,7 @@ def finalized_tw_news_projection(card: dict[str, Any]) -> dict[str, Any]:
     retrieved = max(int(stages.get("RETRIEVED") or retrieval.get("result_count_raw") or 0), len(raw))
     discovered = max(int(stages.get("DISCOVERED") or retrieval.get("result_count_discovered") or 0), retrieved)
     state = (
+        "NEWS_PAUSED" if retrieval_reason == "NEWS_PAUSED" and not raw else
         "AVAILABLE" if selected else
         "RETRIEVAL_FAILED" if retrieval_failed else
         "STALE_ONLY" if stale and stale == len(classified) else

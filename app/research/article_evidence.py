@@ -3,6 +3,7 @@
 Network uses the existing DNS-pinned TW transport. No cookies, credentials,
 browser evasion, login or paywall bypass. Bodies remain ephemeral.
 """
+from app.research.news_policy import news_fetch_enabled, require_news_enabled
 from datetime import datetime,timezone,timedelta
 import hashlib,json,re,time
 import ipaddress
@@ -82,6 +83,7 @@ class ArticleRetriever:
   self.allowed_hosts=set(ALLOWED_HOSTS if allowed_hosts is None else allowed_hosts)
   self.remaining=request_budget; self.deadline=time.monotonic()+time_budget; self.robots={}; self.cache={}; self.last_request=0.0; self.minimum_interval=0.25
  def _get(self,url):
+  require_news_enabled()
   parsed=urlparse(url)
   if parsed.scheme!='https' or parsed.hostname not in self.allowed_hosts or parsed.username or parsed.password or parsed.port not in (None,443): raise ValueError('SOURCE_NOT_ALLOWLISTED')
   if self.remaining<=0 or time.monotonic()>=self.deadline: raise ValueError('CONTENT_FETCH_BUDGET_EXHAUSTED')
@@ -109,6 +111,7 @@ class ArticleRetriever:
   policy=self.robots[host]; rate=policy.request_rate(UA)
   self.minimum_interval=max(0.25,float(policy.crawl_delay(UA) or 0),rate.seconds/rate.requests if rate and rate.requests else 0)
  def fetch(self,url):
+  if not news_fetch_enabled(): return {"text":"", "source_url":url, "failure_reason":"NEWS_PAUSED", "fetched_at":datetime.now(timezone.utc).isoformat()}
   if url in self.cache: return dict(self.cache[url])
   original=url
   try:
