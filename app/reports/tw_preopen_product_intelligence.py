@@ -171,6 +171,8 @@ def _news_message(news: dict[str, Any], selected: list[dict[str, Any]], funnel: 
         return f"已選出 {len(selected)} 則足以影響今日情境判斷的重要消息。"
     state = str(news.get("state") or news.get("status") or "NO_RELEVANT").upper()
     retrieved = funnel["retrieved_count"]
+    if state == "NEWS_PAUSED":
+        return "新聞功能暫停"
     if state == "RETRIEVAL_FAILED":
         return "新聞來源取得失敗，目前無法判定是否沒有重大消息；此狀態不等於今日沒有重大新聞。"
     if state == "STALE_ONLY":

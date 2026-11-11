@@ -6,6 +6,7 @@ is openly accessible.  If content cannot be fetched or parsed, the candidate is
 left without relevance/materiality so downstream admission remains fail-closed.
 """
 from __future__ import annotations
+from app.research.news_policy import news_fetch_enabled, require_news_enabled
 
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
@@ -566,6 +567,7 @@ def collect_cnyes_browser_news(
     DOM fixtures and production can bind it to Selenium/Chrome without making
     live cnyes.com a test dependency.
     """
+    require_news_enabled()
     cfg = config or CnyesSearchConfig()
     cache = content_cache or CnyesBrowserContentCache()
     batches: list[list[dict[str, Any]]] = []
@@ -828,6 +830,8 @@ def fetch_article_content(
     connection_resolver: Any = None,
     max_redirects: int = MAX_REDIRECTS,
 ) -> ArticleContent:
+    if not news_fetch_enabled():
+        return ArticleContent("skipped", "", failure_reason="NEWS_PAUSED")
     ok, reason, addresses = _validate_public_url(str(url or ""), resolver=resolver)
     if not ok:
         return ArticleContent("failed", "", failure_reason=reason)

@@ -1,5 +1,6 @@
 """Lazy Selenium adapter for CNYES collection."""
 from __future__ import annotations
+from app.research.news_policy import require_news_enabled
 
 from dataclasses import dataclass, field
 import os
@@ -110,6 +111,7 @@ class CnyesSeleniumBrowser:
             script(self.timeouts.script_seconds)
 
     def open_search(self, url: str) -> None:
+        require_news_enabled()
         try:
             if self.robots_guard is not None:
                 self.robots_guard(url)
@@ -179,6 +181,7 @@ class CnyesSeleniumBrowser:
         return cards[before:]
 
     def open_article(self, url: str) -> None:
+        require_news_enabled()
         try:
             if self.robots_guard is not None:
                 self.robots_guard(url)
@@ -238,12 +241,14 @@ class CnyesSeleniumBrowser:
 def create_cnyes_selenium_browser(
     *, headless: bool = True, timeouts: CnyesBrowserTimeouts | None = None,
 ):
+    require_news_enabled()
     from app.research.browser_lifecycle import ManagedBrowser
     return ManagedBrowser(headless=headless, timeouts=timeouts)
 
 
 def _create_local_browser(*, headless, timeouts, profile, lifecycle):
     """Worker only: retain an object even if Selenium __init__ fails halfway."""
+    require_news_enabled()
     from selenium import webdriver
     from selenium.webdriver.chrome.options import Options
 

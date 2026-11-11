@@ -4,6 +4,7 @@ Only metadata is retrieved. All candidates pass the existing US news funnel;
 RSS does not authorize attribution or trading direction.
 """
 from __future__ import annotations
+from app.research.news_policy import news_fetch_enabled
 
 from datetime import timezone
 from app.loaders.batch_universe import query
@@ -18,6 +19,8 @@ MAX_RSS_ITEMS = 30
 
 def fetch_us_google_news_rss(symbol: str, company: dict | None = None, *, source_domain: str | None = None) -> tuple[list[dict], str | None]:
     """Return source-labeled candidates and an error type, never invented items."""
+    if not news_fetch_enabled():
+        return [], "NEWS_PAUSED"
     try:
         search = query(company or {"symbol":str(symbol).upper()})
     except ValueError:

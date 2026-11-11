@@ -1,3 +1,4 @@
+from app.research.news_policy import news_fetch_enabled
 from datetime import datetime, timezone
 
 from analysis.news_fetcher import fetch_stock_news
@@ -18,6 +19,9 @@ def _empty_enrichment() -> dict:
 
 
 def analyze_news(stock_id, stock_name, *, include_evidence=False, aggregation_session=None, reference=None, company=None):
+    if not news_fetch_enabled():
+        from app.research.news_policy import paused_tw_news, NEWS_PAUSED_LABEL
+        return paused_tw_news(stock_id) if include_evidence else NEWS_PAUSED_LABEL
     started_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     try:
         if company is not None:

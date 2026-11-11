@@ -6,6 +6,7 @@ content before prompt construction, and exposes source health without making
 Selenium a governance-validator dependency.
 """
 from __future__ import annotations
+from app.research.news_policy import news_fetch_enabled, require_news_enabled
 
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -192,6 +193,7 @@ class TwNewsAggregationSession:
     _browser_lock: Any = field(default_factory=threading.RLock, repr=False)
 
     def get_browser(self) -> Any:
+        require_news_enabled()
         with self._browser_lock:
             # One bounded replacement per batch, never retry the same article.
             if self.browser is not None and getattr(self.browser, "fallback_reason", None):
@@ -263,6 +265,9 @@ def collect_tw_news(
     include_cnyes: bool | None = None,
     company: dict | None = None,
 ) -> dict[str, Any]:
+    if not news_fetch_enabled():
+        from app.research.news_policy import paused_tw_news
+        return paused_tw_news(stock_id)
     started_at = _utc_now()
     reference = reference or started_at
     if session is None:
