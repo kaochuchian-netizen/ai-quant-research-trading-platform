@@ -128,6 +128,16 @@ def replay_prediction(value):
         raise ValueError('US_PRODUCER_REPLAY')
     return value
 
+def capture_failure_code(exc):
+    # Only constant internal reason codes; never provider text, paths or credentials.
+    codes = {'SOURCE', 'NOT_PREOPEN', 'SESSION_IDENTITY', 'FUTURE_REFERENCE',
+             'BAR_ORDER', 'BAR_SESSION', 'FUTURE_BAR', 'BAR_VALUES', 'STALE_HISTORY',
+             'MISSING_HISTORY', 'SYMBOL', 'REPORT_PATH', 'PREDICTION_REPLAY',
+             'LEARNING_LATEST_INVALID', 'LEARNING_PATH', 'LEARNING_REFERENCE_BINDING',
+             'LEARNING_REFERENCE_FUTURE'}
+    return str(exc) if isinstance(exc, ValueError) and str(exc) in codes else type(exc).__name__
+
+
 def capture_existing(symbol, quote, history, day, window, *, root=ROOT, clock=None):
     """Only caller-owned already fetched data. Never call market-data clients."""
     from app.dashboard.production_evidence_archive import publish
@@ -187,8 +197,9 @@ def capture_existing(symbol, quote, history, day, window, *, root=ROOT, clock=No
             value=predict_v2(observation,calendar,frozen_at=frozen_at, learning_reference=learning_reference)
             if (computed["status"],computed.get("direction")) != (value["status"],value.get("direction")):
                 raise ValueError("PREDICTION_REPLAY")
-        except (ValueError,KeyError,TypeError):
+        except (ValueError,KeyError,TypeError) as exc:
             value=stamp({"schema_version":VERSION,"status":"BLOCKED_INPUT","reason":"NATIVE_INPUT_INVALID",
+                         "prerequisite_error":capture_failure_code(exc),
                          "source":observation,"producer":PRODUCER})
         publish(target,stamp({"schema_version":VERSION,"kind":"US_NATIVE_RECEIPT","symbol":symbol,
                               "review_session":day,"capture":value}))
@@ -219,6 +230,6 @@ def capture_safely(symbol, quote, history, day, window, *, enabled, root=ROOT):
     except TimeoutError:
         return skipped('CAPTURE_TIMEOUT')
     except Exception as exc:
-        return skipped('CAPTURE_INPUT_OR_WRITE_FAILED_' + type(exc).__name__)
+        return skipped('CAPTURE_INPUT_OR_WRITE_FAILED_' + capture_failure_code(exc))
     finally:
         signal.setitimer(signal.ITIMER_REAL,0);signal.signal(signal.SIGALRM,old)

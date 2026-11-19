@@ -179,3 +179,11 @@ Path(sys.argv[-1]).write_text(json.dumps({'ok':True,'run_id':os.environ[RUN_ENV]
                 result=json.loads(next(Path(d).glob('*/result.json')).read_text())
                 self.assertEqual(result['capture_decision']=='CAPTURE_ALLOWED',allowed)
                 self.assertTrue(result['progress'])
+
+
+class FailureReasonTests(unittest.TestCase):
+    def test_missing_history_reason_and_error_redaction(self):
+        from app.evaluation.us_session_direction import capture_failure_code
+        with scheduled(), patch('app.evaluation.us_session_direction.capture_existing',side_effect=ValueError('MISSING_HISTORY')):
+            self.assertEqual(capture_safely('TEST',{},None,'2026-09-24',STREAM,enabled=True)['reason'], 'CAPTURE_INPUT_OR_WRITE_FAILED_MISSING_HISTORY')
+        self.assertEqual(capture_failure_code(ValueError('sensitive provider response')), 'ValueError')

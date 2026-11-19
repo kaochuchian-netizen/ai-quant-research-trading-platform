@@ -112,8 +112,10 @@ def capture_and_persist(card, *, root=None, dry_run=False, clock=None):
         value=stamp({**common,"capture_phase":"RESULT","capture":capture(card,root=root,clock=clock)})
         publish(target,value)
         return value
-    except Exception:
-        logging.getLogger(__name__).warning("prediction_capture: SHADOW_FAILURE")
+    except Exception as exc:
+        reason = "CAPTURE_INPUT_OR_WRITE_FAILED_" + type(exc).__name__
+        logging.getLogger(__name__).warning("prediction_capture: %s", reason)
+        return {"status": "SKIPPED", "reason": reason}
 
 
 def capture_permitted(*, dry_run, environment_keys, market=None, window=None, session_date=None):
