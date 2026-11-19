@@ -38,7 +38,7 @@ def main(argv=None):
         dashboard={"status":"NOT_PUBLISHED"}
         landing={"status":"NOT_PUBLISHED"}
         line_notice={"send_attempted":False,"send_status":"suppressed_not_completed"}
-        if path is not None:
+        if path is not None and args.shadow_output is None:
             try:
                 dashboard=publish_dashboard(value,static_root=STATIC_ROOT,
                                             output_root=ROOT/"templates/daily_learning_dashboard")

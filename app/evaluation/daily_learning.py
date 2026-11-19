@@ -46,8 +46,10 @@ def derive(report_date, markets):
 def validate(value):
     if not isinstance(value, dict) or value.get("content_hash") != digest({k:v for k,v in value.items() if k != "content_hash"}):
         raise ValueError("LEARNING_DIGEST")
-    if value.get("schema_version") != VERSION or value.get("kind") != "DAILY_LEARNING_ARTIFACT" or not value.get("learning_id"):
+    if value.get("schema_version") not in (VERSION, 'daily_learning_application_v2') or value.get("kind") != "DAILY_LEARNING_ARTIFACT" or not value.get("learning_id"):
         raise ValueError("LEARNING_SCHEMA")
+    if value['learning_id'] != digest({k:v for k,v in value.items() if k not in ('content_hash', 'learning_id')}):
+        raise ValueError('LEARNING_ID')
     for flag in ("lifecycle_mutation", "model_mutation", "strategy_mutation", "weights_mutation"):
         if value.get(flag) is not False:
             raise ValueError("LEARNING_MUTATION")
@@ -57,20 +59,24 @@ def validate(value):
 
 def latest(root, market, session_date, frozen_at):
     """Read a prior immutable daily artifact; never use a mutable latest pointer."""
-    base = Path(root) / "artifacts/archive/window_snapshots/.daily_evaluation"
+    base = Path(root) / "artifacts/archive/window_snapshots"
     candidates = []
-    if not base.exists():
-        return None
-    for directory in sorted(base.glob("????-??-??"), reverse=True):
+    directories = [d for name in ('.daily_evaluation', '.daily_evaluation_v2')
+                   for d in (base/name).glob('????-??-??')]
+    for directory in sorted(directories, key=lambda d:(d.name, d.parent.name), reverse=True):
         if directory.name >= session_date:
             continue
+        if candidates and directory.name < candidates[0][0]:
+            break
         for path in sorted(directory.glob("*.json"), reverse=True):
             if path.is_symlink() or path.stat().st_size > 32 * 1024 * 1024:
-                continue
+                raise ValueError('LEARNING_PATH')
             try:
                 value = json.loads(path.read_text())
+                if value.get('schema_version') not in ('daily_evaluation_integration_v1', 'daily_evaluation_integration_v2'):
+                    raise ValueError('LEARNING_DAILY_VERSION')
                 if value.get("content_hash") != digest({k:v for k,v in value.items() if k != "content_hash"}) or value.get("kind") != "DAILY_EVALUATION":
-                    continue
+                    raise ValueError('LEARNING_DAILY_DIGEST')
                 learning = value.get("learning_artifact")
                 validate(learning)
                 if value.get("report_date") != directory.name or aware(value.get("canonical_cutoff")) >= aware(frozen_at):
@@ -79,15 +85,30 @@ def latest(root, market, session_date, frozen_at):
                     continue
                 candidates.append((directory.name, value.get("content_hash"), learning))
             except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError):
-                continue
-        if candidates:
-            break
+                raise ValueError('LEARNING_LATEST_INVALID') from None
     if not candidates:
         return None
-    _, parent_hash, learning = min(candidates, key=lambda row:(row[0], row[1]))
+    newest_version = max(row[2]['schema_version'] for row in candidates)
+    _, parent_hash, learning = min((r for r in candidates if r[2]['schema_version']==newest_version), key=lambda row:row[1])
     return {"daily_artifact_digest": parent_hash, "learning_digest": learning["content_hash"],
             "learning_id": learning["learning_id"], "report_date": learning["report_date"],
-            "market": market, "control": CONTROL, "actionable_learning": deepcopy(learning["markets"][market].get("actionable_learning") or {})}
+            "market": market, "control": CONTROL, "actionable_learning": deepcopy(learning["markets"][market].get("actionable_learning") or {}),
+            "learning_payload": deepcopy(learning)}
+
+
+def validate_reference(reference, *, market, frozen_at):
+    if reference is None:
+        return
+    payload = validate(reference['learning_payload'])
+    if (reference.get('market') != market or reference.get('control') != CONTROL
+        or reference.get('learning_digest') != payload['content_hash']
+        or reference.get('learning_id') != payload['learning_id']
+        or reference.get('report_date') != payload['report_date']
+        or reference.get('actionable_learning') != payload['markets'][market]['actionable_learning']):
+        raise ValueError('LEARNING_REFERENCE_BINDING')
+    from app.evaluation.daily_evaluation import canonical_cutoff
+    if aware(canonical_cutoff(payload['report_date'])) >= aware(frozen_at):
+        raise ValueError('LEARNING_REFERENCE_FUTURE')
 
 def apply(reference, *, frozen_at, feature_times, horizon_open, direction=None):
     """Evidence that a prior diagnostic control was actually applied to this capture."""

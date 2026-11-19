@@ -690,6 +690,10 @@ def supervise_production_worker(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
+    from app.runtime.capture_context import reject_inherited_context
+    reject_inherited_context(manual=getattr(args, 'manual_rerun', False)
+                             or bool(getattr(args, 'as_of', None)),
+                             dry_run=getattr(args, 'dry_run', False))
     started = now_taipei()
     run_id = run_identity(f"us-{args.window}")
     checkpoint("runtime_started")

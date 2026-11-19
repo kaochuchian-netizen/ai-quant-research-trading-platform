@@ -184,6 +184,9 @@ def run_process_group(
     progress_path.parent.mkdir(parents=True, exist_ok=True)
     progress_path.unlink(missing_ok=True)
     env = dict(os.environ)
+    # Never carry a scheduled context into an unrelated/manual process group.
+    from app.runtime.capture_context import CONTEXT_ENV
+    env.pop(CONTEXT_ENV, None)
     env.update(extra_env or {})
     env[PROGRESS_LOG_ENV] = str(progress_path)
     env["PYTHONUNBUFFERED"] = "1"

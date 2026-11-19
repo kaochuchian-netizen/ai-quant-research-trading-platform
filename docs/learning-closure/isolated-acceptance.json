@@ -1,0 +1,97 @@
+{
+  "baseline": "83d526a766352e8a803963f268ca3debb7f2fe4d",
+  "isolation": "ISOLATED_CONTROLLED_CLOCK_REHEARSAL_NOT_NATURAL_EVIDENCE",
+  "legacy_replay_count": 3,
+  "coverage": {
+    "TW": {
+      "state": "INSUFFICIENT_SAMPLE",
+      "stock_count": 10,
+      "eligible_prediction_count": 1,
+      "paired_outcome_count": 1,
+      "waiting_outcome_count": 0,
+      "maturity": {
+        "3": {
+          "required": 3,
+          "mature_stock_count": 0,
+          "sample_sizes": {
+            "00878": 0,
+            "009816": 0,
+            "1409": 0,
+            "2305": 0,
+            "2330": 1,
+            "2337": 0,
+            "2353": 0,
+            "3293": 0,
+            "4743": 0,
+            "6873": 0
+          }
+        },
+        "10": {
+          "required": 10,
+          "mature_stock_count": 0,
+          "sample_sizes": {
+            "00878": 0,
+            "009816": 0,
+            "1409": 0,
+            "2305": 0,
+            "2330": 1,
+            "2337": 0,
+            "2353": 0,
+            "3293": 0,
+            "4743": 0,
+            "6873": 0
+          }
+        }
+      },
+      "exclusion_reasons": {
+        "NO_CONTEMPORANEOUS_FROZEN_EVIDENCE": 9
+      }
+    },
+    "US": {
+      "state": "INSUFFICIENT_SAMPLE",
+      "stock_count": 1,
+      "eligible_prediction_count": 1,
+      "paired_outcome_count": 1,
+      "waiting_outcome_count": 0,
+      "maturity": {
+        "3": {
+          "required": 3,
+          "mature_stock_count": 0,
+          "sample_sizes": {
+            "AAPL": 1
+          }
+        },
+        "10": {
+          "required": 10,
+          "mature_stock_count": 0,
+          "sample_sizes": {
+            "AAPL": 1
+          }
+        }
+      },
+      "exclusion_reasons": {}
+    }
+  },
+  "input_hashes": {
+    "51153f5dc3598f27a289ec6dd542aec5b26d9c58d84291398587d020b5165667.json:2026-11-17": "e8aa434199c7c5fd0f9a0fa02b936f7b43002b8d93216d1c519789f7f814d37f",
+    "f14cae5794bdcd8a7d6387677cc3f1c49b7e14503f7c96f5ec47d703efeb6582.json:2026-11-19": "00580be8eed3b7689cc677bf68e19afb9d29ed389e5d86b621514ba042987d08",
+    "4439d4963cde7da6567980044195cdd1295a8f49d31ecf9235d48e231eb9b871.json:2026-11-18": "c2b8ace63eb4472468a6442ab3b410189d57fd8c850984990fae9809b4bbc095",
+    "revision-0001.json:2026-11-19": "84f1751ac38e05e7914f35658756bde17bebc0a72444091b49c6255d2daafa44",
+    "a62d7ab52cd9f12afef8aba1187170139f99a169f7ec1781ff0fc8a7a8a539e0.json:.evaluation": "3a6d1da4bf7f86b83c6dc0789a5d51a5850800f7c8ae12837e74124f12f23cb6",
+    "b3b70f22073a16feaae6fb283b5bd68b49470b51ec04cf5467f3e8ad084e20b8.json:.evidence": "53400e15979d7494deef28f29fb16c24345a6d2caf60a3b31b8d15be27e2941a",
+    "1388c611720a2ede507c23fb28638c33fc08affc7bbf05df568b65c71f0d6291.json:.evaluation": "2f15355bafefffe5d56bc58dc949ab4c5c2e4574e0022f660f03e873cfc4b652",
+    "d81c84dd24212f526e853d20a180a6b81ece90cd235a910329f10f3bf43c18f2.json:.evidence": "bf34d87d969bbe68c5f8c7741182f24b964d390d3ad2260ebeb27c3609da76fb",
+    "revision-0001.json:2026-11-18": "e6a2885f22453cd22a422e869d838d1f23a4a9c1a7964f992a246bc2eb6f3079",
+    "2330_daily.csv:historical": "5cf3a6338ed95d38cb6dc9ed69bd59fd4ff1978afc54a0336b1001bd97c30ee5",
+    "AAPL-observed-history.csv:learning-closure-evidence": "63d801d7ef6ab9d9f5f4241dd13580af4a59b889d7ad297e9b3c8cfc4817b945",
+    "AAPL-close-history.csv:learning-closure-evidence": "131ec9fc8c61a8e9ac02af7ab7ae3b41712d2c5201c62342da65c44ecc1841c4",
+    "us-source-result.json:learning-closure-evidence": "92d90181ccd8eb52c74c69b4c0d86f24bf3196c643f23c1e21d5c1d83c73c07c",
+    "us-close-result.json:learning-closure-evidence": "5ad7f6d20e8aa214ec663df2f1cb84adff30baf35eccc44a0c71ab57d7aa7d2a"
+  },
+  "network_requests_offline": 0,
+  "production_writes": 0,
+  "notifications": 0,
+  "trades": 0,
+  "g5": "PENDING_NATURAL_VERIFICATION",
+  "dependency_lock_sha256": "bf9777cc3f8ab43e5e9f4d139ed0daba6c4c35293d96b3a04d98d4185f1b73ae"
+}

@@ -76,13 +76,20 @@ def capture(card, *, root=ROOT, clock=None):
 
 
 
-def capture_and_persist(card):
+def capture_and_persist(card, *, root=None, dry_run=False, clock=None):
     """Production call only; preserve report bytes and delivery decisions."""
     import json
     import logging
     from app.dashboard.production_evidence_archive import publish
     from app.evaluation.production_evidence import verify
     from app.evaluation.prediction_regression_contract import stamp
+    from app.runtime.capture_context import decision
+    root = ROOT if root is None else Path(root)
+    reason = decision(market='TW', window='pre_open_0700',
+                      session_date=card.get('trading_date'), dry_run=dry_run)
+    if reason != 'CAPTURE_ALLOWED':
+        logging.getLogger(__name__).warning('prediction_capture: %s', reason)
+        return {'status': 'SKIPPED', 'reason': reason}
     try:
         native = card.get("prediction_snapshot_v2") or {}
         from datetime import date
@@ -91,7 +98,7 @@ def capture_and_persist(card):
             raise ValueError("SOURCE_DATE")
         native_id=native.get("prediction_identity") or ("missing-native:"+str(card.get("symbol") or card.get("stock_id")))
         key = digest({"prediction_id":native_id,"version":"production_evidence_accumulation_v1"})
-        directory = ROOT / "artifacts/archive/window_snapshots/tw/pre_open_0700" / day / ".frozen"
+        directory = root / "artifacts/archive/window_snapshots/tw/pre_open_0700" / day / ".frozen"
         target=directory/(key+".json")
         if target.exists():
             verify(json.loads(target.read_text()))
@@ -102,13 +109,16 @@ def capture_and_persist(card):
         attempt=stamp({**common,"capture_phase":"ATTEMPT",
                        "capture":{"status":"BLOCKED_INPUT","reason":"CAPTURE_NOT_COMPLETED"}})
         publish(directory/(digest({"attempt":key})+".json"),attempt)
-        value=stamp({**common,"capture_phase":"RESULT","capture":capture(card,root=ROOT)})
+        value=stamp({**common,"capture_phase":"RESULT","capture":capture(card,root=root,clock=clock)})
         publish(target,value)
+        return value
     except Exception:
         logging.getLogger(__name__).warning("prediction_capture: SHADOW_FAILURE")
 
 
-def capture_permitted(*, dry_run, environment_keys):
-    """Only governed scheduled production may originate native evidence."""
-    from app.runtime.manual_rerun_progress import PROGRESS_LOG_ENV
-    return not dry_run and PROGRESS_LOG_ENV not in environment_keys
+def capture_permitted(*, dry_run, environment_keys, market=None, window=None, session_date=None):
+    """Compatibility interface: a set of environment names grants no permission."""
+    from app.runtime.capture_context import decision
+    return decision(market=market, window=window, session_date=session_date,
+                    dry_run=dry_run, environment=environment_keys
+                    if hasattr(environment_keys, 'get') else {}) == 'CAPTURE_ALLOWED'

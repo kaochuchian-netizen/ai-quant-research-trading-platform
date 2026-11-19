@@ -22,6 +22,16 @@ def _market_label(market: str) -> str:
 
 
 def _prediction_result(data: dict[str, Any]) -> str:
+    summary = data.get('coverage_summary')
+    if summary is not None:
+        labels = {'NO_ELIGIBLE_PREDICTION': '無合格預測', 'WAITING_OUTCOME': '等待正式結果',
+                  'INSUFFICIENT_SAMPLE': '樣本尚未成熟', 'BLOCKED_INPUT': '輸入驗證未通過', 'EVALUATED': '已完成評估'}
+        maturity = '；'.join(f"{n}日成熟股票 {summary['maturity'][n]['mature_stock_count']}/{summary['stock_count']}"
+                            for n in ('3', '10'))
+        reason_labels = {'NO_CONTEMPORANEOUS_FROZEN_EVIDENCE': '缺少事前封存預測', 'NO_SESSION_DIRECTION_PRODUCER': '缺少當日方向預測', 'NATIVE_FROZEN_PREREQUISITE': '原生封存條件不足', 'INVALID_CALENDAR_OR_EVIDENCE': '交易日或證據驗證失敗'}
+        reasons = '、'.join(f'{reason_labels.get(k, k)}：{v}' for k,v in summary['exclusion_reasons'].items()) or '無'
+        return (f"{labels[summary['state']]}。股票 {summary['stock_count']}；合格預測 {summary['eligible_prediction_count']}；"
+                f"已配對結果 {summary['paired_outcome_count']}；{maturity}。排除原因：{reasons}。")
     eligible = correct = pending = 0
     for stock in data.get("stocks", {}).values():
         for review in stock.get("sample_reviews", {}).values():
@@ -43,6 +53,8 @@ def _lesson_text(learning: dict[str, Any]) -> tuple[str, str]:
     if not isinstance(actionable, dict):
         actionable = {}
     finding = learning.get("finding") if isinstance(learning, dict) else None
+    if finding in ('NO_ELIGIBLE_PREDICTION', 'WAITING_OUTCOME', 'INSUFFICIENT_SAMPLE', 'BLOCKED_INPUT'):
+        return ('證據尚不足以形成成熟的策略檢討結論。', '依各市場排除原因與樣本成熟狀態，等待後續自然批次累積；不追補歷史預測。')
     if finding == "DIRECTION_ERROR_OBSERVED" and actionable.get("active") is True:
         return (
             "今日部分方向判斷與實際走勢不一致，已納入下一交易日的保守處理依據。",
