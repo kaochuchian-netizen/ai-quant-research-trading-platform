@@ -10,13 +10,13 @@ US 保存同次既有行情的完整 OHLC、quote hash、接收時間、來源�
 
 ## 隔離驗收
 
-262 項相關單元測試通過。真實輸入副本驗收見 isolated-acceptance.json；它不是自然批次證據。
+262 項相關單元測試通過；另通過 supervisor 真實子程序 scheduled/manual/dry-run 身份傳遞測試。真實輸入副本驗收見 isolated-acceptance.json；它不是自然批次證據。
 TW 使用 11/19 2330 原始卡片、CSV 及 15:00 結果，在測試時鐘重建封存。
 US 使用實際於 2026-11-19T14:21:30.933561Z 接收的 AAPL 盤前行情，以及 23:39:05.072381Z 接收的當日收盤日線；在隔離路徑重建 receipt，不宣稱當時正式批次曾封存。
 兩市場各 1 筆 Prediction → Outcome → Evaluation → Learning → Renderer 成功。3/10 日均不足，不產生完整分數。11/17、18、19 三份 V1 產物原樣 replay，全部來源雜湊不變。
 
 重現：使用既有合法輸入副本，執行 scripts/orchestrator/verify_learning_closure_isolated.py --input-root INPUT --source-evidence SOURCES --output-root NEW_OUTPUT。
-輸出必須與來源、程式目錄分離；驗收階段 socket 連線強制拒絕。不呼叫正式批次、外部新聞、通知或交易。dependency observed 檔僅記錄本機測試版本，CI 使用既有 Python 3.10 依賴規格。
+輸出必須與來源、程式目錄分離；驗收階段 socket 連線強制拒絕。US 真實資料另經 capture_safely 兩秒上限通過。不呼叫正式批次、外部新聞、通知或交易。dependency observed 檔僅記錄本機測試版本，CI 使用既有 Python 3.10 依賴規格。
 
 ## 版本與回退
 
@@ -26,3 +26,5 @@ US 使用實際於 2026-11-19T14:21:30.933561Z 接收的 AAPL 盤前行情，以
 ## 尚待正式驗收
 
 未合併、未部署。部署後仍須 TW/US 新自然批次累積事前 frozen evidence 並確認 17:00 配對；不足 3/10 日保持樣本不足。程式與隔離測試通過不等於策略學習正式恢復。
+
+CI runner 固定 Ubuntu 24.04：原 ubuntu-latest 已移至 26.04，既有 Playwright 1.54.1 明確拒絕該作業系統。保留全部 browser 與治理驗證，未更動 Production OS。

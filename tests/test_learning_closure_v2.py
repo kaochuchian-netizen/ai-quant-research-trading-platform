@@ -159,3 +159,23 @@ class WriterSafetyTests(unittest.TestCase):
             self.assertEqual(entry.main(['--report-date','2026-09-25','--shadow-output',d]),0)
             dashboard.assert_not_called();landing.assert_not_called();send.assert_not_called()
             self.assertEqual(persist.call_args.kwargs['version'],'daily_evaluation_integration_v2')
+
+
+class SupervisorContextTests(unittest.TestCase):
+    def test_context_reaches_child_and_progress_is_independent(self):
+        import sys
+        from app.runtime.delivery_supervisor import supervise
+        code = """import json,os,sys
+from pathlib import Path
+from app.runtime.capture_context import decision,CONTEXT_ENV,RUN_ENV
+c=json.loads(os.environ[CONTEXT_ENV])
+r=decision(market=c['market'],window=c['window'],session_date=c['session_date'])
+Path(sys.argv[-1]).write_text(json.dumps({'ok':True,'run_id':os.environ[RUN_ENV],'capture_decision':r,'progress':bool(os.environ.get('STOCK_AI_MANUAL_RERUN_PROGRESS_LOG'))}))
+"""
+        for flag,allowed in [(None,True),('--manual-rerun',False),('--dry-run',False)]:
+            with self.subTest(flag=flag), tempfile.TemporaryDirectory() as d:
+                command=[sys.executable,'-c',code]+([flag] if flag else [])
+                supervise(command,cwd=Path(__file__).resolve().parents[1],market='TW',window='pre_open_0700',timeout_seconds=5,evidence_root=Path(d))
+                result=json.loads(next(Path(d).glob('*/result.json')).read_text())
+                self.assertEqual(result['capture_decision']=='CAPTURE_ALLOWED',allowed)
+                self.assertTrue(result['progress'])

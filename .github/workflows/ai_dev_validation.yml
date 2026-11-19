@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   validate-ai-branch:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       # Exercise legacy acquisition fixtures; Production remains default-off.
       # The pause suite below removes this value and proves fail-closed behavior.

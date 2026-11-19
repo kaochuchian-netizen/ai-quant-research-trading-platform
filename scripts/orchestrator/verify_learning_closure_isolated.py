@@ -18,7 +18,7 @@ from unittest.mock import patch
 import pandas as pd
 from app.runtime.capture_context import make_context,CONTEXT_ENV,RUN_ENV
 from app.evaluation.prediction_capture import capture_and_persist
-from app.evaluation.us_session_direction import capture_existing,receipt_key,replay_prediction,STREAM
+from app.evaluation.us_session_direction import capture_existing,capture_safely,receipt_key,replay_prediction,STREAM
 from app.dashboard.production_evidence_archive import project
 from app.dashboard.window_snapshot_archive import snapshot_id
 from app.dashboard.daily_evaluation_archive import collect_windows
@@ -76,7 +76,12 @@ with patch.object(socket.socket,'connect',side_effect=AssertionError('NETWORK_FO
  quote={'last_price':meta['last_price'],'market_data_as_of':datetime.fromtimestamp(meta['regularMarketTime'],timezone.utc).isoformat()}
  at=meta['received_at']
  with context('US',STREAM,at):
-  capture_existing('AAPL',quote,history('AAPL-observed-history.csv'),'2026-11-19',STREAM,root=out,clock=lambda:at)
+  original_capture=capture_existing
+  def pinned_capture(*args,**kwargs):
+   return original_capture(*args,**kwargs,clock=lambda:at)
+  with patch('app.evaluation.us_session_direction.capture_existing',side_effect=pinned_capture):
+   safe=capture_safely('AAPL',quote,history('AAPL-observed-history.csv'),'2026-11-19',STREAM,root=out,enabled=True)
+  assert safe['status']=='COMPLETED',safe
  receipt=json.loads((out/'artifacts/archive/window_snapshots/us'/STREAM/'2026-11-19/.frozen'/(receipt_key('AAPL','2026-11-19')+'.json')).read_text())
  assert receipt['capture']['status']=='FROZEN',receipt['capture'].get('reason')
  replay_prediction(receipt['capture'])
