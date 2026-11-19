@@ -21,7 +21,7 @@ US 使用實際於 2026-11-19T14:21:30.933561Z 接收的 AAPL 盤前行情，以
 ## 版本與回退
 
 先提交相容 reader，再於後續 commit 啟用每日 V2 writer。V1 derive/build/replay/hash/learning_id 保持不變；V2 使用獨立 .daily_evaluation_v2 命名空間。V1/V2 predecessor 分派驗證，未知版本拒絕。V2 治理分類必須驗證路徑、identity 與完整 replay。
-回退到相容 reader commit 時，保留全部 V2 檔案；V1 writer 偵測 V2 後拒絕另開歷史鏈，reader 仍可讀兩版本。不得直接回退到不認得 V2 的舊基準或刪除產物。正式操作須另行授權。
+回退到相容 reader commit `6a605b5` 時，保留全部 V2 檔案；V1 writer 偵測 V2 後拒絕另開歷史鏈，reader 仍可讀兩版本。不得直接回退到不認得 V2 的舊基準或刪除產物。正式操作須另行授權。
 
 ## 尚待正式驗收
 

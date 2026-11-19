@@ -153,8 +153,9 @@ class WriterSafetyTests(unittest.TestCase):
     def test_shadow_never_publishes_or_sends(self):
         from scripts.orchestrator import approved_daily_evaluation as entry
         v=build_daily('2026-09-25',packet())
-        with tempfile.TemporaryDirectory() as d, patch.object(entry,'persist_daily',return_value=(Path(d)/'v.json',v)), \
+        with tempfile.TemporaryDirectory() as d, patch.object(entry,'persist_daily',return_value=(Path(d)/'v.json',v)) as persist, \
                 patch.object(entry,'publish_dashboard') as dashboard, patch.object(entry,'publish_daily_evaluation_landing') as landing, \
                 patch.object(entry,'deliver_line_notice') as send:
             self.assertEqual(entry.main(['--report-date','2026-09-25','--shadow-output',d]),0)
             dashboard.assert_not_called();landing.assert_not_called();send.assert_not_called()
+            self.assertEqual(persist.call_args.kwargs['version'],'daily_evaluation_integration_v2')

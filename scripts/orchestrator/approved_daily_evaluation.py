@@ -13,7 +13,8 @@ from app.dashboard.daily_learning_presentation import publish_dashboard
 from app.dashboard.multi_market_dashboard import STATIC_ROOT
 from app.dashboard.multi_market_dashboard import PUBLIC_BASE_URL, publish_daily_evaluation_landing
 from app.reports.daily_evaluation_line_notice import deliver as deliver_line_notice
-from app.evaluation.daily_evaluation import build_daily, replay, canonical_cutoff
+from app.evaluation.daily_evaluation import replay, canonical_cutoff
+from app.evaluation.daily_evaluation_v2 import build as build_daily, VERSION as WRITER_VERSION
 from app.evaluation.prediction_regression_contract import aware
 
 def main(argv=None):
@@ -34,7 +35,7 @@ def main(argv=None):
         if args.readiness:
             value=build_daily(day,collect(ARCHIVE,day));replay(value);path=None
         else:
-            path,value=persist_daily(ARCHIVE,day,output_root=args.shadow_output)
+            path,value=persist_daily(ARCHIVE,day,output_root=args.shadow_output,version=WRITER_VERSION)
         dashboard={"status":"NOT_PUBLISHED"}
         landing={"status":"NOT_PUBLISHED"}
         line_notice={"send_attempted":False,"send_status":"suppressed_not_completed"}
