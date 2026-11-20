@@ -19,6 +19,7 @@ from app.evaluation.daily_learning import latest as latest_learning, apply as ap
 
 PRODUCER = "US_PREOPEN_SESSION_DIRECTION_V1"
 VERSION = "us_preopen_session_direction_v1"
+VERSION_V2 = "us_preopen_session_direction_v2"
 STREAM = "us_pre_market_2000"
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -97,9 +98,51 @@ def predict(observation, calendar, *, frozen_at, learning_reference=None):
 def receipt_key(symbol,day):
     return digest({"producer":PRODUCER,"symbol":symbol,"session":day})
 
+
+def predict_v2(observation, calendar, *, frozen_at, learning_reference=None):
+    """Pin explicit replay inputs; never resolve latest learning during replay."""
+    from app.evaluation.daily_learning import validate_reference
+    validate_reference(learning_reference, market='US', frozen_at=frozen_at)
+    result = predict(observation, calendar, frozen_at=frozen_at, learning_reference=learning_reference)
+    return stamp({'schema_version': VERSION_V2, 'status': result['status'],
+                  'source': deepcopy(observation), 'calendar': deepcopy(calendar),
+                  'frozen_at': frozen_at, 'learning_reference': deepcopy(learning_reference),
+                  'producer': PRODUCER, 'result': result,
+                  **{k: deepcopy(result[k]) for k in ('frozen', 'reason', 'direction') if k in result}})
+
+
+def replay_prediction(value):
+    verify(value)
+    if value.get('schema_version') == VERSION_V2:
+        expected = predict_v2(value['source'], value['calendar'], frozen_at=value['frozen_at'],
+                              learning_reference=value['learning_reference'])
+    elif value.get('schema_version') == VERSION:
+        # Old receipts recorded their reference within learning_used when present.
+        used = value.get('learning_used') or (value.get('frozen') or {}).get('learning_used')
+        reference = used.get('learning_reference') if used else None
+        expected = predict(value['source'], value['calendar'], frozen_at=value['frozen_at'],
+                           learning_reference=reference)
+    else:
+        raise ValueError('US_PRODUCER_VERSION')
+    if expected != value:
+        raise ValueError('US_PRODUCER_REPLAY')
+    return value
+
+def capture_failure_code(exc):
+    # Only constant internal reason codes; never provider text, paths or credentials.
+    codes = {'SOURCE', 'NOT_PREOPEN', 'SESSION_IDENTITY', 'FUTURE_REFERENCE',
+             'BAR_ORDER', 'BAR_SESSION', 'FUTURE_BAR', 'BAR_VALUES', 'STALE_HISTORY',
+             'MISSING_HISTORY', 'SYMBOL', 'REPORT_PATH', 'PREDICTION_REPLAY',
+             'LEARNING_LATEST_INVALID', 'LEARNING_PATH', 'LEARNING_REFERENCE_BINDING',
+             'LEARNING_REFERENCE_FUTURE'}
+    return str(exc) if isinstance(exc, ValueError) and str(exc) in codes else type(exc).__name__
+
+
 def capture_existing(symbol, quote, history, day, window, *, root=ROOT, clock=None):
     """Only caller-owned already fetched data. Never call market-data clients."""
     from app.dashboard.production_evidence_archive import publish
+    from app.runtime.capture_context import require_capture
+    require_capture(market='US', window=window, session_date=day)
     if not symbol_valid(symbol):
         raise ValueError("SYMBOL")
     from datetime import date
@@ -137,7 +180,7 @@ def capture_existing(symbol, quote, history, day, window, *, root=ROOT, clock=No
             raise ValueError("BAR_SESSION")
         if aware(bar["close_at"])>aware(observed):
             continue
-        rows.append({"date":date,"high":positive(float(r["High"])),"low":positive(float(r["Low"])),"close":positive(float(r["Close"]))})
+        rows.append({"date":date,"open":positive(float(r["Open"])),"high":positive(float(r["High"])),"low":positive(float(r["Low"])),"close":positive(float(r["Close"]))})
     observation=stamp({"schema_version":VERSION,"kind":"US_MARKET_OBSERVATION","symbol":symbol,"review_session":day,
                        "source":"Yahoo Finance / yfinance","source_version":"existing_fetch_symbol_daily_auto_adjust_false",
                        "reference_price":quote.get("last_price"),"reference_as_of":quote.get("market_data_as_of"),
@@ -149,13 +192,14 @@ def capture_existing(symbol, quote, history, day, window, *, root=ROOT, clock=No
             # Compute the forecast before assigning its freeze timestamp.
             # The second pure call binds/replays the already computed signal.
             learning_reference = latest_learning(root, "US", day, observed)
-            computed=predict(observation,calendar,frozen_at=observed, learning_reference=learning_reference)
+            computed=predict_v2(observation,calendar,frozen_at=observed, learning_reference=learning_reference)
             frozen_at=clock()
-            value=predict(observation,calendar,frozen_at=frozen_at, learning_reference=learning_reference)
+            value=predict_v2(observation,calendar,frozen_at=frozen_at, learning_reference=learning_reference)
             if (computed["status"],computed.get("direction")) != (value["status"],value.get("direction")):
                 raise ValueError("PREDICTION_REPLAY")
-        except (ValueError,KeyError,TypeError):
+        except (ValueError,KeyError,TypeError) as exc:
             value=stamp({"schema_version":VERSION,"status":"BLOCKED_INPUT","reason":"NATIVE_INPUT_INVALID",
+                         "prerequisite_error":capture_failure_code(exc),
                          "source":observation,"producer":PRODUCER})
         publish(target,stamp({"schema_version":VERSION,"kind":"US_NATIVE_RECEIPT","symbol":symbol,
                               "review_session":day,"capture":value}))
@@ -163,18 +207,29 @@ def capture_existing(symbol, quote, history, day, window, *, root=ROOT, clock=No
 def capture_safely(symbol, quote, history, day, window, *, enabled, root=ROOT):
     """Two-second best-effort capture; skip when caller owns an alarm/thread."""
     import os
-    from app.evaluation.prediction_capture import capture_permitted
-    if not enabled or not capture_permitted(dry_run=False,environment_keys=os.environ):
-        return
-    if threading.current_thread() is not threading.main_thread() or signal.getitimer(signal.ITIMER_REAL)[0]:
-        return
+    from app.runtime.capture_context import decision
+    def skipped(reason):
+        logging.getLogger(__name__).warning('us_session_direction: %s', reason)
+        return {'status': 'SKIPPED', 'reason': reason}
+    if not enabled:
+        return skipped('CAPTURE_DISABLED')
+    reason = decision(market='US', window=window, session_date=day)
+    if reason != 'CAPTURE_ALLOWED':
+        return skipped(reason)
+    if threading.current_thread() is not threading.main_thread():
+        return skipped('CAPTURE_NOT_MAIN_THREAD')
+    if signal.getitimer(signal.ITIMER_REAL)[0]:
+        return skipped('CAPTURE_OUTER_ALARM_ACTIVE')
     old=signal.getsignal(signal.SIGALRM)
     def expired(*_):
         raise TimeoutError("US_CAPTURE_TIMEOUT")
     try:
         signal.signal(signal.SIGALRM,expired);signal.setitimer(signal.ITIMER_REAL,2)
         capture_existing(symbol,quote,history,day,window,root=root)
-    except Exception:
-        logging.getLogger(__name__).warning("us_session_direction: SHADOW_CAPTURE_FAILED")
+        return {'status': 'COMPLETED'}
+    except TimeoutError:
+        return skipped('CAPTURE_TIMEOUT')
+    except Exception as exc:
+        return skipped('CAPTURE_INPUT_OR_WRITE_FAILED_' + capture_failure_code(exc))
     finally:
         signal.setitimer(signal.ITIMER_REAL,0);signal.signal(signal.SIGALRM,old)

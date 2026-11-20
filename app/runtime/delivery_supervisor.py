@@ -35,7 +35,11 @@ def checkpoint(stage: str, **facts: Any) -> None:
 
 def supervise(command: list[str], *, cwd: Path, market: str, window: str,
               timeout_seconds: float, evidence_root: Path) -> dict[str, Any]:
+    from app.runtime.capture_context import CONTEXT_ENV, make_context
     run_id = f'{market.lower()}-{window}-{uuid.uuid4().hex}'
+    mode = ('dry_run' if '--dry-run' in command else 'manual_rerun'
+            if '--manual-rerun' in command or '--as-of' in command else 'scheduled')
+    context = make_context(run_id=run_id, market=market, window=window, mode=mode)
     evidence_root.mkdir(parents=True, exist_ok=True)
     directory = Path(tempfile.mkdtemp(prefix=run_id+'-', dir=evidence_root))
     result_path = directory / 'result.json'
@@ -43,7 +47,7 @@ def supervise(command: list[str], *, cwd: Path, market: str, window: str,
     result = run_process_group(command + ['--output', str(result_path)], cwd=cwd,
         task_id=run_id, log_path=directory/'worker.log', progress_path=directory/'progress.jsonl',
         timeout_seconds=timeout_seconds,
-        extra_env={RUN_ENV:run_id, FACT_ENV:str(facts_path)})
+        extra_env={RUN_ENV:run_id, FACT_ENV:str(facts_path), CONTEXT_ENV:json.dumps(context)})
     try:
         facts = json.loads(facts_path.read_text()) if facts_path.exists() else {}
     except (OSError, ValueError):

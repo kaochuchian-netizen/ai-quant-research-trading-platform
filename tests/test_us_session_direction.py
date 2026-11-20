@@ -1,3 +1,4 @@
+from capture_context_support import scheduled
 """Synthetic-only 253 integration and contract regressions."""
 import json
 import tempfile
@@ -117,6 +118,7 @@ class NativeTests(unittest.TestCase):
         r=project(report(kind="manual_rerun"),{"TEST":receipt(prediction())})
         self.assertEqual(r["records"][0]["direction_sample_count"],0)
         self.assertEqual(reevaluate("/not/read",r),[])
+    @scheduled()
     def test_persist_reload(self):
         with tempfile.TemporaryDirectory() as d:
             base=Path(d)/"us"/STREAM/"2026-09-24";base.mkdir(parents=True)
@@ -152,13 +154,14 @@ class History:
     def tail(self,n): return History(self.rows[-n:])
     def iterrows(self):
         for r in self.rows:
-            yield datetime.fromisoformat(r["date"]),{"High":r["high"],"Low":r["low"],"Close":r["close"]}
+            yield datetime.fromisoformat(r["date"]),{"Open":r["close"],"High":r["high"],"Low":r["low"],"Close":r["close"]}
 
 class CaptureIntegrationTests(unittest.TestCase):
     def run_capture(self,d,day="2026-09-24",window=STREAM,missing=False):
         o=obs(day);quote={"last_price":o["reference_price"],"market_data_as_of":o["reference_as_of"]}
-        capture_existing("TEST",quote,None if missing else History(o["rows"]),day,window,root=d,
-                         clock=lambda:day+"T08:01:00-04:00")
+        with scheduled(window=window, day=day):
+            capture_existing("TEST",quote,None if missing else History(o["rows"]),day,window,root=d,
+                             clock=lambda:day+"T08:01:00-04:00")
         return quote
     def test_future_capture_receipt(self):
         with tempfile.TemporaryDirectory() as d:
@@ -175,6 +178,7 @@ class CaptureIntegrationTests(unittest.TestCase):
             with self.assertRaises(ValueError):self.run_capture(d,missing=True)
             rows=[json.loads(p.read_text()) for p in Path(d).rglob("*.json")]
             self.assertEqual(rows[0]["capture"]["status"],"BLOCKED_INPUT")
+    @scheduled()
     def test_capture_input_unchanged(self):
         o=obs();h=History(o["rows"]);before=deepcopy(h.rows)
         with tempfile.TemporaryDirectory() as d:
@@ -189,6 +193,7 @@ class CaptureIntegrationTests(unittest.TestCase):
             self.run_capture(d,window="us_intraday_2300")
             rows=[json.loads(p.read_text()) for p in Path(d).rglob("*.json")]
             self.assertTrue(all(r["kind"]=="US_MARKET_OBSERVATION" for r in rows))
+    @scheduled()
     def test_outcome_existing_accumulator(self):
         with tempfile.TemporaryDirectory() as d:
             archive=Path(d)/"artifacts/archive/window_snapshots"
@@ -198,7 +203,8 @@ class CaptureIntegrationTests(unittest.TestCase):
             persist(p)
             later=obs("2026-09-28")
             other=archive/"us"/STREAM/"2026-09-28";other.mkdir(parents=True)
-            publish(other/".frozen"/(later["content_hash"]+".json"),later)
+            with scheduled(day="2026-09-28"):
+                publish(other/".frozen"/(later["content_hash"]+".json"),later)
             current=project(s,{"TEST":receipt(prediction())})
             current["report_identity"]["effective_trading_date"]="2026-09-28"
             current=stamp(current)
@@ -267,6 +273,7 @@ class ContractAuditTests(unittest.TestCase):
 
 
 class FreezeOrderingTests(unittest.TestCase):
+    @scheduled()
     def test_forecast_computed_before_freeze_clock(self):
         import app.evaluation.us_session_direction as module
         original=module.predict
@@ -280,6 +287,7 @@ class FreezeOrderingTests(unittest.TestCase):
             module.capture_existing("TEST",{"last_price":119,"market_data_as_of":o["reference_as_of"]},
                                     History(o["rows"]),"2026-09-24",STREAM,root=d,clock=clock)
         self.assertEqual(events,["clock","predict","clock","predict"])
+    @scheduled()
     def test_calculation_crossing_open_does_not_freeze(self):
         o=obs();times=iter(["2026-09-24T09:29:59-04:00","2026-09-24T09:30:00-04:00"])
         with tempfile.TemporaryDirectory() as d:
@@ -292,6 +300,7 @@ class FreezeOrderingTests(unittest.TestCase):
 
 
 class MissingCalendarReceiptTests(unittest.TestCase):
+    @scheduled()
     def test_calendar_failure_is_blocked_receipt(self):
         with tempfile.TemporaryDirectory() as d,patch("app.evaluation.us_session_direction.load_calendar",side_effect=ValueError("CALENDAR_MISSING")):
             with self.assertRaises(ValueError):

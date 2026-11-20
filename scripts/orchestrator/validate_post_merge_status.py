@@ -310,6 +310,18 @@ def supervisor_evidence_valid(path: str, repo_root: Path | None) -> bool:
 
 
 def is_preserved_runtime_artifact(path: str, *, repo_root: Path | None = None) -> bool:
+    if re.fullmatch(r"artifacts/archive/window_snapshots/\.daily_evaluation_v2/\d{4}-\d{2}-\d{2}/[0-9a-f]{64}\.json", path):
+        if repo_root is None:
+            return False
+        try:
+            from app.dashboard.daily_evaluation_archive import read
+            from app.evaluation.daily_evaluation_v2 import replay, VERSION
+            value = read(Path(repo_root)/path)
+            replay(value)
+            return (value["schema_version"] == VERSION and value["report_date"] == Path(path).parent.name
+                    and value["identity"] == Path(path).stem)
+        except (OSError, ValueError, TypeError, KeyError):
+            return False
     if RECOVERY_TRANSPORT_PATH.fullmatch(path):
         return transport_receipt_error(path, repo_root) is None
     if SUPERVISOR_PATH.fullmatch(path):

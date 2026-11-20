@@ -10,6 +10,11 @@ from app.evaluation.production_evidence import capability, lineage, validate_fro
 
 def publish(path, value):
     path = Path(path)
+    # Central guard for native evidence, including direct persistence callers.
+    if path.parent.name == '.frozen':
+        from app.runtime.capture_context import require_capture
+        require_capture(market=path.parents[3].name.upper(), window=path.parents[2].name,
+                        session_date=path.parent.parent.name)
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.is_symlink():
         raise ValueError("ARTIFACT_SYMLINK")
@@ -90,7 +95,8 @@ def project(snapshot, frozen_sources=None):
                 else:
                     from app.evaluation.session_calendar import load_calendar
                     calendar=source["calendar"]
-                    if predict(source["source"],calendar,frozen_at=source["frozen_at"])!=source:
+                    from app.evaluation.us_session_direction import replay_prediction
+                    if replay_prediction(source)!=source:
                         raise ValueError("US_PRODUCER_REPLAY")
                     if source["status"]=="NO_FORECAST":
                         r.update(state=None,direction_status="NO_FORECAST",reason_codes=[source["reason"]])
@@ -336,4 +342,3 @@ def bind_assessment(current, predecessor=None):
         except (ValueError,KeyError,TypeError):
             value["comparison"]={"status":"REJECTED","reason":"PREDECESSOR_INTEGRITY"}
     return stamp(value)
-

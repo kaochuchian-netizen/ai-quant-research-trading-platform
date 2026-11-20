@@ -1,3 +1,4 @@
+from capture_context_support import scheduled
 """Synthetic-only 252 semantic regressions; never production inputs."""
 import unittest
 from copy import deepcopy
@@ -232,6 +233,7 @@ class IsolationTests(unittest.TestCase):
 
 
 class CaptureReceiptTests(unittest.TestCase):
+    @scheduled("TW", "pre_open_0700")
     def test_failed_future_capture_not_historical(self):
         from app.evaluation.prediction_capture import capture_and_persist
         import app.evaluation.prediction_capture as module
@@ -245,6 +247,7 @@ class CaptureReceiptTests(unittest.TestCase):
             saved=[json.loads(p.read_text()) for p in files]
             self.assertEqual({x["capture_phase"] for x in saved},{"ATTEMPT","RESULT"})
             self.assertTrue(all(x["capture"]["status"]=="BLOCKED_INPUT" for x in saved))
+    @scheduled("TW", "pre_open_0700")
     def test_interrupted_capture_leaves_receipt(self):
         from app.evaluation.prediction_capture import capture_and_persist
         import app.evaluation.prediction_capture as module
@@ -265,7 +268,7 @@ class CaptureModeTests(unittest.TestCase):
         self.assertFalse(capture_permitted(dry_run=True,environment_keys=set()))
     def test_scheduled_capture_enabled(self):
         from app.evaluation.prediction_capture import capture_permitted
-        self.assertTrue(capture_permitted(dry_run=False,environment_keys=set()))
+        self.assertFalse(capture_permitted(dry_run=False,environment_keys=set()))  # Unknown identity fails closed.
     def test_manual_sample_count_zero(self):
         s,src=source_snapshot(kind="manual_rerun")
         self.assertEqual(project(s,src)["records"][0]["direction_sample_count"],0)
@@ -302,6 +305,7 @@ class PredecessorTests(unittest.TestCase):
         p=assessed("2026-09-23","prior");before=deepcopy(p)
         r=bind_assessment(assessed("2026-09-24","current"),p)
         self.assertEqual(before,p);self.assertEqual(r,bind_assessment(assessed("2026-09-24","current"),p))
+    @scheduled("TW", "pre_open_0700")
     def test_tw_receipt_resolution(self):
         s,src=source_snapshot();source=next(iter(src.values()))
         attempt=stamp({**source,"capture_phase":"ATTEMPT","capture":{"status":"BLOCKED_INPUT"}})

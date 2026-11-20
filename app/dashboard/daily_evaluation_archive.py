@@ -14,19 +14,18 @@ ARCHIVE=ROOT/"artifacts/archive/window_snapshots"
 
 def latest_valid_daily_evaluation(archive=ARCHIVE):
     """Return the newest replay-valid 17:00 artifact, without mutable aliases."""
-    root=Path(archive)/".daily_evaluation"
     candidates=[]
-    for directory in sorted(root.glob("????-??-??"), reverse=True)[:32]:
+    roots = [Path(archive)/n for n in ('.daily_evaluation', '.daily_evaluation_v2')]
+    directories = sorted((d for root in roots for d in root.glob('????-??-??')),
+                         key=lambda d:(d.name,d.parent.name), reverse=True)[:64]
+    for directory in directories:
+        if candidates and directory.name < candidates[0]['report_date']:
+            break
         for path in files(directory,32):
-            try:
-                value=read(path);replay(value)
-            except (ValueError,KeyError,TypeError,OSError):
-                continue
+            value=read(path);replay(value)
             if value.get("status")=="VALID":
                 candidates.append(value)
-        if candidates:
-            return max(candidates,key=lambda item:str(item.get("identity") or ""))
-    return None
+    return max(candidates,key=lambda item:(item['schema_version'],item['identity'])) if candidates else None
 
 def read(path,limit=32*1024*1024):
     path=Path(path)
@@ -129,11 +128,17 @@ def collect(archive,report_date,calendars=None):
                             "prerequisite_error":"INVALID_CALENDAR_OR_ARCHIVE"}
     return result
 
-def persist_daily(archive,report_date,*,output_root=None):
+def persist_daily(archive,report_date,*,output_root=None,version=VERSION):
     archive=Path(archive)
+    from app.evaluation.daily_evaluation_v2 import VERSION as V2, build as build_v2
+    if version not in (VERSION, V2):
+        raise ValueError('DAILY_WRITER_VERSION')
+    if version == VERSION and output_root is None and any((archive/".daily_evaluation_v2").glob("????-??-??/*.json")):
+        raise ValueError("V1_WRITER_AFTER_V2_DENIED")
+    build = build_v2 if version == V2 else build_daily
     inputs=collect(archive,report_date)
-    bare=build_daily(report_date,inputs)
-    destination=Path(output_root) if output_root else archive/".daily_evaluation"
+    bare=build(report_date,inputs)
+    destination=Path(output_root) if output_root else archive/('.daily_evaluation_v2' if version==V2 else '.daily_evaluation')
     target=destination/report_date/(bare["identity"]+".json")
     if target.exists():
         saved=read(target);replay(saved)
@@ -143,7 +148,11 @@ def persist_daily(archive,report_date,*,output_root=None):
     # Exactly previous immutable date, deterministic ordering; same input retries
     # return the already pinned artifact above even if older archives later grow.
     previous=None
-    prior_dirs=sorted((d for d in destination.glob("????-??-??") if d.name<report_date),reverse=True)
+    prior_roots = [destination]
+    if version == V2 and output_root is None:
+        prior_roots.append(archive/'.daily_evaluation')
+    prior_dirs=sorted((d for root in prior_roots for d in root.glob("????-??-??") if d.name<report_date),
+                      key=lambda d:(d.name,d.parent.name),reverse=True)
     if prior_dirs:
         candidates=files(prior_dirs[0],32)
         if candidates:
@@ -152,8 +161,10 @@ def persist_daily(archive,report_date,*,output_root=None):
                 if prior["status"]=="VALID":
                     previous=predecessor_proof(prior)
             except (ValueError,KeyError,TypeError):
+                if version == V2:
+                    raise
                 previous={"invalid":True}
-    value=build_daily(report_date,inputs,previous)
+    value=build(report_date,inputs,previous)
     replay(value)
     for market, packet in inputs.items():
         for item in ([] if output_root else packet.get("derived_outcomes", [])):

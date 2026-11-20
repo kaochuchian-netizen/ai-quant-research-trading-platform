@@ -902,6 +902,8 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    from app.runtime.capture_context import reject_inherited_context
+    reject_inherited_context(manual=args.manual_rerun, dry_run=args.dry_run)
     if not args.dry_run and not args.manual_rerun and not args.worker_mode:
         result = supervise([sys.executable, str(Path(__file__).resolve()), *sys.argv[1:], "--worker-mode"],
             cwd=REPO_ROOT, market="TW", window=args.window,

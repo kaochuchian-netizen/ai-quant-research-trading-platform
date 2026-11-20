@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   validate-ai-branch:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       # Exercise legacy acquisition fixtures; Production remains default-off.
       # The pause suite below removes this value and proves fail-closed behavior.
@@ -62,6 +62,9 @@ jobs:
 
       - name: Verify default-paused news and zero external requests
         run: env -u STOCK_AI_NEWS_FETCH_ENABLED python3 -m unittest tests.test_news_pause -v
+
+      - name: Verify capture identity and versioned learning closure
+        run: PYTHONPATH=.:tests python3 -m unittest test_learning_closure_v2 test_daily_evaluation test_us_session_direction test_production_evidence test_unified_daily_learning test_daily_learning_presentation -q
 
       - name: Verify frozen delivery-evaluation consistency
         run: python3 -m unittest tests.test_ai_dev_283 tests.test_ai_dev_284 tests.test_ai_dev_285 tests.test_ai_dev_286 tests.test_ai_dev_286_e2e tests.test_ai_dev_287 tests.test_ai_dev_288 tests.test_ai_dev_289 tests.test_ai_dev_290_us_news_delivery tests.test_ai_dev_291 tests.test_ai_dev_292 tests.test_ai_dev_293 tests.test_ai_dev_294

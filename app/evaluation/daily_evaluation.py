@@ -180,6 +180,9 @@ def derive_learning(report_date, markets):
 
 
 def replay(value):
+    if value.get('schema_version') == 'daily_evaluation_integration_v2':
+        from app.evaluation.daily_evaluation_v2 import replay as replay_v2
+        return replay_v2(value)
     verify(value)
     if value.get("schema_version")!=VERSION or value.get("kind")!="DAILY_EVALUATION":
         raise ValueError("DAILY_SCHEMA")
@@ -189,6 +192,9 @@ def replay(value):
 
 def predecessor_proof(value):
     """Bounded replay proof: pins the immutable semantic core, not a mutable latest."""
+    if value.get('schema_version') == 'daily_evaluation_integration_v2':
+        from app.evaluation.daily_evaluation_v2 import predecessor_proof as proof_v2
+        return proof_v2(value)
     replay(value)
     core=build_daily(value["report_date"],value["inputs"])
     return stamp({"schema_version":VERSION,"kind":"DAILY_PREDECESSOR_PROOF",

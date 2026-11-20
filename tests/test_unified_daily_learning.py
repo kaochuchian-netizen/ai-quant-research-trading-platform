@@ -60,7 +60,7 @@ class UnifiedDailyLearningTests(unittest.TestCase):
 
     def test_next_prediction_applies_prior_learning_with_machine_proof(self):
         learning=derive("2026-09-23",{"TW":{"outcome_diagnostics":[]},"US":{"outcome_diagnostics":[]}})
-        parent=stamp({"kind":"DAILY_EVALUATION","report_date":"2026-09-23","canonical_cutoff":"2026-09-23T17:00:00+08:00","learning_artifact":learning})
+        parent=stamp({"schema_version":"daily_evaluation_integration_v1","kind":"DAILY_EVALUATION","report_date":"2026-09-23","canonical_cutoff":"2026-09-23T17:00:00+08:00","learning_artifact":learning})
         with tempfile.TemporaryDirectory() as root:
             target=Path(root)/"artifacts/archive/window_snapshots/.daily_evaluation/2026-09-23"
             target.mkdir(parents=True); (target/(parent["content_hash"]+".json")).write_text(json.dumps(parent))
